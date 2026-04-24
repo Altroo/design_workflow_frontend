@@ -1,0 +1,76 @@
+import React, { useEffect } from 'react';
+import { AlertCircle, CheckCircle2, Info, TriangleAlert, X } from 'lucide-react';
+import type { ToastType } from '@/contexts/toastContext';
+
+type Props = {
+	type: ToastType;
+	show: boolean;
+	setShow: React.Dispatch<React.SetStateAction<boolean>>;
+	message: string;
+	children?: React.ReactNode;
+};
+
+const toneMap = {
+	success: {
+		icon: <CheckCircle2 className="h-5 w-5" />,
+		accent: 'border-l-black',
+	},
+	error: {
+		icon: <AlertCircle className="h-5 w-5" />,
+		accent: 'border-l-black',
+	},
+	info: {
+		icon: <Info className="h-5 w-5" />,
+		accent: 'border-l-black',
+	},
+	warning: {
+		icon: <TriangleAlert className="h-5 w-5" />,
+		accent: 'border-l-black',
+	},
+} satisfies Record<ToastType, { icon: React.ReactNode; accent: string }>;
+
+const CustomToast: React.FC<Props> = ({ type, show, setShow, message }) => {
+	useEffect(() => {
+		if (!show) {
+			return undefined;
+		}
+
+		const timeout = window.setTimeout(() => {
+			setShow(false);
+		}, 6000);
+
+		return () => window.clearTimeout(timeout);
+	}, [setShow, show]);
+
+	if (!show) {
+		return null;
+	}
+
+	const tone = toneMap[type];
+
+	return (
+		<div className="pointer-events-none fixed bottom-4 left-4 z-[120]">
+			<div
+				role="alert"
+				className={[
+					'pointer-events-auto flex min-w-[280px] max-w-[420px] items-start gap-3 rounded-[8px] border border-[color:var(--line-strong)] bg-white p-4 shadow-[var(--shadow-lg)]',
+					'border-l-4',
+					tone.accent,
+				].join(' ')}
+			>
+				<div className="mt-0.5 text-[var(--ink)]">{tone.icon}</div>
+				<p className="flex-1 text-sm font-medium text-[var(--ink)]">{message}</p>
+				<button
+					type="button"
+					aria-label="Close"
+					onClick={() => setShow(false)}
+					className="rounded-full p-1 text-[var(--ink-soft)] transition hover:bg-[var(--surface-muted)] hover:text-[var(--ink)]"
+				>
+					<X className="h-4 w-4" />
+				</button>
+			</div>
+		</div>
+	);
+};
+
+export default CustomToast;
