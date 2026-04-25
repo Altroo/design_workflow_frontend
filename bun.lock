@@ -19,6 +19,7 @@
         "next-auth": "^5.0.0-beta.30",
         "nextjs-cors": "^2.2.1",
         "react": "^19.2.5",
+        "react-colorful": "^5.6.1",
         "react-cropper": "^2.3.3",
         "react-day-picker": "^9.14.0",
         "react-dom": "^19.2.5",
@@ -1355,6 +1356,8 @@
     "queue-microtask": ["queue-microtask@1.2.3", "", {}, "sha512-NuaNSa6flKT5JaSYQzJok04JzTL1CA6aGhv5rfLW3PgqA+M2ChpZQnAC8h8i4ZFkBS8X5RqkDBHA7r4hej3K9A=="],
 
     "react": ["react@19.2.5", "", {}, "sha512-llUJLzz1zTUBrskt2pwZgLq59AemifIftw4aB7JxOqf1HY2FDaGDxgwpAPVzHU1kdWabH7FauP4i1oEeer2WCA=="],
+
+    "react-colorful": ["react-colorful@5.6.1", "", { "peerDependencies": { "react": ">=16.8.0", "react-dom": ">=16.8.0" } }, "sha512-1exovf0uGTGyq5mXQT0zgQ80uvj2PCwvF8zY1RN9/vbJVSjSo3fsB/4L3ObbF7u70NduSiK4xu4Y6q1MHoUGEw=="],
 
     "react-cropper": ["react-cropper@2.3.3", "", { "dependencies": { "cropperjs": "^1.5.13" }, "peerDependencies": { "react": ">=17.0.2" } }, "sha512-zghiEYkUb41kqtu+2jpX2Ntigf+Jj1dF9ew4lAobPzI2adaPE31z0p+5TcWngK6TvmWQUwK3lj4G+NDh1PDQ1w=="],
 

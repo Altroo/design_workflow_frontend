@@ -23,6 +23,8 @@ type FormikContentType = {
 	token: string | undefined;
 };
 
+const normalizeGenderValue = (value?: string | null) => (value === 'Homme' ? 'H' : value === 'Femme' ? 'F' : value ?? '');
+
 const FormikContent: React.FC<FormikContentType> = ({ token }) => {
 	const { onSuccess, onError } = useToast();
 	const { t } = useLanguage();
@@ -35,7 +37,7 @@ const FormikContent: React.FC<FormikContentType> = ({ token }) => {
 		initialValues: {
 			first_name: profilData?.first_name ?? '',
 			last_name: profilData?.last_name ?? '',
-			gender: profilData?.gender ?? '',
+			gender: normalizeGenderValue(profilData?.gender),
 			avatar: profilData?.avatar ?? '',
 			avatar_cropped: profilData?.avatar_cropped ?? '',
 			globalError: '',

@@ -60,21 +60,27 @@ type FormikContentProps = {
 	id?: number;
 };
 
+const normalizeGenderValue = (value?: string | null) => (value === 'Homme' ? 'H' : value === 'Femme' ? 'F' : value ?? '');
+
 const ToggleRow = ({
 	label,
+	name,
 	checked,
 	onChange,
 }: {
 	label: string;
+	name: string;
 	checked: boolean;
-	onChange: React.ChangeEventHandler<HTMLInputElement>;
+	onChange: (checked: boolean) => void;
 }) => (
 	<label className="flex items-center justify-between gap-4 rounded-[8px] border border-[color:var(--line)] bg-white px-4 py-3">
 		<span className="text-sm font-medium text-[var(--ink)]">{label}</span>
 		<input
+			id={name}
+			name={name}
 			type="checkbox"
 			checked={checked}
-			onChange={onChange}
+			onChange={(event) => onChange(event.target.checked)}
 			className="h-4 w-4 rounded border-[color:var(--line-strong)] accent-[var(--accent)]"
 		/>
 	</label>
@@ -109,7 +115,7 @@ const FormikContent: React.FC<FormikContentProps> = ({ token, id }) => {
 			first_name: rawData?.first_name ?? '',
 			last_name: rawData?.last_name ?? '',
 			email: rawData?.email ?? '',
-			gender: rawData?.gender ?? '',
+			gender: normalizeGenderValue(rawData?.gender) || 'H',
 			role: rawData?.role ?? 'designer',
 			is_active: rawData?.is_active ?? true,
 			is_staff: rawData?.is_staff ?? false,
@@ -154,8 +160,8 @@ const FormikContent: React.FC<FormikContentProps> = ({ token, id }) => {
 
 	const fieldLabels: Record<string, string> = {
 		email: t.users.email,
-		first_name: t.users.lastName,
-		last_name: t.users.firstName,
+		first_name: t.users.firstName,
+		last_name: t.users.lastName,
 		gender: t.users.gender,
 		role: t.users.role,
 		is_active: t.users.activeAccount,
@@ -188,12 +194,12 @@ const FormikContent: React.FC<FormikContentProps> = ({ token, id }) => {
 			</div>
 
 			{validationErrors.length > 0 ? (
-				<div className="mb-5 rounded-[8px] border border-[color:var(--line-strong)] bg-[var(--surface-muted)] p-5">
-					<div className="flex items-center gap-2 text-[var(--ink)]">
+				<div className="mb-5 rounded-[8px] border border-red-200 bg-red-50 p-5">
+					<div className="flex items-center gap-2 text-red-700">
 						<TriangleAlert className="h-5 w-5" />
 						<p className="font-semibold">{t.users.validationErrorsDetected}</p>
 					</div>
-					<ul className="mt-3 space-y-2 text-sm text-[var(--ink-soft)]">
+					<ul className="mt-3 space-y-2 text-sm text-red-600">
 						{validationErrors.map(([key, err]) => (
 							<li key={key}>
 								{fieldLabels[key] ?? key}: {err}
@@ -203,7 +209,7 @@ const FormikContent: React.FC<FormikContentProps> = ({ token, id }) => {
 				</div>
 			) : null}
 
-			{formik.errors.globalError ? <span className="text-sm text-[var(--ink-soft)]">{formik.errors.globalError}</span> : null}
+			{formik.errors.globalError ? <span className="text-sm text-red-600">{formik.errors.globalError}</span> : null}
 
 			{isLoading ? (
 				<ApiProgress backdropColor="#FFFFFF" circularColor="#111827" />
@@ -242,13 +248,15 @@ const FormikContent: React.FC<FormikContentProps> = ({ token, id }) => {
 							<div className="mt-4 space-y-3">
 								<ToggleRow
 									label={t.users.activeAccount}
+									name="is_active"
 									checked={formik.values.is_active}
-									onChange={formik.handleChange}
+									onChange={(checked) => formik.setFieldValue('is_active', checked)}
 								/>
 								<ToggleRow
 									label={t.users.adminAccount}
+									name="is_staff"
 									checked={formik.values.is_staff}
-									onChange={formik.handleChange}
+									onChange={(checked) => formik.setFieldValue('is_staff', checked)}
 								/>
 							</div>
 						</div>
@@ -279,7 +287,7 @@ const FormikContent: React.FC<FormikContentProps> = ({ token, id }) => {
 								<CustomTextInput
 									id="first_name"
 									type="text"
-									label={`${t.users.lastName} *`}
+									label={`${t.users.firstName} *`}
 									value={formik.values.first_name}
 									onChange={formik.handleChange('first_name')}
 									onBlur={formik.handleBlur('first_name')}
@@ -291,7 +299,7 @@ const FormikContent: React.FC<FormikContentProps> = ({ token, id }) => {
 								<CustomTextInput
 									id="last_name"
 									type="text"
-									label={`${t.users.firstName} *`}
+									label={`${t.users.lastName} *`}
 									value={formik.values.last_name}
 									onChange={formik.handleChange('last_name')}
 									onBlur={formik.handleBlur('last_name')}
@@ -325,7 +333,7 @@ const FormikContent: React.FC<FormikContentProps> = ({ token, id }) => {
 										onChange={(e) => formik.setFieldValue('role', e.target.value)}
 										onBlur={formik.handleBlur('role')}
 										error={formik.touched.role && Boolean(formik.errors.role)}
-										helperText={formik.touched.role ? formik.errors.role : t.users.roleHelp}
+										helperText={formik.touched.role ? formik.errors.role : ''}
 										startIcon={<Shield className="h-4 w-4" />}
 									/>
 								</div>
@@ -338,11 +346,11 @@ const FormikContent: React.FC<FormikContentProps> = ({ token, id }) => {
 								<h3 className="text-lg font-semibold text-[var(--ink)]">{t.users.permissions}</h3>
 							</div>
 							<div className="mt-5 grid gap-3 md:grid-cols-2">
-								<ToggleRow label={t.users.canView} checked={formik.values.can_view} onChange={formik.handleChange} />
-								<ToggleRow label={t.users.canPrint} checked={formik.values.can_print} onChange={formik.handleChange} />
-								<ToggleRow label={t.users.canCreate} checked={formik.values.can_create} onChange={formik.handleChange} />
-								<ToggleRow label={t.users.canEdit} checked={formik.values.can_edit} onChange={formik.handleChange} />
-								<ToggleRow label={t.users.canDelete} checked={formik.values.can_delete} onChange={formik.handleChange} />
+								<ToggleRow label={t.users.canView} name="can_view" checked={formik.values.can_view} onChange={(checked) => formik.setFieldValue('can_view', checked)} />
+								<ToggleRow label={t.users.canPrint} name="can_print" checked={formik.values.can_print} onChange={(checked) => formik.setFieldValue('can_print', checked)} />
+								<ToggleRow label={t.users.canCreate} name="can_create" checked={formik.values.can_create} onChange={(checked) => formik.setFieldValue('can_create', checked)} />
+								<ToggleRow label={t.users.canEdit} name="can_edit" checked={formik.values.can_edit} onChange={(checked) => formik.setFieldValue('can_edit', checked)} />
+								<ToggleRow label={t.users.canDelete} name="can_delete" checked={formik.values.can_delete} onChange={(checked) => formik.setFieldValue('can_delete', checked)} />
 							</div>
 						</div>
 

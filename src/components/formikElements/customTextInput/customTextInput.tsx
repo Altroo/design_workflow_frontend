@@ -60,7 +60,7 @@ const CustomTextInput = forwardRef<HTMLInputElement | HTMLTextAreaElement, Props
 							disabled={rest.disabled}
 							required={rest.required}
 							rows={rows}
-							className={['app-input w-full min-h-[110px] resize-y', startIcon ? 'pl-14' : '', endIcon ? 'pr-14' : '', error ? 'border-[color:var(--accent)]' : ''].join(' ')}
+							className={['app-input w-full min-h-[110px] resize-y', startIcon ? 'pl-14' : '', endIcon ? 'pr-14' : '', error ? 'border-red-600' : ''].join(' ')}
 						/>
 					) : (
 						<input
@@ -77,7 +77,7 @@ const CustomTextInput = forwardRef<HTMLInputElement | HTMLTextAreaElement, Props
 							autoComplete={rest.autoComplete}
 							onClick={rest.onClick}
 							maxLength={props.maxLength}
-							className={['app-input w-full', startIcon ? 'pl-14' : '', endIcon ? 'pr-14' : '', error ? 'border-[color:var(--accent)]' : ''].join(' ')}
+							className={['app-input w-full', startIcon ? 'pl-14' : '', endIcon ? 'pr-14' : '', error ? 'border-red-600' : ''].join(' ')}
 							{...slotProps?.htmlInput}
 						/>
 					)}
@@ -85,7 +85,7 @@ const CustomTextInput = forwardRef<HTMLInputElement | HTMLTextAreaElement, Props
 						<div className="absolute right-5 top-1/2 -translate-y-1/2 text-[var(--ink-soft)]">{endIcon}</div>
 					) : null}
 				</div>
-				{helperText ? <p className="mt-2 text-sm text-[var(--ink-soft)]">{helperText}</p> : null}
+				{helperText ? <p className="mt-2 text-sm text-red-600">{helperText}</p> : null}
 			</div>
 		);
 	},

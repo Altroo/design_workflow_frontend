@@ -6,6 +6,7 @@ export type WorkflowUser = {
 	last_name: string;
 	email: string;
 	role: UserRole;
+	avatar?: string | null;
 };
 
 export type ProjectSummary = {
@@ -21,6 +22,38 @@ export type ProjectSummary = {
 	archived_at: string | null;
 	total_logged_minutes: number;
 	open_tasks_count: number;
+	created_at: string;
+	updated_at: string;
+};
+
+export type TaskLabel = {
+	id: number;
+	name: string;
+	color: string;
+	created_at: string;
+	updated_at: string;
+};
+
+export type TaskChecklistItem = {
+	id: number;
+	title: string;
+	done: boolean;
+	sort_order: number;
+	created_by: WorkflowUser;
+	completed_by: WorkflowUser | null;
+	completed_at: string | null;
+	created_at: string;
+	updated_at: string;
+};
+
+export type TaskAttachment = {
+	id: number;
+	uploaded_by: WorkflowUser;
+	file: string;
+	file_url: string | null;
+	name: string;
+	mime_type: string;
+	size: number;
 	created_at: string;
 	updated_at: string;
 };
@@ -66,6 +99,7 @@ export type TaskCard = {
 	project: ProjectSummary;
 	title: string;
 	description: string;
+	cover_image_url: string | null;
 	current_assignee: WorkflowUser | null;
 	status: 'backlog' | 'todo' | 'in_progress' | 'in_review' | 'blocked' | 'done';
 	priority: 'low' | 'medium' | 'high' | 'urgent';
@@ -74,6 +108,13 @@ export type TaskCard = {
 	actual_minutes: number;
 	blocked_reason: string;
 	sort_order: number;
+	labels: TaskLabel[];
+	checklist_items: TaskChecklistItem[];
+	attachments: TaskAttachment[];
+	archived: boolean;
+	archived_at: string | null;
+	is_completed: boolean;
+	completed_at: string | null;
 	is_overdue: boolean;
 	created_at: string;
 	updated_at: string;
@@ -118,6 +159,55 @@ export type TaskInput = {
 	estimated_minutes?: number;
 	blocked_reason?: string;
 	sort_order?: number;
+	label_ids?: number[];
+	archived?: boolean;
+};
+
+export type ChatAttachment = {
+	id: number;
+	file: string;
+	file_url: string | null;
+	name: string;
+	mime_type: string;
+	size: number;
+	created_at: string;
+	updated_at: string;
+};
+
+export type ChatMessageReply = {
+	id: number;
+	sender: WorkflowUser;
+	body: string;
+	deleted_at: string | null;
+	is_deleted: boolean;
+	created_at: string;
+};
+
+export type ChatMessage = {
+	id: number;
+	thread: number;
+	sender: WorkflowUser;
+	body: string;
+	attachments: ChatAttachment[];
+	read_by: WorkflowUser[];
+	mentions: WorkflowUser[];
+	reply_to: ChatMessageReply | null;
+	is_read: boolean;
+	deleted_at: string | null;
+	is_deleted: boolean;
+	created_at: string;
+	updated_at: string;
+};
+
+export type ChatThread = {
+	id: number;
+	kind: 'public' | 'private';
+	title: string;
+	participants: WorkflowUser[];
+	last_message: ChatMessage | null;
+	unread_count: number;
+	created_at: string;
+	updated_at: string;
 };
 
 export type NotificationItem = {
@@ -166,4 +256,12 @@ export type TaskFilters = {
 	blocked?: boolean;
 	start_date?: string;
 	end_date?: string;
+	archived?: boolean;
+};
+
+export type ChatMessagesQuery = {
+	threadId: number;
+	before_id?: number;
+	limit?: number;
+	q?: string;
 };

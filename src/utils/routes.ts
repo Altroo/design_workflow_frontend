@@ -19,6 +19,7 @@ export const DASHBOARD_TASK_VIEW = (id: number | string) => `${SITE_ROOT}dashboa
 export const DASHBOARD_TEAM = `${SITE_ROOT}dashboard/team`;
 export const DASHBOARD_REPORTS_TIME = `${SITE_ROOT}dashboard/reports/time`;
 export const DASHBOARD_NOTIFICATIONS = `${SITE_ROOT}dashboard/notifications`;
+export const DASHBOARD_CHAT = `${SITE_ROOT}dashboard/chat`;
 // Settings
 export const DASHBOARD_EDIT_PROFILE = `${SITE_ROOT}dashboard/settings/edit-profile`;
 export const DASHBOARD_PASSWORD = `${SITE_ROOT}dashboard/settings/password`;

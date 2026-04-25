@@ -5,6 +5,9 @@ import type { RootState } from '@/store/store';
 import { axiosBaseQuery } from '@/utils/axiosBaseQuery';
 import { isAuthenticatedInstance } from '@/utils/helpers';
 import type {
+	ChatMessage,
+	ChatMessagesQuery,
+	ChatThread,
 	DashboardSummary,
 	NotificationItem,
 	ProjectDetail,
@@ -12,7 +15,10 @@ import type {
 	ProjectSummary,
 	TaskComment,
 	TaskDetail,
+	TaskAttachment,
 	TaskCard,
+	TaskChecklistItem,
+	TaskLabel,
 	TaskFilters,
 	TaskInput,
 	TimeEntry,
@@ -24,7 +30,7 @@ const DESIGN_WORKFLOW_ROOT = `${process.env.NEXT_PUBLIC_API_URL}/api/design-work
 
 export const designWorkflowApi = createApi({
 	reducerPath: 'designWorkflowApi',
-	tagTypes: ['Dashboard', 'Project', 'Task', 'Notification', 'Workload', 'Report'],
+	tagTypes: ['Dashboard', 'Project', 'Task', 'Notification', 'Workload', 'Report', 'Label', 'Chat'],
 	baseQuery: axiosBaseQuery((api) =>
 		isAuthenticatedInstance(
 			() => getInitStateToken(api.getState() as RootState),
@@ -67,6 +73,14 @@ export const designWorkflowApi = createApi({
 		getProject: builder.query<ProjectDetail, number>({
 			query: (id) => ({ url: `${DESIGN_WORKFLOW_ROOT}projects/${id}/`, method: 'GET' }),
 			providesTags: (_result, _error, id) => [{ type: 'Project', id }],
+		}),
+		getLabels: builder.query<TaskLabel[], void>({
+			query: () => ({ url: `${DESIGN_WORKFLOW_ROOT}labels/`, method: 'GET' }),
+			providesTags: ['Label'],
+		}),
+		createLabel: builder.mutation<TaskLabel, { name: string; color: string }>({
+			query: (data) => ({ url: `${DESIGN_WORKFLOW_ROOT}labels/`, method: 'POST', data }),
+			invalidatesTags: ['Label', 'Task'],
 		}),
 		getTasks: builder.query<TaskCard[], TaskFilters | void>({
 			query: (params) => ({
@@ -119,6 +133,75 @@ export const designWorkflowApi = createApi({
 				'Project',
 				'Workload',
 			],
+		}),
+		toggleTaskCompletion: builder.mutation<TaskDetail, { id: number; is_completed: boolean }>({
+			query: ({ id, is_completed }) => ({
+				url: `${DESIGN_WORKFLOW_ROOT}tasks/${id}/complete/`,
+				method: 'POST',
+				data: { is_completed },
+			}),
+			invalidatesTags: (_result, _error, { id }) => ['Task', { type: 'Task', id }, 'Dashboard', 'Project', 'Workload'],
+		}),
+		archiveTask: builder.mutation<TaskDetail, { id: number; archived: boolean }>({
+			query: ({ id, archived }) => ({
+				url: `${DESIGN_WORKFLOW_ROOT}tasks/${id}/archive/`,
+				method: 'POST',
+				data: { archived },
+			}),
+			invalidatesTags: (_result, _error, { id }) => ['Task', { type: 'Task', id }, 'Dashboard', 'Project', 'Workload'],
+		}),
+		addChecklistItem: builder.mutation<TaskChecklistItem, { id: number; title: string; done?: boolean; sort_order?: number }>({
+			query: ({ id, ...data }) => ({
+				url: `${DESIGN_WORKFLOW_ROOT}tasks/${id}/checklist/`,
+				method: 'POST',
+				data,
+			}),
+			invalidatesTags: (_result, _error, { id }) => ['Task', { type: 'Task', id }],
+		}),
+		updateChecklistItem: builder.mutation<TaskChecklistItem, { id: number; itemId: number; data: Partial<Pick<TaskChecklistItem, 'title' | 'done' | 'sort_order'>> }>({
+			query: ({ id, itemId, data }) => ({
+				url: `${DESIGN_WORKFLOW_ROOT}tasks/${id}/checklist/${itemId}/`,
+				method: 'PATCH',
+				data,
+			}),
+			invalidatesTags: (_result, _error, { id }) => ['Task', { type: 'Task', id }],
+		}),
+		deleteChecklistItem: builder.mutation<void, { id: number; itemId: number }>({
+			query: ({ id, itemId }) => ({
+				url: `${DESIGN_WORKFLOW_ROOT}tasks/${id}/checklist/${itemId}/`,
+				method: 'DELETE',
+			}),
+			invalidatesTags: (_result, _error, { id }) => ['Task', { type: 'Task', id }],
+		}),
+		uploadTaskAttachment: builder.mutation<TaskAttachment, { id: number; data: FormData }>({
+			query: ({ id, data }) => ({
+				url: `${DESIGN_WORKFLOW_ROOT}tasks/${id}/attachments/`,
+				method: 'POST',
+				data,
+			}),
+			invalidatesTags: (_result, _error, { id }) => ['Task', { type: 'Task', id }],
+		}),
+		deleteTaskAttachment: builder.mutation<void, { id: number; attachmentId: number }>({
+			query: ({ id, attachmentId }) => ({
+				url: `${DESIGN_WORKFLOW_ROOT}tasks/${id}/attachments/${attachmentId}/`,
+				method: 'DELETE',
+			}),
+			invalidatesTags: (_result, _error, { id }) => ['Task', { type: 'Task', id }],
+		}),
+		uploadTaskCover: builder.mutation<TaskDetail, { id: number; data: FormData }>({
+			query: ({ id, data }) => ({
+				url: `${DESIGN_WORKFLOW_ROOT}tasks/${id}/cover/`,
+				method: 'POST',
+				data,
+			}),
+			invalidatesTags: (_result, _error, { id }) => ['Task', { type: 'Task', id }, 'Project'],
+		}),
+		deleteTaskCover: builder.mutation<TaskDetail, number>({
+			query: (id) => ({
+				url: `${DESIGN_WORKFLOW_ROOT}tasks/${id}/cover/`,
+				method: 'DELETE',
+			}),
+			invalidatesTags: (_result, _error, id) => ['Task', { type: 'Task', id }, 'Project'],
 		}),
 		reassignTask: builder.mutation<TaskDetail, { id: number; assignee_id: number; reason: string }>({
 			query: ({ id, ...data }) => ({
@@ -189,6 +272,38 @@ export const designWorkflowApi = createApi({
 			}),
 			providesTags: ['Notification'],
 		}),
+		getChatThreads: builder.query<ChatThread[], void>({
+			query: () => ({ url: `${DESIGN_WORKFLOW_ROOT}chat/threads/`, method: 'GET' }),
+			providesTags: ['Chat'],
+		}),
+		createChatThread: builder.mutation<ChatThread, { kind: 'public' | 'private'; recipient_id?: number; title?: string }>({
+			query: (data) => ({ url: `${DESIGN_WORKFLOW_ROOT}chat/threads/`, method: 'POST', data }),
+			invalidatesTags: ['Chat'],
+		}),
+		getChatMessages: builder.query<ChatMessage[], ChatMessagesQuery>({
+			query: ({ threadId, before_id, limit, q }) => ({
+				url: `${DESIGN_WORKFLOW_ROOT}chat/threads/${threadId}/messages/`,
+				method: 'GET',
+				params: { before_id, limit, q },
+			}),
+			providesTags: (_result, _error, { threadId }) => [{ type: 'Chat', id: threadId }],
+		}),
+		sendChatMessage: builder.mutation<ChatMessage, { threadId: number; data: FormData }>({
+			query: ({ threadId, data }) => ({
+				url: `${DESIGN_WORKFLOW_ROOT}chat/threads/${threadId}/messages/`,
+				method: 'POST',
+				data,
+			}),
+			invalidatesTags: (_result, _error, { threadId }) => ['Chat', { type: 'Chat', id: threadId }],
+		}),
+		markChatMessageRead: builder.mutation<ChatMessage, number>({
+			query: (id) => ({ url: `${DESIGN_WORKFLOW_ROOT}chat/messages/${id}/read/`, method: 'POST' }),
+			invalidatesTags: ['Chat'],
+		}),
+		deleteChatMessage: builder.mutation<ChatMessage, number>({
+			query: (id) => ({ url: `${DESIGN_WORKFLOW_ROOT}chat/messages/${id}/delete/`, method: 'POST' }),
+			invalidatesTags: ['Chat'],
+		}),
 		markNotificationRead: builder.mutation<NotificationItem, number>({
 			query: (id) => ({
 				url: `${DESIGN_WORKFLOW_ROOT}notifications/${id}/read/`,
@@ -205,11 +320,22 @@ export const {
 	useCreateProjectMutation,
 	useUpdateProjectMutation,
 	useGetProjectQuery,
+	useGetLabelsQuery,
+	useCreateLabelMutation,
 	useGetTasksQuery,
 	useCreateTaskMutation,
 	useGetTaskQuery,
 	useUpdateTaskMutation,
 	useUpdateTaskStatusMutation,
+	useToggleTaskCompletionMutation,
+	useArchiveTaskMutation,
+	useAddChecklistItemMutation,
+	useUpdateChecklistItemMutation,
+	useDeleteChecklistItemMutation,
+	useUploadTaskAttachmentMutation,
+	useDeleteTaskAttachmentMutation,
+	useUploadTaskCoverMutation,
+	useDeleteTaskCoverMutation,
 	useReassignTaskMutation,
 	useGetTaskCommentsQuery,
 	useAddTaskCommentMutation,
@@ -218,5 +344,12 @@ export const {
 	useGetWorkloadQuery,
 	useGetTimeReportQuery,
 	useGetNotificationsQuery,
+	useGetChatThreadsQuery,
+	useCreateChatThreadMutation,
+	useGetChatMessagesQuery,
+	useLazyGetChatMessagesQuery,
+	useSendChatMessageMutation,
+	useMarkChatMessageReadMutation,
+	useDeleteChatMessageMutation,
 	useMarkNotificationReadMutation,
 } = designWorkflowApi;

@@ -48,7 +48,7 @@ const CustomPasswordInput = forwardRef<HTMLInputElement, Props>((props: Props, r
 					placeholder={props.placeholder}
 					disabled={props.disabled}
 					onClick={props.onClick}
-					className={['app-input w-full', props.startIcon ? 'pl-14' : '', 'pr-14', props.error ? 'border-[color:var(--accent)]' : ''].join(' ')}
+					className={['app-input w-full', props.startIcon ? 'pl-14' : '', 'pr-14', props.error ? 'border-red-600' : ''].join(' ')}
 				/>
 				<button
 					type="button"
@@ -59,7 +59,7 @@ const CustomPasswordInput = forwardRef<HTMLInputElement, Props>((props: Props, r
 					{showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
 				</button>
 			</div>
-			{props.helperText ? <p className="mt-2 text-sm text-[var(--ink-soft)]">{props.helperText}</p> : null}
+			{props.helperText ? <p className="mt-2 text-sm text-red-600">{props.helperText}</p> : null}
 		</div>
 	);
 });

@@ -41,6 +41,7 @@ body {
 
 body {
 	line-height: 1.5;
+	background: linear-gradient(180deg, #ffffff 0%, var(--app-bg) 100%);
 }
 
 #__next {
@@ -100,6 +101,21 @@ select {
 		border-color var(--speed) ease,
 		box-shadow var(--speed) ease,
 		transform var(--speed) ease;
+}
+
+.app-card::before {
+	content: '';
+	position: absolute;
+	inset: 0;
+	pointer-events: none;
+	border-radius: inherit;
+	background: linear-gradient(180deg, rgba(255, 255, 255, 0.72), transparent 34%);
+	opacity: 0.7;
+}
+
+.app-card > * {
+	position: relative;
+	z-index: 1;
 }
 
 .app-card-muted {
@@ -173,7 +189,7 @@ select {
 	align-items: center;
 	justify-content: center;
 	gap: 10px;
-	border-radius: 12px;
+	border-radius: var(--radius);
 	border: 1px solid var(--accent-strong);
 	background: var(--accent);
 	padding: 13px 18px;
@@ -477,6 +493,14 @@ select {
 	display: none;
 }
 
+.workflow-rail:not(.workflow-rail-expanded) > div:first-child {
+	justify-content: center;
+}
+
+.workflow-rail:not(.workflow-rail-expanded) .workflow-rail-logo {
+	display: none;
+}
+
 .workflow-rail .workflow-nav-link {
 	justify-content: center;
 	width: 48px;
@@ -490,6 +514,10 @@ select {
 .workflow-rail-expanded .workflow-rail-title,
 .workflow-rail-expanded .workflow-nav-badge {
 	display: block;
+}
+
+.workflow-rail-expanded .workflow-rail-logo {
+	display: flex;
 }
 
 .workflow-rail-expanded .workflow-nav-badge {
@@ -555,3 +583,10 @@ button:focus-visible {
 		transition-duration: 0.01ms !important;
 	}
 }
+
+.workflow-task-card[data-status='backlog'] { box-shadow: inset 4px 0 0 #94a3b8; }
+.workflow-task-card[data-status='todo'] { box-shadow: inset 4px 0 0 #3b82f6; }
+.workflow-task-card[data-status='in_progress'] { box-shadow: inset 4px 0 0 #f59e0b; }
+.workflow-task-card[data-status='in_review'] { box-shadow: inset 4px 0 0 #8b5cf6; }
+.workflow-task-card[data-status='blocked'] { box-shadow: inset 4px 0 0 #ef4444; }
+.workflow-task-card[data-status='done'] { box-shadow: inset 4px 0 0 #22c55e; }

@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { signOut, useSession } from 'next-auth/react';
@@ -15,6 +15,7 @@ import {
 	KeyRound,
 	LayoutDashboard,
 	LogOut,
+	MessagesSquare,
 	Menu,
 	PanelLeftClose,
 	PanelLeftOpen,
@@ -26,6 +27,7 @@ import {
 	AUTH_LOGIN,
 	BACKEND_SITE_ADMIN,
 	DASHBOARD_BOARD,
+	DASHBOARD_CHAT,
 	DASHBOARD_EDIT_PROFILE,
 	DASHBOARD_MY_WORK,
 	DASHBOARD_NOTIFICATIONS,
@@ -68,16 +70,24 @@ const NavigationBar = ({ title, children }: Props) => {
 	const { data: session } = useSession();
 	const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 	const [profileMenuOpen, setProfileMenuOpen] = useState(false);
-	const [railOpen, setRailOpen] = useState(false);
+	const [notificationsOpen, setNotificationsOpen] = useState(false);
+	const [railOpen, setRailOpen] = useState(true);
 	const [isMobile, setIsMobile] = useState(false);
 	const { t, language, setLanguage } = useLanguage();
 	const profile = useAppSelector(getProfilState);
+	const notificationsRef = useRef<HTMLDivElement | null>(null);
+	const seenUnreadIdsRef = useRef<number[]>([]);
+	const isSuperuser = Boolean((profile as { is_superuser?: boolean }).is_superuser);
+	const hasWorkflowDataAccess = Boolean(session && (profile.role || profile.is_staff || isSuperuser));
 	const unreadNotificationsQuery = useGetNotificationsQuery(
 		{ unread: true },
-		{ skip: !session || (!profile.role && !profile.is_staff) },
+		{ skip: !hasWorkflowDataAccess },
 	);
 	const unreadNotifications = unreadNotificationsQuery.data?.length ?? 0;
-	const isSuperuser = Boolean((profile as { is_superuser?: boolean }).is_superuser);
+	const notificationsPreviewQuery = useGetNotificationsQuery(undefined, {
+		skip: !hasWorkflowDataAccess,
+	});
+	const notificationsPreview = notificationsPreviewQuery.data?.slice(0, 5) ?? [];
 	const hasManagerAccess = profile.role === 'manager' || profile.is_staff || isSuperuser;
 
 	useEffect(() => {
@@ -87,6 +97,31 @@ const NavigationBar = ({ title, children }: Props) => {
 		return () => window.removeEventListener('resize', syncViewport);
 	}, []);
 
+	useEffect(() => {
+		if (!notificationsOpen) return;
+		const handleClickOutside = (event: MouseEvent) => {
+			if (notificationsRef.current && !notificationsRef.current.contains(event.target as Node)) {
+				setNotificationsOpen(false);
+			}
+		};
+		document.addEventListener('mousedown', handleClickOutside);
+		return () => document.removeEventListener('mousedown', handleClickOutside);
+	}, [notificationsOpen]);
+
+	useEffect(() => {
+		if (typeof window === 'undefined' || !('Notification' in window)) return;
+		const unread = (unreadNotificationsQuery.data ?? []).filter((notification) => !notification.is_read);
+		const unreadIds = unread.map((notification) => notification.id);
+		const newNotifications = unread.filter((notification) => !seenUnreadIdsRef.current.includes(notification.id));
+		seenUnreadIdsRef.current = unreadIds;
+		if (Notification.permission !== 'granted' || document.visibilityState === 'visible') return;
+		newNotifications.slice(0, 2).forEach((notification) => {
+			const title = typeof notification.payload.title === 'string' ? notification.payload.title : (t.workflow.labels.notificationFallback ?? 'Workflow notification');
+			const body = notification.task?.title ?? notification.project?.name ?? notification.type;
+			new Notification(title, { body });
+		});
+	}, [unreadNotificationsQuery.data]);
+
 	const workflowItems = useMemo<NavItem[]>(
 		() =>
 			hasManagerAccess
@@ -95,6 +130,7 @@ const NavigationBar = ({ title, children }: Props) => {
 						{ label: t.navigation.board, path: DASHBOARD_BOARD, icon: <BriefcaseBusiness size={16} /> },
 						{ label: t.navigation.projects, path: DASHBOARD_PROJECTS, icon: <FolderKanban size={16} /> },
 						{ label: t.navigation.team, path: DASHBOARD_TEAM, icon: <Users size={16} /> },
+						{ label: t.workflow.labels.chatTitle ?? 'Chat', path: DASHBOARD_CHAT, icon: <MessagesSquare size={16} /> },
 						{ label: t.navigation.reports, path: DASHBOARD_REPORTS_TIME, icon: <Shield size={16} /> },
 						{
 							label: t.navigation.notifications,
@@ -107,6 +143,7 @@ const NavigationBar = ({ title, children }: Props) => {
 						{ label: t.navigation.myWork, path: DASHBOARD_MY_WORK, icon: <LayoutDashboard size={16} /> },
 						{ label: t.navigation.board, path: DASHBOARD_BOARD, icon: <BriefcaseBusiness size={16} /> },
 						{ label: t.navigation.projects, path: DASHBOARD_PROJECTS, icon: <FolderKanban size={16} /> },
+						{ label: t.workflow.labels.chatTitle ?? 'Chat', path: DASHBOARD_CHAT, icon: <MessagesSquare size={16} /> },
 						{
 							label: t.navigation.notifications,
 							path: DASHBOARD_NOTIFICATIONS,
@@ -200,9 +237,9 @@ const NavigationBar = ({ title, children }: Props) => {
 
 	return (
 		<div className={['workflow-shell', railOpen ? 'workflow-shell-expanded' : ''].join(' ')}>
-			<aside className={['workflow-rail app-card hidden flex-col p-3 lg:flex', railOpen ? 'workflow-rail-expanded' : 'items-center'].join(' ')}>
+			<aside className={['workflow-rail app-card hidden flex-col bg-white/92 p-3 backdrop-blur-xl lg:flex', railOpen ? 'workflow-rail-expanded' : 'items-center'].join(' ')}>
 				<div className="flex w-full items-center justify-between gap-3 border-b border-[color:var(--line)] pb-4">
-					<div className="flex h-11 w-11 items-center justify-center rounded-[8px] bg-[var(--accent)] text-sm font-semibold text-white shadow-[var(--shadow-sm)]">
+					<div className="workflow-rail-logo flex h-11 w-11 items-center justify-center rounded-[8px] bg-[var(--ink)] text-center text-sm font-extrabold leading-none text-white shadow-[var(--shadow-sm)]">
 						DW
 					</div>
 					<div className="workflow-rail-title min-w-0">
@@ -220,7 +257,7 @@ const NavigationBar = ({ title, children }: Props) => {
 				</div>
 
 				<nav aria-label="Workflow navigation" className={['mt-5 flex flex-1 flex-col gap-2', railOpen ? 'w-full items-stretch' : 'items-center'].join(' ')}>
-					<p className="workflow-nav-section px-2 text-[11px] font-semibold uppercase tracking-[0.18em] text-[var(--ink-muted)]">Workspace</p>
+					<p className="workflow-nav-section px-2 text-[11px] font-bold uppercase tracking-[0.18em] text-[var(--accent-strong)]">Workspace</p>
 					{workflowItems.map(renderNavLink)}
 					<div className="mt-5 w-full border-t border-[color:var(--line)] pt-4">
 						<p className="workflow-nav-section mb-2 px-2 text-[11px] font-semibold uppercase tracking-[0.18em] text-[var(--ink-muted)]">
@@ -230,7 +267,7 @@ const NavigationBar = ({ title, children }: Props) => {
 					</div>
 				</nav>
 
-				<div className="workflow-rail-user mt-5 rounded-[8px] border border-[color:var(--line)] bg-[var(--surface-muted)] p-3">
+				<div className="workflow-rail-user mt-5 rounded-[8px] border border-[color:var(--line)] bg-[var(--accent-tint)] p-3">
 					<p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-[var(--ink-muted)]">Signed in</p>
 					<p className="mt-1 truncate text-sm font-semibold text-[var(--ink)]">
 						{profile.first_name} {profile.last_name}
@@ -241,7 +278,7 @@ const NavigationBar = ({ title, children }: Props) => {
 
 			<div className="workflow-main">
 				<div className="mx-auto flex w-full max-w-[1520px] flex-col gap-4">
-					<header className="workflow-topbar app-card overflow-visible px-3 py-3 sm:px-4">
+					<header className="workflow-topbar app-card overflow-visible bg-white/90 px-3 py-3 backdrop-blur-xl sm:px-4">
 						<div className="flex flex-wrap items-center gap-3">
 							<button
 								type="button"
@@ -267,11 +304,11 @@ const NavigationBar = ({ title, children }: Props) => {
 								</div>
 							</div>
 
-							<label className="app-pill hidden min-w-[280px] flex-1 items-center gap-3 px-3 py-2.5 text-sm text-[var(--ink-soft)] md:flex">
+							<label className="app-pill hidden min-w-[280px] flex-1 items-center gap-3 bg-[var(--surface-muted)] px-3 py-2.5 text-sm text-[var(--ink-soft)] md:flex">
 								<Search size={17} />
 								<input
-									aria-label="Search tasks, projects, or teammates"
-									placeholder="Search tasks, projects, teammates"
+									aria-label={t.navigation.searchWorkspace ?? t.workflow.labels.search}
+									placeholder={t.navigation.searchWorkspace ?? t.workflow.labels.search}
 									className="min-w-0 flex-1 bg-transparent text-[var(--ink)] outline-none placeholder:text-[var(--ink-muted)]"
 								/>
 								<span className="hidden items-center gap-1 rounded-[6px] border border-[color:var(--line)] px-2 py-1 text-[11px] font-semibold text-[var(--ink-muted)] xl:inline-flex">
@@ -280,7 +317,30 @@ const NavigationBar = ({ title, children }: Props) => {
 							</label>
 
 							<div className="ml-auto flex items-center gap-2">
-							{(profile.is_staff || isSuperuser) && (
+								<div ref={notificationsRef} className="relative">
+									<button type="button" onClick={() => setNotificationsOpen((current) => !current)} className="app-pill workflow-focus-ring relative flex h-11 w-11 items-center justify-center text-[var(--ink)]">
+										<Bell size={18} />
+										{unreadNotifications ? <span className="absolute right-2 top-2 h-2.5 w-2.5 rounded-full bg-red-600" /> : null}
+									</button>
+									{notificationsOpen ? (
+										<div className="absolute right-0 top-[calc(100%+10px)] z-[110] flex w-[360px] max-w-[calc(100vw-24px)] flex-col gap-2 rounded-[8px] border border-[color:var(--line)] bg-white p-3 shadow-[var(--shadow-lg)]">
+											<div className="flex items-center justify-between gap-3 px-1">
+												<p className="text-sm font-bold text-[var(--ink)]">{t.navigation.notifications}</p>
+												<Link href={DASHBOARD_NOTIFICATIONS} onClick={() => setNotificationsOpen(false)} className="text-xs font-semibold text-[var(--accent-strong)]">{t.navigation.openInbox ?? 'Open inbox'}</Link>
+											</div>
+											<div className="space-y-2">
+												{notificationsPreview.map((notification) => (
+													<Link key={notification.id} href={notification.task ? `${SITE_ROOT}dashboard/tasks/${notification.task.id}` : DASHBOARD_NOTIFICATIONS} onClick={() => setNotificationsOpen(false)} className="block rounded-[8px] border border-[color:var(--line)] px-3 py-3 hover:bg-[var(--surface-muted)]">
+														<p className="text-sm font-semibold text-[var(--ink)]">{typeof notification.payload.title === 'string' ? notification.payload.title : (t.workflow.activities[notification.type] ?? notification.type)}</p>
+														<p className="mt-1 text-xs text-[var(--ink-soft)]">{notification.task?.title ?? notification.project?.name ?? (t.navigation.workflowUpdate ?? 'Workflow update')}</p>
+													</Link>
+												))}
+												{notificationsPreview.length === 0 ? <p className="px-1 py-4 text-sm text-[var(--ink-soft)]">{t.navigation.noNotificationsYet ?? 'No notifications yet.'}</p> : null}
+											</div>
+										</div>
+									) : null}
+								</div>
+								{(profile.is_staff || isSuperuser) && (
 									<a
 										href={BACKEND_SITE_ADMIN}
 										target="_blank"
@@ -350,8 +410,8 @@ const NavigationBar = ({ title, children }: Props) => {
 								<label className="app-input flex items-center gap-3 px-3 py-2">
 									<Search size={17} className="text-[var(--ink-soft)]" />
 									<input
-										aria-label="Search tasks, projects, or teammates"
-										placeholder="Search"
+										aria-label={t.navigation.searchWorkspace ?? t.workflow.labels.search}
+										placeholder={t.workflow.labels.search}
 										className="min-w-0 flex-1 bg-transparent outline-none"
 									/>
 								</label>

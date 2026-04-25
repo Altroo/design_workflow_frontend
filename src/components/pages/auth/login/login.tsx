@@ -3,7 +3,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { useFormik } from 'formik';
 import { toFormikValidationSchema } from 'zod-formik-adapter';
-import { ArrowRight, KeyRound, Lock, Mail } from 'lucide-react';
+import { ArrowRight, Eye, EyeOff, KeyRound, Lock, Mail, ShieldCheck } from 'lucide-react';
 import { signIn, useSession } from 'next-auth/react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import AuthLayout from '@/components/layouts/auth/authLayout';
@@ -20,6 +20,7 @@ const LoginPageContent = () => {
 	const router = useRouter();
 	const searchParams = useSearchParams();
 	const [isPending, setIsPending] = useState(false);
+	const [showPassword, setShowPassword] = useState(false);
 	const { t } = useLanguage();
 	const error = searchParams.get('error') as string | null;
 	const errorState = error === 'AccessDenied' ? t.errors.serviceUnavailable : error;
@@ -62,38 +63,37 @@ const LoginPageContent = () => {
 
 	return (
 		<div className="app-card relative overflow-hidden bg-white">
-			<div className="border-b border-[color:var(--line)] bg-[var(--accent-tint)] px-5 py-5 sm:px-7">
+			<div className="border-b border-[color:var(--line)] bg-[linear-gradient(135deg,var(--accent-tint),#fff)] px-5 py-5 sm:px-7">
 				<div className="flex items-center justify-between gap-4">
 					<div className="flex items-center gap-3">
-						<div className="grid h-12 w-12 place-items-center rounded-[8px] border border-[color:var(--accent)] bg-[var(--accent)] text-sm font-bold text-white">
+						<div className="grid h-12 w-12 place-items-center rounded-[8px] border border-[color:var(--ink)] bg-[var(--ink)] text-sm font-extrabold text-white">
 							DW
 						</div>
 						<div>
-							<p className="text-[11px] font-semibold uppercase tracking-[0.24em] text-[var(--ink-muted)]">Studio access</p>
-							<p className="text-lg font-semibold text-[var(--ink)]">Design Workflow</p>
+							<p className="text-[11px] font-bold uppercase tracking-[0.24em] text-[var(--accent-strong)]">Studio access</p>
+							<p className="text-lg font-extrabold text-[var(--ink)]">Design Workflow</p>
 						</div>
 					</div>
-					<div className="hidden grid-cols-3 gap-1 sm:grid">
-						<span className="h-8 w-2 rounded-full bg-[var(--accent)]" />
-						<span className="h-8 w-2 rounded-full bg-[var(--line-strong)]" />
-						<span className="h-8 w-2 rounded-full bg-[var(--line)]" />
+					<div className="hidden items-center gap-2 rounded-[8px] border border-[color:var(--line)] bg-white px-3 py-2 text-xs font-bold text-[var(--accent-strong)] sm:flex">
+						<ShieldCheck size={15} />
+						Secure
 					</div>
 				</div>
 			</div>
 
 			<div className="relative z-10 px-5 py-6 sm:px-7 sm:py-7">
 				<div className="mb-7">
-					<h1 className="text-4xl font-semibold text-[var(--ink)]">{t.auth.login}</h1>
+					<h1 className="text-4xl font-extrabold text-[var(--ink)]">{t.auth.login}</h1>
 					<p className="mt-3 text-sm leading-6 text-[var(--ink-soft)]">
 						Access architectural project boards and task rooms.
 					</p>
 				</div>
 
-				<div className="mb-5 grid grid-cols-3 gap-2">
-					<div className="h-2 rounded-full bg-[var(--accent)]" />
-					<div className="h-2 rounded-full bg-[var(--surface-strong)]" />
-					<div className="h-2 rounded-full bg-[var(--surface-strong)]" />
-				</div>
+					<div className="mb-5 grid grid-cols-3 gap-2" aria-hidden="true">
+						<div className="h-2 rounded-full bg-[var(--accent)]" />
+						<div className="h-2 rounded-full bg-[var(--line-strong)]" />
+						<div className="h-2 rounded-full bg-[var(--surface-strong)]" />
+					</div>
 
 				{errorState ? (
 					<div className="mb-4 rounded-[8px] border border-[color:var(--accent)] bg-[var(--accent-soft)] px-4 py-3 text-sm font-medium text-[var(--accent-strong)]">
@@ -117,7 +117,7 @@ const LoginPageContent = () => {
 								value={formik.values.email}
 								onChange={formik.handleChange}
 								onBlur={formik.handleBlur}
-								className="app-input pl-14"
+								className="app-input min-h-[52px] pl-14"
 							/>
 						</div>
 						{formik.touched.email && formik.errors.email ? (
@@ -134,14 +134,22 @@ const LoginPageContent = () => {
 							<input
 								id="password"
 								name="password"
-								type="password"
+								type={showPassword ? 'text' : 'password'}
 								autoComplete="current-password"
 								placeholder={t.auth.passwordPlaceholder}
 								value={formik.values.password}
 								onChange={formik.handleChange}
 								onBlur={formik.handleBlur}
-								className="app-input pl-14"
+								className="app-input min-h-[52px] pl-14 pr-14"
 							/>
+							<button
+								type="button"
+								aria-label={showPassword ? 'Hide password' : 'Show password'}
+								onClick={() => setShowPassword((current) => !current)}
+								className="absolute right-3 top-1/2 grid h-9 w-9 -translate-y-1/2 place-items-center rounded-[8px] text-[var(--ink-soft)] transition hover:bg-[var(--surface-muted)] hover:text-[var(--ink)]"
+							>
+								{showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+							</button>
 						</div>
 						{formik.touched.password && formik.errors.password ? (
 							<p className="mt-2 text-sm text-[var(--ink-soft)]">{formik.errors.password}</p>
@@ -154,16 +162,16 @@ const LoginPageContent = () => {
 						</div>
 					) : null}
 
-					<div className="flex items-center justify-between gap-3 pt-1">
+					<div className="flex flex-col gap-3 pt-1 sm:flex-row sm:items-center sm:justify-between">
 						<button
 							type="button"
 							onClick={() => router.push(AUTH_RESET_PASSWORD)}
-							className="inline-flex items-center gap-2 text-sm font-medium text-[var(--ink-soft)] transition hover:text-[var(--ink)]"
+							className="inline-flex min-h-11 items-center gap-2 rounded-[8px] text-sm font-semibold text-[var(--ink-soft)] transition hover:text-[var(--ink)]"
 						>
 							<KeyRound size={16} />
 							<span>{t.auth.forgotPassword}</span>
 						</button>
-						<button type="submit" disabled={isPending} className="app-button min-w-[168px]">
+						<button type="submit" disabled={isPending} className="app-button min-w-[168px] sm:self-auto">
 							<span>{isPending ? t.common.loading ?? 'Loading...' : t.auth.loginButton}</span>
 							<ArrowRight size={16} />
 						</button>

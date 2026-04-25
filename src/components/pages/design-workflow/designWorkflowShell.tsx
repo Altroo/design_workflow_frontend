@@ -7,6 +7,7 @@ import * as Select from '@radix-ui/react-select';
 import { DayPicker } from 'react-day-picker';
 import 'react-day-picker/style.css';
 import { format as formatDateFns, isValid, parseISO } from 'date-fns';
+import { HexColorPicker } from 'react-colorful';
 import {
 	DndContext,
 	DragOverlay,
@@ -21,44 +22,62 @@ import {
 import { SortableContext, useSortable, verticalListSortingStrategy } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import {
+	Archive,
 	ArrowRight,
 	Bell,
 	BriefcaseBusiness,
 	CalendarDays,
 	CheckCircle2,
+	ChevronLeft,
+	ChevronRight,
 	ChevronDown,
 	Clock3,
 	CircleAlert,
 	FolderKanban,
+	ImagePlus,
 	ListTodo,
 	MessagesSquare,
+	Palette,
+	Paperclip,
 	Pencil,
 	Plus,
 	RefreshCcw,
 	Search,
 	ShieldCheck,
+	Tag,
+	Trash2,
 	Users,
 	X,
 } from 'lucide-react';
 import NavigationBar from '@/components/layouts/navigationBar/navigationBar';
 import {
+	useAddChecklistItemMutation,
 	useAddTaskCommentMutation,
-	useAddTaskTimeEntryMutation,
+	useArchiveTaskMutation,
+	useCreateLabelMutation,
+	useDeleteChecklistItemMutation,
+	useDeleteTaskAttachmentMutation,
+	useDeleteTaskCoverMutation,
 	useCreateProjectMutation,
 	useCreateTaskMutation,
 	useGetDashboardSummaryQuery,
 	useGetNotificationsQuery,
 	useGetProjectQuery,
 	useGetProjectsQuery,
+	useGetLabelsQuery,
 	useGetTaskQuery,
 	useGetTasksQuery,
 	useGetTimeReportQuery,
 	useGetWorkloadQuery,
 	useMarkNotificationReadMutation,
 	useReassignTaskMutation,
+	useUpdateChecklistItemMutation,
+	useUploadTaskAttachmentMutation,
+	useUploadTaskCoverMutation,
 	useUpdateProjectMutation,
 	useUpdateTaskMutation,
 	useUpdateTaskStatusMutation,
+	useToggleTaskCompletionMutation,
 } from '@/store/services/designWorkflow';
 import { useGetUsersListQuery } from '@/store/services/account';
 import type {
@@ -74,7 +93,7 @@ import type {
 	WorkflowUser,
 	WorkloadRow,
 } from '@/types/designWorkflowTypes';
-import { DASHBOARD_PROJECT_VIEW, DASHBOARD_TASK_VIEW } from '@/utils/routes';
+import { DASHBOARD_CHAT, DASHBOARD_PROJECT_VIEW, DASHBOARD_TASK_VIEW } from '@/utils/routes';
 import { useAppSelector, useLanguage } from '@/utils/hooks';
 import { getProfilState } from '@/store/selectors';
 import type { UserClass } from '@/models/classes';
@@ -183,6 +202,7 @@ const formatLabel = (value: string) =>
 const toneForPriority = (priority: TaskCard['priority']) => (priority === 'urgent' || priority === 'high' ? 'urgent' : priority === 'medium' ? 'neutral' : 'progress');
 
 const toneForStatus = (status: TaskStatus) => (status === 'done' || status === 'in_progress' || status === 'in_review' ? 'progress' : status === 'blocked' ? 'urgent' : 'neutral');
+const statusSurfaceClass = (status: TaskStatus) => ({ backlog: 'border-l-slate-300', todo: 'border-l-sky-400', in_progress: 'border-l-amber-400', in_review: 'border-l-violet-400', blocked: 'border-l-rose-500', done: 'border-l-emerald-500' }[status] ?? 'border-l-slate-300');
 
 const formatDate = (value?: string | null, emptyLabel = 'No date') => {
 	if (!value) return emptyLabel;
@@ -193,6 +213,59 @@ const formatDateTime = (value?: string | null, emptyLabel = 'No date') => {
 	if (!value) return emptyLabel;
 	return new Date(value).toLocaleString([], { dateStyle: 'medium', timeStyle: 'short' });
 };
+
+const resolveMediaUrl = (value?: string | null) => {
+	if (!value) return '';
+	if (/^https?:\/\//.test(value) || value.startsWith('blob:') || value.startsWith('data:')) return value;
+	const apiUrl = process.env.NEXT_PUBLIC_API_URL ?? '';
+	return `${apiUrl}${value.startsWith('/') ? value : `/${value}`}`;
+};
+
+const AvatarBadge = ({
+	user,
+	size = 32,
+}: {
+	user?: WorkflowUser | null;
+	size?: number;
+}) => {
+	const label = user ? `${user.first_name} ${user.last_name}`.trim() || user.email : 'System';
+	const avatarUrl = resolveMediaUrl(user?.avatar);
+	const initials = user
+		? `${user.first_name?.[0] ?? ''}${user.last_name?.[0] ?? user.email?.[0] ?? ''}`.trim().toUpperCase() || 'U'
+		: 'S';
+	if (avatarUrl) {
+		return <img src={avatarUrl} alt={label} className="rounded-full object-cover" style={{ width: size, height: size }} />;
+	}
+	return (
+		<span
+			className="grid place-items-center rounded-full bg-[var(--surface-strong)] text-xs font-bold text-[var(--ink)]"
+			style={{ width: size, height: size }}
+		>
+			{initials}
+		</span>
+	);
+};
+
+const HistoryPager = ({
+	page,
+	totalPages,
+	onChange,
+}: {
+	page: number;
+	totalPages: number;
+	onChange: (page: number) => void;
+}) =>
+	totalPages > 1 ? (
+		<div className="mt-4 flex items-center justify-between gap-3">
+			<button type="button" className="app-button app-button-secondary px-4 py-2" disabled={page <= 1} onClick={() => onChange(Math.max(1, page - 1))}>
+				<ChevronLeft size={16} />
+			</button>
+			<span className="text-sm font-semibold text-[var(--ink-soft)]">{page}/{totalPages}</span>
+			<button type="button" className="app-button app-button-secondary px-4 py-2" disabled={page >= totalPages} onClick={() => onChange(Math.min(totalPages, page + 1))}>
+				<ChevronRight size={16} />
+			</button>
+		</div>
+	) : null;
 
 const normalizeUsers = (usersResponse?: UsersListResponse): WorkflowUser[] => {
 	if (!usersResponse) return [];
@@ -218,6 +291,12 @@ const normalizeUsers = (usersResponse?: UsersListResponse): WorkflowUser[] => {
 			last_name: user.last_name,
 			email: user.email,
 			role: user.role === 'manager' || user.is_staff ? 'manager' : 'designer',
+			avatar:
+				typeof user.avatar === 'string'
+					? user.avatar
+					: typeof user.avatar_cropped === 'string'
+						? user.avatar_cropped
+						: null,
 		}));
 };
 
@@ -474,7 +553,7 @@ const SelectField = ({
 				</Select.Icon>
 			</Select.Trigger>
 			<Select.Portal>
-				<Select.Content className="app-select-content" position="popper" sideOffset={8}>
+				<Select.Content className="app-select-content z-[9999]" position="popper" sideOffset={8}>
 					<Select.Viewport className="p-1">
 						{options.map((option) => {
 							const optionValue = option.value === '' ? EMPTY_SELECT_VALUE : String(option.value);
@@ -551,6 +630,12 @@ const DurationField = ({
 	onChange: (value: string) => void;
 	min?: number;
 }) => {
+	const { t } = useLanguage();
+	const durationUnits: Array<{ value: DurationUnit; label: string; multiplier: number }> = [
+		{ value: 'minutes', label: t.workflow.labels.minutesUnit ?? 'Minutes', multiplier: 1 },
+		{ value: 'hours', label: t.workflow.labels.hoursUnit ?? 'Hours', multiplier: 60 },
+		{ value: 'days', label: t.workflow.labels.daysUnit ?? 'Days', multiplier: WORK_DAY_MINUTES },
+	];
 	const numericValue = Number(value || 0);
 	const initialUnit: DurationUnit =
 		numericValue >= WORK_DAY_MINUTES && numericValue % WORK_DAY_MINUTES === 0
@@ -559,11 +644,11 @@ const DurationField = ({
 				? 'hours'
 				: 'minutes';
 	const [unit, setUnit] = useState<DurationUnit>(initialUnit);
-	const activeUnit = DURATION_UNITS.find((item) => item.value === unit) ?? DURATION_UNITS[0];
+	const activeUnit = durationUnits.find((item) => item.value === unit) ?? durationUnits[0];
 	const displayValue = numericValue ? String(numericValue / activeUnit.multiplier) : '';
 
 	const updateUnit = (nextUnit: DurationUnit) => {
-		const next = DURATION_UNITS.find((item) => item.value === nextUnit) ?? DURATION_UNITS[0];
+		const next = durationUnits.find((item) => item.value === nextUnit) ?? durationUnits[0];
 		setUnit(nextUnit);
 		const currentAmount = Number(displayValue || 0);
 		onChange(String(Math.max(min, Math.round(currentAmount * next.multiplier))));
@@ -582,7 +667,7 @@ const DurationField = ({
 			<SelectField
 				value={unit}
 				onChange={(nextUnit) => updateUnit(nextUnit as DurationUnit)}
-				options={DURATION_UNITS.map((item) => ({ value: item.value, label: item.label }))}
+				options={durationUnits.map((item) => ({ value: item.value, label: item.label }))}
 			/>
 		</div>
 	);
@@ -631,6 +716,8 @@ const TaskCardItem = ({
 	labelFor,
 	dateFor,
 	onOpen,
+	onToggleDone,
+	onArchive,
 }: {
 	task: TaskCard;
 	compact?: boolean;
@@ -638,8 +725,11 @@ const TaskCardItem = ({
 	labelFor: (value: string) => string;
 	dateFor: (value?: string | null) => string;
 	onOpen?: (taskId: number) => void;
+	onToggleDone?: (task: TaskCard) => void;
+	onArchive?: (task: TaskCard) => void;
 }) => (
 	<div
+		data-status={task.status}
 		role={onOpen ? 'button' : undefined}
 		tabIndex={onOpen ? 0 : undefined}
 		onClick={onOpen ? () => onOpen(task.id) : undefined}
@@ -654,26 +744,86 @@ const TaskCardItem = ({
 				: undefined
 		}
 		className={cn(
-			'app-card workflow-card-hover overflow-hidden',
+			'app-card workflow-card-hover workflow-task-card overflow-hidden border-l-4',
+			statusSurfaceClass(task.status),
 			onOpen ? 'cursor-pointer' : '',
 			task.is_overdue ? 'border-[color:var(--accent)] bg-[var(--accent-tint)]' : 'bg-white',
 		)}
 	>
+		{task.cover_image_url ? (
+			<div className="relative h-40 w-full overflow-hidden border-b border-[color:var(--line)] bg-[var(--surface-muted)]">
+				<img src={resolveMediaUrl(task.cover_image_url)} alt={task.title} className="h-full w-full object-cover" />
+			</div>
+		) : null}
 		<div className={cn('p-4', compact ? 'space-y-3' : 'space-y-4')}>
 			<div className="flex items-start justify-between gap-3">
-				<div className="min-w-0">
-					<p className="text-base font-semibold text-[var(--ink)]">{task.title}</p>
+				<div className="flex min-w-0 flex-1 items-start gap-3">
+					<button
+						type="button"
+						aria-label={task.is_completed ? 'Mark task open' : 'Mark task done'}
+						onClick={(event) => {
+							event.stopPropagation();
+							onToggleDone?.(task);
+						}}
+						className={cn(
+							'workflow-focus-ring mt-0.5 grid h-7 w-7 shrink-0 place-items-center rounded-full border transition',
+							task.is_completed ? 'border-emerald-600 bg-emerald-600 text-white' : 'border-[color:var(--line-strong)] bg-white text-transparent hover:text-[var(--ink-soft)]',
+						)}
+					>
+						<CheckCircle2 size={17} />
+					</button>
+					<div className="min-w-0">
+					<p className={cn('text-base font-semibold text-[var(--ink)]', task.is_completed && 'text-emerald-700 line-through decoration-2')}>{task.title}</p>
 					<p className="mt-1 truncate text-sm text-[var(--ink-soft)]">{task.project.name}</p>
+					</div>
 				</div>
-				<Chip tone={toneForPriority(task.priority)}>{labelFor(task.priority)}</Chip>
+				<div className="flex shrink-0 items-center gap-2">
+					<Chip tone={toneForPriority(task.priority)}>
+						<span className="inline-flex items-center gap-1.5">
+							<CircleAlert size={12} />
+							<span>{copy.labels.priority}: {labelFor(task.priority) || task.priority}</span>
+						</span>
+					</Chip>
+					{onArchive ? (
+						<button
+							type="button"
+							aria-label="Archive task"
+							onClick={(event) => {
+								event.stopPropagation();
+								onArchive(task);
+							}}
+							className="workflow-focus-ring inline-flex items-center gap-2 rounded-[8px] border border-[color:var(--line)] px-3 py-2 text-sm font-semibold text-[var(--ink-soft)] hover:text-[var(--ink)]"
+						>
+							<Archive size={15} />
+							{!compact ? <span>{task.archived ? (copy.buttons.restore ?? 'Restore') : (copy.buttons.archive ?? 'Archive')}</span> : null}
+						</button>
+					) : null}
+				</div>
 			</div>
 			<p className="text-sm leading-6 text-[var(--ink-soft)]">{task.description || copy.labels.noDescription}</p>
+			{task.labels.length ? (
+				<div className="flex flex-wrap gap-1.5">
+					{task.labels.map((label) => (
+						<span key={label.id} className="inline-flex items-center gap-1 rounded-full border px-2 py-1 text-[11px] font-bold" style={{ borderColor: label.color, color: label.color }}>
+							<span className="h-2 w-2 rounded-full" style={{ backgroundColor: label.color }} />
+							{label.name}
+						</span>
+					))}
+				</div>
+			) : null}
 			<div className="flex flex-wrap gap-2">
 				<Chip tone={toneForStatus(task.status)} status={task.status}>{labelFor(task.status)}</Chip>
-				<Chip>{task.current_assignee ? `${task.current_assignee.first_name} ${task.current_assignee.last_name}` : copy.labels.unassigned}</Chip>
+				<Chip>
+					<span className="inline-flex items-center gap-2">
+						{task.current_assignee ? <AvatarBadge user={task.current_assignee} size={20} /> : null}
+						<span>{task.current_assignee ? `${task.current_assignee.first_name} ${task.current_assignee.last_name}` : copy.labels.unassigned}</span>
+					</span>
+				</Chip>
 				<Chip>{copy.labels.estShort} {formatMinutes(task.estimated_minutes)}</Chip>
 				<Chip>{copy.labels.spentShort} {formatMinutes(task.actual_minutes)}</Chip>
 				{task.due_date ? <Chip tone={task.is_overdue ? 'urgent' : undefined}>{dateFor(task.due_date)}</Chip> : null}
+				{task.checklist_items.length ? <Chip>{task.checklist_items.filter((item) => item.done).length}/{task.checklist_items.length} {copy.labels.checklistShort ?? 'checks'}</Chip> : null}
+				{task.attachments.length ? <Chip>{task.attachments.length} {copy.labels.attachmentsShort ?? 'files'}</Chip> : null}
 			</div>
 			{!onOpen ? (
 				<Link href={DASHBOARD_TASK_VIEW(task.id)} className="workflow-focus-ring inline-flex items-center gap-2 text-sm font-semibold text-[var(--accent-strong)]">
@@ -691,12 +841,16 @@ const BoardTaskCard = ({
 	labelFor,
 	dateFor,
 	onOpen,
+	onToggleDone,
+	onArchive,
 }: {
 	task: TaskCard;
 	copy: WorkflowCopy;
 	labelFor: (value: string) => string;
 	dateFor: (value?: string | null) => string;
 	onOpen?: (taskId: number) => void;
+	onToggleDone?: (task: TaskCard) => void;
+	onArchive?: (task: TaskCard) => void;
 }) => {
 	const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
 		id: getTaskDragId(task.id),
@@ -718,7 +872,7 @@ const BoardTaskCard = ({
 			}
 		>
 			<div {...attributes} {...listeners} className="cursor-grab active:cursor-grabbing">
-				<TaskCardItem task={task} compact copy={copy} labelFor={labelFor} dateFor={dateFor} onOpen={onOpen} />
+				<TaskCardItem task={task} compact copy={copy} labelFor={labelFor} dateFor={dateFor} onOpen={onOpen} onToggleDone={onToggleDone} onArchive={onArchive} />
 			</div>
 		</div>
 	);
@@ -731,6 +885,8 @@ const BoardColumn = ({
 	labelFor,
 	dateFor,
 	onOpen,
+	onToggleDone,
+	onArchive,
 }: {
 	status: TaskStatus;
 	tasks: TaskCard[];
@@ -738,6 +894,8 @@ const BoardColumn = ({
 	labelFor: (value: string) => string;
 	dateFor: (value?: string | null) => string;
 	onOpen?: (taskId: number) => void;
+	onToggleDone?: (task: TaskCard) => void;
+	onArchive?: (task: TaskCard) => void;
 }) => {
 	const { setNodeRef, isOver } = useDroppable({
 		id: getColumnId(status),
@@ -768,7 +926,7 @@ const BoardColumn = ({
 			<SortableContext items={tasks.map((task) => getTaskDragId(task.id))} strategy={verticalListSortingStrategy}>
 				<div className="flex flex-1 flex-col gap-3 overflow-y-auto p-4">
 					{tasks.map((task) => (
-							<BoardTaskCard key={task.id} task={task} copy={copy} labelFor={labelFor} dateFor={dateFor} onOpen={onOpen} />
+							<BoardTaskCard key={task.id} task={task} copy={copy} labelFor={labelFor} dateFor={dateFor} onOpen={onOpen} onToggleDone={onToggleDone} onArchive={onArchive} />
 					))}
 					{tasks.length === 0 ? <EmptyState {...copy.emptyStates.noCards} /> : null}
 				</div>
@@ -784,6 +942,17 @@ const DesignWorkflowShell = ({ title, variant, projectId, taskId }: Props) => {
 	const labelFor = (value: string) => workflow.statuses[value] ?? workflow.priorities[value] ?? workflow.activities[value] ?? formatLabel(value);
 	const dateFor = (value?: string | null) => formatDate(value, workflow.labels.noDate);
 	const dateTimeFor = (value?: string | null) => formatDateTime(value, workflow.labels.noDate);
+	const notificationTitle = (notification: NotificationItem) => {
+		const payloadTitle = notification.payload.title;
+		if (typeof payloadTitle === 'string' && payloadTitle.trim()) return payloadTitle;
+		return labelFor(notification.type);
+	};
+	const notificationDescription = (notification: NotificationItem) => {
+		if (notification.type === 'task_overdue' && typeof notification.payload.days_overdue === 'number') return `${notification.payload.days_overdue} ${workflow.labels.daysOverdue}`;
+		if (notification.type === 'task_status' && typeof notification.payload.status === 'string') return `${workflow.labels.statusLabel}: ${labelFor(notification.payload.status)}`;
+		if (notification.type === 'task_reassigned' && typeof notification.payload.reason === 'string' && notification.payload.reason.trim()) return notification.payload.reason;
+		return notification.task?.title ?? notification.project?.name ?? workflow.labels.notificationFallback;
+	};
 	const describeWorkflowActivity = (taskActivity: TaskDetail['recent_activity'][number] | ProjectDetail['recent_activity'][number]) => {
 		const metaEntries = Object.entries(taskActivity.metadata ?? {}).filter(([, value]) => value !== null && value !== '');
 		if (metaEntries.length === 0) return labelFor(taskActivity.action_type);
@@ -802,6 +971,7 @@ const DesignWorkflowShell = ({ title, variant, projectId, taskId }: Props) => {
 		search: '',
 		overdueOnly: false,
 		blockedOnly: false,
+		archivedOnly: false,
 	});
 	const [notificationsUnreadOnly, setNotificationsUnreadOnly] = useState(false);
 	const [reportFilters, setReportFilters] = useState({ start_date: '', end_date: '' });
@@ -811,13 +981,19 @@ const DesignWorkflowShell = ({ title, variant, projectId, taskId }: Props) => {
 	const [taskEditForm, setTaskEditForm] = useState<TaskFormState>(emptyTaskForm);
 	const [reassignForm, setReassignForm] = useState({ assignee_id: '', reason: '' });
 	const [commentBody, setCommentBody] = useState('');
-	const [timeMinutes, setTimeMinutes] = useState('60');
-	const [timeNote, setTimeNote] = useState('');
+	const [newChecklistTitle, setNewChecklistTitle] = useState('');
+	const [newLabelName, setNewLabelName] = useState('');
+	const [newLabelColor, setNewLabelColor] = useState('#111827');
+	const [taskAttachmentFile, setTaskAttachmentFile] = useState<File | null>(null);
+	const [taskCoverFile, setTaskCoverFile] = useState<File | null>(null);
 	const [boardDraft, setBoardDraft] = useState<TaskCard[]>([]);
 	const [draggedTaskId, setDraggedTaskId] = useState<number | null>(null);
 	const [selectedTaskId, setSelectedTaskId] = useState<number | null>(null);
 	const [projectCommentsPage, setProjectCommentsPage] = useState(1);
 	const [projectActivityPage, setProjectActivityPage] = useState(1);
+	const [taskCommentsPage, setTaskCommentsPage] = useState(1);
+	const [taskTimeEntriesPage, setTaskTimeEntriesPage] = useState(1);
+	const [taskActivityPage, setTaskActivityPage] = useState(1);
 	const activeTaskId = taskId ?? selectedTaskId;
 	const sensors = useSensors(
 		useSensor(PointerSensor, {
@@ -840,6 +1016,7 @@ const DesignWorkflowShell = ({ title, variant, projectId, taskId }: Props) => {
 					last_name: profile.last_name || workflow.labels.currentUserLast,
 					email: profile.email || '',
 					role: (profile.role === 'manager' || profile.is_staff ? 'manager' : 'designer') as WorkflowUser['role'],
+					avatar: typeof profile.avatar === 'string' ? profile.avatar : null,
 				}
 			: null;
 	const managerUsers = [
@@ -866,6 +1043,7 @@ const DesignWorkflowShell = ({ title, variant, projectId, taskId }: Props) => {
 					assignee: boardFilters.assignee ? Number(boardFilters.assignee) : undefined,
 					overdue: boardFilters.overdueOnly || undefined,
 					blocked: boardFilters.blockedOnly || undefined,
+					archived: boardFilters.archivedOnly || undefined,
 				};
 	const { data: tasksData, isLoading: tasksLoading } = useGetTasksQuery(tasksParams, {
 		skip: !['board', 'my-work', 'overview'].includes(variant),
@@ -891,15 +1069,25 @@ const DesignWorkflowShell = ({ title, variant, projectId, taskId }: Props) => {
 		{ skip: variant !== 'notifications' },
 	);
 	const notifications = notificationsData ?? EMPTY_NOTIFICATIONS;
+	const { data: labels = [] } = useGetLabelsQuery(undefined, { skip: !activeTaskId && variant !== 'project-detail' });
 
 	const [createProject, createProjectState] = useCreateProjectMutation();
+	const [createLabel] = useCreateLabelMutation();
 	const [updateProject, updateProjectState] = useUpdateProjectMutation();
 	const [createTask, createTaskState] = useCreateTaskMutation();
 	const [updateTask, updateTaskState] = useUpdateTaskMutation();
 	const [updateTaskStatus, updateStatusState] = useUpdateTaskStatusMutation();
+	const [toggleTaskCompletion] = useToggleTaskCompletionMutation();
+	const [archiveTask] = useArchiveTaskMutation();
+	const [addChecklistItem, addChecklistItemState] = useAddChecklistItemMutation();
+	const [updateChecklistItem] = useUpdateChecklistItemMutation();
+	const [deleteChecklistItem] = useDeleteChecklistItemMutation();
+	const [uploadTaskAttachment, uploadTaskAttachmentState] = useUploadTaskAttachmentMutation();
+	const [deleteTaskAttachment] = useDeleteTaskAttachmentMutation();
+	const [uploadTaskCover, uploadTaskCoverState] = useUploadTaskCoverMutation();
+	const [deleteTaskCover] = useDeleteTaskCoverMutation();
 	const [reassignTask, reassignTaskState] = useReassignTaskMutation();
 	const [addTaskComment, addCommentState] = useAddTaskCommentMutation();
-	const [addTaskTimeEntry, addTimeEntryState] = useAddTaskTimeEntryMutation();
 	const [markNotificationRead] = useMarkNotificationReadMutation();
 
 	useEffect(() => {
@@ -943,16 +1131,36 @@ const DesignWorkflowShell = ({ title, variant, projectId, taskId }: Props) => {
 		if (task?.current_assignee?.id) {
 			setReassignForm((current) => ({ ...current, assignee_id: String(task.current_assignee?.id ?? '') }));
 		}
+		setTaskCommentsPage(1);
+		setTaskTimeEntriesPage(1);
+		setTaskActivityPage(1);
+		setTaskAttachmentFile(null);
+		setTaskCoverFile(null);
 	}, [task]);
 
 	useEffect(() => {
 		if (!selectedTaskId) return;
 		const previousOverflow = document.body.style.overflow;
+		const handleKeyDown = (event: KeyboardEvent) => {
+			if (event.key === 'Escape') {
+				setSelectedTaskId(null);
+			}
+		};
 		document.body.style.overflow = 'hidden';
+		window.addEventListener('keydown', handleKeyDown);
 		return () => {
 			document.body.style.overflow = previousOverflow;
+			window.removeEventListener('keydown', handleKeyDown);
 		};
 	}, [selectedTaskId]);
+
+	const handleToggleTaskDone = async (taskItem: TaskCard) => {
+		await toggleTaskCompletion({ id: taskItem.id, is_completed: !taskItem.is_completed }).unwrap();
+	};
+
+	const handleArchiveTask = async (taskItem: TaskCard) => {
+		await archiveTask({ id: taskItem.id, archived: !taskItem.archived }).unwrap();
+	};
 
 	const filteredBoardTasks = boardDraft.filter((taskItem) => {
 		if (!boardFilters.search.trim()) return true;
@@ -1067,7 +1275,7 @@ const DesignWorkflowShell = ({ title, variant, projectId, taskId }: Props) => {
 				<Surface {...workflow.sections.overdueTasks}>
 					<div className="grid gap-3">
 						{tasksLoading ? <EmptyState {...workflow.emptyStates.loadingCards} /> : null}
-						{!tasksLoading && tasks.slice(0, 6).map((taskItem) => <TaskCardItem key={taskItem.id} task={taskItem} copy={workflow} labelFor={labelFor} dateFor={dateFor} onOpen={setSelectedTaskId} />)}
+						{!tasksLoading && tasks.slice(0, 6).map((taskItem) => <TaskCardItem key={taskItem.id} task={taskItem} copy={workflow} labelFor={labelFor} dateFor={dateFor} onOpen={setSelectedTaskId} onToggleDone={handleToggleTaskDone} onArchive={handleArchiveTask} />)}
 						{!tasksLoading && tasks.length === 0 ? (
 							<EmptyState {...workflow.emptyStates.noUrgentCards} />
 						) : null}
@@ -1115,6 +1323,7 @@ const DesignWorkflowShell = ({ title, variant, projectId, taskId }: Props) => {
 								search: '',
 								overdueOnly: false,
 								blockedOnly: false,
+								archivedOnly: false,
 							})
 						}
 						className="app-button app-button-secondary"
@@ -1185,6 +1394,23 @@ const DesignWorkflowShell = ({ title, variant, projectId, taskId }: Props) => {
 				</div>
 
 				<div className="mt-4 flex flex-wrap gap-4">
+					<div className="app-pill flex items-center gap-2 px-2 py-2">
+						<button
+							type="button"
+							onClick={() => setBoardFilters((current) => ({ ...current, archivedOnly: false }))}
+							className={boardFilters.archivedOnly ? 'app-button app-button-secondary' : 'app-button'}
+						>
+							<span>{workflow.labels.activeCards}</span>
+						</button>
+						<button
+							type="button"
+							onClick={() => setBoardFilters((current) => ({ ...current, archivedOnly: true }))}
+							className={boardFilters.archivedOnly ? 'app-button' : 'app-button app-button-secondary'}
+						>
+							<Archive size={16} />
+							<span>{workflow.buttons.archive ?? 'Archive'}</span>
+						</button>
+					</div>
 					<ToggleField label={workflow.labels.overdueOnly} checked={boardFilters.overdueOnly} onChange={(checked) => setBoardFilters((current) => ({ ...current, overdueOnly: checked }))} />
 					<ToggleField label={workflow.labels.blockedOnly} checked={boardFilters.blockedOnly} onChange={(checked) => setBoardFilters((current) => ({ ...current, blockedOnly: checked }))} />
 				</div>
@@ -1197,7 +1423,7 @@ const DesignWorkflowShell = ({ title, variant, projectId, taskId }: Props) => {
 					<DndContext sensors={sensors} collisionDetection={closestCorners} onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
 						<div className="flex gap-3 overflow-x-auto pb-2">
 							{tasksByStatus.map((column) => (
-								<BoardColumn key={column.status} status={column.status} tasks={column.tasks} copy={workflow} labelFor={labelFor} dateFor={dateFor} onOpen={setSelectedTaskId} />
+								<BoardColumn key={column.status} status={column.status} tasks={column.tasks} copy={workflow} labelFor={labelFor} dateFor={dateFor} onOpen={setSelectedTaskId} onToggleDone={handleToggleTaskDone} onArchive={handleArchiveTask} />
 							))}
 						</div>
 						<DragOverlay>
@@ -1445,7 +1671,7 @@ const DesignWorkflowShell = ({ title, variant, projectId, taskId }: Props) => {
 				<Surface {...workflow.sections.projectTasks}>
 					<div className="grid gap-3 lg:grid-cols-2">
 						{project.tasks.map((taskItem) => (
-							<TaskCardItem key={taskItem.id} task={taskItem} copy={workflow} labelFor={labelFor} dateFor={dateFor} onOpen={setSelectedTaskId} />
+							<TaskCardItem key={taskItem.id} task={taskItem} copy={workflow} labelFor={labelFor} dateFor={dateFor} onOpen={setSelectedTaskId} onToggleDone={handleToggleTaskDone} onArchive={handleArchiveTask} />
 						))}
 						{project.tasks.length === 0 ? <EmptyState {...workflow.emptyStates.noTasks} /> : null}
 					</div>
@@ -1522,11 +1748,16 @@ const DesignWorkflowShell = ({ title, variant, projectId, taskId }: Props) => {
 						<div className="space-y-3">
 							{pagedComments.map((comment) => (
 								<div key={comment.id} className="app-card-muted p-4">
-									<p className="text-sm font-semibold text-[var(--ink)]">
-										{comment.author.first_name} {comment.author.last_name}
-									</p>
-									<p className="mt-2 text-sm leading-6 text-[var(--ink-soft)]">{comment.body}</p>
-									<p className="mt-3 text-xs uppercase tracking-[0.14em] text-[var(--ink-soft)]">{comment.task_title} - {dateTimeFor(comment.created_at)}</p>
+									<div className="flex items-start gap-3">
+										<AvatarBadge user={comment.author} size={34} />
+										<div className="min-w-0 flex-1">
+											<p className="text-sm font-semibold text-[var(--ink)]">
+												{comment.author.first_name} {comment.author.last_name}
+											</p>
+											<p className="mt-2 text-sm leading-6 text-[var(--ink-soft)]">{comment.body}</p>
+											<p className="mt-3 text-xs uppercase tracking-[0.14em] text-[var(--ink-soft)]">{comment.task_title} - {dateTimeFor(comment.created_at)}</p>
+										</div>
+									</div>
 								</div>
 							))}
 							{project.recent_comments.length > pageSize ? (
@@ -1581,6 +1812,13 @@ const DesignWorkflowShell = ({ title, variant, projectId, taskId }: Props) => {
 		if (!task) {
 			return <EmptyState {...workflow.emptyStates.missingTask} />;
 		}
+		const taskPageSize = 5;
+		const taskCommentsTotalPages = Math.max(1, Math.ceil(task.comments.length / taskPageSize));
+		const taskTimeEntriesTotalPages = Math.max(1, Math.ceil(task.time_entries.length / taskPageSize));
+		const taskActivityTotalPages = Math.max(1, Math.ceil(task.recent_activity.length / taskPageSize));
+		const pagedTaskComments = task.comments.slice((taskCommentsPage - 1) * taskPageSize, taskCommentsPage * taskPageSize);
+		const pagedTaskTimeEntries = task.time_entries.slice((taskTimeEntriesPage - 1) * taskPageSize, taskTimeEntriesPage * taskPageSize);
+		const pagedTaskActivity = task.recent_activity.slice((taskActivityPage - 1) * taskPageSize, taskActivityPage * taskPageSize);
 
 		return (
 			<div className="space-y-4">
@@ -1591,7 +1829,12 @@ const DesignWorkflowShell = ({ title, variant, projectId, taskId }: Props) => {
 							<div className="flex flex-wrap gap-2">
 								<Chip status={task.status}>{labelFor(task.status)}</Chip>
 								<Chip>{labelFor(task.priority)}</Chip>
-								<Chip>{task.current_assignee ? `${task.current_assignee.first_name} ${task.current_assignee.last_name}` : workflow.labels.unassigned}</Chip>
+								<Chip>
+									<span className="inline-flex items-center gap-2">
+										{task.current_assignee ? <AvatarBadge user={task.current_assignee} size={20} /> : null}
+										<span>{task.current_assignee ? `${task.current_assignee.first_name} ${task.current_assignee.last_name}` : workflow.labels.unassigned}</span>
+									</span>
+								</Chip>
 								<Chip>{dateFor(task.due_date)}</Chip>
 							</div>
 						</div>
@@ -1611,6 +1854,223 @@ const DesignWorkflowShell = ({ title, variant, projectId, taskId }: Props) => {
 						</div>
 					</div>
 				</Surface>
+
+				<Surface title={workflow.labels.taskToolsTitle ?? "Etiquettes, checklist, fichiers"} description={workflow.labels.taskToolsDescription ?? "Task control"}>
+					<div className="grid gap-4 xl:grid-cols-3">
+						<div className="app-card-muted space-y-4 p-4">
+							<div className="flex items-center gap-2">
+								<Tag size={16} className="text-[var(--accent-strong)]" />
+								<p className="text-sm font-bold text-[var(--ink)]">{workflow.labels.labelsPanel ?? "Etiquettes"}</p>
+							</div>
+							<div className="space-y-3">
+								<p className="text-xs font-semibold uppercase tracking-[0.14em] text-[var(--ink-muted)]">Actives</p>
+								<div className="flex flex-wrap gap-2">
+									{task.labels.map((label) => (
+										<span key={label.id} className="inline-flex items-center gap-2 rounded-full border bg-white px-3 py-1.5 text-xs font-bold shadow-[var(--shadow-sm)]" style={{ borderColor: label.color, color: label.color }}>
+											<span className="h-2.5 w-2.5 rounded-full" style={{ backgroundColor: label.color }} />
+											<span>{label.name}</span>
+											{isManager ? (
+												<button
+													type="button"
+													onClick={() => updateTask({ id: task.id, data: { label_ids: task.labels.filter((item) => item.id !== label.id).map((item) => item.id) } })}
+													className="text-current opacity-70 transition hover:opacity-100"
+													aria-label={`Remove ${label.name}`}
+												>
+													<X size={12} />
+												</button>
+											) : null}
+										</span>
+									))}
+									{task.labels.length === 0 ? <p className="text-sm text-[var(--ink-soft)]">{workflow.emptyStates.noTags?.description ?? 'No label yet.'}</p> : null}
+								</div>
+							</div>
+							<div className="space-y-3">
+								<p className="text-xs font-semibold uppercase tracking-[0.14em] text-[var(--ink-muted)]">Disponibles</p>
+								<div className="flex flex-wrap gap-2">
+									{labels
+										.filter((label) => !task.labels.some((item) => item.id === label.id))
+										.map((label) => (
+											<button
+												key={label.id}
+												type="button"
+												disabled={!isManager}
+												onClick={() => updateTask({ id: task.id, data: { label_ids: [...task.labels.map((item) => item.id), label.id] } })}
+												className="rounded-full border bg-white px-3 py-1.5 text-xs font-bold transition hover:shadow-[var(--shadow-sm)] disabled:opacity-65"
+												style={{ borderColor: label.color, color: label.color }}
+											>
+												{label.name}
+											</button>
+										))}
+								</div>
+							</div>
+							{isManager ? (
+								<div className="space-y-3 rounded-[8px] border border-[color:var(--line)] bg-white p-3">
+									<div className="flex items-center gap-2">
+										<Palette size={15} className="text-[var(--accent-strong)]" />
+										<p className="text-sm font-semibold text-[var(--ink)]">Nouvelle etiquette</p>
+									</div>
+									<Field value={newLabelName} onChange={setNewLabelName} placeholder={workflow.labels.newLabelPlaceholder ?? "New label"} startIcon={<Tag size={16} />} />
+									<div className="grid gap-3 md:grid-cols-[220px_minmax(0,1fr)]">
+										<div className="rounded-[8px] border border-[color:var(--line)] p-3">
+											<HexColorPicker color={newLabelColor} onChange={setNewLabelColor} style={{ width: '100%' }} />
+										</div>
+										<div className="space-y-3">
+											<div className="rounded-[8px] border px-3 py-3 text-sm font-semibold" style={{ borderColor: newLabelColor, color: newLabelColor }}>
+												<span className="inline-flex items-center gap-2">
+													<span className="h-2.5 w-2.5 rounded-full" style={{ backgroundColor: newLabelColor }} />
+													{newLabelName.trim() || 'Preview'}
+												</span>
+											</div>
+											<button
+												type="button"
+												disabled={!newLabelName.trim()}
+												onClick={async () => {
+													const label = await createLabel({ name: newLabelName.trim(), color: newLabelColor }).unwrap();
+													await updateTask({ id: task.id, data: { label_ids: [...task.labels.map((item) => item.id), label.id] } }).unwrap();
+													setNewLabelName('');
+												}}
+												className="app-button w-full"
+											>
+												<Plus size={16} />
+												<span>{t.common.add}</span>
+											</button>
+										</div>
+									</div>
+								</div>
+							) : null}
+						</div>
+
+						<div className="app-card-muted p-4">
+							<div className="mb-3 flex items-center justify-between gap-2">
+								<p className="text-sm font-bold text-[var(--ink)]">{workflow.labels.checklistPanel ?? "Checklist"}</p>
+								<Chip>{task.checklist_items.filter((item) => item.done).length}/{task.checklist_items.length}</Chip>
+							</div>
+							<div className="space-y-2">
+								{task.checklist_items.map((item) => (
+									<div key={item.id} className="flex items-center gap-2 rounded-[8px] border border-[color:var(--line)] bg-white px-3 py-2">
+										<button type="button" onClick={() => updateChecklistItem({ id: task.id, itemId: item.id, data: { done: !item.done } })} className={cn('grid h-6 w-6 place-items-center rounded-full border', item.done ? 'border-emerald-600 bg-emerald-600 text-white' : 'border-[color:var(--line-strong)] text-transparent')}>
+											<CheckCircle2 size={15} />
+										</button>
+										<span className={cn('min-w-0 flex-1 text-sm font-semibold text-[var(--ink)]', item.done && 'text-emerald-700 line-through')}>{item.title}</span>
+										<button type="button" onClick={() => deleteChecklistItem({ id: task.id, itemId: item.id })} className="text-[var(--ink-soft)] hover:text-[var(--ink)]">
+											<Trash2 size={15} />
+										</button>
+									</div>
+								))}
+							</div>
+							{taskMutable ? (
+								<div className="mt-3 flex gap-2">
+									<Field value={newChecklistTitle} onChange={setNewChecklistTitle} placeholder={workflow.labels.addChecklistPlaceholder ?? "Add checklist item"} />
+									<button
+										type="button"
+										disabled={!newChecklistTitle.trim()}
+										onClick={async () => {
+											await addChecklistItem({ id: task.id, title: newChecklistTitle.trim(), sort_order: task.checklist_items.length }).unwrap();
+											setNewChecklistTitle('');
+										}}
+										className="app-button px-4"
+									>
+										{addChecklistItemState.isLoading ? workflow.buttons.saving : t.common.add}
+									</button>
+								</div>
+							) : null}
+						</div>
+
+						<div className="app-card-muted space-y-4 p-4">
+							<div className="flex items-center gap-2">
+								<Paperclip size={16} className="text-[var(--accent-strong)]" />
+								<p className="text-sm font-bold text-[var(--ink)]">{workflow.labels.attachmentsPanel ?? "Attachments"}</p>
+							</div>
+							<div className="space-y-3 rounded-[8px] border border-[color:var(--line)] bg-white p-3">
+								<div className="flex items-center gap-2">
+									<ImagePlus size={15} className="text-[var(--accent-strong)]" />
+									<p className="text-sm font-semibold text-[var(--ink)]">Card image</p>
+								</div>
+								{task.cover_image_url ? (
+									<div className="overflow-hidden rounded-[8px] border border-[color:var(--line)]">
+										<img src={resolveMediaUrl(task.cover_image_url)} alt={task.title} className="h-40 w-full object-cover" />
+									</div>
+								) : (
+									<div className="rounded-[8px] border border-dashed border-[color:var(--line)] px-3 py-8 text-center text-sm text-[var(--ink-soft)]">
+										No card image
+									</div>
+								)}
+								{taskMutable ? (
+									<div className="space-y-2">
+										<input type="file" accept="image/*" onChange={(event) => setTaskCoverFile(event.target.files?.[0] ?? null)} className="app-input" />
+										<div className="flex gap-2">
+											<button
+												type="button"
+												disabled={!taskCoverFile}
+												onClick={async () => {
+													if (!taskCoverFile) return;
+													const data = new FormData();
+													data.append('cover_image', taskCoverFile);
+													await uploadTaskCover({ id: task.id, data }).unwrap();
+													setTaskCoverFile(null);
+												}}
+												className="app-button flex-1"
+											>
+												<ImagePlus size={16} />
+												<span>{uploadTaskCoverState.isLoading ? workflow.buttons.saving : 'Set card image'}</span>
+											</button>
+											{task.cover_image_url ? (
+												<button type="button" onClick={() => deleteTaskCover(task.id)} className="app-button app-button-secondary px-4">
+													<X size={16} />
+												</button>
+											) : null}
+										</div>
+									</div>
+								) : null}
+							</div>
+							<div className="space-y-2">
+								{task.attachments.map((attachment) => {
+									const attachmentUrl = resolveMediaUrl(attachment.file_url ?? attachment.file);
+									const isImage = attachment.mime_type.startsWith('image/');
+									return (
+										<div key={attachment.id} className="overflow-hidden rounded-[8px] border border-[color:var(--line)] bg-white">
+											{isImage ? <img src={attachmentUrl} alt={attachment.name} className="h-32 w-full object-cover" /> : null}
+											<div className="flex items-center gap-2 px-3 py-2">
+												<Paperclip size={15} className="text-[var(--ink-soft)]" />
+												<a href={attachmentUrl} target="_blank" rel="noreferrer" className="min-w-0 flex-1 truncate text-sm font-semibold text-[var(--ink)]">{attachment.name}</a>
+												<button type="button" onClick={() => deleteTaskAttachment({ id: task.id, attachmentId: attachment.id })} className="text-[var(--ink-soft)] hover:text-[var(--ink)]">
+													<Trash2 size={15} />
+												</button>
+											</div>
+										</div>
+									);
+								})}
+							</div>
+							{taskMutable ? (
+								<div className="flex flex-col gap-2">
+									<input type="file" onChange={(event) => setTaskAttachmentFile(event.target.files?.[0] ?? null)} className="app-input" />
+									<button
+										type="button"
+										disabled={!taskAttachmentFile}
+										onClick={async () => {
+											if (!taskAttachmentFile) return;
+											const data = new FormData();
+											data.append('file', taskAttachmentFile);
+											await uploadTaskAttachment({ id: task.id, data }).unwrap();
+											setTaskAttachmentFile(null);
+										}}
+										className="app-button"
+									>
+										<Paperclip size={16} />
+										<span>{uploadTaskAttachmentState.isLoading ? workflow.buttons.saving : 'Upload file'}</span>
+									</button>
+								</div>
+							) : null}
+						</div>
+					</div>
+					<div className="mt-4">
+						<button type="button" onClick={() => archiveTask({ id: task.id, archived: !task.archived })} className="app-button app-button-secondary">
+							<Archive size={16} />
+							<span>{task.archived ? (workflow.buttons.restore ?? 'Restore') : (workflow.buttons.archive ?? 'Archive')}</span>
+						</button>
+					</div>
+				</Surface>
+
 
 				{(isManager || taskMutable) ? (
 					<Surface title={workflow.sections.editTask.title} description={isManager ? workflow.labels.managerControls : workflow.labels.updateMyProgress}>
@@ -1765,77 +2225,75 @@ const DesignWorkflowShell = ({ title, variant, projectId, taskId }: Props) => {
 							</div>
 						) : null}
 						<div className="mt-4 space-y-3">
-							{task.comments.map((comment) => (
+							{pagedTaskComments.map((comment) => (
 								<div key={comment.id} className="app-card-muted p-4">
-									<p className="text-sm font-semibold text-[var(--ink)]">
-										{comment.author.first_name} {comment.author.last_name}
-									</p>
-									<p className="mt-1 text-xs uppercase tracking-[0.14em] text-[var(--ink-soft)]">{dateTimeFor(comment.created_at)}</p>
-									<p className="mt-2 text-sm leading-6 text-[var(--ink-soft)]">{comment.body}</p>
+									<div className="flex items-start gap-3">
+										<AvatarBadge user={comment.author} size={34} />
+										<div className="min-w-0 flex-1">
+											<p className="text-sm font-semibold text-[var(--ink)]">
+												{comment.author.first_name} {comment.author.last_name}
+											</p>
+											<p className="mt-1 text-xs uppercase tracking-[0.14em] text-[var(--ink-soft)]">{dateTimeFor(comment.created_at)}</p>
+											<p className="mt-2 text-sm leading-6 text-[var(--ink-soft)]">{comment.body}</p>
+										</div>
+									</div>
 								</div>
 							))}
 							{task.comments.length === 0 ? <EmptyState {...workflow.emptyStates.noCommentsYet} /> : null}
+							<HistoryPager page={taskCommentsPage} totalPages={taskCommentsTotalPages} onChange={setTaskCommentsPage} />
 						</div>
 					</Surface>
 
 					<Surface {...workflow.sections.timeEntries}>
-						{taskMutable ? (
-							<div className="grid gap-3 md:grid-cols-[220px_minmax(0,1fr)_auto]">
-								<div>
-									<FieldLabel htmlFor="time-minutes">{workflow.labels.minutes}</FieldLabel>
-									<DurationField id="time-minutes" min={1} value={timeMinutes} onChange={setTimeMinutes} />
-								</div>
-								<div>
-									<FieldLabel htmlFor="time-note">{workflow.labels.note}</FieldLabel>
-									<Field id="time-note" value={timeNote} onChange={setTimeNote} placeholder={workflow.labels.optionalNote} startIcon={<MessagesSquare size={18} />} />
-								</div>
-								<div className="self-end">
-									<button
-										type="button"
-										onClick={async () => {
-											await addTaskTimeEntry({
-												id: task.id,
-												minutes: Number(timeMinutes),
-												work_date: new Date().toISOString().slice(0, 10),
-												note: timeNote.trim(),
-											}).unwrap();
-											setTimeNote('');
-										}}
-										disabled={Number(timeMinutes) <= 0}
-										className="app-button"
-									>
-										<Clock3 size={16} />
-										<span>{addTimeEntryState.isLoading ? workflow.buttons.saving : workflow.buttons.logTime}</span>
-									</button>
-								</div>
+						<div className="app-card-muted flex items-start gap-3 p-4">
+							<div className="mt-0.5 rounded-[8px] border border-emerald-200 bg-emerald-50 p-2 text-emerald-700">
+								<Clock3 size={16} />
 							</div>
-						) : null}
+							<div className="min-w-0">
+								<p className="text-sm font-semibold text-[var(--ink)]">{workflow.labels.timeEntries}</p>
+								<p className="mt-1 text-sm leading-6 text-[var(--ink-soft)]">
+									{workflow.labels.timeAutomationHint ?? 'Le temps se met a jour automatiquement quand la tache passe en cours ou change d assigne.'}
+								</p>
+							</div>
+						</div>
 						<div className="mt-4 space-y-3">
-							{task.time_entries.map((entry) => (
-								<div key={entry.id} className="app-card-muted p-4">
-									<p className="text-sm font-semibold text-[var(--ink)]">
-										{entry.user.first_name} {entry.user.last_name} • {formatMinutes(entry.minutes)}
-									</p>
-									<p className="mt-1 text-xs uppercase tracking-[0.14em] text-[var(--ink-soft)]">{dateTimeFor(entry.created_at)}</p>
-									<p className="mt-2 text-sm leading-6 text-[var(--ink-soft)]">{entry.note || workflow.labels.optionalNote}</p>
-								</div>
+							{pagedTaskTimeEntries.map((entry) => (
+                                <div key={entry.id} className="app-card-muted p-4">
+                                    <div className="flex items-start gap-3">
+                                        <AvatarBadge user={entry.user} size={34} />
+                                        <div className="min-w-0 flex-1">
+                                            <p className="text-sm font-semibold text-[var(--ink)]">
+                                                {entry.user.first_name} {entry.user.last_name} • {formatMinutes(entry.minutes)}
+                                            </p>
+                                            <p className="mt-1 text-xs uppercase tracking-[0.14em] text-[var(--ink-soft)]">{dateTimeFor(entry.created_at)}</p>
+                                            <p className="mt-2 text-sm leading-6 text-[var(--ink-soft)]">{entry.note || workflow.labels.optionalNote}</p>
+                                        </div>
+                                    </div>
+                                </div>
 							))}
 							{task.time_entries.length === 0 ? <EmptyState {...workflow.emptyStates.noTime} /> : null}
+                            <HistoryPager page={taskTimeEntriesPage} totalPages={taskTimeEntriesTotalPages} onChange={setTaskTimeEntriesPage} />
 						</div>
 					</Surface>
 				</div>
 
 				<Surface {...workflow.sections.activity}>
 					<div className="space-y-3">
-						{task.recent_activity.map((activity) => (
-							<div key={activity.id} className="app-card-muted p-4">
-								<p className="text-sm font-semibold text-[var(--ink)]">
-									{activity.actor ? `${activity.actor.first_name} ${activity.actor.last_name}` : workflow.labels.system}
-								</p>
-								<p className="mt-2 text-sm leading-6 text-[var(--ink-soft)]">{describeWorkflowActivity(activity)}</p>
-								<p className="mt-3 text-xs uppercase tracking-[0.14em] text-[var(--ink-soft)]">{dateTimeFor(activity.created_at)}</p>
-							</div>
+						{pagedTaskActivity.map((activity) => (
+                            <div key={activity.id} className="app-card-muted p-4">
+                                <div className="flex items-start gap-3">
+                                    {activity.actor ? <AvatarBadge user={activity.actor} size={34} /> : <div className="grid h-[34px] w-[34px] place-items-center rounded-full bg-[var(--surface-strong)] text-xs font-bold text-[var(--ink)]">DW</div>}
+                                    <div className="min-w-0 flex-1">
+                                        <p className="text-sm font-semibold text-[var(--ink)]">
+                                            {activity.actor ? `${activity.actor.first_name} ${activity.actor.last_name}` : workflow.labels.system}
+                                        </p>
+                                        <p className="mt-2 text-sm leading-6 text-[var(--ink-soft)]">{describeWorkflowActivity(activity)}</p>
+                                        <p className="mt-3 text-xs uppercase tracking-[0.14em] text-[var(--ink-soft)]">{dateTimeFor(activity.created_at)}</p>
+                                    </div>
+                                </div>
+                            </div>
 						))}
+						<HistoryPager page={taskActivityPage} totalPages={taskActivityTotalPages} onChange={setTaskActivityPage} />
 					</div>
 				</Surface>
 			</div>
@@ -1913,16 +2371,30 @@ const DesignWorkflowShell = ({ title, variant, projectId, taskId }: Props) => {
 
 	const renderNotifications = () => (
 		<div className="space-y-4">
+			<div className="grid gap-3 md:grid-cols-3">
+				<div className="app-card p-5">
+					<p className="text-xs font-bold uppercase tracking-[0.16em] text-[var(--ink-muted)]">Unread</p>
+					<p className="mt-2 text-3xl font-bold text-[var(--ink)]">{notifications.filter((item) => !item.is_read).length}</p>
+				</div>
+				<div className="app-card p-5">
+					<p className="text-xs font-bold uppercase tracking-[0.16em] text-[var(--ink-muted)]">{workflow.labels.taskAlerts}</p>
+					<p className="mt-2 text-3xl font-bold text-[var(--ink)]">{notifications.filter((item) => item.task).length}</p>
+				</div>
+				<div className="app-card p-5">
+					<p className="text-xs font-bold uppercase tracking-[0.16em] text-[var(--ink-muted)]">{workflow.labels.chatAlerts}</p>
+					<p className="mt-2 text-3xl font-bold text-[var(--ink)]">{notifications.filter((item) => item.type === 'chat_message').length}</p>
+				</div>
+			</div>
 			<Surface
 				{...workflow.sections.notifications}
 				action={<ToggleField label={workflow.labels.unreadOnly} checked={notificationsUnreadOnly} onChange={setNotificationsUnreadOnly} />}
 			>
 				<div className="grid gap-4">
 					{notifications.map((notification: NotificationItem) => (
-						<div key={notification.id} className="app-card workflow-card-hover overflow-hidden p-5">
-							<div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+						<div key={notification.id} className="app-card workflow-card-hover overflow-hidden border border-[color:var(--line)] p-5">
+							<div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
 								<div className="flex min-w-0 gap-4">
-									<div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-[8px] border border-[color:var(--line)] bg-[var(--surface-muted)] text-[var(--ink)]">
+									<div className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-[8px] border text-[var(--ink)] ${notification.is_read ? 'border-[color:var(--line)] bg-[var(--surface-muted)]' : 'border-red-200 bg-red-50'}`}>
 										<Bell size={18} />
 									</div>
 									<div className="min-w-0">
@@ -1930,10 +2402,12 @@ const DesignWorkflowShell = ({ title, variant, projectId, taskId }: Props) => {
 											<Chip>{labelFor(notification.type)}</Chip>
 											<Chip tone={notification.is_read ? 'neutral' : 'urgent'}>{notification.is_read ? workflow.labels.read : workflow.labels.unread}</Chip>
 										</div>
-										<p className="mt-3 text-lg font-semibold text-[var(--ink)]">
-											{notification.task?.title || notification.project?.name || workflow.labels.notificationFallback}
-										</p>
-										<p className="mt-2 text-sm text-[var(--ink-soft)]">{dateTimeFor(notification.created_at)}</p>
+										<p className="mt-3 text-lg font-semibold text-[var(--ink)]">{notificationTitle(notification)}</p>
+										<p className="mt-1 text-sm text-[var(--ink-soft)]">{notificationDescription(notification)}</p>
+										<div className="mt-3 flex flex-wrap items-center gap-3 text-xs font-semibold text-[var(--ink-muted)]">
+											<span>{dateTimeFor(notification.created_at)}</span>
+											{notification.project ? <span>{notification.project.name}</span> : null}
+										</div>
 									</div>
 								</div>
 								<div className="flex flex-wrap gap-2 lg:justify-end">
@@ -1947,8 +2421,14 @@ const DesignWorkflowShell = ({ title, variant, projectId, taskId }: Props) => {
 											<span>{workflow.buttons.openTask}</span>
 										</button>
 									) : null}
+									{notification.type === 'chat_message' ? (
+										<Link href={DASHBOARD_CHAT} className="app-button app-button-secondary">
+											<MessagesSquare size={16} />
+											<span>{workflow.buttons.openChat}</span>
+										</Link>
+									) : null}
 									{!notification.is_read ? (
-										<button type="button" onClick={() => markNotificationRead(notification.id)} className="app-button">
+										<button type="button" onClick={() => void markNotificationRead(notification.id)} className="app-button">
 											<CheckCircle2 size={16} />
 											<span>{workflow.buttons.markAsRead}</span>
 										</button>
@@ -2014,3 +2494,4 @@ const DesignWorkflowShell = ({ title, variant, projectId, taskId }: Props) => {
 };
 
 export default DesignWorkflowShell;
+

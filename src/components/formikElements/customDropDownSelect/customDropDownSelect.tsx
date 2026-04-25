@@ -41,8 +41,9 @@ const CustomDropDownSelect: React.FC<Props> = (props: Props) => {
 					onChange={props.onChange}
 					onBlur={props.onBlur}
 					disabled={props.disabled}
-					className={['app-input w-full appearance-none', props.startIcon ? 'pl-14' : '', 'pr-14', props.error ? 'border-[color:var(--accent)]' : ''].join(' ')}
+					className={['app-input w-full appearance-none', props.startIcon ? 'pl-14' : '', 'pr-14', props.error ? 'border-red-600' : ''].join(' ')}
 				>
+					<option value="">{t.common.selectValue}</option>
 					{props.items.map((item, index) => {
 						const isObject = typeof item === 'object' && item !== null && 'value' in item;
 						const value = isObject && 'code' in item ? item.code : item;
@@ -58,7 +59,7 @@ const CustomDropDownSelect: React.FC<Props> = (props: Props) => {
 					{props.endIcon ?? <ChevronDown size={18} />}
 				</div>
 			</div>
-			{props.helperText ? <p className="mt-2 text-sm text-[var(--ink-soft)]">{props.helperText}</p> : null}
+			{props.helperText ? <p className="mt-2 text-sm text-red-600">{props.helperText}</p> : null}
 		</div>
 	);
 };

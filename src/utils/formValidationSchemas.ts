@@ -109,10 +109,10 @@ export const profilSchema = z.object({
 
 export const changePasswordSchema = z
 	.object({
-		old_password: z.string().min(1, { error: INPUT_REQUIRED }).min(8, { error: () => INPUT_PASSWORD_MIN(8) }),
-		new_password: z.string().min(1, { error: INPUT_REQUIRED }).min(8, { error: () => INPUT_PASSWORD_MIN(8) }),
-		new_password2: z.string().min(1, { error: INPUT_REQUIRED }),
-		globalError: z.string().optional(),
+		old_password: passwordField,
+		new_password: passwordField,
+		new_password2: z.preprocess((val) => (val === undefined ? '' : val), z.string().min(1, { error: INPUT_REQUIRED })),
+		globalError: optionalTextField(1, 500),
 	})
 	.superRefine((data, ctx) => {
 		if (data.new_password !== data.new_password2) {

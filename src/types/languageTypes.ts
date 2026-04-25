@@ -74,6 +74,10 @@ export type TranslationDictionary = {
     changePassword: string;
     logout: string;
     administration: string;
+    openInbox: string;
+    noNotificationsYet: string;
+    workflowUpdate: string;
+    searchWorkspace: string;
     welcomeMale: string;
     welcomeFemale: string;
     welcomeNeutral: string;
@@ -262,3 +266,4 @@ export type TranslationDictionary = {
     moreActions: string;
   };
 };
+

@@ -3,10 +3,10 @@
 import React from 'react';
 import Image from 'next/image';
 import Logo from '../../../../public/assets/images/reservation-logo.png';
-import BlueprintSVG from '../../../../public/assets/images/auth_illu/blueprint.svg';
-import SignatureSVG from '../../../../public/assets/images/auth_illu/signature.svg';
-import HandshakeSVG from '../../../../public/assets/images/auth_illu/handshake.svg';
-import BuildingSVG from '../../../../public/assets/images/auth_illu/building.svg';
+import DesignBoardSVG from '../../../../public/assets/images/auth_illu/design-board.svg';
+import MaterialsSVG from '../../../../public/assets/images/auth_illu/materials.svg';
+import PaletteWallSVG from '../../../../public/assets/images/auth_illu/palette-wall.svg';
+import WorkflowCardSVG from '../../../../public/assets/images/auth_illu/workflow-card.svg';
 import { useLanguage } from '@/utils/hooks';
 
 type Props = {
@@ -45,21 +45,21 @@ const AuthLayout = ({ children }: Props) => {
 						</div>
 
 						<div className="grid grid-cols-2 gap-4">
-							<div className="app-card-muted relative min-h-[220px] overflow-hidden p-5">
+							<div className="app-card-muted relative min-h-[252px] overflow-hidden p-3">
 								<Image
-									src={BlueprintSVG}
+									src={DesignBoardSVG}
 									alt=""
 									fill
-									className="object-contain p-6 grayscale"
+									className="object-contain p-1"
 									sizes="(max-width: 1400px) 30vw, 420px"
 								/>
 							</div>
 							<div className="grid gap-4">
-								<div className="app-card-muted relative min-h-[102px] overflow-hidden">
-									<Image src={SignatureSVG} alt="" fill className="object-contain p-4 grayscale" sizes="240px" />
+								<div className="app-card-muted relative min-h-[118px] overflow-hidden p-2">
+									<Image src={MaterialsSVG} alt="" fill className="object-contain p-0" sizes="280px" />
 								</div>
-								<div className="app-card-muted relative min-h-[102px] overflow-hidden">
-									<Image src={HandshakeSVG} alt="" fill className="object-contain p-4 grayscale" sizes="240px" />
+								<div className="app-card-muted relative min-h-[118px] overflow-hidden p-2">
+									<Image src={WorkflowCardSVG} alt="" fill className="object-contain p-0" sizes="280px" />
 								</div>
 							</div>
 						</div>
@@ -70,7 +70,7 @@ const AuthLayout = ({ children }: Props) => {
 						<div className="absolute left-12 top-1/2 h-px w-48 bg-[var(--line-strong)]" />
 						<div className="absolute right-12 top-24 h-44 w-44 rounded-[8px] border border-[color:var(--line)] bg-white/70" />
 						<div className="absolute right-16 top-28 h-36 w-36">
-							<Image src={BuildingSVG} alt="" fill className="object-contain opacity-55 grayscale" sizes="144px" />
+							<Image src={PaletteWallSVG} alt="" fill className="object-contain opacity-90" sizes="144px" />
 						</div>
 					</div>
 				</section>
