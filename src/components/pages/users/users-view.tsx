@@ -28,7 +28,7 @@ interface InfoRowProps {
 }
 
 const InfoRow: React.FC<InfoRowProps> = ({ label, value }) => (
-	<div className="flex flex-col gap-1 rounded-[8px] border border-[color:var(--line)] bg-white px-4 py-3">
+	<div className="flex flex-col gap-1 rounded-[8px] border border-[color:var(--line)] bg-white px-4 py-3 shadow-[var(--shadow-sm)]">
 		<span className="text-xs font-medium uppercase tracking-[0.18em] text-[var(--ink-soft)]">{label}</span>
 		<span className="text-sm font-medium text-[var(--ink)]">{value && String(value).length > 0 ? value : '-'}</span>
 	</div>
@@ -114,7 +114,7 @@ const UsersViewClient: React.FC<Props> = ({ session, id }) => {
 						</div>
 
 						{isLoading ? (
-							<ApiProgress backdropColor="#FFFFFF" circularColor="#111827" />
+							<ApiProgress backdropColor="#FFFFFF" circularColor="var(--accent)" />
 						) : (axiosError?.status as number) > 400 ? (
 							<ApiAlert errorDetails={axiosError?.data.details} />
 						) : !userData ? (
@@ -201,18 +201,18 @@ const UsersViewClient: React.FC<Props> = ({ session, id }) => {
 							active: false,
 							onClick: () => setShowDeleteModal(false),
 							icon: <ArrowLeft className="h-4 w-4" />,
-							color: '#4b5563',
+							color: 'var(--ink-soft)',
 						},
 						{
 							text: t.common.delete,
 							active: true,
 							onClick: handleDelete,
 							icon: <Trash2 className="h-4 w-4" />,
-							color: '#111827',
+							color: 'var(--accent)',
 						},
 					]}
 					titleIcon={<Trash2 className="h-5 w-5" />}
-					titleIconColor="#111827"
+					titleIconColor="var(--accent)"
 				/>
 			) : null}
 		</div>

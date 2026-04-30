@@ -56,11 +56,11 @@ const PaginatedDataGrid = <T extends { id?: number | string },>({
 	const totalPages = Math.max(1, Math.ceil((data?.count ?? 0) / paginationModel.pageSize));
 
 	if (isLoading) {
-		return <div className="app-card p-6 text-sm text-[var(--ink-soft)]">Loading...</div>;
+		return <div className="workflow-data-grid app-card p-6 text-sm text-[var(--ink-soft)]">Loading...</div>;
 	}
 
 	return (
-		<div className="app-card overflow-hidden border border-[color:var(--line)] bg-white">
+		<div className="workflow-data-grid app-card overflow-hidden border border-[color:var(--line)] bg-white">
 			<div className="flex flex-col gap-3 border-b border-[color:var(--line)] p-4 sm:flex-row sm:items-center sm:justify-between">
 				<input
 					value={searchTerm}
@@ -71,7 +71,7 @@ const PaginatedDataGrid = <T extends { id?: number | string },>({
 				<div className="flex items-center gap-2">
 					<button
 						type="button"
-						className="app-pill border border-[color:var(--line)] px-3 py-2 text-sm"
+						className="app-button app-button-secondary min-h-10 px-3 py-2 text-sm"
 						onClick={() => setPaginationModel((prev) => ({ ...prev, page: Math.max(0, prev.page - 1) }))}
 						disabled={paginationModel.page <= 0}
 					>
@@ -82,7 +82,7 @@ const PaginatedDataGrid = <T extends { id?: number | string },>({
 					</span>
 					<button
 						type="button"
-						className="app-pill border border-[color:var(--line)] px-3 py-2 text-sm"
+						className="app-button app-button-secondary min-h-10 px-3 py-2 text-sm"
 						onClick={() => setPaginationModel((prev) => ({ ...prev, page: Math.min(totalPages - 1, prev.page + 1) }))}
 						disabled={paginationModel.page >= totalPages - 1}
 					>
@@ -117,6 +117,7 @@ const PaginatedDataGrid = <T extends { id?: number | string },>({
 											<input
 												type="checkbox"
 												checked={checked}
+												className="app-check"
 												onChange={(event) => {
 													event.stopPropagation();
 													onSelectionChange(

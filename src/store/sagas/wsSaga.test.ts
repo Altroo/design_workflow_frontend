@@ -4,7 +4,7 @@ import {initWebsocket} from '@/store/services/ws';
 import {getAccessToken} from '@/store/selectors';
 import type {Action} from 'redux';
 import * as Types from '@/store/actions';
-import {setWSMaintenance} from '@/store/slices/wsSlice';
+import {setWSMaintenance, setWSOnlineUsers} from '@/store/slices/wsSlice';
 
 jest.mock('@/store/services/ws', () => ({
   initWebsocket: jest.fn(),
@@ -107,5 +107,33 @@ describe('watchWS saga', () => {
 
     expect(initWebsocket).toHaveBeenCalledWith(expect.any(Function));
     expect(dispatched).toContainEqual(setWSMaintenance(true));
+  });
+
+  it('should map WS_USER_PRESENCE to setWSOnlineUsers', async () => {
+    const dispatched: Action[] = [];
+    const mockToken = 'mock-token';
+    const mockAction = {type: Types.WS_USER_PRESENCE, userId: 7, online: true, onlineUserIds: [4, 7]};
+
+    (getAccessToken as jest.Mock).mockReturnValue(mockToken);
+
+    const mockChannel = eventChannel((emit) => {
+      const timer = setTimeout(() => emit(mockAction), 10);
+      return () => clearTimeout(timer);
+    });
+
+    (initWebsocket as jest.Mock).mockReturnValue(mockChannel);
+
+    const task = runSaga(
+      {
+        dispatch: (action: Action) => dispatched.push(action),
+        getState: () => ({auth: {token: mockToken}}),
+      },
+      watchWS,
+    );
+
+    setTimeout(() => task.cancel(), 100);
+    await task.toPromise();
+
+    expect(dispatched).toContainEqual(setWSOnlineUsers([4, 7]));
   });
 });

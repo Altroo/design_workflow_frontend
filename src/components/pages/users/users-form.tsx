@@ -73,15 +73,15 @@ const ToggleRow = ({
 	checked: boolean;
 	onChange: (checked: boolean) => void;
 }) => (
-	<label className="flex items-center justify-between gap-4 rounded-[8px] border border-[color:var(--line)] bg-white px-4 py-3">
-		<span className="text-sm font-medium text-[var(--ink)]">{label}</span>
+	<label className="workflow-user-form-toggle">
+		<span>{label}</span>
 		<input
 			id={name}
 			name={name}
 			type="checkbox"
 			checked={checked}
 			onChange={(event) => onChange(event.target.checked)}
-			className="h-4 w-4 rounded border-[color:var(--line-strong)] accent-[var(--accent)]"
+			className="app-check"
 		/>
 	</label>
 );
@@ -167,7 +167,6 @@ const FormikContent: React.FC<FormikContentProps> = ({ token, id }) => {
 		is_active: t.users.activeAccount,
 		is_staff: t.users.adminAccount,
 		can_view: t.users.canView,
-		can_print: t.users.canPrint,
 		can_create: t.users.canCreate,
 		can_edit: t.users.canEdit,
 		can_delete: t.users.canDelete,
@@ -179,14 +178,19 @@ const FormikContent: React.FC<FormikContentProps> = ({ token, id }) => {
 
 	const isLoading = isAddLoading || isCheckEmailLoading || isEditLoading || isPending || (isEditMode && isDataLoading);
 	const shouldShowError = (axiosError?.status ?? 0) > 400 && !isLoading;
+	const roleLockedByAdmin = formik.values.is_staff;
 
 	return (
-		<div className="mx-auto w-full max-w-6xl px-4 py-6 sm:px-6">
-			<div className="mb-5 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+		<div className="workflow-user-form-shell">
+			<div className="workflow-user-form-hero">
+				<div>
+					<p>{t.users.userFormStudio}</p>
+					<h1>{isEditMode ? t.users.editUser : t.users.createUser}</h1>
+				</div>
 				<button
 					type="button"
 					onClick={() => router.push(USERS_LIST)}
-					className="app-pill inline-flex items-center gap-2 border border-[color:var(--line)] bg-white px-4 py-2 text-sm font-medium text-[var(--ink)]"
+					className="workflow-user-form-back"
 				>
 					<ArrowLeft className="h-4 w-4" />
 					<span>{t.navigation.usersList}</span>
@@ -194,7 +198,7 @@ const FormikContent: React.FC<FormikContentProps> = ({ token, id }) => {
 			</div>
 
 			{validationErrors.length > 0 ? (
-				<div className="mb-5 rounded-[8px] border border-red-200 bg-red-50 p-5">
+				<div className="workflow-user-form-alert">
 					<div className="flex items-center gap-2 text-red-700">
 						<TriangleAlert className="h-5 w-5" />
 						<p className="font-semibold">{t.users.validationErrorsDetected}</p>
@@ -212,25 +216,23 @@ const FormikContent: React.FC<FormikContentProps> = ({ token, id }) => {
 			{formik.errors.globalError ? <span className="text-sm text-red-600">{formik.errors.globalError}</span> : null}
 
 			{isLoading ? (
-				<ApiProgress backdropColor="#FFFFFF" circularColor="#111827" />
+				<ApiProgress backdropColor="#FFFFFF" circularColor="var(--accent)" />
 			) : shouldShowError ? (
 				<ApiAlert errorDetails={axiosError?.data.details} />
 			) : (
-				<form onSubmit={formik.handleSubmit} className="grid gap-5 xl:grid-cols-[320px_minmax(0,1fr)]">
-					<section className="space-y-5">
-						<div className="app-card border border-[color:var(--line-strong)] bg-[var(--surface-muted)] p-6">
-							<div className="flex items-center gap-3">
-								<div className="flex h-12 w-12 items-center justify-center rounded-[8px] bg-[var(--accent)] text-white">
+				<form onSubmit={formik.handleSubmit} className="workflow-user-form-grid">
+					<section className="workflow-user-form-side">
+						<div className="workflow-user-form-panel workflow-user-form-profile">
+							<div className="workflow-user-form-panel-head">
+								<div className="workflow-user-form-icon">
 									<UserRound className="h-5 w-5" />
 								</div>
 								<div>
-									<p className="text-xs font-medium uppercase tracking-[0.24em] text-[var(--ink-soft)]">User</p>
-									<h2 className="text-xl font-semibold text-[var(--ink)]">
-										{isEditMode ? t.users.editUser : t.users.createUser}
-									</h2>
+									<p>{t.users.userIdentity}</p>
+									<h2>{isEditMode ? t.users.editUser : t.users.createUser}</h2>
 								</div>
 							</div>
-							<div className="mt-6 flex justify-center">
+							<div className="workflow-user-form-avatar">
 								<CustomSquareImageUploading
 									image={formik.values.avatar}
 									croppedImage={formik.values.avatar_cropped}
@@ -240,12 +242,12 @@ const FormikContent: React.FC<FormikContentProps> = ({ token, id }) => {
 							</div>
 						</div>
 
-						<div className="app-card border border-[color:var(--line-strong)] bg-white p-6">
-							<div className="flex items-center gap-3">
-								<BadgeCheck className="h-5 w-5 text-[var(--ink)]" />
-								<h3 className="text-lg font-semibold text-[var(--ink)]">{t.users.accountSettings}</h3>
+						<div className="workflow-user-form-panel">
+							<div className="workflow-user-form-panel-pill" data-tone="green">
+								<BadgeCheck className="h-4 w-4" />
+								<b>{t.users.accountSettings}</b>
 							</div>
-							<div className="mt-4 space-y-3">
+							<div className="workflow-user-form-toggle-stack">
 								<ToggleRow
 									label={t.users.activeAccount}
 									name="is_active"
@@ -256,19 +258,22 @@ const FormikContent: React.FC<FormikContentProps> = ({ token, id }) => {
 									label={t.users.adminAccount}
 									name="is_staff"
 									checked={formik.values.is_staff}
-									onChange={(checked) => formik.setFieldValue('is_staff', checked)}
+									onChange={(checked) => {
+										void formik.setFieldValue('is_staff', checked);
+										if (checked) void formik.setFieldValue('role', 'manager');
+									}}
 								/>
 							</div>
 						</div>
 					</section>
 
-					<section className="space-y-5">
-						<div className="app-card border border-[color:var(--line-strong)] bg-white p-6 sm:p-8">
-							<div className="flex items-center gap-3">
-								<Mail className="h-5 w-5 text-[var(--ink)]" />
-								<h3 className="text-lg font-semibold text-[var(--ink)]">{t.users.personalInfo}</h3>
+					<section className="workflow-user-form-main">
+						<div className="workflow-user-form-panel">
+							<div className="workflow-user-form-panel-pill" data-tone="indigo">
+								<Mail className="h-4 w-4" />
+								<b>{t.users.personalInfo}</b>
 							</div>
-							<div className="mt-5 grid gap-4 md:grid-cols-2">
+							<div className="workflow-user-form-fields">
 								<div className="md:col-span-2">
 									<CustomTextInput
 										id="email"
@@ -334,27 +339,28 @@ const FormikContent: React.FC<FormikContentProps> = ({ token, id }) => {
 										onBlur={formik.handleBlur('role')}
 										error={formik.touched.role && Boolean(formik.errors.role)}
 										helperText={formik.touched.role ? formik.errors.role : ''}
+										disabled={roleLockedByAdmin}
 										startIcon={<Shield className="h-4 w-4" />}
 									/>
+									{roleLockedByAdmin ? <p className="workflow-user-form-hint">{t.users.adminRoleLocked}</p> : null}
 								</div>
 							</div>
 						</div>
 
-						<div className="app-card border border-[color:var(--line-strong)] bg-white p-6 sm:p-8">
-							<div className="flex items-center gap-3">
-								<Shield className="h-5 w-5 text-[var(--ink)]" />
-								<h3 className="text-lg font-semibold text-[var(--ink)]">{t.users.permissions}</h3>
+						<div className="workflow-user-form-panel">
+							<div className="workflow-user-form-panel-pill" data-tone="cyan">
+								<Shield className="h-4 w-4" />
+								<b>{t.users.permissions}</b>
 							</div>
-							<div className="mt-5 grid gap-3 md:grid-cols-2">
+							<div className="workflow-user-form-permissions">
 								<ToggleRow label={t.users.canView} name="can_view" checked={formik.values.can_view} onChange={(checked) => formik.setFieldValue('can_view', checked)} />
-								<ToggleRow label={t.users.canPrint} name="can_print" checked={formik.values.can_print} onChange={(checked) => formik.setFieldValue('can_print', checked)} />
 								<ToggleRow label={t.users.canCreate} name="can_create" checked={formik.values.can_create} onChange={(checked) => formik.setFieldValue('can_create', checked)} />
 								<ToggleRow label={t.users.canEdit} name="can_edit" checked={formik.values.can_edit} onChange={(checked) => formik.setFieldValue('can_edit', checked)} />
 								<ToggleRow label={t.users.canDelete} name="can_delete" checked={formik.values.can_delete} onChange={(checked) => formik.setFieldValue('can_delete', checked)} />
 							</div>
 						</div>
 
-						<div className="flex justify-end">
+						<div className="workflow-user-form-submit">
 							<PrimaryLoadingButton
 								type="submit"
 								buttonText={isEditMode ? t.users.updateUser : t.users.addUser}

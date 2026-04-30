@@ -11,3 +11,4 @@ export const getProfilState = (state: RootState): UserClass => state.account.pro
 
 // WS
 export const getWSMaintenanceState = (state: RootState): boolean => state.ws.maintenance;
+export const getWSOnlineUserIdsState = (state: RootState): number[] => state.ws.onlineUserIds;

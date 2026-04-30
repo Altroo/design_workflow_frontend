@@ -27,3 +27,12 @@ export const WSDesignWorkflowInvalidateAction = (channel: 'TASK_EVENT' | 'NOTIFI
 		channel,
 	};
 };
+
+export const WSUserPresenceAction = (userId: number, online: boolean, onlineUserIds: number[]) => {
+	return {
+		type: types.WS_USER_PRESENCE,
+		userId,
+		online,
+		onlineUserIds,
+	};
+};

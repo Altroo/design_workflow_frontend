@@ -5,6 +5,7 @@ import {
 	WSMaintenanceAction,
 	WSUserAvatarAction,
 	WSReconnectedAction,
+	WSUserPresenceAction,
 } from '@/store/actions/wsActions';
 import type { WSAction, WSEnvelope } from '@/types/wsTypes';
 
@@ -76,6 +77,18 @@ export function initWebsocket(getToken: () => Promise<string | null>): EventChan
 								emitter(WSDesignWorkflowInvalidateAction('TASK_EVENT'));
 							} else if (signalType === 'NOTIFICATION') {
 								emitter(WSDesignWorkflowInvalidateAction('NOTIFICATION'));
+							} else if (signalType === 'USER_PRESENCE') {
+								if (
+									typeof message.user_id === 'number' &&
+									typeof message.online === 'boolean' &&
+									Array.isArray(message.online_user_ids)
+								) {
+									emitter(WSUserPresenceAction(
+										message.user_id,
+										message.online,
+										message.online_user_ids.filter((id): id is number => typeof id === 'number'),
+									));
+								}
 							}
 						}
 					} catch {

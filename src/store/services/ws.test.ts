@@ -1,5 +1,5 @@
 import { initWebsocket } from './ws';
-import { WSMaintenanceAction, WSReconnectedAction, WSUserAvatarAction } from '@/store/actions/wsActions';
+import { WSMaintenanceAction, WSReconnectedAction, WSUserAvatarAction, WSUserPresenceAction } from '@/store/actions/wsActions';
 
 class MockWebSocket implements WebSocket {
   url: string;
@@ -123,6 +123,44 @@ describe('initWebsocket', () => {
     });
 
     expect(emitted).toEqual(WSMaintenanceAction(true));
+    channel.close();
+  });
+
+  it('emits WSUserPresenceAction when USER_PRESENCE message is received', async () => {
+    let createdSocket: MockWebSocket | null = null;
+
+    global.WebSocket = jest.fn((url: string) => {
+      createdSocket = new MockWebSocket(url);
+      return createdSocket as unknown as WebSocket;
+    }) as unknown as typeof WebSocket;
+
+    process.env.NEXT_PUBLIC_ROOT_WS_URL = 'ws://localhost';
+
+    type ExpectedAction = ReturnType<typeof WSUserPresenceAction>;
+    const channel = initWebsocket(async () => 'test-token');
+
+    const emitted = await new Promise<ExpectedAction>((resolve) => {
+      channel.take((action) => {
+        resolve(action as ExpectedAction);
+      });
+
+      const sendMessage = () => {
+        if (createdSocket == null) {
+          setTimeout(sendMessage, 0);
+          return;
+        }
+        const ev = new MessageEvent('message', {
+          data: JSON.stringify({
+            message: { type: 'USER_PRESENCE', user_id: 5, online: true, online_user_ids: [2, 5, 'bad'] },
+          }),
+        });
+        createdSocket.onmessage?.(ev);
+      };
+
+      sendMessage();
+    });
+
+    expect(emitted).toEqual(WSUserPresenceAction(5, true, [2, 5]));
     channel.close();
   });
 

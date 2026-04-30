@@ -106,7 +106,7 @@ const nextConfig: NextConfig = {
 					{ key: 'X-Frame-Options', value: 'SAMEORIGIN' },
 					{ key: 'Referrer-Policy', value: 'strict-origin-when-cross-origin' },
 					{ key: 'X-XSS-Protection', value: '1; mode=block' },
-					{ key: 'Permissions-Policy', value: 'camera=(), microphone=(), geolocation=(), payment=()' },
+					{ key: 'Permissions-Policy', value: 'camera=(), microphone=(self), geolocation=(), payment=()' },
 					{
 						key: 'Content-Security-Policy',
 						value: [
@@ -115,6 +115,7 @@ const nextConfig: NextConfig = {
 							"style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
 							"font-src 'self' https://fonts.gstatic.com data:",
 						`img-src 'self' https://design-workflow-api.elbouazzatiholding.ma data: blob:${isDev ? ' http://localhost:8004 http://127.0.0.1:8004' : ''}`,
+						`media-src 'self' https://design-workflow-api.elbouazzatiholding.ma blob:${isDev ? ' http://localhost:8004 http://127.0.0.1:8004' : ''}`,
 						`connect-src 'self' https://design-workflow-api.elbouazzatiholding.ma wss://design-workflow-api.elbouazzatiholding.ma${isDev ? ' http://localhost:8004 http://127.0.0.1:8004 ws://localhost:8004 ws://127.0.0.1:8004' : ''}`,
 
 							"frame-ancestors 'self'",

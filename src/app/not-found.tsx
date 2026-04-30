@@ -16,7 +16,7 @@ const NotFound = () => {
 				<div className="mx-auto flex h-20 w-20 items-center justify-center rounded-[8px] bg-[var(--surface-muted)] text-[var(--ink-soft)]">
 					<OctagonAlert size={42} />
 				</div>
-				<p className="mt-5 text-5xl font-semibold tracking-[-0.05em] text-[var(--ink)]">404</p>
+				<p className="mt-5 text-5xl font-semibold text-[var(--ink)]">404</p>
 				<h1 className="mt-3 text-2xl font-semibold text-[var(--ink)]">{t.errors.pageNotFound}</h1>
 				<p className="mt-3 text-sm leading-7 text-[var(--ink-soft)]">{t.errors.pageNotFoundText}</p>
 				<div className="mt-6 flex flex-wrap justify-center gap-3">

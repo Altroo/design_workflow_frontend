@@ -1,7 +1,6 @@
 import { redirect } from 'next/navigation';
 import { auth } from '@/auth';
-import { AUTH_LOGIN } from '@/utils/routes';
-import DesignWorkflowShell from '@/components/pages/design-workflow/designWorkflowShell';
+import { AUTH_LOGIN, DASHBOARD_TASK_VIEW } from '@/utils/routes';
 
 const DashboardTaskDetailPage = async ({ params }: { params: Promise<{ id: string }> }) => {
 	const session = await auth();
@@ -9,7 +8,7 @@ const DashboardTaskDetailPage = async ({ params }: { params: Promise<{ id: strin
 		redirect(AUTH_LOGIN);
 	}
 	const { id } = await params;
-	return <DesignWorkflowShell title="Task detail" variant="task-detail" taskId={Number(id)} />;
+	redirect(DASHBOARD_TASK_VIEW(id));
 };
 
 export default DashboardTaskDetailPage;

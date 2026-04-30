@@ -3,23 +3,24 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
+import FlagGB from '../../../../public/assets/images/flags/gb.svg';
+import FlagFR from '../../../../public/assets/images/flags/fr.svg';
 import { signOut, useSession } from 'next-auth/react';
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import {
 	Bell,
 	BriefcaseBusiness,
 	ChevronDown,
 	CircleUserRound,
-	Command,
 	FolderKanban,
 	KeyRound,
 	LayoutDashboard,
+	ListTodo,
 	LogOut,
 	MessagesSquare,
 	Menu,
 	PanelLeftClose,
 	PanelLeftOpen,
-	Search,
 	Shield,
 	Users,
 } from 'lucide-react';
@@ -34,8 +35,10 @@ import {
 	DASHBOARD_OVERVIEW,
 	DASHBOARD_PASSWORD,
 	DASHBOARD_PROJECTS,
+	DASHBOARD_PROJECT_VIEW,
 	DASHBOARD_REPORTS_TIME,
 	DASHBOARD_TEAM,
+	DASHBOARD_TASK_VIEW,
 	SITE_ROOT,
 	USERS_ADD,
 	USERS_LIST,
@@ -43,11 +46,13 @@ import {
 import { cookiesDeleter } from '@/utils/apiHelpers';
 import { useAppSelector, useLanguage } from '@/utils/hooks';
 import { getProfilState } from '@/store/selectors';
-import { useGetNotificationsQuery } from '@/store/services/designWorkflow';
+import { useGetNotificationsQuery, useMarkNotificationReadMutation } from '@/store/services/designWorkflow';
+import type { NotificationItem } from '@/types/designWorkflowTypes';
 
 type Props = {
 	title: string;
 	children: React.ReactNode;
+	hideTopbar?: boolean;
 };
 
 type NavItem = {
@@ -65,8 +70,9 @@ const normalizePath = (url: string) => {
 	}
 };
 
-const NavigationBar = ({ title, children }: Props) => {
+const NavigationBar = ({ title, children, hideTopbar = false }: Props) => {
 	const pathname = usePathname();
+	const router = useRouter();
 	const { data: session } = useSession();
 	const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 	const [profileMenuOpen, setProfileMenuOpen] = useState(false);
@@ -76,6 +82,7 @@ const NavigationBar = ({ title, children }: Props) => {
 	const { t, language, setLanguage } = useLanguage();
 	const profile = useAppSelector(getProfilState);
 	const notificationsRef = useRef<HTMLDivElement | null>(null);
+	const profileMenuRef = useRef<HTMLDivElement | null>(null);
 	const seenUnreadIdsRef = useRef<number[]>([]);
 	const isSuperuser = Boolean((profile as { is_superuser?: boolean }).is_superuser);
 	const hasWorkflowDataAccess = Boolean(session && (profile.role || profile.is_staff || isSuperuser));
@@ -87,8 +94,66 @@ const NavigationBar = ({ title, children }: Props) => {
 	const notificationsPreviewQuery = useGetNotificationsQuery(undefined, {
 		skip: !hasWorkflowDataAccess,
 	});
+	const [markNotificationRead] = useMarkNotificationReadMutation();
 	const notificationsPreview = notificationsPreviewQuery.data?.slice(0, 5) ?? [];
 	const hasManagerAccess = profile.role === 'manager' || profile.is_staff || isSuperuser;
+	const labelForNotificationType = (type: string) => t.workflow.activities[type] ?? type.replaceAll('_', ' ');
+	const notificationEntity = (notification: NotificationItem) => {
+		if (notification.task) {
+			return {
+				label: t.workflow.labels.notificationTask ?? 'Task',
+				name: notification.task.title,
+				context: notification.task.project.name,
+				href: DASHBOARD_TASK_VIEW(notification.task.id),
+				icon: <ListTodo size={16} />,
+				tone: 'bg-violet-50 text-violet-700 border-violet-100',
+			};
+		}
+		if (notification.project) {
+			return {
+				label: t.workflow.labels.notificationProject ?? 'Project',
+				name: notification.project.name,
+				context: notification.project.manager ? `${notification.project.manager.first_name} ${notification.project.manager.last_name}`.trim() : '',
+				href: DASHBOARD_PROJECT_VIEW(notification.project.id),
+				icon: <FolderKanban size={16} />,
+				tone: 'bg-emerald-50 text-emerald-700 border-emerald-100',
+			};
+		}
+		if (notification.type === 'chat_message') {
+			const sender = typeof notification.payload.title === 'string' ? notification.payload.title : '';
+			return {
+				label: t.workflow.labels.notificationChat ?? 'Chat',
+				name: sender || labelForNotificationType(notification.type),
+				context: '',
+				href: DASHBOARD_CHAT,
+				icon: <MessagesSquare size={16} />,
+				tone: 'bg-cyan-50 text-cyan-700 border-cyan-100',
+			};
+		}
+		return {
+			label: t.workflow.labels.notificationWorkflow ?? 'Workflow',
+			name: labelForNotificationType(notification.type),
+			context: '',
+			href: DASHBOARD_NOTIFICATIONS,
+			icon: <Bell size={16} />,
+			tone: 'bg-slate-50 text-slate-700 border-slate-100',
+		};
+	};
+	const notificationDetail = (notification: NotificationItem) => {
+		if (notification.type === 'task_overdue' && typeof notification.payload.days_overdue === 'number') {
+			return `${notification.payload.days_overdue} ${t.workflow.labels.daysOverdue ?? 'days overdue'}`;
+		}
+		if (notification.type === 'task_status' && typeof notification.payload.status === 'string') {
+			return `${t.workflow.labels.statusLabel ?? 'Status'}: ${t.workflow.statuses[notification.payload.status] ?? notification.payload.status}`;
+		}
+		if (notification.type === 'task_reassigned' && typeof notification.payload.reason === 'string' && notification.payload.reason.trim()) {
+			return notification.payload.reason;
+		}
+		if (notification.type === 'chat_message' && typeof notification.payload.title === 'string') {
+			return notification.payload.title;
+		}
+		return '';
+	};
 
 	useEffect(() => {
 		const syncViewport = () => setIsMobile(window.innerWidth <= 1023);
@@ -109,6 +174,17 @@ const NavigationBar = ({ title, children }: Props) => {
 	}, [notificationsOpen]);
 
 	useEffect(() => {
+		if (!profileMenuOpen) return;
+		const handleClickOutside = (event: MouseEvent) => {
+			if (profileMenuRef.current && !profileMenuRef.current.contains(event.target as Node)) {
+				setProfileMenuOpen(false);
+			}
+		};
+		document.addEventListener('mousedown', handleClickOutside);
+		return () => document.removeEventListener('mousedown', handleClickOutside);
+	}, [profileMenuOpen]);
+
+	useEffect(() => {
 		if (typeof window === 'undefined' || !('Notification' in window)) return;
 		const unread = (unreadNotificationsQuery.data ?? []).filter((notification) => !notification.is_read);
 		const unreadIds = unread.map((notification) => notification.id);
@@ -116,11 +192,11 @@ const NavigationBar = ({ title, children }: Props) => {
 		seenUnreadIdsRef.current = unreadIds;
 		if (Notification.permission !== 'granted' || document.visibilityState === 'visible') return;
 		newNotifications.slice(0, 2).forEach((notification) => {
-			const title = typeof notification.payload.title === 'string' ? notification.payload.title : (t.workflow.labels.notificationFallback ?? 'Workflow notification');
-			const body = notification.task?.title ?? notification.project?.name ?? notification.type;
+			const title = t.workflow.activities[notification.type] ?? (t.workflow.labels.notificationFallback ?? 'Workflow notification');
+			const body = notification.task?.title ?? notification.project?.name ?? (typeof notification.payload.title === 'string' ? notification.payload.title : notification.type);
 			new Notification(title, { body });
 		});
-	}, [unreadNotificationsQuery.data]);
+	}, [t.workflow.activities, t.workflow.labels.notificationFallback, unreadNotificationsQuery.data]);
 
 	const workflowItems = useMemo<NavItem[]>(
 		() =>
@@ -167,6 +243,13 @@ const NavigationBar = ({ title, children }: Props) => {
 		],
 		[isSuperuser, profile.is_staff, t],
 	);
+	const profileMenuItems = useMemo<NavItem[]>(
+		() => [
+			{ label: t.navigation.myProfile, path: DASHBOARD_EDIT_PROFILE, icon: <CircleUserRound size={16} /> },
+			{ label: t.navigation.changePassword, path: DASHBOARD_PASSWORD, icon: <KeyRound size={16} /> },
+		],
+		[t],
+	);
 
 	const greeting =
 		profile.gender === 'Femme'
@@ -184,6 +267,24 @@ const NavigationBar = ({ title, children }: Props) => {
 		await signOut({ redirect: true, redirectTo: AUTH_LOGIN });
 	};
 
+	const handleNotificationPreviewClick = async (
+		event: React.MouseEvent<HTMLAnchorElement>,
+		notification: NotificationItem,
+		href: string,
+	) => {
+		if (event.metaKey || event.ctrlKey || event.shiftKey || event.altKey || event.button !== 0) return;
+		event.preventDefault();
+		setNotificationsOpen(false);
+		if (!notification.is_read) {
+			try {
+				await markNotificationRead(notification.id).unwrap();
+			} catch {
+				// Navigation still matters more than a transient read-state failure.
+			}
+		}
+		router.push(href);
+	};
+
 	const renderNavLink = (item: NavItem) => {
 		const active = normalizePath(item.path) === pathname;
 		return (
@@ -197,7 +298,7 @@ const NavigationBar = ({ title, children }: Props) => {
 					'flex w-full items-center gap-3 px-3 py-2.5 text-sm font-semibold transition',
 					active
 						? 'border-[color:var(--accent)] bg-[var(--accent-soft)] text-[var(--accent-strong)] shadow-[var(--shadow-sm)]'
-						: 'text-[var(--ink-soft)] hover:-translate-y-0.5 hover:border-[color:var(--accent)] hover:text-[var(--ink)]',
+						: 'text-[var(--ink-soft)] hover:border-[color:var(--line-strong)] hover:bg-[var(--surface-muted)] hover:text-[var(--ink)]',
 				].join(' ')}
 			>
 				<span className={active ? 'text-[var(--accent-strong)]' : 'text-[var(--ink-soft)]'}>{item.icon}</span>
@@ -217,7 +318,7 @@ const NavigationBar = ({ title, children }: Props) => {
 	};
 
 	const profileAvatar = (
-		<div className="relative flex h-10 w-10 items-center justify-center overflow-hidden rounded-[8px] bg-[var(--surface-strong)]">
+		<div className="workflow-topbar-avatar relative flex h-10 w-10 items-center justify-center overflow-hidden rounded-full bg-[var(--surface-strong)]">
 			{profile.avatar_cropped ? (
 				<Image
 					src={profile.avatar_cropped as string}
@@ -227,7 +328,7 @@ const NavigationBar = ({ title, children }: Props) => {
 					className="object-cover"
 				/>
 			) : (
-				<span className="text-sm font-semibold text-[var(--ink)]">
+				<span className="workflow-avatar-initials inline-flex h-full w-full items-center justify-center text-center text-sm font-black leading-none text-[var(--ink)]">
 					{(profile.first_name?.[0] ?? 'D').toUpperCase()}
 					{(profile.last_name?.[0] ?? 'W').toUpperCase()}
 				</span>
@@ -237,13 +338,13 @@ const NavigationBar = ({ title, children }: Props) => {
 
 	return (
 		<div className={['workflow-shell', railOpen ? 'workflow-shell-expanded' : ''].join(' ')}>
-			<aside className={['workflow-rail app-card hidden flex-col bg-white/92 p-3 backdrop-blur-xl lg:flex', railOpen ? 'workflow-rail-expanded' : 'items-center'].join(' ')}>
+			<aside className={['workflow-rail app-card hidden flex-col bg-white p-3 lg:flex', railOpen ? 'workflow-rail-expanded' : 'items-center'].join(' ')}>
 				<div className="flex w-full items-center justify-between gap-3 border-b border-[color:var(--line)] pb-4">
-					<div className="workflow-rail-logo flex h-11 w-11 items-center justify-center rounded-[8px] bg-[var(--ink)] text-center text-sm font-extrabold leading-none text-white shadow-[var(--shadow-sm)]">
+					<div className="workflow-rail-logo flex h-11 w-11 items-center justify-center rounded-[8px] bg-[var(--accent)] text-center text-sm font-semibold leading-none text-white shadow-[var(--shadow-sm)]">
 						DW
 					</div>
 					<div className="workflow-rail-title min-w-0">
-						<p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[var(--ink-muted)]">Design Workflow</p>
+						<p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-[var(--ink-muted)]">Design Workflow</p>
 						<p className="truncate text-base font-semibold text-[var(--ink)]">{title}</p>
 					</div>
 					<button
@@ -278,14 +379,15 @@ const NavigationBar = ({ title, children }: Props) => {
 
 			<div className="workflow-main">
 				<div className="mx-auto flex w-full max-w-[1520px] flex-col gap-4">
-					<header className="workflow-topbar app-card overflow-visible bg-white/90 px-3 py-3 backdrop-blur-xl sm:px-4">
+					{hideTopbar ? null : (
+					<header className="workflow-topbar workflow-commandbar app-card overflow-visible bg-white px-3 py-3 sm:px-4">
 						<div className="flex flex-wrap items-center gap-3">
 							<button
 								type="button"
 								aria-label={t.accessibility.toggleDrawer}
 								onClick={() => setMobileMenuOpen((current) => !current)}
 								className={[
-									'app-pill workflow-focus-ring flex h-11 w-11 items-center justify-center text-[var(--ink)] lg:hidden',
+									'app-pill workflow-focus-ring flex h-10 w-10 items-center justify-center text-[var(--ink)] lg:hidden',
 									isMobile ? 'inline-flex' : 'hidden',
 								].join(' ')}
 							>
@@ -297,44 +399,58 @@ const NavigationBar = ({ title, children }: Props) => {
 									DW
 								</div>
 								<div className="hidden sm:block">
-									<p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[var(--ink-muted)]">
+									<p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-[var(--ink-muted)]">
 										Design Workflow
 									</p>
 									<p className="text-sm font-semibold text-[var(--ink)]">{title}</p>
 								</div>
 							</div>
 
-							<label className="app-pill hidden min-w-[280px] flex-1 items-center gap-3 bg-[var(--surface-muted)] px-3 py-2.5 text-sm text-[var(--ink-soft)] md:flex">
-								<Search size={17} />
-								<input
-									aria-label={t.navigation.searchWorkspace ?? t.workflow.labels.search}
-									placeholder={t.navigation.searchWorkspace ?? t.workflow.labels.search}
-									className="min-w-0 flex-1 bg-transparent text-[var(--ink)] outline-none placeholder:text-[var(--ink-muted)]"
-								/>
-								<span className="hidden items-center gap-1 rounded-[6px] border border-[color:var(--line)] px-2 py-1 text-[11px] font-semibold text-[var(--ink-muted)] xl:inline-flex">
-									<Command size={12} /> K
-								</span>
-							</label>
-
-							<div className="ml-auto flex items-center gap-2">
+							<div className="workflow-topbar-controls ml-auto flex items-center gap-2">
 								<div ref={notificationsRef} className="relative">
-									<button type="button" onClick={() => setNotificationsOpen((current) => !current)} className="app-pill workflow-focus-ring relative flex h-11 w-11 items-center justify-center text-[var(--ink)]">
+									<button type="button" onClick={() => setNotificationsOpen((current) => !current)} className="workflow-topbar-icon workflow-focus-ring relative flex h-10 w-10 items-center justify-center text-[var(--ink)]">
 										<Bell size={18} />
 										{unreadNotifications ? <span className="absolute right-2 top-2 h-2.5 w-2.5 rounded-full bg-red-600" /> : null}
 									</button>
 									{notificationsOpen ? (
-										<div className="absolute right-0 top-[calc(100%+10px)] z-[110] flex w-[360px] max-w-[calc(100vw-24px)] flex-col gap-2 rounded-[8px] border border-[color:var(--line)] bg-white p-3 shadow-[var(--shadow-lg)]">
+										<div className="workflow-topbar-menu absolute right-0 top-[calc(100%+10px)] z-[110] flex w-[360px] max-w-[calc(100vw-24px)] flex-col gap-2 rounded-[16px] border border-[color:var(--line)] bg-white p-3 shadow-[var(--shadow-lg)]">
 											<div className="flex items-center justify-between gap-3 px-1">
 												<p className="text-sm font-bold text-[var(--ink)]">{t.navigation.notifications}</p>
 												<Link href={DASHBOARD_NOTIFICATIONS} onClick={() => setNotificationsOpen(false)} className="text-xs font-semibold text-[var(--accent-strong)]">{t.navigation.openInbox ?? 'Open inbox'}</Link>
 											</div>
 											<div className="space-y-2">
-												{notificationsPreview.map((notification) => (
-													<Link key={notification.id} href={notification.task ? `${SITE_ROOT}dashboard/tasks/${notification.task.id}` : DASHBOARD_NOTIFICATIONS} onClick={() => setNotificationsOpen(false)} className="block rounded-[8px] border border-[color:var(--line)] px-3 py-3 hover:bg-[var(--surface-muted)]">
-														<p className="text-sm font-semibold text-[var(--ink)]">{typeof notification.payload.title === 'string' ? notification.payload.title : (t.workflow.activities[notification.type] ?? notification.type)}</p>
-														<p className="mt-1 text-xs text-[var(--ink-soft)]">{notification.task?.title ?? notification.project?.name ?? (t.navigation.workflowUpdate ?? 'Workflow update')}</p>
-													</Link>
-												))}
+												{notificationsPreview.map((notification) => {
+													const entity = notificationEntity(notification);
+													const detail = notificationDetail(notification);
+													return (
+														<Link
+															key={notification.id}
+															href={entity.href}
+															onClick={(event) => handleNotificationPreviewClick(event, notification, entity.href)}
+															data-unread={!notification.is_read}
+															className="workflow-notification-preview-card group block rounded-[12px] border px-3 py-3 transition"
+														>
+															<div className="flex items-start gap-3">
+																<span className={`mt-0.5 grid h-9 w-9 shrink-0 place-items-center rounded-[10px] border ${entity.tone}`}>
+																	{entity.icon}
+																</span>
+																<div className="min-w-0 flex-1">
+																	<div className="mb-1 flex items-center gap-2">
+																		<span className="rounded-full bg-[var(--surface-muted)] px-2 py-0.5 text-[10px] font-black uppercase tracking-[0.14em] text-[var(--ink-muted)]">
+																			{entity.label}
+																		</span>
+																		{notification.is_read ? null : <span className="h-2 w-2 rounded-full bg-red-600" />}
+																	</div>
+																	<p className="text-sm font-bold leading-snug text-[var(--ink)]">{labelForNotificationType(notification.type)}</p>
+																	<p className="mt-1 truncate text-xs font-semibold text-[var(--ink-soft)]">{entity.name}</p>
+																	{detail || entity.context ? (
+																		<p className="mt-1 truncate text-[11px] text-[var(--ink-muted)]">{detail || entity.context}</p>
+																	) : null}
+																</div>
+															</div>
+														</Link>
+													);
+												})}
 												{notificationsPreview.length === 0 ? <p className="px-1 py-4 text-sm text-[var(--ink-soft)]">{t.navigation.noNotificationsYet ?? 'No notifications yet.'}</p> : null}
 											</div>
 										</div>
@@ -345,7 +461,7 @@ const NavigationBar = ({ title, children }: Props) => {
 										href={BACKEND_SITE_ADMIN}
 										target="_blank"
 										rel="noopener noreferrer"
-										className="app-pill workflow-focus-ring hidden items-center gap-2 px-3 py-2 text-sm font-semibold text-[var(--ink-soft)] transition hover:text-[var(--ink)] xl:inline-flex"
+										className="workflow-topbar-control workflow-focus-ring hidden items-center gap-2 px-3 py-2 text-sm font-bold text-[var(--ink)] transition xl:inline-flex"
 									>
 										<Shield size={16} />
 										<span>{t.navigation.administration}</span>
@@ -354,17 +470,24 @@ const NavigationBar = ({ title, children }: Props) => {
 								<button
 									type="button"
 									onClick={() => setLanguage(language === 'fr' ? 'en' : 'fr')}
-									className="app-pill workflow-focus-ring hidden items-center gap-2 px-3 py-2 text-sm font-semibold text-[var(--ink-soft)] transition hover:text-[var(--ink)] sm:inline-flex"
+									className="workflow-topbar-control workflow-focus-ring hidden items-center gap-2 px-3 py-2 text-sm font-bold text-[var(--ink)] transition sm:inline-flex"
 								>
-									<span aria-hidden="true">{language === 'fr' ? '🇬🇧' : '🇫🇷'}</span>
+									<Image
+										src={language === 'fr' ? FlagGB : FlagFR}
+										alt=""
+										width={30}
+										height={20}
+										className="workflow-language-flag"
+										aria-hidden="true"
+									/>
 									<span>{language === 'fr' ? 'EN' : 'FR'}</span>
 								</button>
 
-								<div className="relative">
+								<div ref={profileMenuRef} className="relative">
 									<button
 										type="button"
 										onClick={() => setProfileMenuOpen((current) => !current)}
-										className="app-pill workflow-focus-ring flex items-center gap-3 px-3 py-2 text-left"
+										className="workflow-topbar-profile workflow-focus-ring flex items-center gap-3 px-3 py-2 text-left"
 									>
 										{profileAvatar}
 										<div className="hidden sm:block">
@@ -377,17 +500,8 @@ const NavigationBar = ({ title, children }: Props) => {
 									</button>
 
 									{profileMenuOpen ? (
-										<div className="absolute right-0 top-[calc(100%+10px)] z-[100] flex min-w-[270px] flex-col gap-2 rounded-[8px] border border-[color:var(--line)] bg-white p-3 shadow-[var(--shadow-lg)]">
-											<div className="rounded-[8px] bg-[var(--surface-muted)] px-3 py-3">
-												<p className="text-xs font-semibold uppercase tracking-[0.16em] text-[var(--ink-muted)]">
-													{t.navigation.profile}
-												</p>
-												<p className="mt-1 text-sm font-semibold text-[var(--ink)]">
-													{profile.first_name} {profile.last_name}
-												</p>
-											</div>
-											<div className="flex flex-col gap-2 lg:hidden">{workflowItems.map(renderNavLink)}</div>
-											<div className="flex flex-col gap-2">{utilityItems.map(renderNavLink)}</div>
+										<div className="workflow-topbar-menu absolute right-0 top-[calc(100%+10px)] z-[100] flex min-w-[270px] flex-col gap-2 rounded-[16px] border border-[color:var(--line)] bg-white p-3 shadow-[var(--shadow-lg)]">
+											<div className="flex flex-col gap-2">{profileMenuItems.map(renderNavLink)}</div>
 											<button
 												type="button"
 												onClick={() => {
@@ -407,14 +521,6 @@ const NavigationBar = ({ title, children }: Props) => {
 
 						{isMobile && mobileMenuOpen ? (
 							<div className="mt-3 flex flex-col gap-2 rounded-[8px] border border-[color:var(--line)] bg-[var(--surface-muted)] p-3 lg:hidden">
-								<label className="app-input flex items-center gap-3 px-3 py-2">
-									<Search size={17} className="text-[var(--ink-soft)]" />
-									<input
-										aria-label={t.navigation.searchWorkspace ?? t.workflow.labels.search}
-										placeholder={t.workflow.labels.search}
-										className="min-w-0 flex-1 bg-transparent outline-none"
-									/>
-								</label>
 								{workflowItems.map(renderNavLink)}
 								<div className="rounded-[8px] border border-dashed border-[color:var(--line)] p-3">
 									<p className="mb-2 text-xs font-semibold uppercase tracking-[0.16em] text-[var(--ink-muted)]">
@@ -425,6 +531,7 @@ const NavigationBar = ({ title, children }: Props) => {
 							</div>
 						) : null}
 					</header>
+					)}
 
 					<main className="min-w-0 pb-6">{children}</main>
 				</div>

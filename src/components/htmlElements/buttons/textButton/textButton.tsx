@@ -13,7 +13,7 @@ const TextButton: React.FC<Props> = (props: Props) => {
 	return (
 		<button
 			type="button"
-			className={['inline-flex items-center gap-2 text-sm font-medium text-[var(--ink-soft)] transition hover:text-[var(--ink)]', props.cssClass ?? ''].join(' ')}
+			className={['ui-button-ghost inline-flex items-center gap-2 text-sm font-semibold text-[var(--ink-soft)] transition hover:text-[var(--ink)]', props.cssClass ?? ''].join(' ')}
 			disabled={props.disabled}
 			onClick={props.onClick}
 		>

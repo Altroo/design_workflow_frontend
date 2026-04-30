@@ -1,5 +1,5 @@
 import * as types from './index';
-import { WSMaintenanceAction, WSReconnectedAction, WSUserAvatarAction } from './wsActions';
+import { WSMaintenanceAction, WSReconnectedAction, WSUserAvatarAction, WSUserPresenceAction } from './wsActions';
 
 describe('WSUserAvatarAction', () => {
   it('should create WS_USER_AVATAR action with pk and avatar', () => {
@@ -33,5 +33,16 @@ describe('WSReconnectedAction', () => {
   it('should create WS_RECONNECTED action', () => {
     const action = WSReconnectedAction();
     expect(action).toEqual({ type: types.WS_RECONNECTED });
+  });
+});
+
+describe('WSUserPresenceAction', () => {
+  it('should create WS_USER_PRESENCE action', () => {
+    expect(WSUserPresenceAction(5, true, [2, 5])).toEqual({
+      type: types.WS_USER_PRESENCE,
+      userId: 5,
+      online: true,
+      onlineUserIds: [2, 5],
+    });
   });
 });

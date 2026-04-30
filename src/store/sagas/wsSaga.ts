@@ -6,13 +6,14 @@ import type { RootState } from '@/store/store';
 import type { Action } from 'redux';
 import type { EventChannel, SagaIterator } from 'redux-saga';
 import * as Types from '@/store/actions';
-import { setWSMaintenance } from '@/store/slices/wsSlice';
+import { setWSMaintenance, setWSOnlineUsers } from '@/store/slices/wsSlice';
 import { initMaintenanceSaga } from '@/store/sagas/_initSaga';
 import { designWorkflowApi } from '@/store/services/designWorkflow';
 
 type WSChannelAction = Action & {
 	maintenance?: boolean;
 	channel?: 'TASK_EVENT' | 'NOTIFICATION';
+	onlineUserIds?: number[];
 };
 
 function* monitorToken(
@@ -43,6 +44,8 @@ export function* watchWS(): SagaIterator<void> {
 			const action: WSChannelAction = yield take(channel);
 			if (action.type === Types.WS_MAINTENANCE && typeof action.maintenance === 'boolean') {
 				yield put(setWSMaintenance(action.maintenance));
+			} else if (action.type === Types.WS_USER_PRESENCE && Array.isArray(action.onlineUserIds)) {
+				yield put(setWSOnlineUsers(action.onlineUserIds));
 			} else if (action.type === Types.WS_RECONNECTED) {
 				yield call(initMaintenanceSaga);
 			} else if (action.type === Types.WS_DESIGN_WORKFLOW_INVALIDATE) {

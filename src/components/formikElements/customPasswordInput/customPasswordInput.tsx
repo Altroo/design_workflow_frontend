@@ -27,13 +27,13 @@ const CustomPasswordInput = forwardRef<HTMLInputElement, Props>((props: Props, r
 	return (
 		<div className={[props.fullWidth ? 'w-full' : '', props.cssClass ?? ''].join(' ')}>
 			{props.label ? (
-				<label htmlFor={props.id} className="mb-2 block text-sm font-medium text-[var(--ink)]">
+				<label htmlFor={props.id} className="mb-2 block text-sm font-medium leading-5 text-[var(--ink-soft)]">
 					{props.label}
 				</label>
 			) : null}
 			<div className="relative">
 				{props.startIcon ? (
-					<div className="pointer-events-none absolute left-5 top-1/2 z-10 -translate-y-1/2 text-[var(--ink-soft)]">
+					<div className="pointer-events-none absolute left-3 top-0 z-10 flex h-full items-center justify-center text-[var(--ink-muted)]">
 						{props.startIcon}
 					</div>
 				) : null}
@@ -48,13 +48,13 @@ const CustomPasswordInput = forwardRef<HTMLInputElement, Props>((props: Props, r
 					placeholder={props.placeholder}
 					disabled={props.disabled}
 					onClick={props.onClick}
-					className={['app-input w-full', props.startIcon ? 'pl-14' : '', 'pr-14', props.error ? 'border-red-600' : ''].join(' ')}
+					className={['app-input w-full', props.startIcon ? 'pl-14' : '', 'pr-14', props.error ? 'border-red-300 bg-red-50' : ''].join(' ')}
 				/>
 				<button
 					type="button"
 					aria-label={t.common.togglePasswordVisibility}
 					onClick={() => setShowPassword((current) => !current)}
-					className="absolute right-5 top-1/2 -translate-y-1/2 text-[var(--ink-soft)]"
+					className="absolute right-3 top-1/2 grid h-9 w-9 -translate-y-1/2 place-items-center rounded-[8px] text-[var(--ink-muted)] transition hover:bg-[var(--surface-muted)] hover:text-[var(--ink)]"
 				>
 					{showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
 				</button>

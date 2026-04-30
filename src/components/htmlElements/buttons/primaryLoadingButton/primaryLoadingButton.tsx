@@ -15,7 +15,7 @@ const PrimaryLoadingButton: React.FC<Props> = (props: Props) => {
 	return (
 		<button
 			onClick={props.onClick as React.MouseEventHandler<HTMLButtonElement>}
-			className={['app-button', props.cssClass ?? ''].join(' ')}
+			className={['app-button ui-button-primary', props.cssClass ?? ''].join(' ')}
 			disabled={!props.active || props.loading}
 			type={props.type}
 		>

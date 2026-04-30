@@ -54,7 +54,7 @@ const SetPasswordPageContent = ({ email, code }: Props) => {
 	return (
 		<div className="app-card px-5 py-6 sm:px-7 sm:py-7">
 			<p className="text-xs font-semibold uppercase tracking-[0.22em] text-[var(--ink-soft)]">Security</p>
-			<h1 className="mt-3 text-4xl font-semibold tracking-[-0.03em] text-[var(--ink)]">{t.auth.setNewPassword}</h1>
+			<h1 className="mt-3 text-4xl font-semibold text-[var(--ink)]">{t.auth.setNewPassword}</h1>
 			<p className="mt-3 text-sm leading-6 text-[var(--ink-soft)]">
 				Create strong password. Keep workspace secure.
 			</p>
@@ -77,11 +77,11 @@ const SetPasswordPageContent = ({ email, code }: Props) => {
 					},
 				].map((field) => (
 					<div key={field.id}>
-						<label htmlFor={field.id} className="mb-2 block text-sm font-medium text-[var(--ink)]">
+						<label htmlFor={field.id} className="mb-2 block text-sm font-medium leading-5 text-[var(--ink-soft)]">
 							{field.label}
 						</label>
 						<div className="relative">
-							<Lock size={18} className="pointer-events-none absolute left-5 top-1/2 -translate-y-1/2 text-[var(--ink-soft)]" />
+							<Lock size={18} className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-[var(--ink-muted)]" />
 							<input
 								id={field.id}
 								name={field.id}

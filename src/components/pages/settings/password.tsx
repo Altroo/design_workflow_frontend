@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
-import { LockKeyhole, PencilLine, TriangleAlert } from 'lucide-react';
+import { LockKeyhole, PencilLine, ShieldCheck, TriangleAlert } from 'lucide-react';
 import { setFormikAutoErrors } from '@/utils/helpers';
 import { useFormik } from 'formik';
 import { changePasswordSchema } from '@/utils/formValidationSchemas';
@@ -52,74 +52,105 @@ const FormikContent: React.FC = () => {
 	});
 
 	return (
-		<div className="mx-auto w-full max-w-3xl px-4 py-6 sm:px-6">
-			{(isChangePasswordLoading || isPending) && <ApiProgress backdropColor="#FFFFFF" circularColor="#111827" />}
-			<div className="app-card border border-[color:var(--line-strong)] bg-white p-6 sm:p-8">
-				<div className="flex items-start justify-between gap-4">
-					<div>
-						<p className="text-xs font-medium uppercase tracking-[0.24em] text-[var(--ink-soft)]">Settings</p>
-						<h2 className="mt-2 text-3xl font-semibold text-[var(--ink)]">{t.settings.changePassword}</h2>
-						<p className="mt-2 text-sm text-[var(--ink-soft)]">Update credentials with strong password rules.</p>
-					</div>
-					<div className="flex h-14 w-14 items-center justify-center rounded-[8px] bg-[var(--accent)] text-white">
-						<LockKeyhole className="h-6 w-6" />
-					</div>
+		<div className="workflow-user-form-shell workflow-password-shell">
+			{(isChangePasswordLoading || isPending) && <ApiProgress backdropColor="#FFFFFF" circularColor="var(--accent)" />}
+			<div className="workflow-user-form-hero">
+				<div>
+					<p>{t.settings.passwordStudio}</p>
+					<h1>{t.settings.changePassword}</h1>
 				</div>
-
-				{profil && profil.default_password_set ? (
-					<div className="mt-6 flex items-start gap-3 rounded-[8px] border border-[color:var(--line)] bg-[var(--surface-muted)] p-4 text-sm text-[var(--ink)]">
-						<TriangleAlert className="mt-0.5 h-5 w-5 shrink-0" />
-						<p>{t.settings.defaultPasswordWarning}</p>
-					</div>
-				) : null}
-
-				<form className="mt-6 space-y-4" onSubmit={formik.handleSubmit}>
-					<CustomPasswordInput
-						id="old_password"
-						value={formik.values.old_password}
-						onChange={formik.handleChange('old_password')}
-						onBlur={formik.handleBlur('old_password')}
-						helperText={formik.touched.old_password ? formik.errors.old_password : ''}
-						error={formik.touched.old_password && Boolean(formik.errors.old_password)}
-						label={t.settings.oldPassword}
-						placeholder={t.settings.oldPassword}
-						startIcon={<LockKeyhole className="h-4 w-4" />}
-						fullWidth={true}
-					/>
-					<CustomPasswordInput
-						id="new_password"
-						value={formik.values.new_password}
-						onChange={formik.handleChange('new_password')}
-						onBlur={formik.handleBlur('new_password')}
-						helperText={formik.touched.new_password ? formik.errors.new_password : ''}
-						error={formik.touched.new_password && Boolean(formik.errors.new_password)}
-						label={t.settings.newPassword}
-						placeholder={t.settings.newPassword}
-						startIcon={<LockKeyhole className="h-4 w-4" />}
-						fullWidth={true}
-					/>
-					<CustomPasswordInput
-						id="new_password2"
-						value={formik.values.new_password2}
-						onChange={formik.handleChange('new_password2')}
-						onBlur={formik.handleBlur('new_password2')}
-						helperText={formik.touched.new_password2 ? formik.errors.new_password2 : ''}
-						error={formik.touched.new_password2 && Boolean(formik.errors.new_password2)}
-						label={t.settings.confirmNewPassword}
-						placeholder={t.settings.confirmNewPassword}
-						startIcon={<LockKeyhole className="h-4 w-4" />}
-						fullWidth={true}
-					/>
-					<PrimaryLoadingButton
-						buttonText={t.settings.modify}
-						active={!isPending}
-						onClick={formik.handleSubmit}
-						type="submit"
-						startIcon={<PencilLine className="h-4 w-4" />}
-						loading={isPending}
-					/>
-				</form>
 			</div>
+
+			<form className="workflow-user-form-grid workflow-password-grid" onSubmit={formik.handleSubmit}>
+				<section className="workflow-user-form-side">
+					<div className="workflow-user-form-panel workflow-password-card">
+						<div className="workflow-user-form-panel-head">
+							<div className="workflow-user-form-icon">
+								<ShieldCheck className="h-5 w-5" />
+							</div>
+							<div>
+								<p>{t.settings.security}</p>
+								<h2>{t.settings.changePassword}</h2>
+							</div>
+						</div>
+						<div className="workflow-password-visual" aria-hidden="true">
+							<div className="workflow-password-lock">
+								<LockKeyhole className="h-10 w-10" />
+							</div>
+							<div className="workflow-password-dots">
+								<span />
+								<span />
+								<span />
+								<span />
+							</div>
+						</div>
+					</div>
+				</section>
+
+				<section className="workflow-user-form-main">
+					{profil && profil.default_password_set ? (
+						<div className="workflow-password-warning">
+							<TriangleAlert className="h-5 w-5 shrink-0" />
+							<p>{t.settings.defaultPasswordWarning}</p>
+						</div>
+					) : null}
+
+					<div className="workflow-user-form-panel">
+						<div className="workflow-user-form-panel-pill" data-tone="indigo">
+							<LockKeyhole className="h-4 w-4" />
+							<b>{t.settings.credentials}</b>
+						</div>
+						<div className="workflow-password-fields">
+							<CustomPasswordInput
+								id="old_password"
+								value={formik.values.old_password}
+								onChange={formik.handleChange('old_password')}
+								onBlur={formik.handleBlur('old_password')}
+								helperText={formik.touched.old_password ? formik.errors.old_password : ''}
+								error={formik.touched.old_password && Boolean(formik.errors.old_password)}
+								label={t.settings.oldPassword}
+								placeholder={t.settings.oldPasswordPlaceholder}
+								startIcon={<LockKeyhole className="h-4 w-4" />}
+								fullWidth={true}
+							/>
+							<CustomPasswordInput
+								id="new_password"
+								value={formik.values.new_password}
+								onChange={formik.handleChange('new_password')}
+								onBlur={formik.handleBlur('new_password')}
+								helperText={formik.touched.new_password ? formik.errors.new_password : ''}
+								error={formik.touched.new_password && Boolean(formik.errors.new_password)}
+								label={t.settings.newPassword}
+								placeholder={t.settings.newPasswordPlaceholder}
+								startIcon={<LockKeyhole className="h-4 w-4" />}
+								fullWidth={true}
+							/>
+							<CustomPasswordInput
+								id="new_password2"
+								value={formik.values.new_password2}
+								onChange={formik.handleChange('new_password2')}
+								onBlur={formik.handleBlur('new_password2')}
+								helperText={formik.touched.new_password2 ? formik.errors.new_password2 : ''}
+								error={formik.touched.new_password2 && Boolean(formik.errors.new_password2)}
+								label={t.settings.confirmNewPassword}
+								placeholder={t.settings.confirmNewPasswordPlaceholder}
+								startIcon={<LockKeyhole className="h-4 w-4" />}
+								fullWidth={true}
+							/>
+						</div>
+					</div>
+					<div className="workflow-user-form-submit">
+						<PrimaryLoadingButton
+							buttonText={t.settings.modify}
+							active={!isPending}
+							onClick={formik.handleSubmit}
+							type="submit"
+							startIcon={<PencilLine className="h-4 w-4" />}
+							loading={isPending}
+						/>
+					</div>
+				</section>
+			</form>
 		</div>
 	);
 };

@@ -3,6 +3,7 @@ import type {
 	WSMaintenanceAction,
 	WSUserAvatarAction,
 	WSReconnectedAction,
+	WSUserPresenceAction,
 } from '@/store/actions/wsActions';
 
 export interface WSMaintenanceBootstrap {
@@ -13,7 +14,8 @@ export type WSAction =
 	| ReturnType<typeof WSUserAvatarAction>
 	| ReturnType<typeof WSMaintenanceAction>
 	| ReturnType<typeof WSReconnectedAction>
-	| ReturnType<typeof WSDesignWorkflowInvalidateAction>;
+	| ReturnType<typeof WSDesignWorkflowInvalidateAction>
+	| ReturnType<typeof WSUserPresenceAction>;
 
 type WSMessage = {
 	type: string;
@@ -24,6 +26,9 @@ type WSMessage = {
 	task_id?: number;
 	project_id?: number;
 	notification_id?: number;
+	user_id?: number;
+	online?: boolean;
+	online_user_ids?: number[];
 };
 
 export type WSEnvelope = {

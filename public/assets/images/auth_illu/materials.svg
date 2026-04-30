@@ -1,22 +1,53 @@
-<svg width="320" height="220" viewBox="0 0 320 220" fill="none" xmlns="http://www.w3.org/2000/svg">
-  <rect width="320" height="220" rx="24" fill="#F8F6F2"/>
-  <rect x="28" y="28" width="264" height="164" rx="20" fill="white" stroke="#E5DDD1" stroke-width="2"/>
-  <rect x="52" y="58" width="92" height="92" rx="18" fill="url(#a)"/>
-  <rect x="158" y="58" width="50" height="92" rx="16" fill="url(#b)"/>
-  <rect x="222" y="58" width="46" height="92" rx="16" fill="url(#c)"/>
-  <rect x="52" y="162" width="216" height="10" rx="5" fill="#E9E1D6"/>
+<svg width="520" height="300" viewBox="0 0 520 300" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <rect width="520" height="300" rx="24" fill="#F8FAFC"/>
+  <rect x="22" y="22" width="476" height="256" rx="20" fill="white" stroke="#E2E8F0"/>
+  <rect x="44" y="44" width="164" height="42" rx="21" fill="#F59E0B"/>
+  <rect x="58" y="57" width="42" height="16" rx="8" fill="white" fill-opacity=".22"/>
+  <rect x="112" y="59" width="70" height="12" rx="6" fill="white"/>
+  <circle cx="188" cy="65" r="11" fill="white" fill-opacity=".26"/>
+  <rect x="226" y="44" width="112" height="38" rx="19" fill="#F8FAFC" stroke="#E2E8F0"/>
+  <rect x="244" y="58" width="76" height="10" rx="5" fill="#CBD5E1"/>
+  <rect x="354" y="44" width="102" height="38" rx="19" fill="#111827"/>
+  <rect x="376" y="58" width="58" height="10" rx="5" fill="white"/>
+
+  <g filter="url(#shadow)">
+    <rect x="48" y="110" width="132" height="124" rx="16" fill="white" stroke="#E5E7EB"/>
+    <rect x="64" y="128" width="72" height="9" rx="4.5" fill="#111827"/>
+    <rect x="64" y="146" width="92" height="7" rx="3.5" fill="#CBD5E1"/>
+    <rect x="64" y="170" width="100" height="36" rx="12" fill="#FFF7ED" stroke="#FED7AA"/>
+    <circle cx="84" cy="188" r="10" fill="#F59E0B"/>
+    <rect x="102" y="181" width="44" height="7" rx="3.5" fill="#D97706"/>
+    <rect x="102" y="194" width="52" height="6" rx="3" fill="#FDBA74"/>
+    <circle cx="76" cy="222" r="8" fill="#111827"/>
+    <circle cx="90" cy="222" r="8" fill="#CBD5E1" stroke="white" stroke-width="2"/>
+    <circle cx="104" cy="222" r="8" fill="#F59E0B" stroke="white" stroke-width="2"/>
+  </g>
+
+  <g filter="url(#shadow)">
+    <rect x="202" y="110" width="132" height="124" rx="16" fill="white" stroke="#E5E7EB"/>
+    <rect x="218" y="128" width="68" height="9" rx="4.5" fill="#111827"/>
+    <rect x="218" y="146" width="84" height="7" rx="3.5" fill="#CBD5E1"/>
+    <rect x="218" y="170" width="100" height="36" rx="12" fill="#F1F5F9" stroke="#E2E8F0"/>
+    <rect x="236" y="182" width="64" height="8" rx="4" fill="#64748B"/>
+    <rect x="236" y="196" width="46" height="6" rx="3" fill="#CBD5E1"/>
+    <rect x="218" y="218" width="42" height="10" rx="5" fill="#F8FAFC" stroke="#E2E8F0"/>
+    <rect x="268" y="218" width="50" height="10" rx="5" fill="#F8FAFC" stroke="#E2E8F0"/>
+  </g>
+
+  <g filter="url(#shadow)">
+    <rect x="356" y="110" width="116" height="124" rx="16" fill="white" stroke="#E5E7EB"/>
+    <rect x="372" y="128" width="58" height="9" rx="4.5" fill="#111827"/>
+    <rect x="372" y="146" width="76" height="7" rx="3.5" fill="#CBD5E1"/>
+    <rect x="372" y="170" width="84" height="36" rx="12" fill="#F5F6FF" stroke="#DFE3FF"/>
+    <path d="M392 189h44" stroke="#3F3CFF" stroke-width="7" stroke-linecap="round"/>
+    <circle cx="386" cy="222" r="8" fill="#111827"/>
+    <circle cx="400" cy="222" r="8" fill="#CBD5E1" stroke="white" stroke-width="2"/>
+    <rect x="426" y="216" width="30" height="14" rx="7" fill="#F8FAFC" stroke="#E2E8F0"/>
+  </g>
+
   <defs>
-    <linearGradient id="a" x1="52" y1="58" x2="144" y2="150" gradientUnits="userSpaceOnUse">
-      <stop stop-color="#D7CCBC"/>
-      <stop offset="1" stop-color="#F1ECE4"/>
-    </linearGradient>
-    <linearGradient id="b" x1="158" y1="58" x2="208" y2="150" gradientUnits="userSpaceOnUse">
-      <stop stop-color="#7A8A92"/>
-      <stop offset="1" stop-color="#C8D0D3"/>
-    </linearGradient>
-    <linearGradient id="c" x1="222" y1="58" x2="268" y2="150" gradientUnits="userSpaceOnUse">
-      <stop stop-color="#8C6C55"/>
-      <stop offset="1" stop-color="#D4BFA7"/>
-    </linearGradient>
+    <filter id="shadow" x="32" y="100" width="456" height="158" filterUnits="userSpaceOnUse" color-interpolation-filters="sRGB">
+      <feDropShadow dx="0" dy="12" stdDeviation="8" flood-color="#0F172A" flood-opacity=".08"/>
+    </filter>
   </defs>
 </svg>

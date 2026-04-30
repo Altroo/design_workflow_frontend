@@ -36,12 +36,23 @@ export type TaskLabel = {
 
 export type TaskChecklistItem = {
 	id: number;
+	checklist_id: number | null;
 	title: string;
 	done: boolean;
 	sort_order: number;
 	created_by: WorkflowUser;
 	completed_by: WorkflowUser | null;
 	completed_at: string | null;
+	created_at: string;
+	updated_at: string;
+};
+
+export type TaskChecklist = {
+	id: number;
+	title: string;
+	sort_order: number;
+	created_by: WorkflowUser;
+	items: TaskChecklistItem[];
 	created_at: string;
 	updated_at: string;
 };
@@ -109,6 +120,7 @@ export type TaskCard = {
 	blocked_reason: string;
 	sort_order: number;
 	labels: TaskLabel[];
+	checklists: TaskChecklist[];
 	checklist_items: TaskChecklistItem[];
 	attachments: TaskAttachment[];
 	archived: boolean;
@@ -183,6 +195,24 @@ export type ChatMessageReply = {
 	created_at: string;
 };
 
+export type ChatReaction = {
+	id: number;
+	user: WorkflowUser;
+	emoji: '✅' | '👀' | '👍' | '⚠️';
+	created_at: string;
+};
+
+export type ChatReminder = {
+	id: number;
+	task: TaskCard | null;
+	created_by: WorkflowUser | null;
+	remind_at: string | null;
+	note: string;
+	done_at: string | null;
+	created_at: string;
+	updated_at: string;
+};
+
 export type ChatMessage = {
 	id: number;
 	thread: number;
@@ -192,9 +222,16 @@ export type ChatMessage = {
 	read_by: WorkflowUser[];
 	mentions: WorkflowUser[];
 	reply_to: ChatMessageReply | null;
+	reactions: ChatReaction[];
+	reminders: ChatReminder[];
 	is_read: boolean;
 	deleted_at: string | null;
 	is_deleted: boolean;
+	edited_by: WorkflowUser | null;
+	edited_at: string | null;
+	edit_count: number;
+	decision_by: WorkflowUser | null;
+	decision_at: string | null;
 	created_at: string;
 	updated_at: string;
 };
@@ -264,4 +301,11 @@ export type ChatMessagesQuery = {
 	before_id?: number;
 	limit?: number;
 	q?: string;
+	sender_id?: number;
+	date_from?: string;
+	date_to?: string;
+	has_files?: boolean;
+	has_images?: boolean;
+	decisions?: boolean;
+	reference?: string;
 };

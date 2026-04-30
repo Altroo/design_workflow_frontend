@@ -13,6 +13,7 @@ import type {
 	WorkloadRow,
 	WorkflowUser,
 } from '@/types/designWorkflowTypes';
+import { getProfilState, getWSOnlineUserIdsState } from '@/store/selectors';
 
 beforeAll(() => {
 	Object.defineProperty(HTMLElement.prototype, 'hasPointerCapture', {
@@ -63,6 +64,7 @@ jest.mock('@dnd-kit/core', () => ({
 	PointerSensor: function PointerSensor() {
 		return null;
 	},
+	closestCenter: jest.fn(),
 	closestCorners: jest.fn(),
 	useDroppable: () => ({ setNodeRef: jest.fn(), isOver: false }),
 	useSensor: jest.fn(() => ({})),
@@ -91,10 +93,22 @@ jest.mock('@dnd-kit/utilities', () => ({
 }));
 
 const mockCreateProject = jest.fn();
+const mockCreateLabel = jest.fn();
 const mockUpdateProject = jest.fn();
 const mockCreateTask = jest.fn();
 const mockUpdateTask = jest.fn();
 const mockUpdateTaskStatus = jest.fn();
+const mockReorderTasks = jest.fn();
+const mockToggleTaskCompletion = jest.fn();
+const mockArchiveTask = jest.fn();
+const mockAddChecklist = jest.fn();
+const mockAddChecklistItem = jest.fn();
+const mockUpdateChecklistItem = jest.fn();
+const mockDeleteChecklistItem = jest.fn();
+const mockUploadTaskAttachment = jest.fn();
+const mockDeleteTaskAttachment = jest.fn();
+const mockUploadTaskCover = jest.fn();
+const mockDeleteTaskCover = jest.fn();
 const mockReassignTask = jest.fn();
 const mockAddTaskComment = jest.fn();
 const mockAddTaskTimeEntry = jest.fn();
@@ -104,6 +118,7 @@ const mockUseGetDashboardSummaryQuery = jest.fn();
 const mockUseGetNotificationsQuery = jest.fn();
 const mockUseGetProjectQuery = jest.fn();
 const mockUseGetProjectsQuery = jest.fn();
+const mockUseGetLabelsQuery = jest.fn();
 const mockUseGetTaskQuery = jest.fn();
 const mockUseGetTasksQuery = jest.fn();
 const mockUseGetTimeReportQuery = jest.fn();
@@ -111,11 +126,19 @@ const mockUseGetWorkloadQuery = jest.fn();
 const mockUseGetUsersListQuery = jest.fn();
 
 jest.mock('@/store/services/designWorkflow', () => ({
+	useAddChecklistMutation: jest.fn(() => [mockAddChecklist, { isLoading: false, isError: false }]),
+	useAddChecklistItemMutation: jest.fn(() => [mockAddChecklistItem, { isLoading: false, isError: false }]),
 	useAddTaskCommentMutation: jest.fn(() => [mockAddTaskComment, { isLoading: false, isError: false }]),
 	useAddTaskTimeEntryMutation: jest.fn(() => [mockAddTaskTimeEntry, { isLoading: false, isError: false }]),
+	useArchiveTaskMutation: jest.fn(() => [mockArchiveTask, { isLoading: false, isError: false }]),
+	useCreateLabelMutation: jest.fn(() => [mockCreateLabel, { isLoading: false, isError: false }]),
 	useCreateProjectMutation: jest.fn(() => [mockCreateProject, { isLoading: false, isError: false }]),
 	useCreateTaskMutation: jest.fn(() => [mockCreateTask, { isLoading: false, isError: false }]),
+	useDeleteChecklistItemMutation: jest.fn(() => [mockDeleteChecklistItem, { isLoading: false, isError: false }]),
+	useDeleteTaskAttachmentMutation: jest.fn(() => [mockDeleteTaskAttachment, { isLoading: false, isError: false }]),
+	useDeleteTaskCoverMutation: jest.fn(() => [mockDeleteTaskCover, { isLoading: false, isError: false }]),
 	useGetDashboardSummaryQuery: (...args: unknown[]) => mockUseGetDashboardSummaryQuery(...args),
+	useGetLabelsQuery: (...args: unknown[]) => mockUseGetLabelsQuery(...args),
 	useGetNotificationsQuery: (...args: unknown[]) => mockUseGetNotificationsQuery(...args),
 	useGetProjectQuery: (...args: unknown[]) => mockUseGetProjectQuery(...args),
 	useGetProjectsQuery: (...args: unknown[]) => mockUseGetProjectsQuery(...args),
@@ -125,9 +148,14 @@ jest.mock('@/store/services/designWorkflow', () => ({
 	useGetWorkloadQuery: (...args: unknown[]) => mockUseGetWorkloadQuery(...args),
 	useMarkNotificationReadMutation: jest.fn(() => [mockMarkNotificationRead, { isLoading: false, isError: false }]),
 	useReassignTaskMutation: jest.fn(() => [mockReassignTask, { isLoading: false, isError: false }]),
+	useReorderTasksMutation: jest.fn(() => [mockReorderTasks, { isLoading: false, isError: false }]),
+	useToggleTaskCompletionMutation: jest.fn(() => [mockToggleTaskCompletion, { isLoading: false, isError: false }]),
+	useUpdateChecklistItemMutation: jest.fn(() => [mockUpdateChecklistItem, { isLoading: false, isError: false }]),
 	useUpdateProjectMutation: jest.fn(() => [mockUpdateProject, { isLoading: false, isError: false }]),
 	useUpdateTaskMutation: jest.fn(() => [mockUpdateTask, { isLoading: false, isError: false }]),
 	useUpdateTaskStatusMutation: jest.fn(() => [mockUpdateTaskStatus, { isLoading: false, isError: false }]),
+	useUploadTaskAttachmentMutation: jest.fn(() => [mockUploadTaskAttachment, { isLoading: false, isError: false }]),
+	useUploadTaskCoverMutation: jest.fn(() => [mockUploadTaskCover, { isLoading: false, isError: false }]),
 }));
 
 jest.mock('@/store/services/account', () => ({
@@ -184,6 +212,7 @@ const boardTask: TaskCard = {
 	project: projectSummary,
 	title: 'Finalize material board',
 	description: 'Prepare revision before client review.',
+	cover_image_url: null,
 	current_assignee: designerA,
 	status: 'todo',
 	priority: 'urgent',
@@ -192,6 +221,14 @@ const boardTask: TaskCard = {
 	actual_minutes: 90,
 	blocked_reason: '',
 	sort_order: 0,
+	labels: [],
+	checklists: [],
+	checklist_items: [],
+	attachments: [],
+	archived: false,
+	archived_at: null,
+	is_completed: false,
+	completed_at: null,
 	is_overdue: true,
 	created_at: '2026-04-10T09:00:00Z',
 	updated_at: '2026-04-22T12:00:00Z',
@@ -310,11 +347,17 @@ const notifications: NotificationItem[] = [
 ];
 
 const mockProfile = (profile: WorkflowUser) => {
-	mockUseAppSelector.mockReturnValue({
+	const profileState = {
 		id: profile.id,
 		role: profile.role,
 		first_name: profile.first_name,
 		last_name: profile.last_name,
+		is_staff: profile.role === 'manager',
+	};
+	mockUseAppSelector.mockImplementation((selector: unknown) => {
+		if (selector === getProfilState) return profileState;
+		if (selector === getWSOnlineUserIdsState) return [];
+		return undefined;
 	});
 };
 
@@ -331,6 +374,7 @@ const selectMuiOption = async (user: ReturnType<typeof userEvent.setup>, label: 
 
 const setDefaultHookData = () => {
 	mockUseGetDashboardSummaryQuery.mockReturnValue({ data: summary });
+	mockUseGetLabelsQuery.mockReturnValue({ data: [] });
 	mockUseGetNotificationsQuery.mockReturnValue({ data: notifications });
 	mockUseGetProjectQuery.mockReturnValue({ data: projectDetail, isLoading: false });
 	mockUseGetProjectsQuery.mockReturnValue({ data: [projectSummary], isLoading: false });
@@ -350,11 +394,23 @@ describe('Design workflow acceptance flows', () => {
 	beforeEach(() => {
 		jest.clearAllMocks();
 		setDefaultHookData();
+		mockCreateLabel.mockReturnValue(makeMutationResult());
 		mockCreateProject.mockReturnValue(makeMutationResult());
 		mockUpdateProject.mockReturnValue(makeMutationResult());
 		mockCreateTask.mockReturnValue(makeMutationResult());
 		mockUpdateTask.mockReturnValue(makeMutationResult());
 		mockUpdateTaskStatus.mockReturnValue(makeMutationResult());
+		mockReorderTasks.mockReturnValue(makeMutationResult());
+		mockToggleTaskCompletion.mockReturnValue(makeMutationResult());
+		mockArchiveTask.mockReturnValue(makeMutationResult());
+		mockAddChecklist.mockReturnValue(makeMutationResult());
+		mockAddChecklistItem.mockReturnValue(makeMutationResult());
+		mockUpdateChecklistItem.mockReturnValue(makeMutationResult());
+		mockDeleteChecklistItem.mockReturnValue(makeMutationResult());
+		mockUploadTaskAttachment.mockReturnValue(makeMutationResult());
+		mockDeleteTaskAttachment.mockReturnValue(makeMutationResult());
+		mockUploadTaskCover.mockReturnValue(makeMutationResult());
+		mockDeleteTaskCover.mockReturnValue(makeMutationResult());
 		mockReassignTask.mockReturnValue(makeMutationResult());
 		mockAddTaskComment.mockReturnValue(makeMutationResult());
 		mockAddTaskTimeEntry.mockReturnValue(makeMutationResult());
@@ -405,7 +461,7 @@ describe('Design workflow acceptance flows', () => {
 		});
 
 		rerender(<DesignWorkflowShell title="Board" variant="board" />);
-		expect(screen.getByText('Finalize material board')).toBeInTheDocument();
+		expect(screen.getAllByText('Finalize material board').length).toBeGreaterThan(0);
 		expect(screen.getAllByText('Showroom Refresh').length).toBeGreaterThan(0);
 
 		rerender(<DesignWorkflowShell title="Overview" variant="overview" />);

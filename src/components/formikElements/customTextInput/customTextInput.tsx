@@ -38,13 +38,13 @@ const CustomTextInput = forwardRef<HTMLInputElement | HTMLTextAreaElement, Props
 		return (
 			<div className={[fullWidth ? 'w-full' : '', cssClass ?? ''].join(' ')}>
 				{props.label ? (
-					<label htmlFor={props.id} className="mb-2 block text-sm font-medium text-[var(--ink)]">
+					<label htmlFor={props.id} className="mb-2 block text-sm font-medium leading-5 text-[var(--ink-soft)]">
 						{props.label}
 					</label>
 				) : null}
 				<div className="relative">
 					{startIcon ? (
-						<div className="pointer-events-none absolute left-5 top-1/2 z-10 -translate-y-1/2 text-[var(--ink-soft)]">
+						<div className="pointer-events-none absolute left-3 top-0 z-10 flex h-full items-center justify-center text-[var(--ink-muted)]">
 							{startIcon}
 						</div>
 					) : null}
@@ -60,7 +60,7 @@ const CustomTextInput = forwardRef<HTMLInputElement | HTMLTextAreaElement, Props
 							disabled={rest.disabled}
 							required={rest.required}
 							rows={rows}
-							className={['app-input w-full min-h-[110px] resize-y', startIcon ? 'pl-14' : '', endIcon ? 'pr-14' : '', error ? 'border-red-600' : ''].join(' ')}
+							className={['app-input min-h-[110px] w-full resize-y', startIcon ? 'pl-14' : '', endIcon ? 'pr-14' : '', error ? 'border-red-300 bg-red-50' : ''].join(' ')}
 						/>
 					) : (
 						<input
@@ -77,12 +77,12 @@ const CustomTextInput = forwardRef<HTMLInputElement | HTMLTextAreaElement, Props
 							autoComplete={rest.autoComplete}
 							onClick={rest.onClick}
 							maxLength={props.maxLength}
-							className={['app-input w-full', startIcon ? 'pl-14' : '', endIcon ? 'pr-14' : '', error ? 'border-red-600' : ''].join(' ')}
+							className={['app-input w-full', startIcon ? 'pl-14' : '', endIcon ? 'pr-14' : '', error ? 'border-red-300 bg-red-50' : ''].join(' ')}
 							{...slotProps?.htmlInput}
 						/>
 					)}
 					{endIcon ? (
-						<div className="absolute right-5 top-1/2 -translate-y-1/2 text-[var(--ink-soft)]">{endIcon}</div>
+						<div className="absolute right-4 top-1/2 -translate-y-1/2 text-[var(--ink-muted)]">{endIcon}</div>
 					) : null}
 				</div>
 				{helperText ? <p className="mt-2 text-sm text-red-600">{helperText}</p> : null}

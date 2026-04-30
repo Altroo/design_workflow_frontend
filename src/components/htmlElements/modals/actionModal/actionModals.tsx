@@ -35,31 +35,31 @@ const ActionModals: React.FC<Props> = ({ title, actions, actionsStyle, body, chi
 	};
 
 	return (
-		<div className="fixed inset-0 z-[130] flex items-center justify-center bg-black/45 px-4 py-6" onClick={handleClose}>
+		<div className="ui-modal-backdrop fixed inset-0 z-[130] flex items-center justify-center bg-black/45 px-4 py-6" onClick={handleClose}>
 			<div
 				role="dialog"
 				aria-modal="true"
-				className="app-card w-full max-w-lg border border-[color:var(--line-strong)] bg-white p-6"
+				className="ui-modal app-card w-full max-w-[456px] border border-[color:var(--line)] bg-white p-6 shadow-[var(--shadow-lg)]"
 				onClick={(event) => event.stopPropagation()}
 			>
-				<div className="flex items-start gap-3">
+				<div className="flex items-start gap-4">
 					{titleIcon ? (
 						<div
-							className="flex h-11 w-11 items-center justify-center rounded-[8px] bg-[var(--accent)] text-white"
+							className="ui-icon-tile flex h-11 w-11 items-center justify-center rounded-[12px] bg-[var(--accent)] text-white"
 							style={titleIconColor ? { backgroundColor: titleIconColor } : undefined}
 						>
 							{titleIcon}
 						</div>
 					) : null}
 					<div className="flex-1">
-						<h2 className="text-lg font-semibold text-[var(--ink)]">{title}</h2>
-						{body ? <p className="mt-2 text-sm leading-6 text-[var(--ink-soft)]">{body}</p> : null}
+						<h2 className="text-base font-semibold leading-6 text-[var(--ink)]">{title}</h2>
+						{body ? <p className="mt-2 text-sm leading-5 text-[var(--ink-muted)]">{body}</p> : null}
 					</div>
 				</div>
 
 				{children ? <div className="mt-4">{children}</div> : null}
 
-				<div className={['mt-6 flex flex-wrap justify-end gap-3', actionsStyle?.join(' ') ?? ''].join(' ').trim()}>
+				<div className={['mt-8 flex flex-wrap justify-end gap-3', actionsStyle?.join(' ') ?? ''].join(' ').trim()}>
 					{actions.map((action, index) => (
 						<button
 							key={index}
@@ -68,10 +68,10 @@ const ActionModals: React.FC<Props> = ({ title, actions, actionsStyle, body, chi
 							disabled={action.disabled}
 							aria-label={action.text}
 							className={[
-								'inline-flex items-center gap-2 px-4 py-2 text-sm font-medium transition',
+								'min-h-11 px-[18px] py-2.5 text-sm font-semibold transition',
 								action.active
 									? 'app-button'
-									: 'border border-[color:var(--line-strong)] bg-white text-[var(--ink)] hover:bg-[var(--surface-muted)]',
+									: 'app-button app-button-secondary',
 								action.disabled ? 'cursor-not-allowed opacity-50' : '',
 							].join(' ')}
 							style={action.active && action.color ? { backgroundColor: action.color } : undefined}

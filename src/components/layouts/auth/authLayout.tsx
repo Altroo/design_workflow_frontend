@@ -5,7 +5,6 @@ import Image from 'next/image';
 import Logo from '../../../../public/assets/images/reservation-logo.png';
 import DesignBoardSVG from '../../../../public/assets/images/auth_illu/design-board.svg';
 import MaterialsSVG from '../../../../public/assets/images/auth_illu/materials.svg';
-import PaletteWallSVG from '../../../../public/assets/images/auth_illu/palette-wall.svg';
 import WorkflowCardSVG from '../../../../public/assets/images/auth_illu/workflow-card.svg';
 import { useLanguage } from '@/utils/hooks';
 
@@ -17,67 +16,89 @@ const AuthLayout = ({ children }: Props) => {
 	const { t } = useLanguage();
 
 	return (
-		<main className="min-h-screen px-4 py-4 sm:px-6 sm:py-6">
-			<div className="mx-auto grid min-h-[calc(100vh-2rem)] max-w-[1480px] overflow-hidden rounded-[8px] border border-[color:var(--line-strong)] bg-white shadow-[var(--shadow-lg)] lg:grid-cols-[1.08fr_0.92fr]">
-				<section className="relative hidden overflow-hidden border-r border-[color:var(--line)] bg-[var(--surface-muted)] p-8 lg:block xl:p-10">
-					<div className="relative z-10 flex h-full flex-col justify-between">
-						<div className="app-pill inline-flex w-fit items-center gap-3 px-4 py-3">
-							<Image src={Logo} alt={t.common.appLogo} width={38} height={38} className="h-10 w-auto grayscale" priority />
-							<div>
-								<p className="text-[11px] font-medium uppercase tracking-[0.24em] text-[var(--ink-soft)]">
-									Design Workflow
-								</p>
-								<p className="text-base font-semibold text-[var(--ink)]">Studio board system</p>
+		<main className="auth-shell min-h-screen bg-white p-3 sm:p-5">
+			<div className="auth-frame mx-auto grid min-h-[calc(100vh-2.5rem)] max-w-[1480px] overflow-hidden rounded-[24px] border border-[color:var(--line)] bg-white shadow-[var(--shadow-lg)] lg:grid-cols-[200px_minmax(0,1fr)]">
+				<aside className="auth-rail hidden border-r border-[color:var(--line)] bg-white p-4 lg:flex lg:flex-col">
+					<div className="flex items-center gap-3 border-b border-[color:var(--line)] pb-4">
+						<Image src={Logo} alt={t.common.appLogo} width={34} height={34} className="h-9 w-auto" priority />
+						<div className="min-w-0">
+							<p className="text-[10px] font-bold uppercase tracking-[0.22em] text-[var(--ink-muted)]">Design Workflow</p>
+							<p className="truncate text-sm font-bold text-[var(--ink)]">Kanban access</p>
+						</div>
+					</div>
+					<nav className="mt-5 grid gap-2">
+						{['Dashboard', 'Backlog', 'In progress', 'Review', 'Completed'].map((item, index) => (
+							<div key={item} className={['auth-rail-pill', index === 0 ? 'auth-rail-pill-active' : ''].join(' ')}>
+								<span className="auth-rail-dot" />
+								<span>{item}</span>
+								<span className="ml-auto">{index === 0 ? '+' : ''}</span>
+							</div>
+						))}
+					</nav>
+					<div className="auth-rail-user mt-auto">
+						<p className="text-[10px] font-bold uppercase tracking-[0.18em] text-[var(--ink-muted)]">Secure studio</p>
+						<p className="mt-1 text-sm font-bold text-[var(--ink)]">Casa Di Lusso</p>
+					</div>
+				</aside>
+
+				<section className="auth-board relative min-h-[calc(100vh-2.5rem)] overflow-hidden bg-white">
+					<div className="auth-board-header">
+						<div>
+							<p className="text-[11px] font-bold uppercase tracking-[0.18em] text-[var(--ink-muted)]">Workspace</p>
+							<h1 className="text-2xl font-extrabold text-[var(--ink)]">Design Workflow</h1>
+						</div>
+						<div className="flex items-center gap-2">
+							<span className="auth-top-pill">+</span>
+							<span className="auth-top-pill auth-top-pill-primary">Login</span>
+							<span className="auth-top-pill">+</span>
+						</div>
+					</div>
+
+					<div className="auth-board-tabs">
+						{['Task board', 'Owner', 'Due date', 'Priority'].map((item) => (
+							<span key={item}>{item}</span>
+						))}
+					</div>
+
+					<div className="auth-board-grid">
+						<div className="auth-board-column" data-tone="indigo">
+							<div className="auth-column-pill"><b>In Progress</b><em>+</em></div>
+							<div className="auth-preview-card">
+								<Image src={DesignBoardSVG} alt="" fill className="object-contain p-3" sizes="260px" />
+							</div>
+							<div className="auth-mini-card">
+								<p>UI/UX Design in the age of AI</p>
+								<span>Lorem ipsum dolor sit amet.</span>
+								<div className="auth-avatar-row" />
 							</div>
 						</div>
-
-						<div className="max-w-[520px]">
-							<h1 className="mt-4 text-5xl font-semibold leading-[1.05] text-[var(--ink)]">
-								Design
-								<br />
-								Workflow
-								<br />
-								Board
-							</h1>
-							<p className="mt-6 max-w-[420px] text-base leading-7 text-[var(--ink-soft)]">
-								Architectural task management for studio teams.
-							</p>
-						</div>
-
-						<div className="grid grid-cols-2 gap-4">
-							<div className="app-card-muted relative min-h-[252px] overflow-hidden p-3">
-								<Image
-									src={DesignBoardSVG}
-									alt=""
-									fill
-									className="object-contain p-1"
-									sizes="(max-width: 1400px) 30vw, 420px"
-								/>
+						<div className="auth-board-column" data-tone="amber">
+							<div className="auth-column-pill"><b>Reviewed</b><em>+</em></div>
+							<div className="auth-mini-card">
+								<Image src={MaterialsSVG} alt="" fill className="object-contain p-4" sizes="220px" />
 							</div>
-							<div className="grid gap-4">
-								<div className="app-card-muted relative min-h-[118px] overflow-hidden p-2">
-									<Image src={MaterialsSVG} alt="" fill className="object-contain p-0" sizes="280px" />
-								</div>
-								<div className="app-card-muted relative min-h-[118px] overflow-hidden p-2">
-									<Image src={WorkflowCardSVG} alt="" fill className="object-contain p-0" sizes="280px" />
-								</div>
+							<div className="auth-mini-card">
+								<p>Material choices</p>
+								<span>Review palette and approvals.</span>
+								<div className="auth-avatar-row" />
+							</div>
+						</div>
+						<div className="auth-board-column" data-tone="green">
+							<div className="auth-column-pill"><b>Completed</b><em>+</em></div>
+							<div className="auth-mini-card">
+								<Image src={WorkflowCardSVG} alt="" fill className="object-contain p-4" sizes="220px" />
+							</div>
+							<div className="auth-mini-card">
+								<p>Delivery card</p>
+								<span>Files, status, timing.</span>
+								<div className="auth-avatar-row" />
 							</div>
 						</div>
 					</div>
 
-					<div className="pointer-events-none absolute inset-0">
-						<div className="absolute inset-0 bg-[linear-gradient(90deg,rgba(17,24,39,0.04)_1px,transparent_1px),linear-gradient(180deg,rgba(17,24,39,0.04)_1px,transparent_1px)] bg-[length:28px_28px]" />
-						<div className="absolute left-12 top-1/2 h-px w-48 bg-[var(--line-strong)]" />
-						<div className="absolute right-12 top-24 h-44 w-44 rounded-[8px] border border-[color:var(--line)] bg-white/70" />
-						<div className="absolute right-16 top-28 h-36 w-36">
-							<Image src={PaletteWallSVG} alt="" fill className="object-contain opacity-90" sizes="144px" />
-						</div>
-					</div>
-				</section>
-
-				<section className="relative flex min-h-[calc(100vh-2rem)] items-center justify-center bg-white px-4 py-8 sm:px-8 lg:px-10">
-					<div className="absolute inset-x-0 top-0 h-40 bg-[var(--accent-tint)]" />
-					<div className="relative z-10 w-full max-w-[460px]">{children}</div>
+					<section className="auth-login-dock">
+						{children}
+					</section>
 				</section>
 			</div>
 		</main>

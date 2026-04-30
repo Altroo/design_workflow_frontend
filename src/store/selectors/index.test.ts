@@ -1,4 +1,4 @@
-import { getInitStateToken, getAccessToken, getProfilState } from './index';
+import { getInitStateToken, getAccessToken, getProfilState, getWSOnlineUserIdsState } from './index';
 import { UserClass } from '@/models/classes';
 
 describe('Redux selectors', () => {
@@ -36,6 +36,10 @@ describe('Redux selectors', () => {
 		account: {
 			profil: mockUser,
 		},
+		ws: {
+			maintenance: false,
+			onlineUserIds: [2, 5],
+		},
 	};
 
 	it('getInitStateToken returns the initStateToken object', () => {
@@ -51,5 +55,10 @@ describe('Redux selectors', () => {
 	it('getProfilState returns the profil UserClass instance', () => {
 		// eslint-disable-next-line @typescript-eslint/no-explicit-any
 		expect(getProfilState(mockState as any)).toBe(mockUser);
+	});
+
+	it('getWSOnlineUserIdsState returns online user ids', () => {
+		// eslint-disable-next-line @typescript-eslint/no-explicit-any
+		expect(getWSOnlineUserIdsState(mockState as any)).toEqual([2, 5]);
 	});
 });

@@ -35,12 +35,12 @@ export function filterHasValue(item: CustomFilterItem): boolean {
 
 const CustomFilterPanel: React.FC<CustomFilterPanelProps> = ({ filterModel, onChange }) => {
 	return (
-		<div className="app-card border border-[color:var(--line)] bg-white p-4">
+		<div className="ui-filter-panel app-card border border-[color:var(--line)] bg-white p-4">
 			<div className="flex items-center justify-between gap-3">
 				<p className="text-sm font-medium text-[var(--ink)]">Filters</p>
 				<button
 					type="button"
-					className="app-pill border border-[color:var(--line)] px-3 py-2 text-sm"
+					className="app-pill ui-button-ghost border border-[color:var(--line)] px-3 py-2 text-sm"
 					onClick={() => onChange({ ...filterModel, items: [] })}
 				>
 					Clear

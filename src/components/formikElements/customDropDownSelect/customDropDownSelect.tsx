@@ -1,4 +1,5 @@
 import React from 'react';
+import * as Select from '@radix-ui/react-select';
 import { ChevronDown } from 'lucide-react';
 import { DropDownType } from '@/types/accountTypes';
 import { useLanguage } from '@/utils/hooks';
@@ -23,41 +24,62 @@ type Props = {
 
 const CustomDropDownSelect: React.FC<Props> = (props: Props) => {
 	const { t } = useLanguage();
+	const value = props.value || undefined;
+
+	const emitChange = (nextValue: string) => {
+		const event = {
+			target: { id: props.id, name: props.id, value: nextValue },
+			currentTarget: { id: props.id, name: props.id, value: nextValue },
+		} as React.ChangeEvent<HTMLSelectElement>;
+		props.onChange?.(event);
+	};
+
+	const options = props.items.map((item, index) => {
+		const isObject = typeof item === 'object' && item !== null && 'value' in item;
+		const optionValue = String(isObject && 'code' in item ? item.code : item);
+		const optionLabel = String(isObject ? item.value : item || t.common.selectValue);
+		return { key: `${optionValue}-${index}`, value: optionValue, label: optionLabel };
+	});
 
 	return (
 		<div className={props.cssClass ?? ''}>
-			<label htmlFor={props.id} className="mb-2 block text-sm font-medium text-[var(--ink)]">
+			<label htmlFor={props.id} className="mb-2 block text-sm font-medium leading-5 text-[var(--ink-soft)]">
 				{props.label}
 			</label>
 			<div className="relative">
 				{props.startIcon ? (
-					<div className="pointer-events-none absolute left-5 top-1/2 z-10 -translate-y-1/2 text-[var(--ink-soft)]">
+					<div className="pointer-events-none absolute left-3 top-0 z-10 flex h-full items-center justify-center text-[var(--ink-muted)]">
 						{props.startIcon}
 					</div>
 				) : null}
-				<select
-					id={props.id}
-					value={props.value ?? ''}
-					onChange={props.onChange}
-					onBlur={props.onBlur}
-					disabled={props.disabled}
-					className={['app-input w-full appearance-none', props.startIcon ? 'pl-14' : '', 'pr-14', props.error ? 'border-red-600' : ''].join(' ')}
-				>
-					<option value="">{t.common.selectValue}</option>
-					{props.items.map((item, index) => {
-						const isObject = typeof item === 'object' && item !== null && 'value' in item;
-						const value = isObject && 'code' in item ? item.code : item;
-						const label = isObject ? item.value : item;
-						return (
-							<option key={`${String(value)}-${index}`} value={value ?? ''}>
-								{label || t.common.selectValue}
-							</option>
-						);
-					})}
-				</select>
-				<div className="pointer-events-none absolute right-5 top-1/2 -translate-y-1/2 text-[var(--ink-soft)]">
-					{props.endIcon ?? <ChevronDown size={18} />}
-				</div>
+				<Select.Root value={value} onValueChange={emitChange} disabled={props.disabled}>
+					<Select.Trigger
+						id={props.id}
+						data-testid={`dropdown-${props.id}`}
+						aria-label={props.label}
+						onBlur={() => props.onBlur?.({ target: { id: props.id, name: props.id, value: props.value ?? '' } } as unknown as React.FocusEvent<HTMLSelectElement>)}
+						className={[
+							'app-input app-select-trigger w-full text-left',
+							props.startIcon ? 'pl-14' : '',
+							'pr-14',
+							props.error ? 'border-red-300 bg-red-50' : '',
+						].join(' ')}
+					>
+						<Select.Value placeholder={t.common.selectValue} />
+						<Select.Icon asChild>{props.endIcon ?? <ChevronDown size={18} />}</Select.Icon>
+					</Select.Trigger>
+					<Select.Portal>
+						<Select.Content className="app-select-content z-[9999]" position="popper" sideOffset={8}>
+							<Select.Viewport className="p-1">
+								{options.map((option) => (
+									<Select.Item key={option.key} value={option.value} className="app-select-item">
+										<Select.ItemText>{option.label}</Select.ItemText>
+									</Select.Item>
+								))}
+							</Select.Viewport>
+						</Select.Content>
+					</Select.Portal>
+				</Select.Root>
 			</div>
 			{props.helperText ? <p className="mt-2 text-sm text-red-600">{props.helperText}</p> : null}
 		</div>

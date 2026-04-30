@@ -17,6 +17,7 @@ import type {
 	TaskDetail,
 	TaskAttachment,
 	TaskCard,
+	TaskChecklist,
 	TaskChecklistItem,
 	TaskLabel,
 	TaskFilters,
@@ -134,6 +135,17 @@ export const designWorkflowApi = createApi({
 				'Workload',
 			],
 		}),
+		reorderTasks: builder.mutation<
+			TaskCard[],
+			{ moved_task_id: number; tasks: Array<{ id: number; status: TaskCard['status']; sort_order: number }> }
+		>({
+			query: (data) => ({
+				url: `${DESIGN_WORKFLOW_ROOT}tasks/reorder/`,
+				method: 'PATCH',
+				data,
+			}),
+			invalidatesTags: ['Task', 'Dashboard', 'Project', 'Workload'],
+		}),
 		toggleTaskCompletion: builder.mutation<TaskDetail, { id: number; is_completed: boolean }>({
 			query: ({ id, is_completed }) => ({
 				url: `${DESIGN_WORKFLOW_ROOT}tasks/${id}/complete/`,
@@ -150,7 +162,15 @@ export const designWorkflowApi = createApi({
 			}),
 			invalidatesTags: (_result, _error, { id }) => ['Task', { type: 'Task', id }, 'Dashboard', 'Project', 'Workload'],
 		}),
-		addChecklistItem: builder.mutation<TaskChecklistItem, { id: number; title: string; done?: boolean; sort_order?: number }>({
+		addChecklist: builder.mutation<TaskChecklist, { id: number; title: string; sort_order?: number }>({
+			query: ({ id, ...data }) => ({
+				url: `${DESIGN_WORKFLOW_ROOT}tasks/${id}/checklists/`,
+				method: 'POST',
+				data,
+			}),
+			invalidatesTags: (_result, _error, { id }) => ['Task', { type: 'Task', id }],
+		}),
+		addChecklistItem: builder.mutation<TaskChecklistItem, { id: number; checklist_id?: number; title: string; done?: boolean; sort_order?: number }>({
 			query: ({ id, ...data }) => ({
 				url: `${DESIGN_WORKFLOW_ROOT}tasks/${id}/checklist/`,
 				method: 'POST',
@@ -187,6 +207,13 @@ export const designWorkflowApi = createApi({
 				method: 'DELETE',
 			}),
 			invalidatesTags: (_result, _error, { id }) => ['Task', { type: 'Task', id }],
+		}),
+		setTaskCoverFromAttachment: builder.mutation<TaskDetail, { id: number; attachmentId: number }>({
+			query: ({ id, attachmentId }) => ({
+				url: `${DESIGN_WORKFLOW_ROOT}tasks/${id}/attachments/${attachmentId}/`,
+				method: 'POST',
+			}),
+			invalidatesTags: (_result, _error, { id }) => ['Task', { type: 'Task', id }, 'Project'],
 		}),
 		uploadTaskCover: builder.mutation<TaskDetail, { id: number; data: FormData }>({
 			query: ({ id, data }) => ({
@@ -281,10 +308,10 @@ export const designWorkflowApi = createApi({
 			invalidatesTags: ['Chat'],
 		}),
 		getChatMessages: builder.query<ChatMessage[], ChatMessagesQuery>({
-			query: ({ threadId, before_id, limit, q }) => ({
+			query: ({ threadId, before_id, limit, q, sender_id, date_from, date_to, has_files, has_images, decisions, reference }) => ({
 				url: `${DESIGN_WORKFLOW_ROOT}chat/threads/${threadId}/messages/`,
 				method: 'GET',
-				params: { before_id, limit, q },
+				params: { before_id, limit, q, sender_id, date_from, date_to, has_files, has_images, decisions, reference },
 			}),
 			providesTags: (_result, _error, { threadId }) => [{ type: 'Chat', id: threadId }],
 		}),
@@ -302,6 +329,22 @@ export const designWorkflowApi = createApi({
 		}),
 		deleteChatMessage: builder.mutation<ChatMessage, number>({
 			query: (id) => ({ url: `${DESIGN_WORKFLOW_ROOT}chat/messages/${id}/delete/`, method: 'POST' }),
+			invalidatesTags: ['Chat'],
+		}),
+		editChatMessage: builder.mutation<ChatMessage, { id: number; body: string }>({
+			query: ({ id, body }) => ({ url: `${DESIGN_WORKFLOW_ROOT}chat/messages/${id}/edit/`, method: 'PATCH', data: { body } }),
+			invalidatesTags: ['Chat'],
+		}),
+		reactChatMessage: builder.mutation<ChatMessage, { id: number; emoji: '✅' | '👀' | '👍' | '⚠️' }>({
+			query: ({ id, emoji }) => ({ url: `${DESIGN_WORKFLOW_ROOT}chat/messages/${id}/react/`, method: 'POST', data: { emoji } }),
+			invalidatesTags: ['Chat'],
+		}),
+		markChatDecision: builder.mutation<ChatMessage, { id: number; is_decision: boolean }>({
+			query: ({ id, is_decision }) => ({ url: `${DESIGN_WORKFLOW_ROOT}chat/messages/${id}/decision/`, method: 'POST', data: { is_decision } }),
+			invalidatesTags: ['Chat'],
+		}),
+		addChatReminder: builder.mutation<ChatMessage, { id: number; task_id?: number | null; remind_at?: string | null; note?: string }>({
+			query: ({ id, ...data }) => ({ url: `${DESIGN_WORKFLOW_ROOT}chat/messages/${id}/reminders/`, method: 'POST', data }),
 			invalidatesTags: ['Chat'],
 		}),
 		markNotificationRead: builder.mutation<NotificationItem, number>({
@@ -327,13 +370,16 @@ export const {
 	useGetTaskQuery,
 	useUpdateTaskMutation,
 	useUpdateTaskStatusMutation,
+	useReorderTasksMutation,
 	useToggleTaskCompletionMutation,
 	useArchiveTaskMutation,
+	useAddChecklistMutation,
 	useAddChecklistItemMutation,
 	useUpdateChecklistItemMutation,
 	useDeleteChecklistItemMutation,
 	useUploadTaskAttachmentMutation,
 	useDeleteTaskAttachmentMutation,
+	useSetTaskCoverFromAttachmentMutation,
 	useUploadTaskCoverMutation,
 	useDeleteTaskCoverMutation,
 	useReassignTaskMutation,
@@ -351,5 +397,9 @@ export const {
 	useSendChatMessageMutation,
 	useMarkChatMessageReadMutation,
 	useDeleteChatMessageMutation,
+	useEditChatMessageMutation,
+	useReactChatMessageMutation,
+	useMarkChatDecisionMutation,
+	useAddChatReminderMutation,
 	useMarkNotificationReadMutation,
 } = designWorkflowApi;

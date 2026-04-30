@@ -44,7 +44,7 @@ const PrimaryAnchorButton = forwardRef<HTMLAnchorElement, Props>(
 			>
 				<span
 					className={[
-						'app-button',
+						'app-button ui-button-primary',
 						props.cssClass ?? '',
 						!props.active ? 'opacity-60' : '',
 					].join(' ')}

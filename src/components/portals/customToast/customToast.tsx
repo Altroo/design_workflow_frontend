@@ -13,19 +13,19 @@ type Props = {
 const toneMap = {
 	success: {
 		icon: <CheckCircle2 className="h-5 w-5" />,
-		accent: 'border-l-black',
+		accent: 'border-l-emerald-400',
 	},
 	error: {
 		icon: <AlertCircle className="h-5 w-5" />,
-		accent: 'border-l-black',
+		accent: 'border-l-red-400',
 	},
 	info: {
 		icon: <Info className="h-5 w-5" />,
-		accent: 'border-l-black',
+		accent: 'border-l-[var(--accent)]',
 	},
 	warning: {
 		icon: <TriangleAlert className="h-5 w-5" />,
-		accent: 'border-l-black',
+		accent: 'border-l-amber-400',
 	},
 } satisfies Record<ToastType, { icon: React.ReactNode; accent: string }>;
 
@@ -53,7 +53,7 @@ const CustomToast: React.FC<Props> = ({ type, show, setShow, message }) => {
 			<div
 				role="alert"
 				className={[
-					'pointer-events-auto flex min-w-[280px] max-w-[420px] items-start gap-3 rounded-[8px] border border-[color:var(--line-strong)] bg-white p-4 shadow-[var(--shadow-lg)]',
+					'ui-toast pointer-events-auto flex min-w-[280px] max-w-[420px] items-start gap-3 rounded-[16px] border border-[color:var(--line-strong)] bg-white p-4 shadow-[var(--shadow-lg)]',
 					'border-l-4',
 					tone.accent,
 				].join(' ')}

@@ -106,7 +106,7 @@ const EnterCodePageContent = ({ email }: Props) => {
 	return (
 		<div className="app-card px-5 py-6 sm:px-7 sm:py-7">
 			<p className="text-xs font-semibold uppercase tracking-[0.22em] text-[var(--ink-soft)]">Verification</p>
-			<h1 className="mt-3 text-4xl font-semibold tracking-[-0.03em] text-[var(--ink)]">{t.auth.enterCode}</h1>
+			<h1 className="mt-3 text-4xl font-semibold text-[var(--ink)]">{t.auth.enterCode}</h1>
 			<p className="mt-3 text-sm leading-6 text-[var(--ink-soft)]">
 				{t.auth.codeSentTo} <span className="font-semibold text-[var(--ink)]">{email}</span>
 			</p>
@@ -133,7 +133,7 @@ const EnterCodePageContent = ({ email }: Props) => {
 								}
 							}}
 							inputMode="numeric"
-							className="h-14 rounded-[8px] border border-[color:var(--line)] bg-[var(--surface-muted)] text-center text-xl font-semibold outline-none transition focus:border-[color:var(--accent)] focus:bg-white focus:shadow-[0_0_0_4px_rgba(17,24,39,0.12)]"
+							className="h-14 rounded-[8px] border border-[color:var(--line-strong)] bg-white text-center text-xl font-semibold outline-none transition focus:border-[color:var(--accent)] focus:shadow-[0_0_0_4px_rgba(127,86,217,0.18)]"
 						/>
 					))}
 				</div>
@@ -172,11 +172,11 @@ const EnterCodeClient: React.FC<Props> = ({ email }) => {
 	const { data: session, status } = useSession();
 
 	if (status === 'loading') {
-		return <ApiProgress backdropColor="#FFFFFF" circularColor="#111827" />;
+		return <ApiProgress backdropColor="#FFFFFF" circularColor="var(--accent)" />;
 	}
 
 	if (session) {
-		return <ApiProgress backdropColor="#FFFFFF" circularColor="#111827" />;
+		return <ApiProgress backdropColor="#FFFFFF" circularColor="var(--accent)" />;
 	}
 
 	return (
