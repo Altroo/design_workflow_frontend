@@ -43,12 +43,12 @@ const CustomDropDownSelect: React.FC<Props> = (props: Props) => {
 
 	return (
 		<div className={props.cssClass ?? ''}>
-			<label htmlFor={props.id} className="mb-2 block text-sm font-medium leading-5 text-[var(--ink-soft)]">
+			<label htmlFor={props.id} className="mb-2 block text-sm font-medium leading-5 text-(--ink-soft)">
 				{props.label}
 			</label>
 			<div className="relative">
 				{props.startIcon ? (
-					<div className="pointer-events-none absolute left-3 top-0 z-10 flex h-full items-center justify-center text-[var(--ink-muted)]">
+					<div className="pointer-events-none absolute left-3 top-0 z-10 flex h-full items-center justify-center text-(--ink-muted)">
 						{props.startIcon}
 					</div>
 				) : null}

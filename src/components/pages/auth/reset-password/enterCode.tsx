@@ -105,10 +105,10 @@ const EnterCodePageContent = ({ email }: Props) => {
 
 	return (
 		<div className="app-card px-5 py-6 sm:px-7 sm:py-7">
-			<p className="text-xs font-semibold uppercase tracking-[0.22em] text-[var(--ink-soft)]">Verification</p>
-			<h1 className="mt-3 text-4xl font-semibold text-[var(--ink)]">{t.auth.enterCode}</h1>
-			<p className="mt-3 text-sm leading-6 text-[var(--ink-soft)]">
-				{t.auth.codeSentTo} <span className="font-semibold text-[var(--ink)]">{email}</span>
+			<p className="text-xs font-semibold uppercase tracking-[0.22em] text-(--ink-soft)">Verification</p>
+			<h1 className="mt-3 text-4xl font-semibold text-(--ink)">{t.auth.enterCode}</h1>
+			<p className="mt-3 text-sm leading-6 text-(--ink-soft)">
+				{t.auth.codeSentTo} <span className="font-semibold text-(--ink)">{email}</span>
 			</p>
 
 			<form onSubmit={formik.handleSubmit} className="mt-8 space-y-6">
@@ -133,13 +133,13 @@ const EnterCodePageContent = ({ email }: Props) => {
 								}
 							}}
 							inputMode="numeric"
-							className="h-14 rounded-[8px] border border-[color:var(--line-strong)] bg-white text-center text-xl font-semibold outline-none transition focus:border-[color:var(--accent)] focus:shadow-[0_0_0_4px_rgba(127,86,217,0.18)]"
+							className="h-14 rounded-lg border border-[color:var(--line-strong)] bg-white text-center text-xl font-semibold outline-none transition focus:border-[color:var(--accent)] focus:shadow-[0_0_0_4px_rgba(127,86,217,0.18)]"
 						/>
 					))}
 				</div>
 
 				{formik.errors.globalError ? (
-					<div className="rounded-[8px] border border-[color:var(--line)] bg-[var(--surface-muted)] px-4 py-3 text-sm text-[var(--ink-soft)]">
+					<div className="rounded-lg border border-[color:var(--line)] bg-(--surface-muted) px-4 py-3 text-sm text-(--ink-soft)">
 						{formik.errors.globalError}
 					</div>
 				) : null}

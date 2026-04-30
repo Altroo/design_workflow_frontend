@@ -37,7 +37,7 @@ const CustomFilterPanel: React.FC<CustomFilterPanelProps> = ({ filterModel, onCh
 	return (
 		<div className="ui-filter-panel app-card border border-[color:var(--line)] bg-white p-4">
 			<div className="flex items-center justify-between gap-3">
-				<p className="text-sm font-medium text-[var(--ink)]">Filters</p>
+				<p className="text-sm font-medium text-(--ink)">Filters</p>
 				<button
 					type="button"
 					className="app-pill ui-button-ghost border border-[color:var(--line)] px-3 py-2 text-sm"

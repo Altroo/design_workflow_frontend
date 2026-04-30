@@ -297,17 +297,17 @@ const NavigationBar = ({ title, children, hideTopbar = false }: Props) => {
 					'app-pill workflow-focus-ring workflow-nav-link',
 					'flex w-full items-center gap-3 px-3 py-2.5 text-sm font-semibold transition',
 					active
-						? 'border-[color:var(--accent)] bg-[var(--accent-soft)] text-[var(--accent-strong)] shadow-[var(--shadow-sm)]'
-						: 'text-[var(--ink-soft)] hover:border-[color:var(--line-strong)] hover:bg-[var(--surface-muted)] hover:text-[var(--ink)]',
+						? 'border-[color:var(--accent)] bg-(--accent-soft) text-(--accent-strong) shadow-(--shadow-sm)'
+						: 'text-(--ink-soft) hover:border-[color:var(--line-strong)] hover:bg-(--surface-muted) hover:text-(--ink)',
 				].join(' ')}
 			>
-				<span className={active ? 'text-[var(--accent-strong)]' : 'text-[var(--ink-soft)]'}>{item.icon}</span>
+				<span className={active ? 'text-(--accent-strong)' : 'text-(--ink-soft)'}>{item.icon}</span>
 				<span className="workflow-nav-text min-w-0 flex-1 truncate">{item.label}</span>
 				{item.badge ? (
 					<span
 						className={[
 							'workflow-nav-badge inline-flex min-w-5 items-center justify-center rounded-full px-1.5 py-0.5 text-[11px] font-semibold',
-							active ? 'bg-[var(--accent-strong)] text-white' : 'bg-[var(--ink)] text-white',
+							active ? 'bg-(--accent-strong) text-white' : 'bg-(--ink) text-white',
 						].join(' ')}
 					>
 						{item.badge}
@@ -318,7 +318,7 @@ const NavigationBar = ({ title, children, hideTopbar = false }: Props) => {
 	};
 
 	const profileAvatar = (
-		<div className="workflow-topbar-avatar relative flex h-10 w-10 items-center justify-center overflow-hidden rounded-full bg-[var(--surface-strong)]">
+		<div className="workflow-topbar-avatar relative flex h-10 w-10 items-center justify-center overflow-hidden rounded-full bg-(--surface-strong)">
 			{profile.avatar_cropped ? (
 				<Image
 					src={profile.avatar_cropped as string}
@@ -328,7 +328,7 @@ const NavigationBar = ({ title, children, hideTopbar = false }: Props) => {
 					className="object-cover"
 				/>
 			) : (
-				<span className="workflow-avatar-initials inline-flex h-full w-full items-center justify-center text-center text-sm font-black leading-none text-[var(--ink)]">
+				<span className="workflow-avatar-initials inline-flex h-full w-full items-center justify-center text-center text-sm font-black leading-none text-(--ink)">
 					{(profile.first_name?.[0] ?? 'D').toUpperCase()}
 					{(profile.last_name?.[0] ?? 'W').toUpperCase()}
 				</span>
@@ -340,40 +340,40 @@ const NavigationBar = ({ title, children, hideTopbar = false }: Props) => {
 		<div className={['workflow-shell', railOpen ? 'workflow-shell-expanded' : ''].join(' ')}>
 			<aside className={['workflow-rail app-card hidden flex-col bg-white p-3 lg:flex', railOpen ? 'workflow-rail-expanded' : 'items-center'].join(' ')}>
 				<div className="flex w-full items-center justify-between gap-3 border-b border-[color:var(--line)] pb-4">
-					<div className="workflow-rail-logo flex h-11 w-11 items-center justify-center rounded-[8px] bg-[var(--accent)] text-center text-sm font-semibold leading-none text-white shadow-[var(--shadow-sm)]">
+					<div className="workflow-rail-logo flex h-11 w-11 items-center justify-center rounded-lg bg-(--accent) text-center text-sm font-semibold leading-none text-white shadow-(--shadow-sm)">
 						DW
 					</div>
 					<div className="workflow-rail-title min-w-0">
-						<p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-[var(--ink-muted)]">Design Workflow</p>
-						<p className="truncate text-base font-semibold text-[var(--ink)]">{title}</p>
+						<p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-(--ink-muted)">Design Workflow</p>
+						<p className="truncate text-base font-semibold text-(--ink)">{title}</p>
 					</div>
 					<button
 						type="button"
 						aria-label={railOpen ? 'Collapse navigation' : 'Expand navigation'}
 						onClick={() => setRailOpen((current) => !current)}
-						className="app-pill workflow-focus-ring flex h-10 w-10 shrink-0 items-center justify-center text-[var(--ink)]"
+						className="app-pill workflow-focus-ring flex h-10 w-10 shrink-0 items-center justify-center text-(--ink)"
 					>
 						{railOpen ? <PanelLeftClose size={18} /> : <PanelLeftOpen size={18} />}
 					</button>
 				</div>
 
 				<nav aria-label="Workflow navigation" className={['mt-5 flex flex-1 flex-col gap-2', railOpen ? 'w-full items-stretch' : 'items-center'].join(' ')}>
-					<p className="workflow-nav-section px-2 text-[11px] font-bold uppercase tracking-[0.18em] text-[var(--accent-strong)]">Workspace</p>
+					<p className="workflow-nav-section px-2 text-[11px] font-bold uppercase tracking-[0.18em] text-(--accent-strong)">Workspace</p>
 					{workflowItems.map(renderNavLink)}
 					<div className="mt-5 w-full border-t border-[color:var(--line)] pt-4">
-						<p className="workflow-nav-section mb-2 px-2 text-[11px] font-semibold uppercase tracking-[0.18em] text-[var(--ink-muted)]">
+						<p className="workflow-nav-section mb-2 px-2 text-[11px] font-semibold uppercase tracking-[0.18em] text-(--ink-muted)">
 							{profile.is_staff ? t.navigation.users : t.navigation.settings}
 						</p>
 						<div className="flex flex-col items-center gap-2">{utilityItems.map(renderNavLink)}</div>
 					</div>
 				</nav>
 
-				<div className="workflow-rail-user mt-5 rounded-[8px] border border-[color:var(--line)] bg-[var(--accent-tint)] p-3">
-					<p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-[var(--ink-muted)]">Signed in</p>
-					<p className="mt-1 truncate text-sm font-semibold text-[var(--ink)]">
+				<div className="workflow-rail-user mt-5 rounded-lg border border-[color:var(--line)] bg-(--accent-tint) p-3">
+					<p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-(--ink-muted)">Signed in</p>
+					<p className="mt-1 truncate text-sm font-semibold text-(--ink)">
 						{profile.first_name} {profile.last_name}
 					</p>
-					<p className="mt-1 text-xs text-[var(--ink-soft)]">{profile.role || (profile.is_staff ? 'admin' : 'designer')}</p>
+					<p className="mt-1 text-xs text-(--ink-soft)">{profile.role || (profile.is_staff ? 'admin' : 'designer')}</p>
 				</div>
 			</aside>
 
@@ -387,7 +387,7 @@ const NavigationBar = ({ title, children, hideTopbar = false }: Props) => {
 								aria-label={t.accessibility.toggleDrawer}
 								onClick={() => setMobileMenuOpen((current) => !current)}
 								className={[
-									'app-pill workflow-focus-ring flex h-10 w-10 items-center justify-center text-[var(--ink)] lg:hidden',
+									'app-pill workflow-focus-ring flex h-10 w-10 items-center justify-center text-(--ink) lg:hidden',
 									isMobile ? 'inline-flex' : 'hidden',
 								].join(' ')}
 							>
@@ -395,28 +395,28 @@ const NavigationBar = ({ title, children, hideTopbar = false }: Props) => {
 							</button>
 
 							<div className="app-pill flex items-center gap-3 px-3 py-2 lg:hidden">
-								<div className="flex h-10 w-10 items-center justify-center rounded-[8px] bg-[var(--accent)] text-sm font-semibold text-white">
+								<div className="flex h-10 w-10 items-center justify-center rounded-lg bg-(--accent) text-sm font-semibold text-white">
 									DW
 								</div>
 								<div className="hidden sm:block">
-									<p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-[var(--ink-muted)]">
+									<p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-(--ink-muted)">
 										Design Workflow
 									</p>
-									<p className="text-sm font-semibold text-[var(--ink)]">{title}</p>
+									<p className="text-sm font-semibold text-(--ink)">{title}</p>
 								</div>
 							</div>
 
 							<div className="workflow-topbar-controls ml-auto flex items-center gap-2">
 								<div ref={notificationsRef} className="relative">
-									<button type="button" onClick={() => setNotificationsOpen((current) => !current)} className="workflow-topbar-icon workflow-focus-ring relative flex h-10 w-10 items-center justify-center text-[var(--ink)]">
+									<button type="button" onClick={() => setNotificationsOpen((current) => !current)} className="workflow-topbar-icon workflow-focus-ring relative flex h-10 w-10 items-center justify-center text-(--ink)">
 										<Bell size={18} />
 										{unreadNotifications ? <span className="absolute right-2 top-2 h-2.5 w-2.5 rounded-full bg-red-600" /> : null}
 									</button>
 									{notificationsOpen ? (
-										<div className="workflow-topbar-menu absolute right-0 top-[calc(100%+10px)] z-[110] flex w-[360px] max-w-[calc(100vw-24px)] flex-col gap-2 rounded-[16px] border border-[color:var(--line)] bg-white p-3 shadow-[var(--shadow-lg)]">
+										<div className="workflow-topbar-menu absolute right-0 top-[calc(100%+10px)] z-[110] flex w-[360px] max-w-[calc(100vw-24px)] flex-col gap-2 rounded-2xl border border-[color:var(--line)] bg-white p-3 shadow-(--shadow-lg)">
 											<div className="flex items-center justify-between gap-3 px-1">
-												<p className="text-sm font-bold text-[var(--ink)]">{t.navigation.notifications}</p>
-												<Link href={DASHBOARD_NOTIFICATIONS} onClick={() => setNotificationsOpen(false)} className="text-xs font-semibold text-[var(--accent-strong)]">{t.navigation.openInbox ?? 'Open inbox'}</Link>
+												<p className="text-sm font-bold text-(--ink)">{t.navigation.notifications}</p>
+												<Link href={DASHBOARD_NOTIFICATIONS} onClick={() => setNotificationsOpen(false)} className="text-xs font-semibold text-(--accent-strong)">{t.navigation.openInbox ?? 'Open inbox'}</Link>
 											</div>
 											<div className="space-y-2">
 												{notificationsPreview.map((notification) => {
@@ -428,7 +428,7 @@ const NavigationBar = ({ title, children, hideTopbar = false }: Props) => {
 															href={entity.href}
 															onClick={(event) => handleNotificationPreviewClick(event, notification, entity.href)}
 															data-unread={!notification.is_read}
-															className="workflow-notification-preview-card group block rounded-[12px] border px-3 py-3 transition"
+															className="workflow-notification-preview-card group block rounded-xl border px-3 py-3 transition"
 														>
 															<div className="flex items-start gap-3">
 																<span className={`mt-0.5 grid h-9 w-9 shrink-0 place-items-center rounded-[10px] border ${entity.tone}`}>
@@ -436,22 +436,22 @@ const NavigationBar = ({ title, children, hideTopbar = false }: Props) => {
 																</span>
 																<div className="min-w-0 flex-1">
 																	<div className="mb-1 flex items-center gap-2">
-																		<span className="rounded-full bg-[var(--surface-muted)] px-2 py-0.5 text-[10px] font-black uppercase tracking-[0.14em] text-[var(--ink-muted)]">
+																		<span className="rounded-full bg-(--surface-muted) px-2 py-0.5 text-[10px] font-black uppercase tracking-[0.14em] text-(--ink-muted)">
 																			{entity.label}
 																		</span>
 																		{notification.is_read ? null : <span className="h-2 w-2 rounded-full bg-red-600" />}
 																	</div>
-																	<p className="text-sm font-bold leading-snug text-[var(--ink)]">{labelForNotificationType(notification.type)}</p>
-																	<p className="mt-1 truncate text-xs font-semibold text-[var(--ink-soft)]">{entity.name}</p>
+																	<p className="text-sm font-bold leading-snug text-(--ink)">{labelForNotificationType(notification.type)}</p>
+																	<p className="mt-1 truncate text-xs font-semibold text-(--ink-soft)">{entity.name}</p>
 																	{detail || entity.context ? (
-																		<p className="mt-1 truncate text-[11px] text-[var(--ink-muted)]">{detail || entity.context}</p>
+																		<p className="mt-1 truncate text-[11px] text-(--ink-muted)">{detail || entity.context}</p>
 																	) : null}
 																</div>
 															</div>
 														</Link>
 													);
 												})}
-												{notificationsPreview.length === 0 ? <p className="px-1 py-4 text-sm text-[var(--ink-soft)]">{t.navigation.noNotificationsYet ?? 'No notifications yet.'}</p> : null}
+												{notificationsPreview.length === 0 ? <p className="px-1 py-4 text-sm text-(--ink-soft)">{t.navigation.noNotificationsYet ?? 'No notifications yet.'}</p> : null}
 											</div>
 										</div>
 									) : null}
@@ -461,7 +461,7 @@ const NavigationBar = ({ title, children, hideTopbar = false }: Props) => {
 										href={BACKEND_SITE_ADMIN}
 										target="_blank"
 										rel="noopener noreferrer"
-										className="workflow-topbar-control workflow-focus-ring hidden items-center gap-2 px-3 py-2 text-sm font-bold text-[var(--ink)] transition xl:inline-flex"
+										className="workflow-topbar-control workflow-focus-ring hidden items-center gap-2 px-3 py-2 text-sm font-bold text-(--ink) transition xl:inline-flex"
 									>
 										<Shield size={16} />
 										<span>{t.navigation.administration}</span>
@@ -470,7 +470,7 @@ const NavigationBar = ({ title, children, hideTopbar = false }: Props) => {
 								<button
 									type="button"
 									onClick={() => setLanguage(language === 'fr' ? 'en' : 'fr')}
-									className="workflow-topbar-control workflow-focus-ring hidden items-center gap-2 px-3 py-2 text-sm font-bold text-[var(--ink)] transition sm:inline-flex"
+									className="workflow-topbar-control workflow-focus-ring hidden items-center gap-2 px-3 py-2 text-sm font-bold text-(--ink) transition sm:inline-flex"
 								>
 									<Image
 										src={language === 'fr' ? FlagGB : FlagFR}
@@ -491,16 +491,16 @@ const NavigationBar = ({ title, children, hideTopbar = false }: Props) => {
 									>
 										{profileAvatar}
 										<div className="hidden sm:block">
-											<p className="text-xs font-medium text-[var(--ink-soft)]">{greeting}</p>
-											<p className="text-sm font-semibold text-[var(--ink)]">
+											<p className="text-xs font-medium text-(--ink-soft)">{greeting}</p>
+											<p className="text-sm font-semibold text-(--ink)">
 												{profile.first_name} {profile.last_name}
 											</p>
 										</div>
-										<ChevronDown size={16} className="text-[var(--ink-soft)]" />
+										<ChevronDown size={16} className="text-(--ink-soft)" />
 									</button>
 
 									{profileMenuOpen ? (
-										<div className="workflow-topbar-menu absolute right-0 top-[calc(100%+10px)] z-[100] flex min-w-[270px] flex-col gap-2 rounded-[16px] border border-[color:var(--line)] bg-white p-3 shadow-[var(--shadow-lg)]">
+										<div className="workflow-topbar-menu absolute right-0 top-[calc(100%+10px)] z-[100] flex min-w-[270px] flex-col gap-2 rounded-2xl border border-[color:var(--line)] bg-white p-3 shadow-(--shadow-lg)">
 											<div className="flex flex-col gap-2">{profileMenuItems.map(renderNavLink)}</div>
 											<button
 												type="button"
@@ -520,10 +520,10 @@ const NavigationBar = ({ title, children, hideTopbar = false }: Props) => {
 						</div>
 
 						{isMobile && mobileMenuOpen ? (
-							<div className="mt-3 flex flex-col gap-2 rounded-[8px] border border-[color:var(--line)] bg-[var(--surface-muted)] p-3 lg:hidden">
+							<div className="mt-3 flex flex-col gap-2 rounded-lg border border-[color:var(--line)] bg-(--surface-muted) p-3 lg:hidden">
 								{workflowItems.map(renderNavLink)}
-								<div className="rounded-[8px] border border-dashed border-[color:var(--line)] p-3">
-									<p className="mb-2 text-xs font-semibold uppercase tracking-[0.16em] text-[var(--ink-muted)]">
+								<div className="rounded-lg border border-dashed border-[color:var(--line)] p-3">
+									<p className="mb-2 text-xs font-semibold uppercase tracking-[0.16em] text-(--ink-muted)">
 										{profile.is_staff || isSuperuser ? t.navigation.users : t.navigation.settings}
 									</p>
 									<div className="flex flex-col gap-2">{utilityItems.map(renderNavLink)}</div>

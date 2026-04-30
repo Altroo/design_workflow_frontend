@@ -56,7 +56,7 @@ const PaginatedDataGrid = <T extends { id?: number | string },>({
 	const totalPages = Math.max(1, Math.ceil((data?.count ?? 0) / paginationModel.pageSize));
 
 	if (isLoading) {
-		return <div className="workflow-data-grid app-card p-6 text-sm text-[var(--ink-soft)]">Loading...</div>;
+		return <div className="workflow-data-grid app-card p-6 text-sm text-(--ink-soft)">Loading...</div>;
 	}
 
 	return (
@@ -77,7 +77,7 @@ const PaginatedDataGrid = <T extends { id?: number | string },>({
 					>
 						Prev
 					</button>
-					<span className="text-sm text-[var(--ink-soft)]">
+					<span className="text-sm text-(--ink-soft)">
 						{paginationModel.page + 1} / {totalPages}
 					</span>
 					<button
@@ -92,7 +92,7 @@ const PaginatedDataGrid = <T extends { id?: number | string },>({
 			</div>
 			<div className="overflow-x-auto">
 				<table className="min-w-full text-left text-sm">
-					<thead className="bg-[var(--surface-muted)] text-[var(--ink-soft)]">
+					<thead className="bg-(--surface-muted) text-(--ink-soft)">
 						<tr>
 							{onSelectionChange ? <th className="px-4 py-3">#</th> : null}
 							{columns.map((column) => (
@@ -109,7 +109,7 @@ const PaginatedDataGrid = <T extends { id?: number | string },>({
 							return (
 								<tr
 									key={String(row.id ?? index)}
-									className="border-t border-[color:var(--line)] hover:bg-[var(--surface-muted)]"
+									className="border-t border-[color:var(--line)] hover:bg-(--surface-muted)"
 									onClick={() => onRowClick?.({ row: row as Record<string, unknown> })}
 								>
 									{onSelectionChange ? (

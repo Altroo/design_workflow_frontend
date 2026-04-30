@@ -186,7 +186,7 @@ const Avatar = ({ user, size = 32 }: { user: WorkflowUser; size?: number }) => {
 	}
 	return (
 		<span
-			className="workflow-chat-avatar grid place-items-center rounded-full bg-[var(--surface-strong)] text-xs font-black leading-none text-[var(--ink)]"
+			className="workflow-chat-avatar grid place-items-center rounded-full bg-(--surface-strong) text-xs font-black leading-none text-(--ink)"
 			style={{ width: size, height: size }}
 		>
 			{initials}
@@ -1188,7 +1188,7 @@ const DesignWorkflowChat = () => {
 								const messageReferences = linkedReferencesForBody(message.body, tasks, projects);
 								const senderName = selectedThread?.kind === 'public' ? userLabel(message.sender) : mine ? (t.workflow.labels.you ?? 'You') : userLabel(message.sender);
 								const bubbleTone = mine
-									? 'border-[color:var(--accent)] bg-[var(--accent-soft)]'
+									? 'border-[color:var(--accent)] bg-(--accent-soft)'
 									: OTHER_BUBBLE_COLORS[message.sender.id % OTHER_BUBBLE_COLORS.length];
 								return (
 									<div key={message.id} id={`chat-message-${message.id}`} className="workflow-chat-message-row">
@@ -1208,7 +1208,7 @@ const DesignWorkflowChat = () => {
 												<Avatar user={message.sender} size={34} />
 											</button>
 										) : null}
-										<div className={['workflow-chat-bubble max-w-[82%] rounded-[16px] border px-4 py-3 shadow-[var(--shadow-sm)]', mine ? 'workflow-chat-bubble-mine' : '', bubbleTone].join(' ')}>
+										<div className={['workflow-chat-bubble max-w-[82%] rounded-2xl border px-4 py-3 shadow-(--shadow-sm)', mine ? 'workflow-chat-bubble-mine' : '', bubbleTone].join(' ')}>
 											<div className="mb-2 flex items-start justify-between gap-3">
 												<button
 													type="button"
@@ -1218,11 +1218,11 @@ const DesignWorkflowChat = () => {
 												>
 													{senderName}
 												</button>
-												<div className="flex items-center gap-2 text-[var(--ink-soft)]">
+												<div className="flex items-center gap-2 text-(--ink-soft)">
 													<button
 														type="button"
 														onClick={() => setReplyTarget(message)}
-														className="hover:text-[var(--ink)]"
+														className="hover:text-(--ink)"
 													aria-label={t.workflow.buttons.reply ?? 'Reply'}
 												>
 													<Reply size={15} />
@@ -1232,7 +1232,7 @@ const DesignWorkflowChat = () => {
 														<button
 															type="button"
 															onClick={() => setReactionPickerMessageId((current) => current === message.id ? null : message.id)}
-															className="hover:text-[var(--ink)]"
+															className="hover:text-(--ink)"
 															aria-label={t.workflow.buttons.react ?? 'React'}
 														>
 															<SmilePlus size={15} />
@@ -1264,7 +1264,7 @@ const DesignWorkflowChat = () => {
 													<button
 														type="button"
 															onClick={() => markChatDecision({ id: message.id, is_decision: !message.decision_at })}
-															className={message.decision_at ? 'text-emerald-700' : 'hover:text-[var(--ink)]'}
+															className={message.decision_at ? 'text-emerald-700' : 'hover:text-(--ink)'}
 															aria-label={t.workflow.buttons.markDecision ?? 'Mark decision'}
 														>
 															<CheckCheck size={15} />
@@ -1274,7 +1274,7 @@ const DesignWorkflowChat = () => {
 														<button
 															type="button"
 															onClick={() => openReminder(message)}
-															className="hover:text-[var(--ink)]"
+															className="hover:text-(--ink)"
 															aria-label={t.workflow.buttons.addReminder ?? 'Add reminder'}
 														>
 															<AlarmClock size={15} />
@@ -1284,7 +1284,7 @@ const DesignWorkflowChat = () => {
 														<button
 															type="button"
 															onClick={() => setForwardMessage(message)}
-															className="hover:text-[var(--ink)]"
+															className="hover:text-(--ink)"
 															aria-label={t.workflow.buttons.forwardMessage ?? 'Forward'}
 														>
 															<Forward size={15} />
@@ -1294,7 +1294,7 @@ const DesignWorkflowChat = () => {
 														<button
 															type="button"
 															onClick={() => openCreateTaskFromMessage(message)}
-															className="workflow-chat-create-task-action hover:text-[var(--accent-strong)]"
+															className="workflow-chat-create-task-action hover:text-(--accent-strong)"
 															aria-label={t.workflow.buttons.createTaskFromMessage ?? 'Create task from message'}
 														>
 															<CheckSquare2 size={15} />
@@ -1307,7 +1307,7 @@ const DesignWorkflowChat = () => {
 																setEditingMessage(message);
 																setEditText(message.body);
 															}}
-															className="hover:text-[var(--ink)]"
+															className="hover:text-(--ink)"
 															aria-label={t.workflow.buttons.editMessage ?? 'Edit'}
 														>
 															<Edit3 size={15} />
@@ -1329,9 +1329,9 @@ const DesignWorkflowChat = () => {
 												<button
 													type="button"
 													onClick={() => scrollToMessage(message.reply_to!.id)}
-													className="mb-2 w-full rounded-[8px] border border-black/8 bg-white/70 px-3 py-2 text-left text-xs text-[var(--ink-soft)]"
+													className="mb-2 w-full rounded-lg border border-black/8 bg-white/70 px-3 py-2 text-left text-xs text-(--ink-soft)"
 												>
-													<p className="font-semibold text-[var(--ink)]">{userLabel(message.reply_to.sender)}</p>
+													<p className="font-semibold text-(--ink)">{userLabel(message.reply_to.sender)}</p>
 													<p className="mt-1 line-clamp-2">{readableReferenceText(message.reply_to.body, tasks, projects)}</p>
 												</button>
 											) : null}
@@ -1353,7 +1353,7 @@ const DesignWorkflowChat = () => {
 													</div>
 												</div>
 											) : message.body || message.is_deleted ? (
-												<p className="whitespace-pre-wrap text-sm leading-6 text-[var(--ink)]">
+												<p className="whitespace-pre-wrap text-sm leading-6 text-(--ink)">
 													{message.is_deleted ? (t.workflow.labels.messageDeleted ?? 'Message deleted') : renderLinkedMessageBody(message.body, messageMentionUsers, tasks, projects)}
 												</p>
 											) : null}
@@ -1458,9 +1458,9 @@ const DesignWorkflowChat = () => {
 																href={attachmentUrl}
 																target="_blank"
 																rel="noreferrer"
-																className="flex items-center gap-3 rounded-[8px] border border-[color:var(--line)] bg-white/70 px-3 py-3 text-sm font-semibold text-[var(--ink)]"
+																className="flex items-center gap-3 rounded-lg border border-[color:var(--line)] bg-white/70 px-3 py-3 text-sm font-semibold text-(--ink)"
 															>
-																<span className="grid h-9 w-9 place-items-center rounded-[8px] bg-[var(--surface-strong)] text-[11px] font-bold text-[var(--ink)]">
+																<span className="grid h-9 w-9 place-items-center rounded-lg bg-(--surface-strong) text-[11px] font-bold text-(--ink)">
 																	{fileIconLabel(attachment.name)}
 																</span>
 																<span className="truncate">{attachment.name}</span>
@@ -1469,7 +1469,7 @@ const DesignWorkflowChat = () => {
 													})}
 												</div>
 											) : null}
-											<p className="mt-2 text-right text-[11px] font-semibold text-[var(--ink-muted)]">
+											<p className="mt-2 text-right text-[11px] font-semibold text-(--ink-muted)">
 												{formatTime(message.created_at, locale)} {mine ? (message.is_read ? (t.workflow.labels.read ?? 'Read') : (t.workflow.labels.sent ?? 'Sent')) : ''}
 											</p>
 										</div>
@@ -1497,17 +1497,17 @@ const DesignWorkflowChat = () => {
 				) : null}
 				<div className="workflow-chat-composer">
 					{replyTarget ? (
-						<div className="mb-3 flex items-start justify-between gap-3 rounded-[8px] border border-[color:var(--line)] bg-[var(--surface-muted)] px-3 py-2">
+						<div className="mb-3 flex items-start justify-between gap-3 rounded-lg border border-[color:var(--line)] bg-(--surface-muted) px-3 py-2">
 							<div className="min-w-0">
-								<p className="text-xs font-bold uppercase tracking-[0.14em] text-[var(--accent-strong)]">
+								<p className="text-xs font-bold uppercase tracking-[0.14em] text-(--accent-strong)">
 									{t.workflow.labels.replyingTo ?? 'Replying to'}
 								</p>
-								<p className="truncate text-sm font-semibold text-[var(--ink)]">{userLabel(replyTarget.sender)}</p>
-								<p className="truncate text-sm text-[var(--ink-soft)]">
+								<p className="truncate text-sm font-semibold text-(--ink)">{userLabel(replyTarget.sender)}</p>
+								<p className="truncate text-sm text-(--ink-soft)">
 									{readableReferenceText(replyTarget.body, tasks, projects) || (t.workflow.labels.messageDeleted ?? 'Message deleted')}
 								</p>
 							</div>
-							<button type="button" onClick={() => setReplyTarget(null)} className="text-[var(--ink-soft)] hover:text-[var(--ink)]">
+							<button type="button" onClick={() => setReplyTarget(null)} className="text-(--ink-soft) hover:text-(--ink)">
 								<X size={16} />
 							</button>
 						</div>
@@ -1558,7 +1558,7 @@ const DesignWorkflowChat = () => {
 						<button
 							type="button"
 							onClick={() => fileInputRef.current?.click()}
-							className="app-pill grid h-11 w-11 place-items-center text-[var(--ink)]"
+							className="app-pill grid h-11 w-11 place-items-center text-(--ink)"
 							aria-label={t.workflow.buttons.shareFiles ?? 'Share files'}
 						>
 							<Paperclip size={18} />
@@ -1566,7 +1566,7 @@ const DesignWorkflowChat = () => {
 						<button
 							type="button"
 							onClick={toggleVoiceRecording}
-							className={['app-pill grid h-11 w-11 place-items-center text-[var(--ink)]', recording ? 'is-recording' : ''].join(' ')}
+							className={['app-pill grid h-11 w-11 place-items-center text-(--ink)', recording ? 'is-recording' : ''].join(' ')}
 							aria-label={t.workflow.buttons.voiceNote ?? 'Voice note'}
 						>
 							<Mic size={18} />
@@ -1619,7 +1619,7 @@ const DesignWorkflowChat = () => {
 								className="app-input min-h-[48px] w-full resize-none"
 							/>
 							{mentionOptions.length ? (
-								<div className="absolute bottom-[calc(100%+8px)] left-0 z-[220] w-full rounded-[8px] border border-[color:var(--line)] bg-white p-2 shadow-[var(--shadow-lg)]">
+								<div className="absolute bottom-[calc(100%+8px)] left-0 z-[220] w-full rounded-lg border border-[color:var(--line)] bg-white p-2 shadow-(--shadow-lg)">
 									{mentionOptions.map((user, index) => (
 										<button
 											key={user.id}
@@ -1634,7 +1634,7 @@ const DesignWorkflowChat = () => {
 								</div>
 							) : null}
 							{referenceOptions.length ? (
-								<div className="absolute bottom-[calc(100%+8px)] left-0 z-[220] w-full rounded-[8px] border border-[color:var(--line)] bg-white p-2 shadow-[var(--shadow-lg)]">
+								<div className="absolute bottom-[calc(100%+8px)] left-0 z-[220] w-full rounded-lg border border-[color:var(--line)] bg-white p-2 shadow-(--shadow-lg)">
 									{referenceOptions.map((reference, index) => (
 										<button
 											key={`${reference.kind}-${reference.id}`}
@@ -1693,7 +1693,7 @@ const DesignWorkflowChat = () => {
 											/>
 										</div>
 									) : (
-										<div key={`${file.name}-${index}`} className="relative overflow-hidden rounded-[8px] border border-[color:var(--line)] bg-white">
+										<div key={`${file.name}-${index}`} className="relative overflow-hidden rounded-lg border border-[color:var(--line)] bg-white">
 											<button
 												type="button"
 												onClick={() => removeSelectedFile(index)}
@@ -1705,7 +1705,7 @@ const DesignWorkflowChat = () => {
 											{file.type.startsWith('image/') ? (
 												<Image src={filePreviewUrls[index]} alt={file.name} width={80} height={80} unoptimized className="h-20 w-20 object-cover" />
 											) : (
-												<div className="flex h-20 min-w-[140px] items-center gap-2 px-3 text-xs font-semibold text-[var(--ink)]">
+												<div className="flex h-20 min-w-[140px] items-center gap-2 px-3 text-xs font-semibold text-(--ink)">
 													<Paperclip size={13} />
 													<span className="line-clamp-2">{file.name}</span>
 												</div>
@@ -1983,7 +1983,7 @@ const DesignWorkflowChat = () => {
 						>
 							<X size={18} />
 						</button>
-						<Image src={selectedImage.src} alt={selectedImage.name} width={1200} height={900} unoptimized className="max-h-[90vh] max-w-[90vw] rounded-[8px] object-contain" />
+						<Image src={selectedImage.src} alt={selectedImage.name} width={1200} height={900} unoptimized className="max-h-[90vh] max-w-[90vw] rounded-lg object-contain" />
 					</div>
 				</div>
 			) : null}

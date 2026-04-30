@@ -28,9 +28,9 @@ interface InfoRowProps {
 }
 
 const InfoRow: React.FC<InfoRowProps> = ({ label, value }) => (
-	<div className="flex flex-col gap-1 rounded-[8px] border border-[color:var(--line)] bg-white px-4 py-3 shadow-[var(--shadow-sm)]">
-		<span className="text-xs font-medium uppercase tracking-[0.18em] text-[var(--ink-soft)]">{label}</span>
-		<span className="text-sm font-medium text-[var(--ink)]">{value && String(value).length > 0 ? value : '-'}</span>
+	<div className="flex flex-col gap-1 rounded-lg border border-[color:var(--line)] bg-white px-4 py-3 shadow-(--shadow-sm)">
+		<span className="text-xs font-medium uppercase tracking-[0.18em] text-(--ink-soft)">{label}</span>
+		<span className="text-sm font-medium text-(--ink)">{value && String(value).length > 0 ? value : '-'}</span>
 	</div>
 );
 
@@ -38,7 +38,7 @@ const BoolBadge = ({ value, yes, no }: { value?: boolean; yes: string; no: strin
 	<span
 		className={[
 			'inline-flex rounded-full px-3 py-1 text-xs font-semibold',
-			value ? 'bg-[var(--accent)] text-white' : 'bg-[var(--surface-muted)] text-[var(--ink)]',
+			value ? 'bg-(--accent) text-white' : 'bg-(--surface-muted) text-(--ink)',
 		].join(' ')}
 	>
 		{value ? yes : no}
@@ -86,7 +86,7 @@ const UsersViewClient: React.FC<Props> = ({ session, id }) => {
 							<button
 								type="button"
 								onClick={() => router.push(USERS_LIST)}
-								className="app-pill inline-flex items-center gap-2 border border-[color:var(--line)] bg-white px-4 py-2 text-sm font-medium text-[var(--ink)]"
+								className="app-pill inline-flex items-center gap-2 border border-[color:var(--line)] bg-white px-4 py-2 text-sm font-medium text-(--ink)"
 							>
 								<ArrowLeft className="h-4 w-4" />
 								<span>{t.navigation.usersList}</span>
@@ -96,7 +96,7 @@ const UsersViewClient: React.FC<Props> = ({ session, id }) => {
 									<button
 										type="button"
 										onClick={() => router.push(USERS_EDIT(id))}
-										className="app-pill inline-flex items-center gap-2 border border-[color:var(--line)] bg-white px-4 py-2 text-sm font-medium text-[var(--ink)]"
+										className="app-pill inline-flex items-center gap-2 border border-[color:var(--line)] bg-white px-4 py-2 text-sm font-medium text-(--ink)"
 									>
 										<PencilLine className="h-4 w-4" />
 										<span>{t.common.edit}</span>
@@ -104,7 +104,7 @@ const UsersViewClient: React.FC<Props> = ({ session, id }) => {
 									<button
 										type="button"
 										onClick={() => setShowDeleteModal(true)}
-										className="app-pill inline-flex items-center gap-2 border border-[color:var(--line)] bg-white px-4 py-2 text-sm font-medium text-[var(--ink)]"
+										className="app-pill inline-flex items-center gap-2 border border-[color:var(--line)] bg-white px-4 py-2 text-sm font-medium text-(--ink)"
 									>
 										<Trash2 className="h-4 w-4" />
 										<span>{t.common.delete}</span>
@@ -118,25 +118,25 @@ const UsersViewClient: React.FC<Props> = ({ session, id }) => {
 						) : (axiosError?.status as number) > 400 ? (
 							<ApiAlert errorDetails={axiosError?.data.details} />
 						) : !userData ? (
-							<div className="app-card border border-[color:var(--line)] bg-white p-6 text-sm text-[var(--ink-soft)]">
+							<div className="app-card border border-[color:var(--line)] bg-white p-6 text-sm text-(--ink-soft)">
 								{t.users.userNotFound}
 							</div>
 						) : (
 							<div className="space-y-5">
 								<section className="app-card border border-[color:var(--line-strong)] bg-white p-6 sm:p-8">
 									<div className="flex flex-col gap-5 sm:flex-row sm:items-center">
-										<div className="flex h-24 w-24 items-center justify-center rounded-[8px] bg-[var(--accent)] text-2xl font-semibold text-white">
+										<div className="flex h-24 w-24 items-center justify-center rounded-lg bg-(--accent) text-2xl font-semibold text-white">
 											{initials}
 										</div>
 										<div className="flex-1">
-											<p className="text-xs font-medium uppercase tracking-[0.24em] text-[var(--ink-soft)]">
+											<p className="text-xs font-medium uppercase tracking-[0.24em] text-(--ink-soft)">
 												{t.users.userDetails}
 											</p>
-											<h2 className="mt-2 text-3xl font-semibold text-[var(--ink)]">
+											<h2 className="mt-2 text-3xl font-semibold text-(--ink)">
 												{[userData.first_name, userData.last_name].filter(Boolean).join(' ') || userData.email}
 											</h2>
 											<div className="mt-3 flex flex-wrap gap-2">
-												<span className="app-pill border border-[color:var(--line)] bg-[var(--surface-muted)] px-3 py-1 text-xs font-semibold text-[var(--ink)]">
+												<span className="app-pill border border-[color:var(--line)] bg-(--surface-muted) px-3 py-1 text-xs font-semibold text-(--ink)">
 													ID: {userData.id}
 												</span>
 												<BoolBadge value={userData.is_staff} yes={t.users.admin} no={t.common.no} />
@@ -149,8 +149,8 @@ const UsersViewClient: React.FC<Props> = ({ session, id }) => {
 								<section className="grid gap-5 lg:grid-cols-2">
 									<div className="app-card border border-[color:var(--line-strong)] bg-white p-6">
 										<div className="mb-4 flex items-center gap-3">
-											<Mail className="h-5 w-5 text-[var(--ink)]" />
-											<h3 className="text-lg font-semibold text-[var(--ink)]">{t.users.generalInfo}</h3>
+											<Mail className="h-5 w-5 text-(--ink)" />
+											<h3 className="text-lg font-semibold text-(--ink)">{t.users.generalInfo}</h3>
 										</div>
 										<div className="grid gap-3">
 											<InfoRow label={t.users.email} value={userData.email} />
@@ -162,8 +162,8 @@ const UsersViewClient: React.FC<Props> = ({ session, id }) => {
 
 									<div className="app-card border border-[color:var(--line-strong)] bg-white p-6">
 										<div className="mb-4 flex items-center gap-3">
-											<CalendarClock className="h-5 w-5 text-[var(--ink)]" />
-											<h3 className="text-lg font-semibold text-[var(--ink)]">Timeline</h3>
+											<CalendarClock className="h-5 w-5 text-(--ink)" />
+											<h3 className="text-lg font-semibold text-(--ink)">Timeline</h3>
 										</div>
 										<div className="grid gap-3">
 											<InfoRow label={t.users.registrationDate} value={formatDate(userData.date_joined)} />
@@ -175,8 +175,8 @@ const UsersViewClient: React.FC<Props> = ({ session, id }) => {
 
 								<section className="app-card border border-[color:var(--line-strong)] bg-white p-6">
 									<div className="mb-4 flex items-center gap-3">
-										<Shield className="h-5 w-5 text-[var(--ink)]" />
-										<h3 className="text-lg font-semibold text-[var(--ink)]">{t.users.permissions}</h3>
+										<Shield className="h-5 w-5 text-(--ink)" />
+										<h3 className="text-lg font-semibold text-(--ink)">{t.users.permissions}</h3>
 									</div>
 									<div className="grid gap-3 md:grid-cols-2 xl:grid-cols-5">
 										<InfoRow label={t.users.canView} value={userData.can_view ? t.common.yes : t.common.no} />

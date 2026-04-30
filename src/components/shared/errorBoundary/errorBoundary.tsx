@@ -62,13 +62,13 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundarySt
 			return (
 				<div className="flex min-h-[400px] items-center justify-center p-4">
 					<div className="app-card max-w-[500px] border border-[color:var(--line-strong)] bg-white p-6 text-center">
-						<div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-[var(--surface-muted)] text-[var(--ink)]">
+						<div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-(--surface-muted) text-(--ink)">
 							<AlertTriangle className="h-8 w-8" />
 						</div>
-						<h2 className="text-2xl font-semibold text-[var(--ink)]">{t.errors.errorOccurred}</h2>
-						<p className="mt-3 text-sm leading-6 text-[var(--ink-soft)]">{t.errors.errorApology}</p>
+						<h2 className="text-2xl font-semibold text-(--ink)">{t.errors.errorOccurred}</h2>
+						<p className="mt-3 text-sm leading-6 text-(--ink-soft)">{t.errors.errorApology}</p>
 						{process.env.NODE_ENV !== 'production' && this.state.error && (
-							<pre className="mt-4 max-h-[150px] overflow-auto rounded-2xl bg-[var(--surface-muted)] p-3 text-left text-xs text-[var(--ink-soft)]">
+							<pre className="mt-4 max-h-[150px] overflow-auto rounded-2xl bg-(--surface-muted) p-3 text-left text-xs text-(--ink-soft)">
 								{this.state.error.message}
 							</pre>
 						)}
@@ -78,7 +78,7 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundarySt
 							</button>
 							<button
 								type="button"
-								className="app-pill border border-[color:var(--line-strong)] px-4 py-3 text-sm font-medium text-[var(--ink)]"
+								className="app-pill border border-[color:var(--line-strong)] px-4 py-3 text-sm font-medium text-(--ink)"
 								onClick={() => window.location.reload()}
 							>
 								{t.common.refresh}

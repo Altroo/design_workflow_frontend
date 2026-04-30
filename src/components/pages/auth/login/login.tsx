@@ -73,9 +73,9 @@ const LoginPageContent = () => {
 			<div className="relative z-10 p-4 sm:p-5">
 				<div className="mb-5 flex items-start justify-between gap-4">
 					<div>
-						<p className="text-[10px] font-bold uppercase tracking-[0.18em] text-[var(--ink-muted)]">Kanban board</p>
-						<h1 className="mt-1 text-2xl font-extrabold text-[var(--ink)]">{t.auth.login}</h1>
-						<p className="mt-2 text-xs font-semibold leading-5 text-[var(--ink-soft)]">
+						<p className="text-[10px] font-bold uppercase tracking-[0.18em] text-(--ink-muted)">Kanban board</p>
+						<h1 className="mt-1 text-2xl font-extrabold text-(--ink)">{t.auth.login}</h1>
+						<p className="mt-2 text-xs font-semibold leading-5 text-(--ink-soft)">
 							Open studio cards, comments, files and delivery lanes.
 						</p>
 					</div>
@@ -83,18 +83,18 @@ const LoginPageContent = () => {
 				</div>
 
 				{errorState ? (
-					<div className="mb-4 rounded-[14px] border border-[color:var(--accent)] bg-[var(--accent-soft)] px-4 py-3 text-xs font-bold text-[var(--accent-strong)]">
+					<div className="mb-4 rounded-[14px] border border-[color:var(--accent)] bg-(--accent-soft) px-4 py-3 text-xs font-bold text-(--accent-strong)">
 						{errorState}
 					</div>
 				) : null}
 
 				<form onSubmit={formik.handleSubmit} className="space-y-3">
 					<div>
-						<label htmlFor="email" className="mb-2 block text-xs font-bold text-[var(--ink)]">
+						<label htmlFor="email" className="mb-2 block text-xs font-bold text-(--ink)">
 							{t.auth.emailAddress}
 						</label>
 						<div className="relative">
-							<Mail size={16} className="pointer-events-none absolute left-3 top-0 h-full text-[var(--ink-soft)]" />
+							<Mail size={16} className="pointer-events-none absolute left-3 top-0 h-full text-(--ink-soft)" />
 							<input
 								id="email"
 								name="email"
@@ -108,16 +108,16 @@ const LoginPageContent = () => {
 							/>
 						</div>
 						{formik.touched.email && formik.errors.email ? (
-							<p className="mt-2 text-sm text-[var(--ink-soft)]">{formik.errors.email}</p>
+							<p className="mt-2 text-sm text-(--ink-soft)">{formik.errors.email}</p>
 						) : null}
 					</div>
 
 					<div>
-						<label htmlFor="password" className="mb-2 block text-xs font-bold text-[var(--ink)]">
+						<label htmlFor="password" className="mb-2 block text-xs font-bold text-(--ink)">
 							{t.auth.password}
 						</label>
 						<div className="relative">
-							<Lock size={16} className="pointer-events-none absolute left-3 top-0 h-full text-[var(--ink-soft)]" />
+							<Lock size={16} className="pointer-events-none absolute left-3 top-0 h-full text-(--ink-soft)" />
 							<input
 								id="password"
 								name="password"
@@ -133,18 +133,18 @@ const LoginPageContent = () => {
 								type="button"
 								aria-label={showPassword ? 'Hide password' : 'Show password'}
 								onClick={() => setShowPassword((current) => !current)}
-								className="absolute right-2 top-1/2 grid h-8 w-8 -translate-y-1/2 place-items-center rounded-full text-[var(--ink-soft)] transition hover:bg-[var(--surface-muted)] hover:text-[var(--ink)]"
+								className="absolute right-2 top-1/2 grid h-8 w-8 -translate-y-1/2 place-items-center rounded-full text-(--ink-soft) transition hover:bg-(--surface-muted) hover:text-(--ink)"
 							>
 								{showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
 							</button>
 						</div>
 						{formik.touched.password && formik.errors.password ? (
-							<p className="mt-2 text-sm text-[var(--ink-soft)]">{formik.errors.password}</p>
+							<p className="mt-2 text-sm text-(--ink-soft)">{formik.errors.password}</p>
 						) : null}
 					</div>
 
 					{formik.errors.globalError ? (
-						<div className="rounded-[14px] border border-[color:var(--line)] bg-[var(--surface-muted)] px-4 py-3 text-xs font-semibold text-[var(--ink-soft)]">
+						<div className="rounded-[14px] border border-[color:var(--line)] bg-(--surface-muted) px-4 py-3 text-xs font-semibold text-(--ink-soft)">
 							{formik.errors.globalError}
 						</div>
 					) : null}
@@ -157,7 +157,7 @@ const LoginPageContent = () => {
 						<button
 							type="button"
 							onClick={() => router.push(AUTH_RESET_PASSWORD)}
-							className="auth-forgot-link inline-flex min-h-9 items-center justify-center gap-2 rounded-full text-xs font-bold text-[var(--ink-soft)] transition hover:bg-[var(--surface-muted)] hover:text-[var(--ink)]"
+							className="auth-forgot-link inline-flex min-h-9 items-center justify-center gap-2 rounded-full text-xs font-bold text-(--ink-soft) transition hover:bg-(--surface-muted) hover:text-(--ink)"
 						>
 							<KeyRound size={16} />
 							<span>{t.auth.forgotPassword}</span>

@@ -44,19 +44,19 @@ const ResetPasswordPageContent = () => {
 
 	return (
 		<div className="app-card px-5 py-6 sm:px-7 sm:py-7">
-			<p className="text-xs font-semibold uppercase tracking-[0.22em] text-[var(--ink-soft)]">Recovery</p>
-			<h1 className="mt-3 text-4xl font-semibold text-[var(--ink)]">
+			<p className="text-xs font-semibold uppercase tracking-[0.22em] text-(--ink-soft)">Recovery</p>
+			<h1 className="mt-3 text-4xl font-semibold text-(--ink)">
 				{t.auth.recovery} {t.auth.ofPassword}
 			</h1>
-			<p className="mt-3 text-sm leading-6 text-[var(--ink-soft)]">{t.auth.enterEmailDescription}</p>
+			<p className="mt-3 text-sm leading-6 text-(--ink-soft)">{t.auth.enterEmailDescription}</p>
 
 			<form onSubmit={formik.handleSubmit} className="mt-8 space-y-5">
 				<div>
-					<label htmlFor="email" className="mb-2 block text-sm font-medium leading-5 text-[var(--ink-soft)]">
+					<label htmlFor="email" className="mb-2 block text-sm font-medium leading-5 text-(--ink-soft)">
 						{t.auth.emailAddress}
 					</label>
 					<div className="relative">
-						<Mail size={18} className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-[var(--ink-muted)]" />
+						<Mail size={18} className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-(--ink-muted)" />
 						<input
 							id="email"
 							name="email"
@@ -70,12 +70,12 @@ const ResetPasswordPageContent = () => {
 						/>
 					</div>
 					{formik.touched.email && formik.errors.email ? (
-						<p className="mt-2 text-sm text-[var(--ink-soft)]">{formik.errors.email}</p>
+						<p className="mt-2 text-sm text-(--ink-soft)">{formik.errors.email}</p>
 					) : null}
 				</div>
 
 				{formik.errors.globalError ? (
-					<div className="rounded-[8px] border border-[color:var(--line)] bg-[var(--surface-muted)] px-4 py-3 text-sm text-[var(--ink-soft)]">
+					<div className="rounded-lg border border-[color:var(--line)] bg-(--surface-muted) px-4 py-3 text-sm text-(--ink-soft)">
 						{formik.errors.globalError}
 					</div>
 				) : null}

@@ -53,18 +53,18 @@ const CustomToast: React.FC<Props> = ({ type, show, setShow, message }) => {
 			<div
 				role="alert"
 				className={[
-					'ui-toast pointer-events-auto flex min-w-[280px] max-w-[420px] items-start gap-3 rounded-[16px] border border-[color:var(--line-strong)] bg-white p-4 shadow-[var(--shadow-lg)]',
+					'ui-toast pointer-events-auto flex min-w-[280px] max-w-[420px] items-start gap-3 rounded-2xl border border-[color:var(--line-strong)] bg-white p-4 shadow-(--shadow-lg)',
 					'border-l-4',
 					tone.accent,
 				].join(' ')}
 			>
-				<div className="mt-0.5 text-[var(--ink)]">{tone.icon}</div>
-				<p className="flex-1 text-sm font-medium text-[var(--ink)]">{message}</p>
+				<div className="mt-0.5 text-(--ink)">{tone.icon}</div>
+				<p className="flex-1 text-sm font-medium text-(--ink)">{message}</p>
 				<button
 					type="button"
 					aria-label="Close"
 					onClick={() => setShow(false)}
-					className="rounded-full p-1 text-[var(--ink-soft)] transition hover:bg-[var(--surface-muted)] hover:text-[var(--ink)]"
+					className="rounded-full p-1 text-(--ink-soft) transition hover:bg-(--surface-muted) hover:text-(--ink)"
 				>
 					<X className="h-4 w-4" />
 				</button>

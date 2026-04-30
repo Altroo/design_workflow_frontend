@@ -53,9 +53,9 @@ const SetPasswordPageContent = ({ email, code }: Props) => {
 
 	return (
 		<div className="app-card px-5 py-6 sm:px-7 sm:py-7">
-			<p className="text-xs font-semibold uppercase tracking-[0.22em] text-[var(--ink-soft)]">Security</p>
-			<h1 className="mt-3 text-4xl font-semibold text-[var(--ink)]">{t.auth.setNewPassword}</h1>
-			<p className="mt-3 text-sm leading-6 text-[var(--ink-soft)]">
+			<p className="text-xs font-semibold uppercase tracking-[0.22em] text-(--ink-soft)">Security</p>
+			<h1 className="mt-3 text-4xl font-semibold text-(--ink)">{t.auth.setNewPassword}</h1>
+			<p className="mt-3 text-sm leading-6 text-(--ink-soft)">
 				Create strong password. Keep workspace secure.
 			</p>
 
@@ -77,11 +77,11 @@ const SetPasswordPageContent = ({ email, code }: Props) => {
 					},
 				].map((field) => (
 					<div key={field.id}>
-						<label htmlFor={field.id} className="mb-2 block text-sm font-medium leading-5 text-[var(--ink-soft)]">
+						<label htmlFor={field.id} className="mb-2 block text-sm font-medium leading-5 text-(--ink-soft)">
 							{field.label}
 						</label>
 						<div className="relative">
-							<Lock size={18} className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-[var(--ink-muted)]" />
+							<Lock size={18} className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-(--ink-muted)" />
 							<input
 								id={field.id}
 								name={field.id}
@@ -93,12 +93,12 @@ const SetPasswordPageContent = ({ email, code }: Props) => {
 								className="app-input pl-14"
 							/>
 						</div>
-						{field.error ? <p className="mt-2 text-sm text-[var(--ink-soft)]">{field.error}</p> : null}
+						{field.error ? <p className="mt-2 text-sm text-(--ink-soft)">{field.error}</p> : null}
 					</div>
 				))}
 
 				{formik.errors.globalError ? (
-					<div className="rounded-[8px] border border-[color:var(--line)] bg-[var(--surface-muted)] px-4 py-3 text-sm text-[var(--ink-soft)]">
+					<div className="rounded-lg border border-[color:var(--line)] bg-(--surface-muted) px-4 py-3 text-sm text-(--ink-soft)">
 						{formik.errors.globalError}
 					</div>
 				) : null}

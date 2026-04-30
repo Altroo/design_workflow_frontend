@@ -38,13 +38,13 @@ const CustomTextInput = forwardRef<HTMLInputElement | HTMLTextAreaElement, Props
 		return (
 			<div className={[fullWidth ? 'w-full' : '', cssClass ?? ''].join(' ')}>
 				{props.label ? (
-					<label htmlFor={props.id} className="mb-2 block text-sm font-medium leading-5 text-[var(--ink-soft)]">
+					<label htmlFor={props.id} className="mb-2 block text-sm font-medium leading-5 text-(--ink-soft)">
 						{props.label}
 					</label>
 				) : null}
 				<div className="relative">
 					{startIcon ? (
-						<div className="pointer-events-none absolute left-3 top-0 z-10 flex h-full items-center justify-center text-[var(--ink-muted)]">
+						<div className="pointer-events-none absolute left-3 top-0 z-10 flex h-full items-center justify-center text-(--ink-muted)">
 							{startIcon}
 						</div>
 					) : null}
@@ -82,7 +82,7 @@ const CustomTextInput = forwardRef<HTMLInputElement | HTMLTextAreaElement, Props
 						/>
 					)}
 					{endIcon ? (
-						<div className="absolute right-4 top-1/2 -translate-y-1/2 text-[var(--ink-muted)]">{endIcon}</div>
+						<div className="absolute right-4 top-1/2 -translate-y-1/2 text-(--ink-muted)">{endIcon}</div>
 					) : null}
 				</div>
 				{helperText ? <p className="mt-2 text-sm text-red-600">{helperText}</p> : null}

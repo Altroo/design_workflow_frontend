@@ -4,6 +4,7 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import { useCallback, useEffect, useRef, useState } from 'react';
+import type { CSSProperties, ReactNode } from 'react';
 import * as Popover from '@radix-ui/react-popover';
 import * as Select from '@radix-ui/react-select';
 import { DayPicker } from 'react-day-picker';
@@ -323,7 +324,7 @@ const getChecklistTemplates = (labels: WorkflowCopy['labels']): ChecklistTemplat
 	},
 ];
 
-const BOARD_STATUS_META: Record<TaskStatus, { accent: string; text: string; soft: string; icon: React.ReactNode }> = {
+const BOARD_STATUS_META: Record<TaskStatus, { accent: string; text: string; soft: string; icon: ReactNode }> = {
 	backlog: { accent: '#64748b', text: '#334155', soft: '#f8fafc', icon: <Archive size={14} /> },
 	todo: { accent: '#4f46e5', text: '#3730a3', soft: '#eef2ff', icon: <ListTodo size={14} /> },
 	in_progress: { accent: '#f59e0b', text: '#92400e', soft: '#fffbeb', icon: <Clock3 size={14} /> },
@@ -434,7 +435,7 @@ const AvatarBadge = ({
 				<Image src={avatarUrl} alt={label} width={size} height={size} unoptimized className="rounded-full object-cover" style={{ width: size, height: size }} />
 			) : (
 				<span
-					className="workflow-avatar-initials inline-flex items-center justify-center rounded-full bg-[var(--surface-strong)] text-center text-xs font-bold leading-none text-[var(--ink)]"
+					className="workflow-avatar-initials inline-flex items-center justify-center rounded-full bg-(--surface-strong) text-center text-xs font-bold leading-none text-(--ink)"
 					style={{ width: size, height: size }}
 				>
 					{initials}
@@ -459,7 +460,7 @@ const HistoryPager = ({
 			<button type="button" className="app-button app-button-secondary px-4 py-2" disabled={page <= 1} onClick={() => onChange(Math.max(1, page - 1))}>
 				<ChevronLeft size={16} />
 			</button>
-			<span className="text-sm font-semibold text-[var(--ink-soft)]">{page}/{totalPages}</span>
+			<span className="text-sm font-semibold text-(--ink-soft)">{page}/{totalPages}</span>
 			<button type="button" className="app-button app-button-secondary px-4 py-2" disabled={page >= totalPages} onClick={() => onChange(Math.min(totalPages, page + 1))}>
 				<ChevronRight size={16} />
 			</button>
@@ -606,16 +607,16 @@ const Surface = ({
 }: {
 	title?: string;
 	description?: string;
-	action?: React.ReactNode;
-	children: React.ReactNode;
+	action?: ReactNode;
+	children: ReactNode;
 	className?: string;
 }) => (
 	<section className={cn('app-card overflow-hidden bg-white p-4 sm:p-5', className)}>
 		{title || description || action ? (
 			<div className="mb-4 flex flex-col gap-3 border-b border-[color:var(--line)] pb-4 lg:flex-row lg:items-center lg:justify-between">
 				<div>
-					{title ? <h2 className="text-xl font-semibold text-[var(--ink)]">{title}</h2> : null}
-					{description ? <p className="mt-1 text-sm leading-6 text-[var(--ink-soft)]">{description}</p> : null}
+					{title ? <h2 className="text-xl font-semibold text-(--ink)">{title}</h2> : null}
+					{description ? <p className="mt-1 text-sm leading-6 text-(--ink-soft)">{description}</p> : null}
 				</div>
 				{action ? <div className="shrink-0">{action}</div> : null}
 			</div>
@@ -630,9 +631,9 @@ const MetricCard = ({
 	value,
 	tone = 'indigo',
 }: {
-	icon: React.ReactNode;
+	icon: ReactNode;
 	label: string;
-	value: React.ReactNode;
+	value: ReactNode;
 	tone?: 'indigo' | 'amber' | 'green' | 'rose';
 }) => (
 	<div className="workflow-overview-metric workflow-card-hover" data-tone={tone}>
@@ -644,8 +645,8 @@ const MetricCard = ({
 	</div>
 );
 
-const FieldLabel = ({ htmlFor, children }: { htmlFor?: string; children: React.ReactNode }) => (
-	<label htmlFor={htmlFor} className="mb-2 block text-sm font-medium text-[var(--ink-soft)]">
+const FieldLabel = ({ htmlFor, children }: { htmlFor?: string; children: ReactNode }) => (
+	<label htmlFor={htmlFor} className="mb-2 block text-sm font-medium text-(--ink-soft)">
 		{children}
 	</label>
 );
@@ -665,11 +666,11 @@ const Field = ({
 	type?: string;
 	placeholder?: string;
 	min?: number;
-	startIcon?: React.ReactNode;
+	startIcon?: ReactNode;
 }) => (
 	<div className="relative">
 		{startIcon ? (
-			<span className="pointer-events-none absolute left-3 top-0 z-10 flex h-full items-center justify-center text-[var(--ink-soft)]">
+			<span className="pointer-events-none absolute left-3 top-0 z-10 flex h-full items-center justify-center text-(--ink-soft)">
 				{startIcon}
 			</span>
 		) : null}
@@ -698,11 +699,11 @@ const Area = ({
 	onChange: (value: string) => void;
 	rows?: number;
 	placeholder?: string;
-	startIcon?: React.ReactNode;
+	startIcon?: ReactNode;
 }) => (
 	<div className="relative">
 		{startIcon ? (
-			<span className="pointer-events-none absolute left-3 top-5 z-10 text-[var(--ink-soft)]">{startIcon}</span>
+			<span className="pointer-events-none absolute left-3 top-5 z-10 text-(--ink-soft)">{startIcon}</span>
 		) : null}
 		<textarea
 			id={id}
@@ -727,7 +728,7 @@ const SelectField = ({
 	value: string;
 	onChange: (value: string) => void;
 	options: Array<{ value: string | number; label: string }>;
-	startIcon?: React.ReactNode;
+	startIcon?: ReactNode;
 	placeholder?: string;
 }) => {
 	const hasMatchingOption = value !== '' && options.some((option) => String(option.value) === String(value));
@@ -740,7 +741,7 @@ const SelectField = ({
 		>
 			<Select.Trigger id={id} className={cn('app-input app-select-trigger pr-14 text-left', startIcon ? 'pl-14' : '')}>
 				{startIcon ? (
-					<span className="pointer-events-none absolute left-3 top-0 z-10 flex h-full items-center justify-center text-[var(--ink-soft)]">
+					<span className="pointer-events-none absolute left-3 top-0 z-10 flex h-full items-center justify-center text-(--ink-soft)">
 						{startIcon}
 					</span>
 				) : null}
@@ -784,17 +785,17 @@ const DateField = ({
 	return (
 		<Popover.Root open={open} onOpenChange={setOpen}>
 			<div className="relative">
-				<span className="pointer-events-none absolute left-3 top-1/2 z-10 -translate-y-1/2 text-[var(--ink-soft)]">
+				<span className="pointer-events-none absolute left-3 top-1/2 z-10 -translate-y-1/2 text-(--ink-soft)">
 					<CalendarDays size={18} />
 				</span>
-				<Popover.Trigger id={id} className={cn('app-input app-date-trigger pl-14 pr-14 text-left', !value && 'text-[var(--ink-muted)]')}>
+				<Popover.Trigger id={id} className={cn('app-input app-date-trigger pl-14 pr-14 text-left', !value && 'text-(--ink-muted)')}>
 					{value || placeholder}
 				</Popover.Trigger>
 				{value ? (
 					<button
 						type="button"
 						aria-label="Clear date"
-						className="absolute right-5 top-1/2 z-10 -translate-y-1/2 text-[var(--ink-soft)]"
+						className="absolute right-5 top-1/2 z-10 -translate-y-1/2 text-(--ink-soft)"
 						onClick={() => onChange('')}
 					>
 						<X size={16} />
@@ -859,16 +860,16 @@ const ToggleField = ({
 	checked: boolean;
 	onChange: (checked: boolean) => void;
 }) => (
-	<label className="inline-flex items-center gap-3 text-sm font-medium text-[var(--ink-soft)]">
+	<label className="inline-flex items-center gap-3 text-sm font-medium text-(--ink-soft)">
 		<input type="checkbox" checked={checked} onChange={(event) => onChange(event.target.checked)} className="app-check" />
 		<span>{label}</span>
 	</label>
 );
 
 const EmptyState = ({ title, description }: { title: string; description: string }) => (
-	<div className="rounded-[16px] border border-dashed border-[color:var(--line-strong)] bg-white px-5 py-6 text-center">
-		<p className="text-base font-semibold text-[var(--ink)]">{title}</p>
-		<p className="mt-2 text-sm leading-6 text-[var(--ink-soft)]">{description}</p>
+	<div className="rounded-2xl border border-dashed border-[color:var(--line-strong)] bg-white px-5 py-6 text-center">
+		<p className="text-base font-semibold text-(--ink)">{title}</p>
+		<p className="mt-2 text-sm leading-6 text-(--ink-soft)">{description}</p>
 	</div>
 );
 
@@ -877,7 +878,7 @@ const Chip = ({
 	tone,
 	status,
 }: {
-	children: React.ReactNode;
+	children: ReactNode;
 	tone?: 'urgent' | 'progress' | 'neutral' | 'warning';
 	status?: TaskStatus | ProjectSummary['status'];
 }) => (
@@ -891,7 +892,7 @@ const TaskPeople = ({ task }: { task: TaskCard }) => {
 		(user, index, list): user is WorkflowUser => Boolean(user) && list.findIndex((item) => item?.id === user?.id) === index,
 	);
 	if (people.length === 0) {
-		return <span className="text-xs font-semibold text-[var(--ink-muted)]">{task.project.name}</span>;
+		return <span className="text-xs font-semibold text-(--ink-muted)">{task.project.name}</span>;
 	}
 	return (
 		<div className="flex items-center">
@@ -1015,7 +1016,7 @@ const TaskCardItem = ({
 				</div>
 			</div>
 		) : (
-			<div className="workflow-task-cover workflow-task-cover-empty" style={{ '--status-accent': BOARD_STATUS_META[task.status].accent } as React.CSSProperties}>
+			<div className="workflow-task-cover workflow-task-cover-empty" style={{ '--status-accent': BOARD_STATUS_META[task.status].accent } as CSSProperties}>
 				<div className="workflow-task-cover-mark">{BOARD_STATUS_META[task.status].icon}</div>
 				<div className="workflow-task-cover-empty-lines">
 					<span />
@@ -1032,8 +1033,8 @@ const TaskCardItem = ({
 			<div className="flex items-start justify-between gap-3">
 				<div className="flex min-w-0 flex-1 items-start gap-3">
 					<div className="min-w-0">
-						<p className={cn('text-base font-semibold leading-5 text-[var(--ink)]', task.is_completed && 'text-emerald-700 line-through decoration-2')}>{task.title}</p>
-						<p className="mt-1 truncate text-xs font-semibold uppercase text-[var(--ink-muted)]">{task.project.name}</p>
+						<p className={cn('text-base font-semibold leading-5 text-(--ink)', task.is_completed && 'text-emerald-700 line-through decoration-2')}>{task.title}</p>
+						<p className="mt-1 truncate text-xs font-semibold uppercase text-(--ink-muted)">{task.project.name}</p>
 					</div>
 				</div>
 				<div className="flex shrink-0 items-center gap-2">
@@ -1045,14 +1046,14 @@ const TaskCardItem = ({
 								event.stopPropagation();
 								onArchive(task);
 							}}
-							className="workflow-focus-ring grid h-8 w-8 place-items-center rounded-[8px] border border-[color:var(--line)] text-[var(--ink-soft)] hover:bg-[var(--surface-muted)] hover:text-[var(--ink)]"
+							className="workflow-focus-ring grid h-8 w-8 place-items-center rounded-lg border border-[color:var(--line)] text-(--ink-soft) hover:bg-(--surface-muted) hover:text-(--ink)"
 						>
 							<Archive size={15} />
 						</button>
 					) : null}
 				</div>
 			</div>
-			<p className="line-clamp-3 text-sm leading-6 text-[var(--ink-soft)]">{task.description || copy.labels.noDescription}</p>
+			<p className="line-clamp-3 text-sm leading-6 text-(--ink-soft)">{task.description || copy.labels.noDescription}</p>
 			{task.labels.length ? (
 				<div className="flex flex-wrap gap-1.5">
 					{task.labels.map((label) => (
@@ -1065,7 +1066,7 @@ const TaskCardItem = ({
 			) : null}
 			<div className="workflow-card-meta">
 				<TaskPeople task={task} />
-				<div className="ml-auto flex items-center gap-3 text-[11px] font-bold text-[var(--ink-muted)]">
+				<div className="ml-auto flex items-center gap-3 text-[11px] font-bold text-(--ink-muted)">
 					{showTime ? <span className="inline-flex items-center gap-1"><Clock3 size={13} />{formatMinutes(task.actual_minutes || task.estimated_minutes)}</span> : null}
 					<span className="inline-flex items-center gap-1"><CheckCircle2 size={13} />{task.checklist_items.filter((item) => item.done).length}/{task.checklist_items.length || 0}</span>
 					<span className="inline-flex items-center gap-1"><Paperclip size={13} />{task.attachments.length}</span>
@@ -1082,7 +1083,7 @@ const TaskCardItem = ({
 				{!task.current_assignee ? <Chip>{copy.labels.unassigned}</Chip> : null}
 			</div>
 			{!onOpen ? (
-				<Link href={DASHBOARD_TASK_VIEW(task.id)} className="workflow-focus-ring inline-flex items-center gap-2 text-sm font-semibold text-[var(--accent-strong)]">
+				<Link href={DASHBOARD_TASK_VIEW(task.id)} className="workflow-focus-ring inline-flex items-center gap-2 text-sm font-semibold text-(--accent-strong)">
 					<span>{copy.buttons.openTask}</span>
 					<ArrowRight size={14} />
 				</Link>
@@ -1161,7 +1162,7 @@ const BoardTaskCard = ({
 					opacity: isDragging ? 0.35 : 1,
 					touchAction: 'none',
 					pointerEvents: isDragging ? 'none' : undefined,
-				} as React.CSSProperties
+				} as CSSProperties
 			}
 		>
 			<div className="cursor-grab active:cursor-grabbing">
@@ -1234,7 +1235,7 @@ const BoardColumn = ({
 				isOver && 'workflow-column-over',
 			)}
 		>
-			<div className="workflow-column-header" style={{ '--status-accent': BOARD_STATUS_META[status].accent, '--status-soft': BOARD_STATUS_META[status].soft, '--status-text': BOARD_STATUS_META[status].text } as React.CSSProperties}>
+			<div className="workflow-column-header" style={{ '--status-accent': BOARD_STATUS_META[status].accent, '--status-soft': BOARD_STATUS_META[status].soft, '--status-text': BOARD_STATUS_META[status].text } as CSSProperties}>
 				<div className="flex min-w-0 items-center gap-2">
 					<span className="workflow-column-icon">{BOARD_STATUS_META[status].icon}</span>
 					<div className="min-w-0">
@@ -1733,11 +1734,10 @@ const DesignWorkflowShell = ({ title, variant, projectId, taskId }: Props) => {
 			const rect = getLayoutRect(element);
 			return y < rect.top + rect.height / 2;
 		});
-		const placement = {
+		return {
 			status: targetStatus,
 			index: targetIndex >= 0 ? targetIndex : cardElements.length,
 		};
-		return placement;
 	};
 
 	const applyBoardMove = async (movingTaskId: number, placement: { status: TaskStatus; index: number }) => {
@@ -1884,11 +1884,11 @@ const DesignWorkflowShell = ({ title, variant, projectId, taskId }: Props) => {
 		<Surface className="workflow-hero">
 			<div className="grid gap-6 lg:grid-cols-[1fr_360px] lg:items-center">
 				<div className="max-w-3xl">
-					<p className="text-xs font-semibold uppercase tracking-[0.12em] text-[var(--ink-muted)]">{workflow.labels.workflow}</p>
-					<h1 className="mt-3 text-3xl font-semibold text-[var(--ink)] sm:text-4xl">{pageHeading}</h1>
-					<p className="mt-3 max-w-2xl text-sm leading-6 text-[var(--ink-soft)]">{workflow.pageDescriptions[variant]}</p>
+					<p className="text-xs font-semibold uppercase tracking-[0.12em] text-(--ink-muted)">{workflow.labels.workflow}</p>
+					<h1 className="mt-3 text-3xl font-semibold text-(--ink) sm:text-4xl">{pageHeading}</h1>
+					<p className="mt-3 max-w-2xl text-sm leading-6 text-(--ink-soft)">{workflow.pageDescriptions[variant]}</p>
 				</div>
-				<div className="rounded-[16px] border border-[color:var(--line)] bg-[var(--surface-muted)] p-3">
+				<div className="rounded-2xl border border-[color:var(--line)] bg-(--surface-muted) p-3">
 					<div className="flex flex-wrap gap-2">
 						{pageHighlights.map((item) => (
 							<Chip key={item} tone="neutral">{item}</Chip>
@@ -2000,8 +2000,8 @@ const DesignWorkflowShell = ({ title, variant, projectId, taskId }: Props) => {
 			<div className="workflow-overview-page">
 				<section className="workflow-overview-header">
 					<div className="min-w-0">
-						<p className="text-xs font-bold uppercase text-[var(--ink-muted)]">{workflow.labels.workflow}</p>
-						<h1 className="mt-1 text-[30px] font-extrabold leading-tight text-[var(--ink)]">{workflow.pageTitles.overview}</h1>
+						<p className="text-xs font-bold uppercase text-(--ink-muted)">{workflow.labels.workflow}</p>
+						<h1 className="mt-1 text-[30px] font-extrabold leading-tight text-(--ink)">{workflow.pageTitles.overview}</h1>
 					</div>
 					<div className="workflow-overview-actions">
 						<span>{workflow.labels.active} {summary?.active_projects ?? 0}</span>
@@ -2145,8 +2145,8 @@ const DesignWorkflowShell = ({ title, variant, projectId, taskId }: Props) => {
 			<div className="workflow-kanban-page">
 				<section className="workflow-kanban-header">
 					<div className="min-w-0">
-						<p className="text-xs font-bold uppercase text-[var(--ink-muted)]">{workflow.labels.workflow}</p>
-						<h1 className="mt-1 text-[30px] font-extrabold leading-tight text-[var(--ink)]">{variant === 'my-work' ? workflow.pageTitles['my-work'] : workflow.pageTitles.board}</h1>
+						<p className="text-xs font-bold uppercase text-(--ink-muted)">{workflow.labels.workflow}</p>
+						<h1 className="mt-1 text-[30px] font-extrabold leading-tight text-(--ink)">{variant === 'my-work' ? workflow.pageTitles['my-work'] : workflow.pageTitles.board}</h1>
 					</div>
 					<div className="workflow-kanban-header-metrics">
 						<span>{workflow.labels.visible} <strong>{filteredBoardTasks.length}</strong></span>
@@ -2164,7 +2164,7 @@ const DesignWorkflowShell = ({ title, variant, projectId, taskId }: Props) => {
 							<SlidersHorizontal size={16} />
 							<span>{workflow.labels.search}</span>
 						</button>
-						<button type="button" onClick={resetBoardFilters} className="app-pill workflow-focus-ring grid h-10 w-10 place-items-center text-[var(--ink)]" aria-label={workflow.buttons.resetFilters}>
+						<button type="button" onClick={resetBoardFilters} className="app-pill workflow-focus-ring grid h-10 w-10 place-items-center text-(--ink)" aria-label={workflow.buttons.resetFilters}>
 							<RefreshCcw size={16} />
 						</button>
 						<div className="workflow-board-segment">
@@ -2283,7 +2283,7 @@ const DesignWorkflowShell = ({ title, variant, projectId, taskId }: Props) => {
 								</div>
 								<DragOverlay style={{ pointerEvents: 'none' }}>
 									{draggedTaskId ? (
-										<div className="w-[260px] rotate-1 shadow-[var(--shadow-lg)]">
+										<div className="w-[260px] rotate-1 shadow-(--shadow-lg)">
 											<TaskCardItem task={boardDraft.find((item) => item.id === draggedTaskId)!} compact copy={workflow} labelFor={labelFor} dateFor={dateFor} variant="board" showTime={isManager} />
 										</div>
 									) : null}
@@ -2292,7 +2292,7 @@ const DesignWorkflowShell = ({ title, variant, projectId, taskId }: Props) => {
 						</div>
 					)}
 					{updateStatusState.isError || reorderTasksState.isError ? (
-						<div className="mt-4 rounded-[8px] border border-[color:var(--accent)] bg-[var(--accent-soft)] px-4 py-3 text-sm font-semibold text-[var(--accent-strong)]">
+						<div className="mt-4 rounded-lg border border-[color:var(--accent)] bg-(--accent-soft) px-4 py-3 text-sm font-semibold text-(--accent-strong)">
 							{t.errors.unexpectedError}
 						</div>
 					) : null}
@@ -2310,8 +2310,8 @@ const DesignWorkflowShell = ({ title, variant, projectId, taskId }: Props) => {
 		<div className="workflow-projects-page">
 			<section className="workflow-projects-header">
 				<div className="min-w-0">
-					<p className="text-xs font-bold uppercase text-[var(--ink-muted)]">{workflow.labels.workflow}</p>
-					<h1 className="mt-1 text-[30px] font-extrabold leading-tight text-[var(--ink)]">{workflow.pageTitles.projects}</h1>
+					<p className="text-xs font-bold uppercase text-(--ink-muted)">{workflow.labels.workflow}</p>
+					<h1 className="mt-1 text-[30px] font-extrabold leading-tight text-(--ink)">{workflow.pageTitles.projects}</h1>
 				</div>
 				<div className="workflow-projects-actions">
 					<span>{workflow.labels.projects} {projects.length}</span>
@@ -2402,7 +2402,7 @@ const DesignWorkflowShell = ({ title, variant, projectId, taskId }: Props) => {
 						</button>
 					</div>
 					{createProjectState.isError ? (
-						<div className="mt-4 rounded-[8px] border border-[color:var(--accent)] bg-[var(--accent-soft)] px-4 py-3 text-sm text-[var(--accent-strong)]">
+						<div className="mt-4 rounded-lg border border-[color:var(--accent)] bg-(--accent-soft) px-4 py-3 text-sm text-(--accent-strong)">
 							{getApiErrorMessage(createProjectState.error, t.errors.unexpectedError)}
 						</div>
 					) : null}
@@ -2479,8 +2479,8 @@ const DesignWorkflowShell = ({ title, variant, projectId, taskId }: Props) => {
 			<div className="workflow-project-detail-page">
 				<section className="workflow-project-detail-header">
 					<div className="min-w-0">
-						<p className="text-xs font-bold uppercase text-[var(--ink-muted)]">{workflow.labels.workflow}</p>
-						<h1 className="mt-1 truncate text-[30px] font-extrabold leading-tight text-[var(--ink)]">{project.name}</h1>
+						<p className="text-xs font-bold uppercase text-(--ink-muted)">{workflow.labels.workflow}</p>
+						<h1 className="mt-1 truncate text-[30px] font-extrabold leading-tight text-(--ink)">{project.name}</h1>
 					</div>
 					<div className="workflow-projects-actions">
 						<span>{labelFor(project.status)}</span>
@@ -3389,7 +3389,7 @@ const DesignWorkflowShell = ({ title, variant, projectId, taskId }: Props) => {
 			<div className="workflow-task-detail-page">
 				<Surface className="workflow-task-detail-panel workflow-task-detail-hero workflow-task-detail-snapshot" {...workflow.sections.taskSnapshot}>
 					<div className="grid gap-4 xl:grid-cols-[340px_minmax(0,1fr)_300px]">
-						<div className="workflow-task-detail-media" style={{ '--status-accent': BOARD_STATUS_META[task.status].accent } as React.CSSProperties}>
+						<div className="workflow-task-detail-media" style={{ '--status-accent': BOARD_STATUS_META[task.status].accent } as CSSProperties}>
 							{task.cover_image_url ? (
 								<Image src={resolveMediaUrl(task.cover_image_url)} alt={task.title} width={640} height={360} unoptimized className="h-full w-full object-cover" />
 							) : (
@@ -3401,10 +3401,10 @@ const DesignWorkflowShell = ({ title, variant, projectId, taskId }: Props) => {
 						</div>
 						<div className="space-y-4">
 							<div>
-								<p className="text-xs font-bold uppercase text-[var(--ink-muted)]">{task.project.name}</p>
-								<h2 className="mt-2 text-2xl font-extrabold leading-tight text-[var(--ink)]">{task.title}</h2>
+								<p className="text-xs font-bold uppercase text-(--ink-muted)">{task.project.name}</p>
+								<h2 className="mt-2 text-2xl font-extrabold leading-tight text-(--ink)">{task.title}</h2>
 							</div>
-							<p className="text-sm leading-7 text-[var(--ink-soft)]">{task.description || workflow.labels.noDescription}</p>
+							<p className="text-sm leading-7 text-(--ink-soft)">{task.description || workflow.labels.noDescription}</p>
 							<div className="flex flex-wrap gap-2">
 								<Chip status={task.status}>{labelFor(task.status)}</Chip>
 								<Chip>{labelFor(task.priority)}</Chip>
@@ -3419,16 +3419,16 @@ const DesignWorkflowShell = ({ title, variant, projectId, taskId }: Props) => {
 						</div>
 						{isManager ? <div className="workflow-task-stats grid gap-3 p-4">
 							<div>
-								<p className="text-xs uppercase tracking-[0.16em] text-[var(--ink-soft)]">{workflow.labels.project}</p>
-								<p className="mt-1 font-semibold text-[var(--ink)]">{task.project.name}</p>
+								<p className="text-xs uppercase tracking-[0.16em] text-(--ink-soft)">{workflow.labels.project}</p>
+								<p className="mt-1 font-semibold text-(--ink)">{task.project.name}</p>
 							</div>
 							<div>
-								<p className="text-xs uppercase tracking-[0.16em] text-[var(--ink-soft)]">{workflow.labels.estimated}</p>
-								<p className="mt-1 font-semibold text-[var(--ink)]">{formatWorkDays(task.estimated_minutes, workflow.labels.daysUnit)}</p>
+								<p className="text-xs uppercase tracking-[0.16em] text-(--ink-soft)">{workflow.labels.estimated}</p>
+								<p className="mt-1 font-semibold text-(--ink)">{formatWorkDays(task.estimated_minutes, workflow.labels.daysUnit)}</p>
 							</div>
 							<div>
-								<p className="text-xs uppercase tracking-[0.16em] text-[var(--ink-soft)]">{workflow.labels.logged}</p>
-								<p className="mt-1 font-semibold text-[var(--ink)]">{formatMinutes(task.total_logged_minutes)}</p>
+								<p className="text-xs uppercase tracking-[0.16em] text-(--ink-soft)">{workflow.labels.logged}</p>
+								<p className="mt-1 font-semibold text-(--ink)">{formatMinutes(task.total_logged_minutes)}</p>
 							</div>
 						</div> : null}
 					</div>
@@ -3989,11 +3989,11 @@ const DesignWorkflowShell = ({ title, variant, projectId, taskId }: Props) => {
 									<div className="flex items-start gap-3">
 										<AvatarBadge user={comment.author} size={34} />
 										<div className="min-w-0 flex-1">
-											<p className="text-sm font-semibold text-[var(--ink)]">
+											<p className="text-sm font-semibold text-(--ink)">
 												{comment.author.first_name} {comment.author.last_name}
 											</p>
-											<p className="mt-1 text-xs uppercase tracking-[0.14em] text-[var(--ink-soft)]">{dateTimeFor(comment.created_at)}</p>
-											<p className="mt-2 text-sm leading-6 text-[var(--ink-soft)]">{comment.body}</p>
+											<p className="mt-1 text-xs uppercase tracking-[0.14em] text-(--ink-soft)">{dateTimeFor(comment.created_at)}</p>
+											<p className="mt-2 text-sm leading-6 text-(--ink-soft)">{comment.body}</p>
 										</div>
 									</div>
 								</div>
@@ -4005,12 +4005,12 @@ const DesignWorkflowShell = ({ title, variant, projectId, taskId }: Props) => {
 
 					{isManager ? <Surface className="workflow-task-detail-panel workflow-task-time-panel" {...workflow.sections.timeEntries}>
 						<div className="app-card-muted flex items-start gap-3 p-4">
-							<div className="mt-0.5 rounded-[8px] border border-emerald-200 bg-emerald-50 p-2 text-emerald-700">
+							<div className="mt-0.5 rounded-lg border border-emerald-200 bg-emerald-50 p-2 text-emerald-700">
 								<Clock3 size={16} />
 							</div>
 							<div className="min-w-0">
-								<p className="text-sm font-semibold text-[var(--ink)]">{workflow.labels.timeEntries}</p>
-								<p className="mt-1 text-sm leading-6 text-[var(--ink-soft)]">
+								<p className="text-sm font-semibold text-(--ink)">{workflow.labels.timeEntries}</p>
+								<p className="mt-1 text-sm leading-6 text-(--ink-soft)">
 									{workflow.labels.timeAutomationHint ?? 'Le temps se met a jour automatiquement quand la tache passe en cours ou change d assigne.'}
 								</p>
 							</div>
@@ -4021,11 +4021,11 @@ const DesignWorkflowShell = ({ title, variant, projectId, taskId }: Props) => {
                                     <div className="flex items-start gap-3">
                                         <AvatarBadge user={entry.user} size={34} />
                                         <div className="min-w-0 flex-1">
-                                            <p className="text-sm font-semibold text-[var(--ink)]">
+                                            <p className="text-sm font-semibold text-(--ink)">
                                                 {entry.user.first_name} {entry.user.last_name} • {formatMinutes(entry.minutes)}
                                             </p>
-                                            <p className="mt-1 text-xs uppercase tracking-[0.14em] text-[var(--ink-soft)]">{dateTimeFor(entry.created_at)}</p>
-                                            <p className="mt-2 text-sm leading-6 text-[var(--ink-soft)]">{entry.note || workflow.labels.optionalNote}</p>
+                                            <p className="mt-1 text-xs uppercase tracking-[0.14em] text-(--ink-soft)">{dateTimeFor(entry.created_at)}</p>
+                                            <p className="mt-2 text-sm leading-6 text-(--ink-soft)">{entry.note || workflow.labels.optionalNote}</p>
                                         </div>
                                     </div>
                                 </div>
@@ -4041,13 +4041,13 @@ const DesignWorkflowShell = ({ title, variant, projectId, taskId }: Props) => {
 						{pagedTaskActivity.map((activity) => (
                             <div key={activity.id} className="app-card-muted p-4">
                                 <div className="flex items-start gap-3">
-                                    {activity.actor ? <AvatarBadge user={activity.actor} size={34} /> : <div className="grid h-[34px] w-[34px] place-items-center rounded-full bg-[var(--surface-strong)] text-xs font-bold text-[var(--ink)]">DW</div>}
+                                    {activity.actor ? <AvatarBadge user={activity.actor} size={34} /> : <div className="grid h-[34px] w-[34px] place-items-center rounded-full bg-(--surface-strong) text-xs font-bold text-(--ink)">DW</div>}
                                     <div className="min-w-0 flex-1">
-                                        <p className="text-sm font-semibold text-[var(--ink)]">
+                                        <p className="text-sm font-semibold text-(--ink)">
                                             {activity.actor ? `${activity.actor.first_name} ${activity.actor.last_name}` : workflow.labels.system}
                                         </p>
-                                        <p className="mt-2 text-sm leading-6 text-[var(--ink-soft)]">{describeWorkflowActivity(activity)}</p>
-                                        <p className="mt-3 text-xs uppercase tracking-[0.14em] text-[var(--ink-soft)]">{dateTimeFor(activity.created_at)}</p>
+                                        <p className="mt-2 text-sm leading-6 text-(--ink-soft)">{describeWorkflowActivity(activity)}</p>
+                                        <p className="mt-3 text-xs uppercase tracking-[0.14em] text-(--ink-soft)">{dateTimeFor(activity.created_at)}</p>
                                     </div>
                                 </div>
                             </div>
@@ -4203,7 +4203,7 @@ const DesignWorkflowShell = ({ title, variant, projectId, taskId }: Props) => {
 										key={row.user.id}
 										className="workflow-team-card"
 										data-tone={tone}
-										style={{ '--team-load': `${loadPercent}%`, '--team-estimate': `${estimatePercent}%` } as React.CSSProperties}
+										style={{ '--team-load': `${loadPercent}%`, '--team-estimate': `${estimatePercent}%` } as CSSProperties}
 									>
 										<div className="workflow-team-card-head">
 											<div className="workflow-team-person">
@@ -4744,7 +4744,7 @@ const DesignWorkflowShell = ({ title, variant, projectId, taskId }: Props) => {
 		);
 	};
 
-	let content: React.ReactNode = null;
+	let content: ReactNode = null;
 	if (variant === 'overview') content = renderOverview();
 	if (variant === 'board' || variant === 'my-work') content = renderBoard();
 	if (variant === 'projects') content = renderProjects();

@@ -1,76 +1,27 @@
-import { getDefaultTheme, navigationBarTheme, CustomTheme, textInputTheme, customDropdownTheme } from './themes';
+import {
+	CustomTheme,
+	codeTextInputTheme,
+	customDropdownTheme,
+	getDefaultTheme,
+	navigationBarTheme,
+	textInputTheme,
+} from './themes';
 
-describe('getDefaultTheme', () => {
-	it('returns a MUI theme object', () => {
-		const theme = getDefaultTheme();
-		expect(theme).toBeDefined();
-		expect(typeof theme.palette).toBe('object');
+describe('theme helpers', () => {
+	it('returns named theme descriptors', () => {
+		expect(getDefaultTheme()).toEqual({ name: 'default', primaryColor: undefined });
+		expect(navigationBarTheme()).toEqual({ name: 'navigation', primaryColor: undefined });
+		expect(textInputTheme()).toEqual({ name: 'text-input', primaryColor: undefined });
+		expect(customDropdownTheme()).toEqual({ name: 'dropdown', primaryColor: undefined });
 	});
 
-	it('sets primary colour based on default blue #0274D7', () => {
-		const theme = getDefaultTheme();
-		// CustomTheme applies hexToRGB so primary.main will be an rgba string
-		expect(theme.palette.primary.main).toContain('rgba');
+	it('preserves optional primary colors', () => {
+		expect(CustomTheme('#3a86ff')).toEqual({ name: 'custom', primaryColor: '#3a86ff' });
+		expect(getDefaultTheme('#0274D7')).toEqual({ name: 'default', primaryColor: '#0274D7' });
 	});
 
-	it('sets custom breakpoint md to 992', () => {
-		const theme = getDefaultTheme();
-		expect(theme.breakpoints.values.md).toBe(992);
-	});
-});
-
-describe('navigationBarTheme', () => {
-	it('returns a MUI theme object', () => {
-		const theme = navigationBarTheme();
-		expect(theme).toBeDefined();
-		expect(typeof theme.palette).toBe('object');
-	});
-
-	it('inherits primary colour from getDefaultTheme', () => {
-		const theme = navigationBarTheme();
-		expect(theme.palette.primary.main).toContain('rgba');
-	});
-
-	it('accepts an optional primary colour without throwing', () => {
-		expect(() => navigationBarTheme('#ff0000')).not.toThrow();
-	});
-});
-
-describe('CustomTheme', () => {
-	it('returns a MUI theme object', () => {
-		const theme = CustomTheme();
-		expect(theme).toBeDefined();
-		expect(typeof theme.palette).toBe('object');
-	});
-
-	it('returns a theme when given a hex primary colour', () => {
-		const theme = CustomTheme('#3a86ff');
-		expect(theme).toBeDefined();
-	});
-
-	it('returns a theme when given white (#FFFFFF)', () => {
-		const theme = CustomTheme('#FFFFFF');
-		expect(theme).toBeDefined();
-	});
-
-	it('returns a theme with no primary colour argument', () => {
-		const theme = CustomTheme(undefined);
-		expect(theme).toBeDefined();
-	});
-});
-
-describe('textInputTheme', () => {
-	it('returns a MUI theme object', () => {
-		const theme = textInputTheme();
-		expect(theme).toBeDefined();
-		expect(typeof theme.palette).toBe('object');
-	});
-});
-
-describe('customDropdownTheme', () => {
-	it('returns a MUI theme object', () => {
-		const theme = customDropdownTheme();
-		expect(theme).toBeDefined();
-		expect(typeof theme.palette).toBe('object');
+	it('preserves optional error state for code inputs', () => {
+		expect(codeTextInputTheme(true)).toEqual({ name: 'code-input', error: true });
+		expect(codeTextInputTheme(false)).toEqual({ name: 'code-input', error: false });
 	});
 });

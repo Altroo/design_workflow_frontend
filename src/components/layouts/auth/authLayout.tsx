@@ -17,13 +17,13 @@ const AuthLayout = ({ children }: Props) => {
 
 	return (
 		<main className="auth-shell min-h-screen bg-white p-3 sm:p-5">
-			<div className="auth-frame mx-auto grid min-h-[calc(100vh-2.5rem)] max-w-[1480px] overflow-hidden rounded-[24px] border border-[color:var(--line)] bg-white shadow-[var(--shadow-lg)] lg:grid-cols-[200px_minmax(0,1fr)]">
+			<div className="auth-frame mx-auto grid min-h-[calc(100vh-2.5rem)] max-w-[1480px] overflow-hidden rounded-3xl border border-[color:var(--line)] bg-white shadow-(--shadow-lg) lg:grid-cols-[200px_minmax(0,1fr)]">
 				<aside className="auth-rail hidden border-r border-[color:var(--line)] bg-white p-4 lg:flex lg:flex-col">
 					<div className="flex items-center gap-3 border-b border-[color:var(--line)] pb-4">
 						<Image src={Logo} alt={t.common.appLogo} width={34} height={34} className="h-9 w-auto" priority />
 						<div className="min-w-0">
-							<p className="text-[10px] font-bold uppercase tracking-[0.22em] text-[var(--ink-muted)]">Design Workflow</p>
-							<p className="truncate text-sm font-bold text-[var(--ink)]">Kanban access</p>
+							<p className="text-[10px] font-bold uppercase tracking-[0.22em] text-(--ink-muted)">Design Workflow</p>
+							<p className="truncate text-sm font-bold text-(--ink)">Kanban access</p>
 						</div>
 					</div>
 					<nav className="mt-5 grid gap-2">
@@ -36,16 +36,16 @@ const AuthLayout = ({ children }: Props) => {
 						))}
 					</nav>
 					<div className="auth-rail-user mt-auto">
-						<p className="text-[10px] font-bold uppercase tracking-[0.18em] text-[var(--ink-muted)]">Secure studio</p>
-						<p className="mt-1 text-sm font-bold text-[var(--ink)]">Casa Di Lusso</p>
+						<p className="text-[10px] font-bold uppercase tracking-[0.18em] text-(--ink-muted)">Secure studio</p>
+						<p className="mt-1 text-sm font-bold text-(--ink)">Casa Di Lusso</p>
 					</div>
 				</aside>
 
 				<section className="auth-board relative min-h-[calc(100vh-2.5rem)] overflow-hidden bg-white">
 					<div className="auth-board-header">
 						<div>
-							<p className="text-[11px] font-bold uppercase tracking-[0.18em] text-[var(--ink-muted)]">Workspace</p>
-							<h1 className="text-2xl font-extrabold text-[var(--ink)]">Design Workflow</h1>
+							<p className="text-[11px] font-bold uppercase tracking-[0.18em] text-(--ink-muted)">Workspace</p>
+							<h1 className="text-2xl font-extrabold text-(--ink)">Design Workflow</h1>
 						</div>
 						<div className="flex items-center gap-2">
 							<span className="auth-top-pill">+</span>

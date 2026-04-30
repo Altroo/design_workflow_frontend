@@ -28,7 +28,7 @@ const MobileActionsMenu: React.FC<MobileActionsMenuProps> = ({ actions }) => {
 					}}
 					aria-label={action.label}
 					type="button"
-					className="app-pill ui-button-ghost inline-flex items-center gap-2 border border-[color:var(--line)] bg-white px-3 py-2 text-sm font-semibold text-[var(--ink)] transition hover:bg-[var(--surface-muted)]"
+					className="app-pill ui-button-ghost inline-flex items-center gap-2 border border-[color:var(--line)] bg-white px-3 py-2 text-sm font-semibold text-(--ink) transition hover:bg-(--surface-muted)"
 				>
 					{action.icon}
 					<span>{action.label}</span>

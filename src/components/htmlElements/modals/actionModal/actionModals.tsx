@@ -39,21 +39,21 @@ const ActionModals: React.FC<Props> = ({ title, actions, actionsStyle, body, chi
 			<div
 				role="dialog"
 				aria-modal="true"
-				className="ui-modal app-card w-full max-w-[456px] border border-[color:var(--line)] bg-white p-6 shadow-[var(--shadow-lg)]"
+				className="ui-modal app-card w-full max-w-[456px] border border-[color:var(--line)] bg-white p-6 shadow-(--shadow-lg)"
 				onClick={(event) => event.stopPropagation()}
 			>
 				<div className="flex items-start gap-4">
 					{titleIcon ? (
 						<div
-							className="ui-icon-tile flex h-11 w-11 items-center justify-center rounded-[12px] bg-[var(--accent)] text-white"
+							className="ui-icon-tile flex h-11 w-11 items-center justify-center rounded-xl bg-(--accent) text-white"
 							style={titleIconColor ? { backgroundColor: titleIconColor } : undefined}
 						>
 							{titleIcon}
 						</div>
 					) : null}
 					<div className="flex-1">
-						<h2 className="text-base font-semibold leading-6 text-[var(--ink)]">{title}</h2>
-						{body ? <p className="mt-2 text-sm leading-5 text-[var(--ink-muted)]">{body}</p> : null}
+						<h2 className="text-base font-semibold leading-6 text-(--ink)">{title}</h2>
+						{body ? <p className="mt-2 text-sm leading-5 text-(--ink-muted)">{body}</p> : null}
 					</div>
 				</div>
 

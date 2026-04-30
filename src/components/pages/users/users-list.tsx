@@ -196,7 +196,7 @@ const UsersListClient: React.FC<SessionProps> = ({ session }) => {
 							</div>
 							<div className="workflow-users-toolbar">
 								<div className="relative w-full max-w-md">
-									<Search className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-[var(--ink-soft)]" />
+									<Search className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-(--ink-soft)" />
 									<input
 										value={searchTerm}
 										onChange={(event) => {
@@ -211,7 +211,7 @@ const UsersListClient: React.FC<SessionProps> = ({ session }) => {
 									<button
 										type="button"
 										onClick={toggleVisibleRows}
-										className="app-pill inline-flex items-center gap-2 border border-[color:var(--line)] bg-[var(--surface-muted)] px-4 py-2 text-sm font-medium text-[var(--ink)]"
+										className="app-pill inline-flex items-center gap-2 border border-[color:var(--line)] bg-(--surface-muted) px-4 py-2 text-sm font-medium text-(--ink)"
 									>
 										<Users className="h-4 w-4" />
 										<span>{allVisibleSelected ? t.users.unselectPage : t.users.selectPage}</span>
@@ -247,7 +247,7 @@ const UsersListClient: React.FC<SessionProps> = ({ session }) => {
 									<ApiAlert errorDetails={undefined} />
 								) : (
 									<table className="workflow-users-table min-w-full text-left text-sm">
-										<thead className="border-b border-[color:var(--line)] text-[var(--ink-soft)]">
+										<thead className="border-b border-[color:var(--line)] text-(--ink-soft)">
 											<tr>
 												<th className="px-4 py-3">
 													<input type="checkbox" checked={allVisibleSelected} onChange={toggleVisibleRows} className="app-check" />
@@ -265,7 +265,7 @@ const UsersListClient: React.FC<SessionProps> = ({ session }) => {
 											{rows.map((user) => {
 												const checked = selectedUserIds.includes(user.id);
 												return (
-													<tr key={user.id} className="border-b border-[color:var(--line)] last:border-b-0 hover:bg-[var(--surface-muted)]">
+													<tr key={user.id} className="border-b border-[color:var(--line)] last:border-b-0 hover:bg-(--surface-muted)">
 														<td className="px-4 py-4">
 															<input
 																type="checkbox"
@@ -284,22 +284,22 @@ const UsersListClient: React.FC<SessionProps> = ({ session }) => {
 															<div className="workflow-users-person">
 																{userAvatar(user)}
 																<div className="min-w-0">
-																	<p className="font-medium text-[var(--ink)]">
+																	<p className="font-medium text-(--ink)">
 																		{fullNameFor(user)}
 																	</p>
-																	<p className="text-xs text-[var(--ink-soft)]">#{user.id}</p>
+																	<p className="text-xs text-(--ink-soft)">#{user.id}</p>
 																</div>
 															</div>
 														</td>
-														<td className="px-4 py-4 text-[var(--ink)]">{user.email}</td>
-														<td className="px-4 py-4 text-[var(--ink)]">{user.gender || '-'}</td>
+														<td className="px-4 py-4 text-(--ink)">{user.email}</td>
+														<td className="px-4 py-4 text-(--ink)">{user.gender || '-'}</td>
 														<td className="px-4 py-4">
 															{statusIcon(user.is_active, user.is_active ? t.common.yes : t.common.no)}
 														</td>
 														<td className="px-4 py-4">
 															{statusIcon(user.is_staff, user.is_staff ? t.common.yes : t.common.no)}
 														</td>
-														<td className="px-4 py-4 text-[var(--ink-soft)]">{formatDate(user.date_joined)}</td>
+														<td className="px-4 py-4 text-(--ink-soft)">{formatDate(user.date_joined)}</td>
 														<td className="px-4 py-4">
 															<div className="workflow-users-row-actions">
 																<button
@@ -339,7 +339,7 @@ const UsersListClient: React.FC<SessionProps> = ({ session }) => {
 											})}
 											{rows.length === 0 ? (
 												<tr>
-													<td colSpan={8} className="px-4 py-12 text-center text-sm text-[var(--ink-soft)]">
+													<td colSpan={8} className="px-4 py-12 text-center text-sm text-(--ink-soft)">
 														{t.users.noUsersFound}
 													</td>
 												</tr>

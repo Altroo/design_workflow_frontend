@@ -13,12 +13,12 @@ const NotFound = () => {
 	return (
 		<div className="flex min-h-screen items-center justify-center px-4 py-8">
 			<div className="app-card w-full max-w-[560px] p-8 text-center">
-				<div className="mx-auto flex h-20 w-20 items-center justify-center rounded-[8px] bg-[var(--surface-muted)] text-[var(--ink-soft)]">
+				<div className="mx-auto flex h-20 w-20 items-center justify-center rounded-lg bg-(--surface-muted) text-(--ink-soft)">
 					<OctagonAlert size={42} />
 				</div>
-				<p className="mt-5 text-5xl font-semibold text-[var(--ink)]">404</p>
-				<h1 className="mt-3 text-2xl font-semibold text-[var(--ink)]">{t.errors.pageNotFound}</h1>
-				<p className="mt-3 text-sm leading-7 text-[var(--ink-soft)]">{t.errors.pageNotFoundText}</p>
+				<p className="mt-5 text-5xl font-semibold text-(--ink)">404</p>
+				<h1 className="mt-3 text-2xl font-semibold text-(--ink)">{t.errors.pageNotFound}</h1>
+				<p className="mt-3 text-sm leading-7 text-(--ink-soft)">{t.errors.pageNotFoundText}</p>
 				<div className="mt-6 flex flex-wrap justify-center gap-3">
 					<button type="button" onClick={() => router.push(DASHBOARD)} className="app-button">
 						<Home size={16} />

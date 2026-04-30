@@ -63,7 +63,7 @@ const DateRangeFilterInput: React.FC<GridFilterInputValueProps> = (props) => {
 
 	return (
 		<div className="flex items-center gap-2 pr-1">
-			<label className="flex flex-col gap-1 text-xs font-medium text-[var(--ink-soft)]">
+			<label className="flex flex-col gap-1 text-xs font-medium text-(--ink-soft)">
 				<span>{t.filters.from}</span>
 				<input
 					type="date"
@@ -72,7 +72,7 @@ const DateRangeFilterInput: React.FC<GridFilterInputValueProps> = (props) => {
 					className="app-input min-w-[180px]"
 				/>
 			</label>
-			<label className="flex flex-col gap-1 text-xs font-medium text-[var(--ink-soft)]">
+			<label className="flex flex-col gap-1 text-xs font-medium text-(--ink-soft)">
 				<span>{t.filters.to}</span>
 				<input
 					type="date"

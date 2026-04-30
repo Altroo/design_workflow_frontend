@@ -66,7 +66,7 @@ const CustomOutlinedText = forwardRef<HTMLInputElement, Props>((props, ref) => {
 	return (
 		<div className={[fullWidth ? 'w-full' : '', cssClass ?? ''].join(' ')}>
 			{label ? (
-				<label htmlFor={id} className="mb-2 block text-sm font-medium text-[var(--ink)]">
+				<label htmlFor={id} className="mb-2 block text-sm font-medium text-(--ink)">
 					{label}
 				</label>
 			) : null}
@@ -92,7 +92,7 @@ const CustomOutlinedText = forwardRef<HTMLInputElement, Props>((props, ref) => {
 					error ? 'border-[color:var(--accent)]' : '',
 				].join(' ')}
 			/>
-			{helperText ? <p className="mt-2 text-center text-sm text-[var(--ink-soft)]">{helperText}</p> : null}
+			{helperText ? <p className="mt-2 text-center text-sm text-(--ink-soft)">{helperText}</p> : null}
 		</div>
 	);
 });

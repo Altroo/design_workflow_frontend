@@ -22,7 +22,7 @@ const Maintenance: React.FC = () => {
 			className="fixed inset-0 z-[140] overflow-y-auto bg-white"
 		>
 			<div className="grid min-h-screen md:grid-cols-[minmax(280px,32%)_1fr]">
-				<div className="hidden flex-col justify-between overflow-hidden bg-[var(--surface-muted)] p-10 md:flex">
+				<div className="hidden flex-col justify-between overflow-hidden bg-(--surface-muted) p-10 md:flex">
 					<Image
 						src={Logo}
 						alt={t.common.appLogo}
@@ -52,25 +52,25 @@ const Maintenance: React.FC = () => {
 						</div>
 
 						<div className="app-card border border-[color:var(--line-strong)] bg-white p-6 sm:p-8">
-							<div className="inline-flex items-center gap-2 rounded-full border border-[color:var(--line-strong)] bg-[var(--surface-muted)] px-4 py-2 text-sm font-medium text-[var(--ink)]">
+							<div className="inline-flex items-center gap-2 rounded-full border border-[color:var(--line-strong)] bg-(--surface-muted) px-4 py-2 text-sm font-medium text-(--ink)">
 								<Wrench className="h-4 w-4" />
 								<span>{t.errors.maintenanceChip}</span>
 							</div>
 
 							<div className="mt-5 space-y-3">
-								<h1 id="maintenance-title" className="text-4xl font-semibold leading-none text-[var(--ink)] sm:text-5xl">
+								<h1 id="maintenance-title" className="text-4xl font-semibold leading-none text-(--ink) sm:text-5xl">
 									{t.errors.maintenanceTitle}
 								</h1>
-								<p id="maintenance-description" className="text-base leading-7 text-[var(--ink-soft)]">
+								<p id="maintenance-description" className="text-base leading-7 text-(--ink-soft)">
 									{t.errors.maintenanceText}
 								</p>
 							</div>
 
-							<div className="my-6 h-px bg-[var(--line)]" />
+							<div className="my-6 h-px bg-(--line)" />
 
 							<div className="space-y-2">
-								<p className="text-base font-semibold text-[var(--ink)]">{t.errors.maintenanceSuspended}</p>
-								<p className="text-sm leading-7 text-[var(--ink-soft)]">{t.errors.maintenanceThanks}</p>
+								<p className="text-base font-semibold text-(--ink)">{t.errors.maintenanceSuspended}</p>
+								<p className="text-sm leading-7 text-(--ink-soft)">{t.errors.maintenanceThanks}</p>
 							</div>
 						</div>
 					</div>
