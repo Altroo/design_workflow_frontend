@@ -10,10 +10,13 @@ import type {
 	TaskCard,
 	TaskDetail,
 	TimeReportRow,
+	WorkflowAnalyticsReport,
 	WorkloadRow,
 	WorkflowUser,
 } from '@/types/designWorkflowTypes';
 import { getProfilState, getWSOnlineUserIdsState } from '@/store/selectors';
+
+jest.setTimeout(15000);
 
 beforeAll(() => {
 	Object.defineProperty(HTMLElement.prototype, 'hasPointerCapture', {
@@ -37,6 +40,14 @@ jest.mock('next/link', () => {
 
 	return MockNextLink;
 });
+
+jest.mock('next/navigation', () => ({
+	useRouter: () => ({
+		replace: jest.fn(),
+		push: jest.fn(),
+		refresh: jest.fn(),
+	}),
+}));
 
 jest.mock('@/components/layouts/navigationBar/navigationBar', () => {
 	function MockNavigationBar({ children }: { children: React.ReactNode }) {
@@ -92,12 +103,22 @@ jest.mock('@dnd-kit/utilities', () => ({
 	},
 }));
 
+jest.mock('react-chartjs-2', () => ({
+	Bar: () => <div data-testid="bar-chart" />,
+	Doughnut: () => <div data-testid="doughnut-chart" />,
+	Line: () => <div data-testid="line-chart" />,
+}));
+
 const mockCreateProject = jest.fn();
 const mockCreateLabel = jest.fn();
+const mockCreateSavedView = jest.fn();
+const mockUpdateSavedView = jest.fn();
+const mockDeleteSavedView = jest.fn();
 const mockUpdateProject = jest.fn();
 const mockCreateTask = jest.fn();
 const mockUpdateTask = jest.fn();
 const mockUpdateTaskStatus = jest.fn();
+const mockUpdateTaskReview = jest.fn();
 const mockReorderTasks = jest.fn();
 const mockToggleTaskCompletion = jest.fn();
 const mockArchiveTask = jest.fn();
@@ -105,24 +126,35 @@ const mockAddChecklist = jest.fn();
 const mockAddChecklistItem = jest.fn();
 const mockUpdateChecklistItem = jest.fn();
 const mockDeleteChecklistItem = jest.fn();
+const mockCreateTaskVersion = jest.fn();
+const mockCreateAttachmentAnnotation = jest.fn();
 const mockUploadTaskAttachment = jest.fn();
 const mockDeleteTaskAttachment = jest.fn();
+const mockSetTaskCoverFromAttachment = jest.fn();
 const mockUploadTaskCover = jest.fn();
 const mockDeleteTaskCover = jest.fn();
 const mockReassignTask = jest.fn();
 const mockAddTaskComment = jest.fn();
 const mockAddTaskTimeEntry = jest.fn();
 const mockMarkNotificationRead = jest.fn();
+const mockSnoozeNotification = jest.fn();
+const mockRunNotificationAction = jest.fn();
+const mockUpdateNotificationPreferences = jest.fn();
 
 const mockUseGetDashboardSummaryQuery = jest.fn();
 const mockUseGetNotificationsQuery = jest.fn();
+const mockUseGetNotificationPreferencesQuery = jest.fn();
 const mockUseGetProjectQuery = jest.fn();
 const mockUseGetProjectsQuery = jest.fn();
 const mockUseGetLabelsQuery = jest.fn();
+const mockUseGetSavedViewsQuery = jest.fn();
+const mockUseGetAttachmentAnnotationsQuery = jest.fn();
 const mockUseGetTaskQuery = jest.fn();
 const mockUseGetTasksQuery = jest.fn();
 const mockUseGetTimeReportQuery = jest.fn();
+const mockUseGetWorkflowReportQuery = jest.fn();
 const mockUseGetWorkloadQuery = jest.fn();
+const mockUseSearchWorkspaceQuery = jest.fn();
 const mockUseGetUsersListQuery = jest.fn();
 
 jest.mock('@/store/services/designWorkflow', () => ({
@@ -131,28 +163,43 @@ jest.mock('@/store/services/designWorkflow', () => ({
 	useAddTaskCommentMutation: jest.fn(() => [mockAddTaskComment, { isLoading: false, isError: false }]),
 	useAddTaskTimeEntryMutation: jest.fn(() => [mockAddTaskTimeEntry, { isLoading: false, isError: false }]),
 	useArchiveTaskMutation: jest.fn(() => [mockArchiveTask, { isLoading: false, isError: false }]),
+	useCreateAttachmentAnnotationMutation: jest.fn(() => [mockCreateAttachmentAnnotation, { isLoading: false, isError: false }]),
 	useCreateLabelMutation: jest.fn(() => [mockCreateLabel, { isLoading: false, isError: false }]),
 	useCreateProjectMutation: jest.fn(() => [mockCreateProject, { isLoading: false, isError: false }]),
+	useCreateSavedViewMutation: jest.fn(() => [mockCreateSavedView, { isLoading: false, isError: false }]),
 	useCreateTaskMutation: jest.fn(() => [mockCreateTask, { isLoading: false, isError: false }]),
+	useCreateTaskVersionMutation: jest.fn(() => [mockCreateTaskVersion, { isLoading: false, isError: false }]),
 	useDeleteChecklistItemMutation: jest.fn(() => [mockDeleteChecklistItem, { isLoading: false, isError: false }]),
+	useDeleteSavedViewMutation: jest.fn(() => [mockDeleteSavedView, { isLoading: false, isError: false }]),
 	useDeleteTaskAttachmentMutation: jest.fn(() => [mockDeleteTaskAttachment, { isLoading: false, isError: false }]),
 	useDeleteTaskCoverMutation: jest.fn(() => [mockDeleteTaskCover, { isLoading: false, isError: false }]),
 	useGetDashboardSummaryQuery: (...args: unknown[]) => mockUseGetDashboardSummaryQuery(...args),
+	useGetAttachmentAnnotationsQuery: (...args: unknown[]) => mockUseGetAttachmentAnnotationsQuery(...args),
 	useGetLabelsQuery: (...args: unknown[]) => mockUseGetLabelsQuery(...args),
+	useGetNotificationPreferencesQuery: (...args: unknown[]) => mockUseGetNotificationPreferencesQuery(...args),
 	useGetNotificationsQuery: (...args: unknown[]) => mockUseGetNotificationsQuery(...args),
 	useGetProjectQuery: (...args: unknown[]) => mockUseGetProjectQuery(...args),
 	useGetProjectsQuery: (...args: unknown[]) => mockUseGetProjectsQuery(...args),
+	useGetSavedViewsQuery: (...args: unknown[]) => mockUseGetSavedViewsQuery(...args),
 	useGetTaskQuery: (...args: unknown[]) => mockUseGetTaskQuery(...args),
 	useGetTasksQuery: (...args: unknown[]) => mockUseGetTasksQuery(...args),
 	useGetTimeReportQuery: (...args: unknown[]) => mockUseGetTimeReportQuery(...args),
+	useGetWorkflowReportQuery: (...args: unknown[]) => mockUseGetWorkflowReportQuery(...args),
 	useGetWorkloadQuery: (...args: unknown[]) => mockUseGetWorkloadQuery(...args),
 	useMarkNotificationReadMutation: jest.fn(() => [mockMarkNotificationRead, { isLoading: false, isError: false }]),
+	useRunNotificationActionMutation: jest.fn(() => [mockRunNotificationAction, { isLoading: false, isError: false }]),
 	useReassignTaskMutation: jest.fn(() => [mockReassignTask, { isLoading: false, isError: false }]),
 	useReorderTasksMutation: jest.fn(() => [mockReorderTasks, { isLoading: false, isError: false }]),
+	useSearchWorkspaceQuery: (...args: unknown[]) => mockUseSearchWorkspaceQuery(...args),
+	useSetTaskCoverFromAttachmentMutation: jest.fn(() => [mockSetTaskCoverFromAttachment, { isLoading: false, isError: false }]),
+	useSnoozeNotificationMutation: jest.fn(() => [mockSnoozeNotification, { isLoading: false, isError: false }]),
 	useToggleTaskCompletionMutation: jest.fn(() => [mockToggleTaskCompletion, { isLoading: false, isError: false }]),
 	useUpdateChecklistItemMutation: jest.fn(() => [mockUpdateChecklistItem, { isLoading: false, isError: false }]),
+	useUpdateNotificationPreferencesMutation: jest.fn(() => [mockUpdateNotificationPreferences, { isLoading: false, isError: false }]),
 	useUpdateProjectMutation: jest.fn(() => [mockUpdateProject, { isLoading: false, isError: false }]),
+	useUpdateSavedViewMutation: jest.fn(() => [mockUpdateSavedView, { isLoading: false, isError: false }]),
 	useUpdateTaskMutation: jest.fn(() => [mockUpdateTask, { isLoading: false, isError: false }]),
+	useUpdateTaskReviewMutation: jest.fn(() => [mockUpdateTaskReview, { isLoading: false, isError: false }]),
 	useUpdateTaskStatusMutation: jest.fn(() => [mockUpdateTaskStatus, { isLoading: false, isError: false }]),
 	useUploadTaskAttachmentMutation: jest.fn(() => [mockUploadTaskAttachment, { isLoading: false, isError: false }]),
 	useUploadTaskCoverMutation: jest.fn(() => [mockUploadTaskCover, { isLoading: false, isError: false }]),
@@ -219,6 +266,11 @@ const boardTask: TaskCard = {
 	due_date: '2026-04-20',
 	estimated_minutes: 240,
 	actual_minutes: 90,
+	review_state: 'needs_review',
+	review_requested_by: designerA,
+	review_requested_at: '2026-04-21T12:00:00Z',
+	review_approved_by: null,
+	review_approved_at: null,
 	blocked_reason: '',
 	sort_order: 0,
 	labels: [],
@@ -230,6 +282,8 @@ const boardTask: TaskCard = {
 	is_completed: false,
 	completed_at: null,
 	is_overdue: true,
+	source_chat_message_id: null,
+	source_chat_thread_id: null,
 	created_at: '2026-04-10T09:00:00Z',
 	updated_at: '2026-04-22T12:00:00Z',
 };
@@ -273,6 +327,7 @@ const taskDetail: TaskDetail = {
 			updated_at: '2026-04-21T08:00:00Z',
 		},
 	],
+	artifact_versions: [],
 	recent_activity: [
 		{
 			id: 92,
@@ -296,6 +351,63 @@ const taskDetail: TaskDetail = {
 	contributors: [designerA],
 	total_logged_minutes: 90,
 };
+
+const sourceTaskDetail: TaskDetail = {
+	...taskDetail,
+	title: 'Task created from source chat',
+	source_chat_message_id: 555,
+	source_chat_thread_id: 44,
+};
+
+const reviewAttachment = {
+	id: 701,
+	uploaded_by: designerA,
+	file: '/media/tasks/material-board.png',
+	file_url: '/media/tasks/material-board.png',
+	name: 'material-board.png',
+	mime_type: 'image/png',
+	size: 2048,
+	annotation_count: 1,
+	created_at: '2026-04-21T09:10:00Z',
+	updated_at: '2026-04-21T09:10:00Z',
+};
+
+const reviewTaskDetail: TaskDetail = {
+	...taskDetail,
+	attachments: [reviewAttachment],
+	artifact_versions: [
+		{
+			id: 801,
+			task: taskDetail.id,
+			attachment: reviewAttachment,
+			version_number: 1,
+			uploaded_by: designerA,
+			notes: 'Initial upload',
+			approval_state: 'pending',
+			approved_by: null,
+			approved_at: null,
+			created_at: '2026-04-21T09:20:00Z',
+			updated_at: '2026-04-21T09:20:00Z',
+		},
+	],
+};
+
+const reviewAnnotations = [
+	{
+		id: 901,
+		attachment: reviewAttachment.id,
+		version: 801,
+		author: manager,
+		x_percent: '45.00',
+		y_percent: '62.00',
+		body: 'Tighten palette contrast.',
+		resolved: false,
+		resolved_by: null,
+		resolved_at: null,
+		created_at: '2026-04-21T10:00:00Z',
+		updated_at: '2026-04-21T10:00:00Z',
+	},
+];
 
 const summary: DashboardSummary = {
 	active_projects: 1,
@@ -333,6 +445,60 @@ const reportRows: TimeReportRow[] = [
 	},
 ];
 
+const workflowReport: WorkflowAnalyticsReport = {
+	generated_at: '2026-04-23T08:00:00Z',
+	tasks_sampled: 4,
+	lead_time_days: 5.2,
+	cycle_time_days: 3.1,
+	blocked_tasks: 1,
+	blocked_time_minutes: 120,
+	review_bottlenecks: {
+		needs_review: 1,
+		changes_requested: 1,
+		approved: 2,
+		pending_review_minutes: 360,
+		average_pending_review_minutes: 180,
+	},
+	estimate_vs_actual: {
+		estimated_minutes: 960,
+		actual_minutes: 720,
+		variance_minutes: -240,
+		actual_to_estimate_ratio: 0.75,
+	},
+	capacity: [
+		{
+			user: designerA,
+			open_tasks: 3,
+			overdue_tasks: 1,
+			remaining_minutes: 720,
+			capacity_minutes: 2700,
+			load_percent: 26.7,
+			forecast_days: 1.3,
+			risk: 'high',
+		},
+	],
+	designer_forecast: [
+		{
+			user: designerA,
+			open_tasks: 3,
+			overdue_tasks: 1,
+			remaining_minutes: 720,
+			capacity_minutes: 2700,
+			load_percent: 26.7,
+			forecast_days: 1.3,
+			risk: 'high',
+		},
+	],
+	status_counts: {
+		backlog: 0,
+		todo: 1,
+		in_progress: 1,
+		in_review: 1,
+		blocked: 1,
+		done: 0,
+	},
+};
+
 const notifications: NotificationItem[] = [
 	{
 		id: 301,
@@ -341,8 +507,27 @@ const notifications: NotificationItem[] = [
 		project: projectSummary,
 		payload: { days_overdue: 3 },
 		read_at: null,
+		snoozed_until: null,
+		action_taken_at: null,
 		is_read: false,
 		created_at: '2026-04-23T08:00:00Z',
+	},
+	{
+		id: 302,
+		type: 'workflow_digest',
+		task: null,
+		project: null,
+		payload: {
+			frequency: 'daily',
+			total_count: 5,
+			unread_count: 2,
+			by_type: { task_assigned: 3, chat_message: 2 },
+		},
+		read_at: '2026-04-23T09:00:00Z',
+		snoozed_until: null,
+		action_taken_at: null,
+		is_read: true,
+		created_at: '2026-04-23T09:00:00Z',
 	},
 ];
 
@@ -376,12 +561,27 @@ const setDefaultHookData = () => {
 	mockUseGetDashboardSummaryQuery.mockReturnValue({ data: summary });
 	mockUseGetLabelsQuery.mockReturnValue({ data: [] });
 	mockUseGetNotificationsQuery.mockReturnValue({ data: notifications });
+	mockUseGetNotificationPreferencesQuery.mockReturnValue({
+		data: {
+			mentions: true,
+			assignments: true,
+			review_requests: true,
+			due_soon: true,
+			digest_frequency: 'instant',
+			created_at: '2026-04-20T08:00:00Z',
+			updated_at: '2026-04-20T08:00:00Z',
+		},
+	});
 	mockUseGetProjectQuery.mockReturnValue({ data: projectDetail, isLoading: false });
 	mockUseGetProjectsQuery.mockReturnValue({ data: [projectSummary], isLoading: false });
+	mockUseGetSavedViewsQuery.mockReturnValue({ data: [] });
+	mockUseGetAttachmentAnnotationsQuery.mockReturnValue({ data: [] });
 	mockUseGetTaskQuery.mockReturnValue({ data: taskDetail, isLoading: false });
 	mockUseGetTasksQuery.mockReturnValue({ data: [boardTask], isLoading: false });
 	mockUseGetTimeReportQuery.mockReturnValue({ data: reportRows });
+	mockUseGetWorkflowReportQuery.mockReturnValue({ data: workflowReport });
 	mockUseGetWorkloadQuery.mockReturnValue({ data: workload });
+	mockUseSearchWorkspaceQuery.mockReturnValue({ data: [] });
 	mockUseGetUsersListQuery.mockReturnValue({
 		data: {
 			results: [manager, designerA, designerB],
@@ -396,10 +596,14 @@ describe('Design workflow acceptance flows', () => {
 		setDefaultHookData();
 		mockCreateLabel.mockReturnValue(makeMutationResult());
 		mockCreateProject.mockReturnValue(makeMutationResult());
+		mockCreateSavedView.mockReturnValue(makeMutationResult());
 		mockUpdateProject.mockReturnValue(makeMutationResult());
+		mockUpdateSavedView.mockReturnValue(makeMutationResult());
+		mockDeleteSavedView.mockReturnValue(makeMutationResult());
 		mockCreateTask.mockReturnValue(makeMutationResult());
 		mockUpdateTask.mockReturnValue(makeMutationResult());
 		mockUpdateTaskStatus.mockReturnValue(makeMutationResult());
+		mockUpdateTaskReview.mockReturnValue(makeMutationResult());
 		mockReorderTasks.mockReturnValue(makeMutationResult());
 		mockToggleTaskCompletion.mockReturnValue(makeMutationResult());
 		mockArchiveTask.mockReturnValue(makeMutationResult());
@@ -407,14 +611,20 @@ describe('Design workflow acceptance flows', () => {
 		mockAddChecklistItem.mockReturnValue(makeMutationResult());
 		mockUpdateChecklistItem.mockReturnValue(makeMutationResult());
 		mockDeleteChecklistItem.mockReturnValue(makeMutationResult());
+		mockCreateTaskVersion.mockReturnValue(makeMutationResult());
+		mockCreateAttachmentAnnotation.mockReturnValue(makeMutationResult());
 		mockUploadTaskAttachment.mockReturnValue(makeMutationResult());
 		mockDeleteTaskAttachment.mockReturnValue(makeMutationResult());
+		mockSetTaskCoverFromAttachment.mockReturnValue(makeMutationResult());
 		mockUploadTaskCover.mockReturnValue(makeMutationResult());
 		mockDeleteTaskCover.mockReturnValue(makeMutationResult());
 		mockReassignTask.mockReturnValue(makeMutationResult());
 		mockAddTaskComment.mockReturnValue(makeMutationResult());
 		mockAddTaskTimeEntry.mockReturnValue(makeMutationResult());
 		mockMarkNotificationRead.mockReturnValue(makeMutationResult());
+		mockSnoozeNotification.mockReturnValue(makeMutationResult());
+		mockRunNotificationAction.mockReturnValue(makeMutationResult());
+		mockUpdateNotificationPreferences.mockReturnValue(makeMutationResult());
 	});
 
 	it('covers manager project creation, task creation, board visibility, and dashboard visibility', async () => {
@@ -454,7 +664,7 @@ describe('Design workflow acceptance flows', () => {
 				status: 'backlog',
 				priority: 'medium',
 				due_date: null,
-				estimated_minutes: 60,
+				estimated_minutes: 540,
 				blocked_reason: '',
 				sort_order: 0,
 			});
@@ -463,6 +673,11 @@ describe('Design workflow acceptance flows', () => {
 		rerender(<DesignWorkflowShell title="Board" variant="board" />);
 		expect(screen.getAllByText('Finalize material board').length).toBeGreaterThan(0);
 		expect(screen.getAllByText('Showroom Refresh').length).toBeGreaterThan(0);
+		await user.click(screen.getByRole('button', { name: 'Calendar' }));
+		const calendar = document.querySelector('.workflow-board-calendar');
+		expect(calendar).not.toBeNull();
+		expect(within(calendar as HTMLElement).getByText('April 2026')).toBeInTheDocument();
+		expect(within(calendar as HTMLElement).getByText('Finalize material board')).toBeInTheDocument();
 
 		rerender(<DesignWorkflowShell title="Overview" variant="overview" />);
 		expect(screen.getByText('Active projects')).toBeInTheDocument();
@@ -504,19 +719,8 @@ describe('Design workflow acceptance flows', () => {
 			});
 		});
 
-		await user.clear(screen.getByLabelText('Minutes'));
-		await user.type(screen.getByLabelText('Minutes'), '45');
-		await user.type(screen.getByLabelText('Note'), 'Review prep');
-		await user.click(screen.getByRole('button', { name: 'Log time' }));
-
-		await waitFor(() => {
-			expect(mockAddTaskTimeEntry).toHaveBeenCalledWith({
-				id: taskDetail.id,
-				minutes: 45,
-				work_date: new Date().toISOString().slice(0, 10),
-				note: 'Review prep',
-			});
-		});
+		expect(screen.queryByLabelText('Minutes')).not.toBeInTheDocument();
+		expect(mockAddTaskTimeEntry).not.toHaveBeenCalled();
 	});
 
 	it('covers manager reassignment with mandatory reason', async () => {
@@ -547,6 +751,89 @@ describe('Design workflow acceptance flows', () => {
 		expect(screen.getByText(/Spent 1h 30m/i)).toBeInTheDocument();
 	});
 
+	it('covers task review versions and file annotations', async () => {
+		const user = userEvent.setup();
+		mockProfile(manager);
+		mockUseGetTaskQuery.mockReturnValue({ data: reviewTaskDetail, isLoading: false });
+		mockUseGetAttachmentAnnotationsQuery.mockReturnValue({ data: reviewAnnotations });
+
+		render(<DesignWorkflowShell title="Task detail" variant="task-detail" taskId={taskDetail.id} />);
+
+		await user.click(screen.getByRole('tab', { name: 'Review' }));
+		const reviewSection = screen.getByText('Approval state stays separate from board status.').closest('section');
+		expect(reviewSection).not.toBeNull();
+		expect(within(reviewSection as HTMLElement).getByText('Artifact versions')).toBeInTheDocument();
+		expect(within(reviewSection as HTMLElement).getByText('v1')).toBeInTheDocument();
+
+		const reviewNotes = within(reviewSection as HTMLElement).getAllByLabelText('Optional note');
+		await user.type(reviewNotes[0], 'Needs final swatches');
+		await user.click(within(reviewSection as HTMLElement).getByRole('button', { name: 'Request changes' }));
+
+		await waitFor(() => {
+			expect(mockUpdateTaskReview).toHaveBeenCalledWith({
+				id: taskDetail.id,
+				review_state: 'changes_requested',
+				notes: 'Needs final swatches',
+			});
+		});
+
+		await user.type(reviewNotes[1], 'Second upload for handoff');
+		await user.click(within(reviewSection as HTMLElement).getByRole('button', { name: 'Add version' }));
+
+		await waitFor(() => {
+			expect(mockCreateTaskVersion).toHaveBeenCalledWith({
+				id: taskDetail.id,
+				attachment_id: reviewAttachment.id,
+				notes: 'Second upload for handoff',
+				approval_state: 'pending',
+			});
+		});
+
+		await user.click(screen.getByRole('tab', { name: 'Files' }));
+		const filesSection = screen.getByText('Review pins stay linked to the selected file and version.').closest('section');
+		expect(filesSection).not.toBeNull();
+		expect(within(filesSection as HTMLElement).getByText('material-board.png')).toBeInTheDocument();
+		expect(within(filesSection as HTMLElement).getByText('Tighten palette contrast.')).toBeInTheDocument();
+
+		await user.clear(within(filesSection as HTMLElement).getByLabelText('X %'));
+		await user.type(within(filesSection as HTMLElement).getByLabelText('X %'), '35');
+		await user.clear(within(filesSection as HTMLElement).getByLabelText('Y %'));
+		await user.type(within(filesSection as HTMLElement).getByLabelText('Y %'), '48');
+		await user.type(within(filesSection as HTMLElement).getByLabelText('Add comment'), 'Align callout with fabric sample.');
+		await user.click(within(filesSection as HTMLElement).getByRole('button', { name: 'Add annotation' }));
+
+		await waitFor(() => {
+			expect(mockCreateAttachmentAnnotation).toHaveBeenCalledWith({
+				attachmentId: reviewAttachment.id,
+				version_id: null,
+				x_percent: '35',
+				y_percent: '48',
+				body: 'Align callout with fabric sample.',
+				resolved: false,
+			});
+		});
+	});
+
+	it('surfaces source chat links on task detail', async () => {
+		mockProfile(manager);
+		mockUseGetTaskQuery.mockReturnValue({ data: sourceTaskDetail, isLoading: false });
+
+		const { unmount } = render(<DesignWorkflowShell title="Task detail" variant="task-detail" taskId={sourceTaskDetail.id} />);
+
+		expect(screen.getByText('Source chat message')).toBeInTheDocument();
+		expect(screen.getByText('This task was created from a chat decision.')).toBeInTheDocument();
+		expect(screen.getByRole('link', { name: 'Open source chat' })).toHaveAttribute('href', '/dashboard/chat?thread=44&message=555');
+
+		unmount();
+		render(<DesignWorkflowShell title="Board" variant="board" taskId={sourceTaskDetail.id} />);
+
+		await waitFor(() => {
+			expect(screen.getByRole('dialog')).toBeInTheDocument();
+		});
+		expect(screen.getByText('Source chat message')).toBeInTheDocument();
+		expect(screen.getByRole('link', { name: 'Open source chat' })).toHaveAttribute('href', '/dashboard/chat?thread=44&message=555');
+	});
+
 	it('covers overdue signal across dashboard, workload, report, and notifications', async () => {
 		const user = userEvent.setup();
 		mockProfile(manager);
@@ -555,21 +842,81 @@ describe('Design workflow acceptance flows', () => {
 
 		expect(screen.getAllByText('Overdue tasks')).toHaveLength(2);
 		expect(screen.getByText('Finalize material board')).toBeInTheDocument();
-		expect(screen.getByText('Most available')).toBeInTheDocument();
+		expect(screen.getByText('Capacity snapshot')).toBeInTheDocument();
 		expect(screen.getAllByText('Dina Designer').length).toBeGreaterThan(0);
 
 		rerender(<DesignWorkflowShell title="Time report" variant="report-time" />);
-		expect(screen.getByText('Time report filters')).toBeInTheDocument();
-		expect(screen.getByText('Showroom Refresh')).toBeInTheDocument();
-		expect(screen.getByText('3h')).toBeInTheDocument();
+		expect(screen.getByText('Start date')).toBeInTheDocument();
+		expect(screen.getAllByText('Showroom Refresh').length).toBeGreaterThan(0);
+		expect(screen.getAllByText('3h').length).toBeGreaterThan(0);
+		expect(screen.getByText('Lead and cycle time')).toBeInTheDocument();
+		expect(screen.getByText('Review bottlenecks')).toBeInTheDocument();
+		expect(screen.getByText('Capacity forecast')).toBeInTheDocument();
+		expect(screen.getByText('5.2d')).toBeInTheDocument();
+		const printMock = jest.fn();
+		const openMock = jest.spyOn(window, 'open').mockReturnValue({
+			document: { write: jest.fn(), close: jest.fn() },
+			focus: jest.fn(),
+			print: printMock,
+		} as unknown as Window);
+		await user.click(screen.getByRole('button', { name: 'Export PDF' }));
+		expect(openMock).toHaveBeenCalled();
+		expect(printMock).toHaveBeenCalled();
+		openMock.mockRestore();
 
 		rerender(<DesignWorkflowShell title="Notifications" variant="notifications" />);
 		expect(screen.getByText('Notification center')).toBeInTheDocument();
-		expect(screen.getByText('Task Overdue')).toBeInTheDocument();
+		expect(screen.getByText('Task overdue')).toBeInTheDocument();
+		expect(screen.getByText('Workflow digest')).toBeInTheDocument();
+		expect(screen.getByText('Daily - 5 Alerts, 2 Unread')).toBeInTheDocument();
+
+		const notificationCard = screen.getByText('Task overdue').closest('article');
+		expect(notificationCard).not.toBeNull();
+
 		await user.click(screen.getByRole('button', { name: 'Mark as read' }));
 
 		await waitFor(() => {
 			expect(mockMarkNotificationRead).toHaveBeenCalledWith(301);
+		});
+
+		await user.click(within(notificationCard as HTMLElement).getByRole('button', { name: 'Snooze 1h' }));
+		await waitFor(() => {
+			expect(mockSnoozeNotification).toHaveBeenCalledWith({
+				id: 301,
+				snoozed_until: expect.any(String),
+			});
+		});
+
+		await user.click(within(notificationCard as HTMLElement).getByRole('button', { name: 'Accept' }));
+		await user.click(within(notificationCard as HTMLElement).getByRole('button', { name: 'Move to progress' }));
+		await waitFor(() => {
+			expect(mockRunNotificationAction).toHaveBeenCalledWith({
+				id: 301,
+				action: 'accept_assignment',
+				status: undefined,
+			});
+			expect(mockRunNotificationAction).toHaveBeenCalledWith({
+				id: 301,
+				action: 'move_status',
+				status: 'in_progress',
+			});
+		});
+
+		await user.type(within(notificationCard as HTMLElement).getByLabelText('Write comment'), 'I am taking this now.');
+		await user.click(within(notificationCard as HTMLElement).getByRole('button', { name: 'Post comment' }));
+		await waitFor(() => {
+			expect(mockRunNotificationAction).toHaveBeenCalledWith({
+				id: 301,
+				action: 'comment',
+				body: 'I am taking this now.',
+			});
+		});
+
+		await user.click(screen.getByLabelText('Mentions'));
+		await user.selectOptions(screen.getByRole('combobox', { name: 'Digest frequency' }), 'weekly');
+		await waitFor(() => {
+			expect(mockUpdateNotificationPreferences).toHaveBeenCalledWith({ mentions: false });
+			expect(mockUpdateNotificationPreferences).toHaveBeenCalledWith({ digest_frequency: 'weekly' });
 		});
 	});
 });

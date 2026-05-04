@@ -2,6 +2,7 @@
 
 import Image from 'next/image';
 import Link from 'next/link';
+import { useSearchParams } from 'next/navigation';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { AlarmClock, AlertTriangle, ArrowDown, BriefcaseBusiness, CalendarDays, CheckCheck, CheckSquare2, Edit3, Eye, FileText, Forward, ImageIcon, Images, Mic, MoreHorizontal, Paperclip, Pause, Play, Reply, Search, Send, SlidersHorizontal, SmilePlus, Square, ThumbsUp, Trash2, Users, X } from 'lucide-react';
 import {
@@ -141,6 +142,8 @@ type ChatSearchFilters = {
 
 const threadTitle = (thread: ChatThread, currentUserId?: number, publicLabel = 'Studio public', privateLabel = 'Private chat') => {
 	if (thread.kind === 'public') return publicLabel;
+	if (thread.kind === 'project') return thread.project?.name ?? (thread.title || 'Project room');
+	if (thread.kind === 'task') return thread.task?.title ?? (thread.title || 'Task room');
 	const other = thread.participants.find((user) => user.id !== currentUserId);
 	return other ? userLabel(other) : thread.title || privateLabel;
 };
@@ -342,6 +345,7 @@ const dedupeMessages = (messages: ChatMessage[]) => {
 
 const DesignWorkflowChat = () => {
 	const { t, language } = useLanguage();
+	const searchParams = useSearchParams();
 	const locale = language === 'en' ? 'en-US' : 'fr-FR';
 	const profile = useAppSelector(getProfilState);
 	const token = useAppSelector(getAccessToken);
@@ -409,6 +413,25 @@ const DesignWorkflowChat = () => {
 			});
 		return byUserId;
 	}, [profile.id, threads]);
+	const publicThreads = useMemo(() => threads.filter((thread) => thread.kind === 'public'), [threads]);
+	const projectThreadByProjectId = useMemo(() => {
+		const byProjectId = new Map<number, ChatThread>();
+		threads
+			.filter((thread) => thread.kind === 'project' && thread.project)
+			.forEach((thread) => {
+				if (thread.project) byProjectId.set(thread.project.id, thread);
+			});
+		return byProjectId;
+	}, [threads]);
+	const taskThreadByTaskId = useMemo(() => {
+		const byTaskId = new Map<number, ChatThread>();
+		threads
+			.filter((thread) => thread.kind === 'task' && thread.task)
+			.forEach((thread) => {
+				if (thread.task) byTaskId.set(thread.task.id, thread);
+			});
+		return byTaskId;
+	}, [threads]);
 	const { data: currentMessages = [], refetch: refetchMessages } = useGetChatMessagesQuery(
 		{ threadId: selectedThread?.id ?? 0, limit: PAGE_SIZE, q: searchTerm || undefined, ...searchFilters },
 		{ skip: !selectedThread?.id },
@@ -431,6 +454,14 @@ const DesignWorkflowChat = () => {
 		[...activeTasks, ...archivedTasks].forEach((task) => byId.set(task.id, task));
 		return Array.from(byId.values());
 	}, [activeTasks, archivedTasks]);
+
+	useEffect(() => {
+		const requestedThreadId = Number(searchParams.get('thread') ?? 0);
+		if (!requestedThreadId || selectedThreadId) return;
+		if (threads.some((thread) => thread.id === requestedThreadId)) {
+			setSelectedThreadId(requestedThreadId);
+		}
+	}, [searchParams, selectedThreadId, threads]);
 
 	const usersResponse = useGetUsersListQuery({ with_pagination: false });
 	const usersRaw = (usersResponse.data ?? []) as Array<Partial<UserClass>> | { results?: Array<Partial<UserClass>>; data?: Array<Partial<UserClass>> };
@@ -744,6 +775,26 @@ const DesignWorkflowChat = () => {
 		setSelectedThreadId(thread.id);
 	};
 
+	const startProjectThread = async (project: ProjectSummary) => {
+		const existing = projectThreadByProjectId.get(project.id);
+		if (existing) {
+			setSelectedThreadId(existing.id);
+			return;
+		}
+		const thread = await createThread({ kind: 'project', project_id: project.id }).unwrap();
+		setSelectedThreadId(thread.id);
+	};
+
+	const startTaskThread = async (task: TaskCard) => {
+		const existing = taskThreadByTaskId.get(task.id);
+		if (existing) {
+			setSelectedThreadId(existing.id);
+			return;
+		}
+		const thread = await createThread({ kind: 'task', task_id: task.id }).unwrap();
+		setSelectedThreadId(thread.id);
+	};
+
 	const emitTyping = (isTyping = true) => {
 		if (!selectedThread?.id || !wsRef.current || wsRef.current.readyState !== WebSocket.OPEN) return;
 		wsRef.current.send(JSON.stringify({ type: 'chat.typing', thread_id: selectedThread.id, is_typing: isTyping }));
@@ -883,6 +934,7 @@ const DesignWorkflowChat = () => {
 			priority: 'medium',
 			due_date: detectDueDate(taskDraft.description),
 			estimated_minutes: 540,
+			source_chat_message_id: taskSourceMessage?.id ?? null,
 		}).unwrap();
 		setTaskModalOpen(false);
 		setTaskSourceMessage(null);
@@ -920,9 +972,9 @@ const DesignWorkflowChat = () => {
 				<div className="workflow-chat-thread-section">
 					<div className="workflow-chat-panel-pill">
 						{t.workflow.labels.chatTitle ?? 'Studio chat'}
-						<em>{threads.length}</em>
+						<em>{publicThreads.length}</em>
 					</div>
-					{threads.map((thread) => {
+					{publicThreads.map((thread) => {
 						const peer = thread.participants.find((user) => user.id !== profile.id) ?? thread.participants[0];
 						const preview = threadPreview(thread, profile.id, threadPreviewLabels, tasks, projects);
 						return (
@@ -965,6 +1017,68 @@ const DesignWorkflowChat = () => {
 							</button>
 						);
 					})}
+				</div>
+				<div className="workflow-chat-context-section">
+					<div className="workflow-chat-panel-pill workflow-chat-panel-pill-amber">
+						{t.workflow.labels.projects ?? 'Projects'}
+						<em>{projects.length}</em>
+					</div>
+					<div className="workflow-chat-context-list">
+						{projects.map((project) => {
+							const thread = projectThreadByProjectId.get(project.id);
+							const preview = thread ? threadPreview(thread, profile.id, threadPreviewLabels, tasks, projects) : null;
+							return (
+								<button
+									key={project.id}
+									type="button"
+									onClick={() => void startProjectThread(project)}
+									className={['workflow-chat-context-button', thread?.unread_count ? 'is-unread' : '', selectedThread?.id === thread?.id ? 'is-active' : ''].join(' ')}
+								>
+									<span className="workflow-chat-context-icon"><BriefcaseBusiness size={15} /></span>
+									<span className="workflow-chat-direct-copy">
+										<b>{project.name}</b>
+										<small className="workflow-chat-thread-preview">
+											{preview?.kind === 'photo' ? <ImageIcon size={13} /> : null}
+											{preview?.kind === 'attachment' ? <Paperclip size={13} /> : null}
+											<span>{preview?.text ?? (t.workflow.labels.noMessageYet ?? 'No message yet')}</span>
+										</small>
+									</span>
+									{thread?.unread_count ? <i>{thread.unread_count}</i> : null}
+								</button>
+							);
+						})}
+					</div>
+				</div>
+				<div className="workflow-chat-context-section workflow-chat-task-room-section">
+					<div className="workflow-chat-panel-pill workflow-chat-panel-pill-slate">
+						{t.workflow.labels.cards ?? 'Tasks'}
+						<em>{activeTasks.length}</em>
+					</div>
+					<div className="workflow-chat-context-list">
+						{activeTasks.slice(0, 12).map((task) => {
+							const thread = taskThreadByTaskId.get(task.id);
+							const preview = thread ? threadPreview(thread, profile.id, threadPreviewLabels, tasks, projects) : null;
+							return (
+								<button
+									key={task.id}
+									type="button"
+									onClick={() => void startTaskThread(task)}
+									className={['workflow-chat-context-button', thread?.unread_count ? 'is-unread' : '', selectedThread?.id === thread?.id ? 'is-active' : ''].join(' ')}
+								>
+									<span className="workflow-chat-context-icon"><CheckSquare2 size={15} /></span>
+									<span className="workflow-chat-direct-copy">
+										<b>{task.title}</b>
+										<small className="workflow-chat-thread-preview">
+											{preview?.kind === 'photo' ? <ImageIcon size={13} /> : null}
+											{preview?.kind === 'attachment' ? <Paperclip size={13} /> : null}
+											<span>{preview?.text ?? task.project.name}</span>
+										</small>
+									</span>
+									{thread?.unread_count ? <i>{thread.unread_count}</i> : null}
+								</button>
+							);
+						})}
+					</div>
 				</div>
 				<div className="workflow-chat-direct-section">
 					<div className="workflow-chat-panel-pill workflow-chat-panel-pill-green">

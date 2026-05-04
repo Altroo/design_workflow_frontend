@@ -5,14 +5,19 @@ import type { RootState } from '@/store/store';
 import { axiosBaseQuery } from '@/utils/axiosBaseQuery';
 import { isAuthenticatedInstance } from '@/utils/helpers';
 import type {
+	AttachmentAnnotation,
 	ChatMessage,
 	ChatMessagesQuery,
 	ChatThread,
 	DashboardSummary,
 	NotificationItem,
+	NotificationPreference,
 	ProjectDetail,
 	ProjectInput,
 	ProjectSummary,
+	SavedView,
+	SavedViewInput,
+	TaskArtifactVersion,
 	TaskComment,
 	TaskDetail,
 	TaskAttachment,
@@ -24,14 +29,16 @@ import type {
 	TaskInput,
 	TimeEntry,
 	TimeReportRow,
+	WorkflowAnalyticsReport,
 	WorkloadRow,
+	WorkspaceSearchResult,
 } from '@/types/designWorkflowTypes';
 
 const DESIGN_WORKFLOW_ROOT = `${process.env.NEXT_PUBLIC_API_URL}/api/design-workflow/`;
 
 export const designWorkflowApi = createApi({
 	reducerPath: 'designWorkflowApi',
-	tagTypes: ['Dashboard', 'Project', 'Task', 'Notification', 'Workload', 'Report', 'Label', 'Chat'],
+	tagTypes: ['Dashboard', 'Project', 'Task', 'Notification', 'NotificationPreference', 'Workload', 'Report', 'Label', 'Chat', 'SavedView'],
 	baseQuery: axiosBaseQuery((api) =>
 		isAuthenticatedInstance(
 			() => getInitStateToken(api.getState() as RootState),
@@ -42,6 +49,44 @@ export const designWorkflowApi = createApi({
 		getDashboardSummary: builder.query<DashboardSummary, void>({
 			query: () => ({ url: `${DESIGN_WORKFLOW_ROOT}dashboard/summary/`, method: 'GET' }),
 			providesTags: ['Dashboard'],
+		}),
+		getSavedViews: builder.query<SavedView[], { visibility?: SavedView['visibility'] } | void>({
+			query: (params) => ({
+				url: `${DESIGN_WORKFLOW_ROOT}views/`,
+				method: 'GET',
+				params: params ?? undefined,
+			}),
+			providesTags: ['SavedView'],
+		}),
+		createSavedView: builder.mutation<SavedView, SavedViewInput>({
+			query: (data) => ({
+				url: `${DESIGN_WORKFLOW_ROOT}views/`,
+				method: 'POST',
+				data,
+			}),
+			invalidatesTags: ['SavedView'],
+		}),
+		updateSavedView: builder.mutation<SavedView, { id: number; data: Partial<SavedViewInput> }>({
+			query: ({ id, data }) => ({
+				url: `${DESIGN_WORKFLOW_ROOT}views/${id}/`,
+				method: 'PATCH',
+				data,
+			}),
+			invalidatesTags: ['SavedView'],
+		}),
+		deleteSavedView: builder.mutation<void, number>({
+			query: (id) => ({
+				url: `${DESIGN_WORKFLOW_ROOT}views/${id}/`,
+				method: 'DELETE',
+			}),
+			invalidatesTags: ['SavedView'],
+		}),
+		searchWorkspace: builder.query<WorkspaceSearchResult[], { q: string; types?: string }>({
+			query: (params) => ({
+				url: `${DESIGN_WORKFLOW_ROOT}search/`,
+				method: 'GET',
+				params,
+			}),
 		}),
 		getProjects: builder.query<ProjectSummary[], { archived?: boolean } | void>({
 			query: (params) => ({
@@ -134,6 +179,14 @@ export const designWorkflowApi = createApi({
 				'Project',
 				'Workload',
 			],
+		}),
+		updateTaskReview: builder.mutation<TaskDetail, { id: number; review_state: TaskDetail['review_state']; notes?: string }>({
+			query: ({ id, ...data }) => ({
+				url: `${DESIGN_WORKFLOW_ROOT}tasks/${id}/review/`,
+				method: 'POST',
+				data,
+			}),
+			invalidatesTags: (_result, _error, { id }) => ['Task', { type: 'Task', id }, 'Dashboard', 'Project', 'Notification'],
 		}),
 		reorderTasks: builder.mutation<
 			TaskCard[],
@@ -230,6 +283,36 @@ export const designWorkflowApi = createApi({
 			}),
 			invalidatesTags: (_result, _error, id) => ['Task', { type: 'Task', id }, 'Project'],
 		}),
+		getTaskVersions: builder.query<TaskArtifactVersion[], number>({
+			query: (id) => ({ url: `${DESIGN_WORKFLOW_ROOT}tasks/${id}/versions/`, method: 'GET' }),
+			providesTags: (_result, _error, id) => [{ type: 'Task', id }],
+		}),
+		createTaskVersion: builder.mutation<
+			TaskArtifactVersion,
+			{ id: number; attachment_id?: number | null; notes?: string; approval_state?: TaskArtifactVersion['approval_state'] }
+		>({
+			query: ({ id, ...data }) => ({
+				url: `${DESIGN_WORKFLOW_ROOT}tasks/${id}/versions/`,
+				method: 'POST',
+				data,
+			}),
+			invalidatesTags: (_result, _error, { id }) => ['Task', { type: 'Task', id }, 'Project'],
+		}),
+		getAttachmentAnnotations: builder.query<AttachmentAnnotation[], number>({
+			query: (id) => ({ url: `${DESIGN_WORKFLOW_ROOT}attachments/${id}/annotations/`, method: 'GET' }),
+			providesTags: ['Task'],
+		}),
+		createAttachmentAnnotation: builder.mutation<
+			AttachmentAnnotation,
+			{ attachmentId: number; version_id?: number | null; x_percent: string; y_percent: string; body: string; resolved?: boolean }
+		>({
+			query: ({ attachmentId, ...data }) => ({
+				url: `${DESIGN_WORKFLOW_ROOT}attachments/${attachmentId}/annotations/`,
+				method: 'POST',
+				data,
+			}),
+			invalidatesTags: ['Task'],
+		}),
 		reassignTask: builder.mutation<TaskDetail, { id: number; assignee_id: number; reason: string }>({
 			query: ({ id, ...data }) => ({
 				url: `${DESIGN_WORKFLOW_ROOT}tasks/${id}/reassign/`,
@@ -291,6 +374,14 @@ export const designWorkflowApi = createApi({
 			}),
 			providesTags: ['Report'],
 		}),
+		getWorkflowReport: builder.query<WorkflowAnalyticsReport, { start_date?: string; end_date?: string } | void>({
+			query: (params) => ({
+				url: `${DESIGN_WORKFLOW_ROOT}reports/workflow/`,
+				method: 'GET',
+				params: params ?? undefined,
+			}),
+			providesTags: ['Report'],
+		}),
 		getNotifications: builder.query<NotificationItem[], { unread?: boolean } | void>({
 			query: (params) => ({
 				url: `${DESIGN_WORKFLOW_ROOT}notifications/`,
@@ -299,11 +390,22 @@ export const designWorkflowApi = createApi({
 			}),
 			providesTags: ['Notification'],
 		}),
+		getNotificationPreferences: builder.query<NotificationPreference, void>({
+			query: () => ({ url: `${DESIGN_WORKFLOW_ROOT}notifications/preferences/`, method: 'GET' }),
+			providesTags: ['NotificationPreference'],
+		}),
+		updateNotificationPreferences: builder.mutation<NotificationPreference, Partial<NotificationPreference>>({
+			query: (data) => ({ url: `${DESIGN_WORKFLOW_ROOT}notifications/preferences/`, method: 'PATCH', data }),
+			invalidatesTags: ['NotificationPreference'],
+		}),
 		getChatThreads: builder.query<ChatThread[], void>({
 			query: () => ({ url: `${DESIGN_WORKFLOW_ROOT}chat/threads/`, method: 'GET' }),
 			providesTags: ['Chat'],
 		}),
-		createChatThread: builder.mutation<ChatThread, { kind: 'public' | 'private'; recipient_id?: number; title?: string }>({
+		createChatThread: builder.mutation<
+			ChatThread,
+			{ kind: ChatThread['kind']; recipient_id?: number; project_id?: number; task_id?: number; title?: string }
+		>({
 			query: (data) => ({ url: `${DESIGN_WORKFLOW_ROOT}chat/threads/`, method: 'POST', data }),
 			invalidatesTags: ['Chat'],
 		}),
@@ -354,11 +456,36 @@ export const designWorkflowApi = createApi({
 			}),
 			invalidatesTags: ['Notification'],
 		}),
+		snoozeNotification: builder.mutation<NotificationItem, { id: number; snoozed_until: string }>({
+			query: ({ id, snoozed_until }) => ({
+				url: `${DESIGN_WORKFLOW_ROOT}notifications/${id}/snooze/`,
+				method: 'POST',
+				data: { snoozed_until },
+			}),
+			invalidatesTags: ['Notification'],
+		}),
+		runNotificationAction: builder.mutation<
+			NotificationItem,
+			{ id: number; action: 'mark_read' | 'accept_assignment' | 'move_status' | 'comment'; status?: TaskCard['status']; body?: string }
+		>({
+			query: ({ id, ...data }) => ({
+				url: `${DESIGN_WORKFLOW_ROOT}notifications/${id}/action/`,
+				method: 'POST',
+				data,
+			}),
+			invalidatesTags: ['Notification', 'Task', 'Dashboard', 'Project', 'Workload'],
+		}),
 	}),
 });
 
 export const {
 	useGetDashboardSummaryQuery,
+	useGetSavedViewsQuery,
+	useCreateSavedViewMutation,
+	useUpdateSavedViewMutation,
+	useDeleteSavedViewMutation,
+	useSearchWorkspaceQuery,
+	useLazySearchWorkspaceQuery,
 	useGetProjectsQuery,
 	useCreateProjectMutation,
 	useUpdateProjectMutation,
@@ -370,6 +497,7 @@ export const {
 	useGetTaskQuery,
 	useUpdateTaskMutation,
 	useUpdateTaskStatusMutation,
+	useUpdateTaskReviewMutation,
 	useReorderTasksMutation,
 	useToggleTaskCompletionMutation,
 	useArchiveTaskMutation,
@@ -382,6 +510,10 @@ export const {
 	useSetTaskCoverFromAttachmentMutation,
 	useUploadTaskCoverMutation,
 	useDeleteTaskCoverMutation,
+	useGetTaskVersionsQuery,
+	useCreateTaskVersionMutation,
+	useGetAttachmentAnnotationsQuery,
+	useCreateAttachmentAnnotationMutation,
 	useReassignTaskMutation,
 	useGetTaskCommentsQuery,
 	useAddTaskCommentMutation,
@@ -389,7 +521,10 @@ export const {
 	useAddTaskTimeEntryMutation,
 	useGetWorkloadQuery,
 	useGetTimeReportQuery,
+	useGetWorkflowReportQuery,
 	useGetNotificationsQuery,
+	useGetNotificationPreferencesQuery,
+	useUpdateNotificationPreferencesMutation,
 	useGetChatThreadsQuery,
 	useCreateChatThreadMutation,
 	useGetChatMessagesQuery,
@@ -402,4 +537,6 @@ export const {
 	useMarkChatDecisionMutation,
 	useAddChatReminderMutation,
 	useMarkNotificationReadMutation,
+	useSnoozeNotificationMutation,
+	useRunNotificationActionMutation,
 } = designWorkflowApi;

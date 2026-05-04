@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { CSSProperties, ReactNode } from 'react';
 import * as Popover from '@radix-ui/react-popover';
 import * as Select from '@radix-ui/react-select';
@@ -42,6 +42,7 @@ import {
 	Archive,
 	ArrowRight,
 	Bell,
+	Bookmark,
 	BriefcaseBusiness,
 	CalendarDays,
 	CheckCircle2,
@@ -50,6 +51,7 @@ import {
 	ChevronDown,
 	Clock3,
 	CircleAlert,
+	FileText,
 	FolderKanban,
 	GripVertical,
 	ImagePlus,
@@ -60,9 +62,11 @@ import {
 	Pencil,
 	Plus,
 	RefreshCcw,
+	Save,
 	Search,
 	SlidersHorizontal,
 	ShieldCheck,
+	Table2,
 	Tag,
 	Trash2,
 	Users,
@@ -74,10 +78,14 @@ import {
 	useAddChecklistItemMutation,
 	useAddTaskCommentMutation,
 	useArchiveTaskMutation,
+	useCreateAttachmentAnnotationMutation,
 	useCreateLabelMutation,
+	useCreateTaskVersionMutation,
 	useDeleteChecklistItemMutation,
 	useDeleteTaskAttachmentMutation,
 	useDeleteTaskCoverMutation,
+	useCreateSavedViewMutation,
+	useDeleteSavedViewMutation,
 	useCreateProjectMutation,
 	useCreateTaskMutation,
 	useGetDashboardSummaryQuery,
@@ -85,34 +93,50 @@ import {
 	useGetProjectQuery,
 	useGetProjectsQuery,
 	useGetLabelsQuery,
+	useGetNotificationPreferencesQuery,
+	useGetSavedViewsQuery,
+	useGetAttachmentAnnotationsQuery,
 	useGetTaskQuery,
 	useGetTasksQuery,
 	useGetTimeReportQuery,
+	useGetWorkflowReportQuery,
 	useGetWorkloadQuery,
 	useMarkNotificationReadMutation,
+	useRunNotificationActionMutation,
 	useReassignTaskMutation,
 	useReorderTasksMutation,
+	useSnoozeNotificationMutation,
 	useSetTaskCoverFromAttachmentMutation,
 	useUpdateChecklistItemMutation,
 	useUploadTaskAttachmentMutation,
 	useUploadTaskCoverMutation,
+	useSearchWorkspaceQuery,
+	useUpdateSavedViewMutation,
 	useUpdateProjectMutation,
+	useUpdateNotificationPreferencesMutation,
+	useUpdateTaskReviewMutation,
 	useUpdateTaskMutation,
 	useUpdateTaskStatusMutation,
 } from '@/store/services/designWorkflow';
 import { useGetUsersListQuery } from '@/store/services/account';
 import type {
+	AttachmentAnnotation,
 	NotificationItem,
+	NotificationPreference,
 	ProjectDetail,
 	ProjectInput,
 	ProjectSummary,
+	SavedView,
+	TaskArtifactVersion,
 	TaskCard,
 	TaskAttachment,
 	TaskChecklist,
 	TaskDetail,
 	TaskInput,
 	TaskStatus,
+	WorkspaceSearchResult,
 	TimeReportRow,
+	WorkflowAnalyticsReport,
 	WorkflowUser,
 	WorkloadRow,
 } from '@/types/designWorkflowTypes';
@@ -144,6 +168,7 @@ type Props = {
 
 type UsersListResponse = Array<Partial<UserClass>> | { results?: Array<Partial<UserClass>>; data?: Array<Partial<UserClass>> };
 type TaskChecklistGroup = Pick<TaskChecklist, 'id' | 'title' | 'sort_order' | 'items'>;
+type TaskDetailTab = 'overview' | 'review' | 'files' | 'activity' | 'time';
 
 type TaskFormState = {
 	title: string;
@@ -157,16 +182,43 @@ type TaskFormState = {
 	sort_order: string;
 };
 
+type BoardViewMode = 'board' | 'table' | 'calendar';
+type BoardFiltersState = {
+	project: string;
+	status: string;
+	priority: string;
+	assignee: string;
+	reviewState: TaskCard['review_state'] | '';
+	sort: string;
+	search: string;
+	overdueOnly: boolean;
+	blockedOnly: boolean;
+	archivedOnly: boolean;
+};
+
 const STATUS_COLUMNS: TaskStatus[] = ['backlog', 'todo', 'in_progress', 'in_review', 'blocked', 'done'];
 const PRIORITY_OPTIONS: Array<TaskCard['priority']> = ['low', 'medium', 'high', 'urgent'];
+const REVIEW_STATE_OPTIONS: Array<TaskCard['review_state']> = ['not_submitted', 'needs_review', 'changes_requested', 'approved'];
+const BOARD_SORT_OPTIONS = ['sort_order', 'due_date', '-due_date', 'priority', '-priority', 'updated_at', '-updated_at', 'title'] as const;
 const PROJECT_STATUS_OPTIONS: Array<ProjectSummary['status']> = ['planned', 'active', 'on_hold', 'completed', 'archived'];
 const EMPTY_PROJECTS: ProjectSummary[] = [];
 const EMPTY_TASKS: TaskCard[] = [];
 const EMPTY_WORKLOAD: WorkloadRow[] = [];
 const EMPTY_TIME_REPORT: TimeReportRow[] = [];
 const EMPTY_NOTIFICATIONS: NotificationItem[] = [];
+const EMPTY_ANNOTATIONS: AttachmentAnnotation[] = [];
+const DEFAULT_NOTIFICATION_PREFERENCES: NotificationPreference = {
+	mentions: true,
+	assignments: true,
+	review_requests: true,
+	due_soon: true,
+	digest_frequency: 'daily',
+	created_at: '',
+	updated_at: '',
+};
 const EMPTY_SELECT_VALUE = '__empty__';
 const WORK_DAY_MINUTES = 9 * 60;
+const CALENDAR_WEEKDAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 
 type WorkflowCopy = TranslationDictionary['workflow'];
 type ChecklistTemplate = {
@@ -187,6 +239,57 @@ type AttachmentPreviewTarget = {
 };
 
 const cn = (...parts: Array<string | false | null | undefined>) => parts.filter(Boolean).join(' ');
+
+const getMonthStart = (date: Date) => new Date(date.getFullYear(), date.getMonth(), 1);
+const addCalendarMonths = (date: Date, months: number) => new Date(date.getFullYear(), date.getMonth() + months, 1);
+const getDateKey = (date: Date) => {
+	const year = date.getFullYear();
+	const month = String(date.getMonth() + 1).padStart(2, '0');
+	const day = String(date.getDate()).padStart(2, '0');
+	return `${year}-${month}-${day}`;
+};
+
+const parseTaskDueDate = (value: string | null | undefined) => {
+	if (!value) return null;
+	const parsed = parseISO(value);
+	return isValid(parsed) ? parsed : null;
+};
+
+const getCalendarSeedMonth = (tasks: TaskCard[]) => {
+	const firstDueTask = tasks
+		.map((task) => parseTaskDueDate(task.due_date))
+		.filter((date): date is Date => Boolean(date))
+		.sort((left, right) => left.getTime() - right.getTime())[0];
+	return firstDueTask ? getMonthStart(firstDueTask) : getMonthStart(new Date());
+};
+
+const getCalendarDays = (month: Date) => {
+	const monthStart = getMonthStart(month);
+	const gridStart = new Date(monthStart);
+	gridStart.setDate(monthStart.getDate() - monthStart.getDay());
+
+	return Array.from({ length: 42 }, (_, index) => {
+		const day = new Date(gridStart);
+		day.setDate(gridStart.getDate() + index);
+		return day;
+	});
+};
+
+const normalizeTaskDetail = (task?: TaskDetail): TaskDetail | undefined => {
+	if (!task) return undefined;
+	return {
+		...task,
+		labels: task.labels ?? [],
+		checklists: task.checklists ?? [],
+		checklist_items: task.checklist_items ?? [],
+		attachments: task.attachments ?? [],
+		comments: task.comments ?? [],
+		artifact_versions: task.artifact_versions ?? [],
+		recent_activity: task.recent_activity ?? [],
+		time_entries: task.time_entries ?? [],
+		contributors: task.contributors ?? [],
+	};
+};
 const getColumnId = (status: TaskStatus) => `column-${status}`;
 const getTaskDragId = (taskId: number) => `task-${taskId}`;
 const isTaskDragId = (value: string) => value.startsWith('task-');
@@ -224,6 +327,19 @@ const emptyTaskForm = (): TaskFormState => ({
 	sort_order: '0',
 });
 
+const emptyBoardFilters = (): BoardFiltersState => ({
+	project: '',
+	status: '',
+	priority: '',
+	assignee: '',
+	reviewState: '',
+	sort: 'sort_order',
+	search: '',
+	overdueOnly: false,
+	blockedOnly: false,
+	archivedOnly: false,
+});
+
 const formatMinutes = (minutes: number) => {
 	if (minutes >= WORK_DAY_MINUTES && minutes % WORK_DAY_MINUTES === 0) {
 		return `${minutes / WORK_DAY_MINUTES}d`;
@@ -241,8 +357,114 @@ const formatWorkDays = (minutes: number, dayLabel = 'Days') => {
 	return `${rounded} ${dayLabel.toLowerCase()}`;
 };
 
-const formatLabel = (value: string) =>
-	value
+const csvCell = (value: string | number | null | undefined) => `"${String(value ?? '').replace(/"/g, '""')}"`;
+const downloadCsv = (filename: string, rows: Array<Array<string | number | null | undefined>>) => {
+	if (typeof window === 'undefined') return;
+	const blob = new Blob([rows.map((row) => row.map(csvCell).join(',')).join('\n')], { type: 'text/csv;charset=utf-8' });
+	const url = URL.createObjectURL(blob);
+	const link = document.createElement('a');
+	link.href = url;
+	link.download = filename;
+	link.click();
+	URL.revokeObjectURL(url);
+};
+const escapeHtml = (value: string | number | null | undefined) =>
+	String(value ?? '')
+		.replace(/&/g, '&amp;')
+		.replace(/</g, '&lt;')
+		.replace(/>/g, '&gt;')
+		.replace(/"/g, '&quot;')
+		.replace(/'/g, '&#039;');
+const openPrintableReport = ({
+	dateWindow,
+	totalMinutes,
+	timeReport,
+	workflowReport,
+}: {
+	dateWindow: string;
+	totalMinutes: number;
+	timeReport: TimeReportRow[];
+	workflowReport?: WorkflowAnalyticsReport;
+}) => {
+	if (typeof window === 'undefined') return;
+	const printable = window.open('', '_blank', 'width=960,height=720');
+	if (!printable) {
+		window.print();
+		return;
+	}
+	const forecastRows = workflowReport?.designer_forecast ?? [];
+	const projectRows = timeReport
+		.map((row) => `
+			<tr>
+				<td>${escapeHtml(row.project.name)}</td>
+				<td>${escapeHtml(`${row.project.manager.first_name} ${row.project.manager.last_name}`.trim() || row.project.manager.email)}</td>
+				<td>${escapeHtml(row.minutes)}</td>
+				<td>${escapeHtml(Math.round((row.minutes / 60) * 100) / 100)}</td>
+			</tr>
+		`)
+		.join('');
+	const forecastHtml = forecastRows
+		.map((row) => `
+			<tr>
+				<td>${escapeHtml(`${row.user.first_name} ${row.user.last_name}`.trim() || row.user.email)}</td>
+				<td>${escapeHtml(row.open_tasks)}</td>
+				<td>${escapeHtml(row.overdue_tasks)}</td>
+				<td>${escapeHtml(row.remaining_minutes)}</td>
+				<td>${escapeHtml(`${row.load_percent}%`)}</td>
+				<td>${escapeHtml(row.risk)}</td>
+			</tr>
+		`)
+		.join('');
+	printable.document.write(`<!doctype html>
+		<html>
+			<head>
+				<title>Design Workflow Report</title>
+				<style>
+					* { box-sizing: border-box; }
+					body { margin: 0; padding: 32px; color: #0f172a; font: 13px/1.45 Arial, sans-serif; }
+					header { border-bottom: 2px solid #0f172a; margin-bottom: 24px; padding-bottom: 16px; }
+					h1 { margin: 0; font-size: 28px; }
+					h2 { margin: 24px 0 10px; font-size: 18px; }
+					.kpis { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; }
+					.kpi { border: 1px solid #cbd5e1; border-radius: 10px; padding: 12px; }
+					.kpi span { display: block; color: #64748b; font-size: 11px; font-weight: 700; text-transform: uppercase; }
+					.kpi strong { display: block; margin-top: 6px; font-size: 20px; }
+					table { width: 100%; border-collapse: collapse; margin-top: 8px; }
+					th, td { border: 1px solid #cbd5e1; padding: 8px; text-align: left; }
+					th { background: #f1f5f9; font-size: 11px; text-transform: uppercase; }
+					@page { margin: 16mm; }
+				</style>
+			</head>
+			<body>
+				<header>
+					<h1>Design Workflow Report</h1>
+					<p>${escapeHtml(dateWindow)}</p>
+				</header>
+				<section class="kpis">
+					<div class="kpi"><span>Tracked time</span><strong>${escapeHtml(formatMinutes(totalMinutes))}</strong></div>
+					<div class="kpi"><span>Lead time</span><strong>${escapeHtml(workflowReport ? `${workflowReport.lead_time_days}d` : 'n/a')}</strong></div>
+					<div class="kpi"><span>Cycle time</span><strong>${escapeHtml(workflowReport ? `${workflowReport.cycle_time_days}d` : 'n/a')}</strong></div>
+					<div class="kpi"><span>Blocked time</span><strong>${escapeHtml(formatMinutes(workflowReport?.blocked_time_minutes ?? 0))}</strong></div>
+				</section>
+				<h2>Project time</h2>
+				<table>
+					<thead><tr><th>Project</th><th>Manager</th><th>Minutes</th><th>Hours</th></tr></thead>
+					<tbody>${projectRows || '<tr><td colspan="4">No project time in this window.</td></tr>'}</tbody>
+				</table>
+				<h2>Designer forecast</h2>
+				<table>
+					<thead><tr><th>Designer</th><th>Open</th><th>Overdue</th><th>Remaining minutes</th><th>Load</th><th>Risk</th></tr></thead>
+					<tbody>${forecastHtml || '<tr><td colspan="6">No forecast rows.</td></tr>'}</tbody>
+				</table>
+			</body>
+		</html>`);
+	printable.document.close();
+	printable.focus();
+	printable.print();
+};
+
+const formatLabel = (value: unknown) =>
+	String(value ?? '')
 		.split('_')
 		.map((part) => part.charAt(0).toUpperCase() + part.slice(1))
 		.join(' ');
@@ -529,6 +751,51 @@ const getApiErrorMessage = (error: unknown, fallback: string) => {
 	}
 	return typeof maybeError.data?.message === 'string' ? maybeError.data.message : fallback;
 };
+
+const stringFromSavedFilter = (filters: Record<string, unknown>, key: string) => {
+	const value = filters[key];
+	if (typeof value === 'string') return value;
+	if (typeof value === 'number') return String(value);
+	return '';
+};
+
+const boolFromSavedFilter = (filters: Record<string, unknown>, key: string) => filters[key] === true || filters[key] === 'true';
+
+const filtersFromSavedView = (view: SavedView): BoardFiltersState => {
+	const sortField = typeof view.sort.field === 'string' ? view.sort.field : 'sort_order';
+	const reviewState = stringFromSavedFilter(view.filters, 'review_state');
+	return {
+		project: stringFromSavedFilter(view.filters, 'project'),
+		status: stringFromSavedFilter(view.filters, 'status'),
+		priority: stringFromSavedFilter(view.filters, 'priority'),
+		assignee: stringFromSavedFilter(view.filters, 'assignee'),
+		reviewState: REVIEW_STATE_OPTIONS.includes(reviewState as TaskCard['review_state']) ? reviewState as TaskCard['review_state'] : '',
+		sort: BOARD_SORT_OPTIONS.includes(sortField as (typeof BOARD_SORT_OPTIONS)[number]) ? sortField : 'sort_order',
+		search: stringFromSavedFilter(view.filters, 'q'),
+		overdueOnly: boolFromSavedFilter(view.filters, 'overdue'),
+		blockedOnly: boolFromSavedFilter(view.filters, 'blocked'),
+		archivedOnly: view.show_archived || boolFromSavedFilter(view.filters, 'archived'),
+	};
+};
+
+const savedViewPayloadFromFilters = (name: string, filters: BoardFiltersState, visibility: SavedView['visibility']) => ({
+	name: name.trim(),
+	visibility,
+	filters: {
+		project: filters.project,
+		status: filters.status,
+		priority: filters.priority,
+		assignee: filters.assignee,
+		review_state: filters.reviewState,
+		q: filters.search,
+		overdue: filters.overdueOnly,
+		blocked: filters.blockedOnly,
+		archived: filters.archivedOnly,
+	},
+	sort: { field: filters.sort },
+	density: 'compact' as const,
+	show_archived: filters.archivedOnly,
+});
 
 const buildTaskPayload = (projectValue: number, form: TaskFormState, options?: { includeTime?: boolean }): TaskInput => ({
 	project_id: projectValue,
@@ -964,6 +1231,7 @@ const TaskCardItem = ({
 							</button>
 						) : null}
 					</div>
+					<span className="workflow-trello-card-project">{task.project.name}</span>
 					{task.description ? <p className="workflow-trello-card-description">{task.description}</p> : null}
 					<div className="workflow-trello-card-footer">
 						<div className="workflow-trello-card-badges">
@@ -975,6 +1243,7 @@ const TaskCardItem = ({
 							) : null}
 							{task.checklist_items.length ? <span data-complete={doneItems === task.checklist_items.length}><CheckCircle2 size={12} />{doneItems}/{task.checklist_items.length}</span> : null}
 							{task.attachments.length ? <span><Paperclip size={12} />{task.attachments.length}</span> : null}
+							{task.review_state !== 'not_submitted' ? <span data-tone={task.review_state === 'approved' ? 'progress' : task.review_state === 'changes_requested' ? 'urgent' : 'warning'}><ShieldCheck size={12} />{labelFor(task.review_state)}</span> : null}
 							{task.priority === 'high' || task.priority === 'urgent' ? <span data-tone="urgent"><CircleAlert size={12} />{labelFor(task.priority)}</span> : null}
 						</div>
 						{task.current_assignee ? <AvatarBadge user={task.current_assignee} size={24} /> : null}
@@ -1079,6 +1348,14 @@ const TaskCardItem = ({
 						<span>{labelFor(task.priority) || task.priority}</span>
 					</span>
 				</Chip>
+				{task.review_state !== 'not_submitted' ? (
+					<Chip tone={task.review_state === 'approved' ? 'progress' : task.review_state === 'changes_requested' ? 'urgent' : 'warning'}>
+						<span className="inline-flex items-center gap-1.5">
+							<ShieldCheck size={12} />
+							<span>{labelFor(task.review_state)}</span>
+						</span>
+					</Chip>
+				) : null}
 				{showTime && task.due_date ? <Chip tone={dueDelivery?.tone}>{dueDelivery?.label ?? dateFor(task.due_date)}</Chip> : null}
 				{!task.current_assignee ? <Chip>{copy.labels.unassigned}</Chip> : null}
 			</div>
@@ -1345,6 +1622,12 @@ const DesignWorkflowShell = ({ title, variant, projectId, taskId }: Props) => {
 		if (notification.type === 'chat_message' && typeof notification.payload.title === 'string' && notification.payload.title.trim()) {
 			return notification.payload.title;
 		}
+		if (notification.type === 'workflow_digest' && typeof notification.payload.total_count === 'number') {
+			const frequency = typeof notification.payload.frequency === 'string' ? notification.payload.frequency : 'daily';
+			const frequencyLabel = workflow.labels[frequency] ?? formatLabel(frequency);
+			const unreadCount = typeof notification.payload.unread_count === 'number' ? notification.payload.unread_count : 0;
+			return `${frequencyLabel} - ${notification.payload.total_count} ${workflow.labels.totalAlerts}, ${unreadCount} ${workflow.labels.unread}`;
+		}
 		return objectTitle || workflow.labels.notificationFallback;
 	};
 	const describeWorkflowActivity = (taskActivity: TaskDetail['recent_activity'][number] | ProjectDetail['recent_activity'][number]) => {
@@ -1357,17 +1640,15 @@ const DesignWorkflowShell = ({ title, variant, projectId, taskId }: Props) => {
 	};
 	const isSuperuser = Boolean((profile as { is_superuser?: boolean }).is_superuser);
 	const isManager = profile.role === 'manager' || profile.is_staff || isSuperuser;
-	const [boardFilters, setBoardFilters] = useState({
-		project: '',
-		status: '',
-		priority: '',
-		assignee: '',
-		search: '',
-		overdueOnly: false,
-		blockedOnly: false,
-		archivedOnly: false,
-	});
+	const [boardFilters, setBoardFilters] = useState<BoardFiltersState>(emptyBoardFilters);
+	const [boardViewMode, setBoardViewMode] = useState<BoardViewMode>('board');
+	const [boardCalendarMonth, setBoardCalendarMonth] = useState<Date | null>(null);
+	const [savedViewName, setSavedViewName] = useState('');
+	const [savedViewVisibility, setSavedViewVisibility] = useState<SavedView['visibility']>('private');
+	const [selectedSavedViewId, setSelectedSavedViewId] = useState<number | null>(null);
+	const defaultSavedViewAppliedRef = useRef(false);
 	const [notificationsUnreadOnly, setNotificationsUnreadOnly] = useState(false);
+	const [notificationCommentDrafts, setNotificationCommentDrafts] = useState<Record<number, string>>({});
 	const [reportFilters, setReportFilters] = useState({ start_date: '', end_date: '' });
 	const [projectForm, setProjectForm] = useState<ProjectInput>(() => emptyProjectForm(profile.id));
 	const [projectEditForm, setProjectEditForm] = useState<ProjectInput>(() => emptyProjectForm(profile.id));
@@ -1395,7 +1676,18 @@ const DesignWorkflowShell = ({ title, variant, projectId, taskId }: Props) => {
 	const dragPointerYRef = useRef<number | null>(null);
 	const taskAddPanelRef = useRef<HTMLDivElement | null>(null);
 	const taskAddActionsRef = useRef<HTMLDivElement | null>(null);
-	const [selectedTaskId, setSelectedTaskId] = useState<number | null>(taskId ?? null);
+	const [selectedTaskId, setSelectedTaskId] = useState<number | null>(null);
+	const [taskDetailTab, setTaskDetailTab] = useState<TaskDetailTab>('overview');
+	const [reviewNotes, setReviewNotes] = useState('');
+	const [versionNotes, setVersionNotes] = useState('');
+	const [versionAttachmentId, setVersionAttachmentId] = useState('');
+	const [versionApprovalState, setVersionApprovalState] = useState<TaskArtifactVersion['approval_state']>('pending');
+	const [selectedAnnotationAttachmentId, setSelectedAnnotationAttachmentId] = useState<number | null>(null);
+	const [annotationVersionId, setAnnotationVersionId] = useState('');
+	const [annotationBody, setAnnotationBody] = useState('');
+	const [annotationX, setAnnotationX] = useState('50');
+	const [annotationY, setAnnotationY] = useState('50');
+	const [annotationResolved, setAnnotationResolved] = useState(false);
 	const [projectCommentsPage, setProjectCommentsPage] = useState(1);
 	const [projectTasksPage, setProjectTasksPage] = useState(1);
 	const [projectActivityPage, setProjectActivityPage] = useState(1);
@@ -1420,6 +1712,12 @@ const DesignWorkflowShell = ({ title, variant, projectId, taskId }: Props) => {
 			router.replace(DASHBOARD_BOARD, { scroll: false });
 		}
 	}, [router, taskId, variant]);
+
+	useEffect(() => {
+		if (variant === 'board' && taskId) {
+			setSelectedTaskId(taskId);
+		}
+	}, [taskId, variant]);
 
 	const { data: summary } = useGetDashboardSummaryQuery(undefined, {
 		skip: variant !== 'overview' || !isManager,
@@ -1448,6 +1746,13 @@ const DesignWorkflowShell = ({ title, variant, projectId, taskId }: Props) => {
 		skip: !['projects', 'overview', 'board', 'project-detail', 'task-detail'].includes(variant),
 	});
 	const projects = projectsData ?? EMPTY_PROJECTS;
+	const { data: savedViews = [] } = useGetSavedViewsQuery(undefined, {
+		skip: !['board', 'my-work'].includes(variant),
+	});
+	const { data: workspaceSearchResults = [] } = useSearchWorkspaceQuery(
+		{ q: boardFilters.search.trim(), types: 'task,project,user,chat,file' },
+		{ skip: !['board', 'my-work'].includes(variant) || boardFilters.search.trim().length < 2 },
+	);
 	const { data: project, isLoading: projectLoading } = useGetProjectQuery(projectId ?? 0, {
 		skip: variant !== 'project-detail' || !projectId,
 	});
@@ -1460,6 +1765,9 @@ const DesignWorkflowShell = ({ title, variant, projectId, taskId }: Props) => {
 					status: boardFilters.status || undefined,
 					priority: boardFilters.priority || undefined,
 					assignee: boardFilters.assignee ? Number(boardFilters.assignee) : undefined,
+					review_state: boardFilters.reviewState || undefined,
+					q: boardFilters.search.trim() || undefined,
+					sort: boardFilters.sort || undefined,
 					overdue: boardFilters.overdueOnly || undefined,
 					blocked: boardFilters.blockedOnly || undefined,
 					archived: boardFilters.archivedOnly || undefined,
@@ -1468,9 +1776,10 @@ const DesignWorkflowShell = ({ title, variant, projectId, taskId }: Props) => {
 		skip: !['board', 'my-work', 'overview'].includes(variant),
 	});
 	const tasks = tasksData ?? EMPTY_TASKS;
-	const { data: task, isLoading: taskLoading } = useGetTaskQuery(activeTaskId ?? 0, {
+	const { data: taskData, isLoading: taskLoading } = useGetTaskQuery(activeTaskId ?? 0, {
 		skip: !activeTaskId,
 	});
+	const task = useMemo(() => normalizeTaskDetail(taskData), [taskData]);
 	const { data: workloadData } = useGetWorkloadQuery(undefined, {
 		skip: !isManager || !['team', 'overview'].includes(variant),
 	});
@@ -1483,19 +1792,38 @@ const DesignWorkflowShell = ({ title, variant, projectId, taskId }: Props) => {
 		{ skip: variant !== 'report-time' || !isManager },
 	);
 	const timeReport = timeReportData ?? EMPTY_TIME_REPORT;
+	const { data: workflowReport } = useGetWorkflowReportQuery(
+		{
+			start_date: reportFilters.start_date || undefined,
+			end_date: reportFilters.end_date || undefined,
+		},
+		{ skip: variant !== 'report-time' || !isManager },
+	);
 	const { data: notificationsData } = useGetNotificationsQuery(
 		{ unread: notificationsUnreadOnly || undefined },
 		{ skip: variant !== 'notifications' },
 	);
 	const notifications = notificationsData ?? EMPTY_NOTIFICATIONS;
+	const { data: notificationPreferences } = useGetNotificationPreferencesQuery(undefined, {
+		skip: variant !== 'notifications',
+	});
+	const resolvedNotificationPreferences = notificationPreferences ?? DEFAULT_NOTIFICATION_PREFERENCES;
 	const { data: labels = [] } = useGetLabelsQuery(undefined, { skip: !activeTaskId && variant !== 'project-detail' });
+	const { data: selectedAttachmentAnnotations = EMPTY_ANNOTATIONS } = useGetAttachmentAnnotationsQuery(
+		selectedAnnotationAttachmentId ?? 0,
+		{ skip: !selectedAnnotationAttachmentId },
+	);
 
 	const [createProject, createProjectState] = useCreateProjectMutation();
 	const [createLabel] = useCreateLabelMutation();
+	const [createSavedView, createSavedViewState] = useCreateSavedViewMutation();
+	const [updateSavedView] = useUpdateSavedViewMutation();
+	const [deleteSavedView] = useDeleteSavedViewMutation();
 	const [updateProject, updateProjectState] = useUpdateProjectMutation();
 	const [createTask, createTaskState] = useCreateTaskMutation();
 	const [updateTask, updateTaskState] = useUpdateTaskMutation();
 	const [updateTaskStatus, updateStatusState] = useUpdateTaskStatusMutation();
+	const [updateTaskReview, updateTaskReviewState] = useUpdateTaskReviewMutation();
 	const [reorderTasks, reorderTasksState] = useReorderTasksMutation();
 	const [archiveTask] = useArchiveTaskMutation();
 	const [addChecklist, addChecklistState] = useAddChecklistMutation();
@@ -1507,20 +1835,23 @@ const DesignWorkflowShell = ({ title, variant, projectId, taskId }: Props) => {
 	const [setTaskCoverFromAttachment, setTaskCoverFromAttachmentState] = useSetTaskCoverFromAttachmentMutation();
 	const [uploadTaskCover, uploadTaskCoverState] = useUploadTaskCoverMutation();
 	const [deleteTaskCover] = useDeleteTaskCoverMutation();
+	const [createTaskVersion, createTaskVersionState] = useCreateTaskVersionMutation();
+	const [createAttachmentAnnotation, createAnnotationState] = useCreateAttachmentAnnotationMutation();
 	const [reassignTask, reassignTaskState] = useReassignTaskMutation();
 	const [addTaskComment, addCommentState] = useAddTaskCommentMutation();
 	const [markNotificationRead] = useMarkNotificationReadMutation();
+	const [snoozeNotification] = useSnoozeNotificationMutation();
+	const [runNotificationAction] = useRunNotificationActionMutation();
+	const [updateNotificationPreferences] = useUpdateNotificationPreferencesMutation();
 
 	useEffect(() => {
 		if (profile.id && !projectForm.manager_id) {
-			// eslint-disable-next-line react-hooks/set-state-in-effect
 			setProjectForm((current) => ({ ...current, manager_id: profile.id }));
 		}
 	}, [profile.id, projectForm.manager_id]);
 
 	useEffect(() => {
 		if (project) {
-			// eslint-disable-next-line react-hooks/set-state-in-effect
 			setProjectEditForm({
 				name: project.name,
 				description: project.description,
@@ -1542,9 +1873,19 @@ const DesignWorkflowShell = ({ title, variant, projectId, taskId }: Props) => {
 		if (!['board', 'my-work', 'overview'].includes(variant)) {
 			return;
 		}
-		// eslint-disable-next-line react-hooks/set-state-in-effect
 		setBoardDraft(tasks);
 	}, [tasks, variant]);
+
+	useEffect(() => {
+		if (!['board', 'my-work'].includes(variant) || defaultSavedViewAppliedRef.current || savedViews.length === 0) {
+			return;
+		}
+		const defaultView = savedViews.find((item) => item.is_default);
+		if (!defaultView) return;
+		defaultSavedViewAppliedRef.current = true;
+		setBoardFilters(filtersFromSavedView(defaultView));
+		setSelectedSavedViewId(defaultView.id);
+	}, [savedViews, variant]);
 
 	useEffect(() => {
 		const handleMove = (event: MouseEvent | PointerEvent) => {
@@ -1561,7 +1902,6 @@ const DesignWorkflowShell = ({ title, variant, projectId, taskId }: Props) => {
 	}, []);
 
 	useEffect(() => {
-		// eslint-disable-next-line react-hooks/set-state-in-effect
 		setTaskEditForm(buildTaskEditForm(task));
 		if (task?.current_assignee?.id) {
 			setReassignForm((current) => ({ ...current, assignee_id: String(task.current_assignee?.id ?? '') }));
@@ -1577,6 +1917,21 @@ const DesignWorkflowShell = ({ title, variant, projectId, taskId }: Props) => {
 		setModalDescriptionEditing(false);
 		setModalLabelComposerOpen(false);
 	}, [task]);
+
+	useEffect(() => {
+		setTaskDetailTab('overview');
+		setReviewNotes('');
+		setVersionNotes('');
+		setVersionAttachmentId(task?.attachments[0]?.id ? String(task.attachments[0].id) : '');
+		setVersionApprovalState('pending');
+		setSelectedAnnotationAttachmentId(task?.attachments[0]?.id ?? null);
+		setAnnotationVersionId('');
+		setAnnotationBody('');
+		setAnnotationX('50');
+		setAnnotationY('50');
+		setAnnotationResolved(false);
+		// eslint-disable-next-line react-hooks/exhaustive-deps
+	}, [task?.id]);
 
 	useEffect(() => {
 		if (!selectedTaskId) return;
@@ -1634,9 +1989,34 @@ const DesignWorkflowShell = ({ title, variant, projectId, taskId }: Props) => {
 		setAttachmentPreview({ name: attachment.name, url, meta });
 	};
 
+	const applySavedView = (view: SavedView) => {
+		setBoardFilters(filtersFromSavedView(view));
+		setSelectedSavedViewId(view.id);
+		setBoardFiltersOpen(true);
+	};
+
+	const saveBoardView = async () => {
+		const name = savedViewName.trim();
+		if (!name) return;
+		const view = await createSavedView(savedViewPayloadFromFilters(name, boardFilters, savedViewVisibility)).unwrap();
+		setSavedViewName('');
+		setSelectedSavedViewId(view.id);
+	};
+
+	const markCurrentViewDefault = async () => {
+		if (!selectedSavedViewId) return;
+		await updateSavedView({ id: selectedSavedViewId, data: { is_default: true } }).unwrap();
+	};
+
+	const deleteCurrentSavedView = async () => {
+		if (!selectedSavedViewId) return;
+		await deleteSavedView(selectedSavedViewId).unwrap();
+		setSelectedSavedViewId(null);
+	};
+
 	const filteredBoardTasks = boardDraft.filter((taskItem) => {
 		if (!boardFilters.search.trim()) return true;
-		const haystack = `${taskItem.title} ${taskItem.project.name} ${taskItem.description}`.toLowerCase();
+		const haystack = `${taskItem.title} ${taskItem.project.name} ${taskItem.description} ${taskItem.labels.map((label) => label.name).join(' ')}`.toLowerCase();
 		return haystack.includes(boardFilters.search.trim().toLowerCase());
 	});
 	const quickAddProject =
@@ -2123,17 +2503,191 @@ const DesignWorkflowShell = ({ title, variant, projectId, taskId }: Props) => {
 		);
 	};
 
-	const resetBoardFilters = () =>
-		setBoardFilters({
-			project: '',
-			status: '',
-			priority: '',
-			assignee: '',
-			search: '',
-			overdueOnly: false,
-			blockedOnly: false,
-			archivedOnly: false,
-		});
+	const resetBoardFilters = () => {
+		defaultSavedViewAppliedRef.current = true;
+		setBoardFilters(emptyBoardFilters());
+		setSelectedSavedViewId(null);
+	};
+
+	const renderSearchResultIcon = (result: WorkspaceSearchResult) => {
+		if (result.type === 'task') return <ListTodo size={15} />;
+		if (result.type === 'project') return <FolderKanban size={15} />;
+		if (result.type === 'chat') return <MessagesSquare size={15} />;
+		if (result.type === 'file') return <Paperclip size={15} />;
+		return <Users size={15} />;
+	};
+
+	const renderWorkspaceSearchResults = () => {
+		if (boardFilters.search.trim().length < 2) return null;
+		return (
+			<div className="workflow-workspace-search-results">
+				<div className="workflow-workspace-search-head">
+					<span><Search size={15} />{workflow.labels.workspaceSearch ?? 'Workspace search'}</span>
+					<strong>{workspaceSearchResults.length}</strong>
+				</div>
+				{workspaceSearchResults.slice(0, 8).map((result) => (
+					<Link key={`${result.type}-${result.id}-${result.url}`} href={result.url} className="workflow-workspace-search-item">
+						<span className="workflow-workspace-search-icon">{renderSearchResultIcon(result)}</span>
+						<span className="min-w-0">
+							<b>{result.title || (workflow.labels.untitled ?? 'Untitled')}</b>
+							<small>{formatLabel(result.type)} - {result.subtitle}</small>
+						</span>
+					</Link>
+				))}
+				{workspaceSearchResults.length === 0 ? (
+					<p className="workflow-workspace-search-empty">{workflow.labels.noSearchResults ?? 'No results found.'}</p>
+				) : null}
+			</div>
+		);
+	};
+
+	const renderBoardTable = () => (
+		<div className="workflow-board-table-wrap">
+			<table className="workflow-board-table">
+				<thead>
+					<tr>
+						<th>{workflow.labels.task ?? 'Task'}</th>
+						<th>{workflow.labels.project}</th>
+						<th>{workflow.labels.assignee ?? 'Assignee'}</th>
+						<th>{workflow.labels.statusLabel}</th>
+						<th>{workflow.labels.review ?? 'Review'}</th>
+						<th>{workflow.labels.dueDate}</th>
+						<th>{workflow.labels.progress ?? 'Progress'}</th>
+					</tr>
+				</thead>
+				<tbody>
+					{filteredBoardTasks.map((taskItem) => {
+						const doneItems = taskItem.checklist_items.filter((item) => item.done).length;
+						const checklistTotal = taskItem.checklist_items.length;
+						return (
+							<tr key={taskItem.id}>
+								<td>
+									<button type="button" onClick={() => setSelectedTaskId(taskItem.id)} className="workflow-board-table-task">
+										<b>{taskItem.title}</b>
+										<span>{taskItem.labels.slice(0, 3).map((label) => label.name).join(', ') || taskItem.description || workflow.labels.noDescription}</span>
+									</button>
+								</td>
+								<td>{taskItem.project.name}</td>
+								<td>{taskItem.current_assignee ? `${taskItem.current_assignee.first_name} ${taskItem.current_assignee.last_name}` : workflow.labels.unassigned}</td>
+								<td>
+									<SelectField
+										value={taskItem.status}
+										onChange={(value) => {
+											if (isTaskStatus(value)) void updateTaskStatus({ id: taskItem.id, status: value });
+										}}
+										options={STATUS_COLUMNS.map((status) => ({ value: status, label: labelFor(status) }))}
+									/>
+								</td>
+								<td><Chip tone={taskItem.review_state === 'approved' ? 'progress' : taskItem.review_state === 'changes_requested' ? 'urgent' : taskItem.review_state === 'needs_review' ? 'warning' : 'neutral'}>{labelFor(taskItem.review_state)}</Chip></td>
+								<td>{dateFor(taskItem.due_date)}</td>
+								<td>
+									<span className="workflow-board-table-progress">
+										<CheckCircle2 size={13} />
+										{doneItems}/{checklistTotal || 0}
+									</span>
+								</td>
+							</tr>
+						);
+					})}
+				</tbody>
+			</table>
+			{filteredBoardTasks.length === 0 ? <EmptyState {...workflow.emptyStates.noTasks} /> : null}
+		</div>
+	);
+
+	const renderBoardCalendar = () => {
+		const calendarMonth = boardCalendarMonth ?? getCalendarSeedMonth(filteredBoardTasks);
+		const calendarDays = getCalendarDays(calendarMonth);
+		const calendarMonthKey = `${calendarMonth.getFullYear()}-${calendarMonth.getMonth()}`;
+		const todayKey = getDateKey(new Date());
+		const tasksByDueDate = filteredBoardTasks.reduce<Map<string, TaskCard[]>>((bucket, taskItem) => {
+			const dueDate = parseTaskDueDate(taskItem.due_date);
+			if (!dueDate) return bucket;
+			const key = getDateKey(dueDate);
+			bucket.set(key, [...(bucket.get(key) ?? []), taskItem]);
+			return bucket;
+		}, new Map());
+		const unscheduledTasks = filteredBoardTasks.filter((taskItem) => !parseTaskDueDate(taskItem.due_date));
+		const taskLabel = (count: number) => `${count} ${workflow.labels.moreTasks ?? 'more'}`;
+
+		return (
+			<div className="workflow-board-calendar">
+				<div className="workflow-board-calendar-head">
+					<button
+						type="button"
+						className="workflow-calendar-nav"
+						aria-label={workflow.labels.previousMonth ?? 'Previous month'}
+						onClick={() => setBoardCalendarMonth(addCalendarMonths(calendarMonth, -1))}
+					>
+						<ChevronLeft size={16} />
+					</button>
+					<div>
+						<span><CalendarDays size={15} />{workflow.labels.calendar ?? 'Calendar'}</span>
+						<strong>{formatDateFns(calendarMonth, 'MMMM yyyy')}</strong>
+					</div>
+					<button
+						type="button"
+						className="workflow-calendar-nav"
+						aria-label={workflow.labels.nextMonth ?? 'Next month'}
+						onClick={() => setBoardCalendarMonth(addCalendarMonths(calendarMonth, 1))}
+					>
+						<ChevronRight size={16} />
+					</button>
+				</div>
+				<div className="workflow-board-calendar-weekdays">
+					{CALENDAR_WEEKDAYS.map((day) => <span key={day}>{day}</span>)}
+				</div>
+				<div className="workflow-board-calendar-grid">
+					{calendarDays.map((day) => {
+						const dayKey = getDateKey(day);
+						const dayTasks = tasksByDueDate.get(dayKey) ?? [];
+						const isCurrentMonth = `${day.getFullYear()}-${day.getMonth()}` === calendarMonthKey;
+						return (
+							<div
+								key={dayKey}
+								className={cn(
+									'workflow-calendar-day',
+									!isCurrentMonth && 'is-muted',
+									dayKey === todayKey && 'is-today',
+									dayTasks.some((taskItem) => taskItem.is_overdue) && 'has-overdue',
+								)}
+							>
+								<span className="workflow-calendar-date">{formatDateFns(day, 'd')}</span>
+								<div className="workflow-calendar-stack">
+									{dayTasks.slice(0, 3).map((taskItem) => (
+										<button
+											type="button"
+											key={taskItem.id}
+											onClick={() => setSelectedTaskId(taskItem.id)}
+											className={cn('workflow-calendar-task', taskItem.is_overdue && 'is-overdue')}
+										>
+											<b>{taskItem.title}</b>
+											<small>{labelFor(taskItem.status)} - {labelFor(taskItem.review_state)}</small>
+										</button>
+									))}
+									{dayTasks.length > 3 ? <em>{taskLabel(dayTasks.length - 3)}</em> : null}
+								</div>
+							</div>
+						);
+					})}
+				</div>
+				{unscheduledTasks.length > 0 ? (
+					<div className="workflow-calendar-unscheduled">
+						<div>
+							<span>{workflow.labels.unscheduled ?? 'Unscheduled'}</span>
+							<strong>{unscheduledTasks.length}</strong>
+						</div>
+						{unscheduledTasks.slice(0, 6).map((taskItem) => (
+							<button type="button" key={taskItem.id} onClick={() => setSelectedTaskId(taskItem.id)}>
+								<b>{taskItem.title}</b>
+								<small>{taskItem.project.name}</small>
+							</button>
+						))}
+					</div>
+				) : null}
+			</div>
+		);
+	};
 
 	const renderBoard = () => {
 		const activeBoardCount = boardDraft.filter((item) => !item.archived).length;
@@ -2155,6 +2709,32 @@ const DesignWorkflowShell = ({ title, variant, projectId, taskId }: Props) => {
 						{isManager ? <span>{workflow.labels.estimated} <strong>{formatWorkDays(boardEffort, workflow.labels.daysUnit)}</strong></span> : null}
 					</div>
 					<div className="workflow-kanban-actions">
+						<div className="workflow-board-segment">
+							<button
+								type="button"
+								onClick={() => setBoardViewMode('board')}
+								className={boardViewMode === 'board' ? 'is-active' : ''}
+							>
+								<FolderKanban size={14} />
+								<span>{workflow.labels.board ?? 'Board'}</span>
+							</button>
+							<button
+								type="button"
+								onClick={() => setBoardViewMode('table')}
+								className={boardViewMode === 'table' ? 'is-active' : ''}
+							>
+								<Table2 size={14} />
+								<span>{workflow.labels.table ?? 'Table'}</span>
+							</button>
+							<button
+								type="button"
+								onClick={() => setBoardViewMode('calendar')}
+								className={boardViewMode === 'calendar' ? 'is-active' : ''}
+							>
+								<CalendarDays size={14} />
+								<span>{workflow.labels.calendar ?? 'Calendar'}</span>
+							</button>
+						</div>
 						<button
 							type="button"
 							onClick={() => setBoardFiltersOpen((open) => !open)}
@@ -2237,17 +2817,92 @@ const DesignWorkflowShell = ({ title, variant, projectId, taskId }: Props) => {
 							]}
 							startIcon={<Users size={16} />}
 						/>
+						<SelectField
+							value={boardFilters.reviewState}
+							onChange={(value) => setBoardFilters((current) => ({ ...current, reviewState: value as BoardFiltersState['reviewState'] }))}
+							options={[
+								{ value: '', label: workflow.labels.allReviews ?? 'All reviews' },
+								...REVIEW_STATE_OPTIONS.map((item) => ({ value: item, label: labelFor(item) })),
+							]}
+							startIcon={<ShieldCheck size={16} />}
+						/>
+						<SelectField
+							value={boardFilters.sort}
+							onChange={(value) => setBoardFilters((current) => ({ ...current, sort: value }))}
+							options={[
+								{ value: 'sort_order', label: workflow.labels.manualOrder ?? 'Manual order' },
+								{ value: 'due_date', label: workflow.labels.dueDateAsc ?? 'Due date ascending' },
+								{ value: '-due_date', label: workflow.labels.dueDateDesc ?? 'Due date descending' },
+								{ value: '-priority', label: workflow.labels.priorityDesc ?? 'Priority high first' },
+								{ value: '-updated_at', label: workflow.labels.recentlyUpdated ?? 'Recently updated' },
+								{ value: 'title', label: workflow.labels.titleAsc ?? 'Title A-Z' },
+							]}
+							startIcon={<SlidersHorizontal size={16} />}
+						/>
 					</div>
 					<div className="workflow-kanban-toggles">
 						<ToggleField label={workflow.labels.overdueOnly} checked={boardFilters.overdueOnly} onChange={(checked) => setBoardFilters((current) => ({ ...current, overdueOnly: checked }))} />
 						<ToggleField label={workflow.labels.blockedOnly} checked={boardFilters.blockedOnly} onChange={(checked) => setBoardFilters((current) => ({ ...current, blockedOnly: checked }))} />
 						<Chip tone="neutral">{workflow.labels.active} {activeBoardCount}</Chip>
 					</div>
+					<div className="workflow-saved-view-bar">
+						<SelectField
+							value={selectedSavedViewId ? String(selectedSavedViewId) : ''}
+							onChange={(value) => {
+								const view = savedViews.find((item) => String(item.id) === value);
+								if (view) applySavedView(view);
+								if (!value) setSelectedSavedViewId(null);
+							}}
+							options={[
+								{ value: '', label: workflow.labels.savedViews ?? 'Saved views' },
+								...savedViews.map((view) => ({
+									value: view.id,
+									label: `${view.is_default ? '* ' : ''}${view.name}${view.visibility === 'team' ? ` - ${workflow.labels.team ?? 'Team'}` : ''}`,
+								})),
+							]}
+							startIcon={<Bookmark size={16} />}
+						/>
+						<input
+							value={savedViewName}
+							onChange={(event) => setSavedViewName(event.target.value)}
+							placeholder={workflow.labels.saveViewName ?? 'View name'}
+							className="app-input"
+						/>
+						<SelectField
+							value={savedViewVisibility}
+							onChange={(value) => setSavedViewVisibility(value === 'team' && isManager ? 'team' : 'private')}
+							options={[
+								{ value: 'private', label: workflow.labels.privateView ?? 'Private' },
+								...(isManager ? [{ value: 'team', label: workflow.labels.teamView ?? 'Team' }] : []),
+							]}
+						/>
+						<button type="button" className="app-button" disabled={!savedViewName.trim() || createSavedViewState.isLoading} onClick={() => void saveBoardView()}>
+							<Save size={15} />
+							<span>{workflow.buttons.save ?? 'Save'}</span>
+						</button>
+						{selectedSavedViewId ? (
+							<>
+								<button type="button" className="app-button app-button-secondary" onClick={() => void markCurrentViewDefault()}>
+									<Bookmark size={15} />
+									<span>{workflow.buttons.setDefault ?? 'Default'}</span>
+								</button>
+								<button type="button" className="app-button app-button-ghost" onClick={() => void deleteCurrentSavedView()}>
+									<Trash2 size={15} />
+									<span>{workflow.buttons.delete ?? 'Delete'}</span>
+								</button>
+							</>
+						) : null}
+					</div>
+					{renderWorkspaceSearchResults()}
 				</section>
 
 				<section className="workflow-board-surface overflow-x-auto">
 					{tasksLoading ? (
 						<EmptyState {...workflow.emptyStates.loadingBoard} />
+					) : boardViewMode === 'table' ? (
+						renderBoardTable()
+					) : boardViewMode === 'calendar' ? (
+						renderBoardCalendar()
 					) : (
 						<div className="workflow-board-layout">
 							<DndContext sensors={sensors} collisionDetection={closestCenter} onDragStart={handleDragStart} onDragMove={handleDragMove} onDragEnd={handleDragEnd}>
@@ -2819,6 +3474,95 @@ const DesignWorkflowShell = ({ title, variant, projectId, taskId }: Props) => {
 			{ key: 'attachments' as const, icon: <Paperclip size={18} />, title: workflow.labels.attachmentsPanel ?? 'Attachments', body: workflow.labels.addAttachmentsHint ?? 'Attach files, briefs, and links.' },
 			{ key: 'members' as const, icon: <Users size={18} />, title: workflow.labels.membersPanel ?? 'Members', body: workflow.labels.addMembersHint ?? 'Assign or reassign the card.' },
 		];
+		const detailTabs: Array<{ key: TaskDetailTab; label: string; icon: ReactNode }> = [
+			{ key: 'overview', label: workflow.labels.overview ?? 'Overview', icon: <ListTodo size={16} /> },
+			{ key: 'review', label: workflow.labels.review ?? 'Review', icon: <ShieldCheck size={16} /> },
+			{ key: 'files', label: workflow.labels.files ?? 'Files', icon: <Paperclip size={16} /> },
+			{ key: 'activity', label: workflow.sections.activity.title, icon: <MessagesSquare size={16} /> },
+			{ key: 'time', label: workflow.sections.timeEntries.title, icon: <Clock3 size={16} /> },
+		];
+		const selectedAnnotationAttachment = task.attachments.find((attachment) => attachment.id === selectedAnnotationAttachmentId) ?? task.attachments[0] ?? null;
+		const selectedAnnotationAttachmentUrl = selectedAnnotationAttachment
+			? resolveMediaUrl(selectedAnnotationAttachment.file_url ?? selectedAnnotationAttachment.file)
+			: '';
+		const selectedAnnotationVersionOptions = task.artifact_versions.filter(
+			(version) => !selectedAnnotationAttachment || !version.attachment || version.attachment.id === selectedAnnotationAttachment.id,
+		);
+		const handoffTemplate = checklistTemplates.find((template) => template.key === 'delivery');
+		const reviewTone: 'urgent' | 'progress' | 'neutral' | 'warning' =
+			task.review_state === 'approved'
+				? 'progress'
+				: task.review_state === 'changes_requested'
+					? 'urgent'
+					: task.review_state === 'needs_review'
+						? 'warning'
+						: 'neutral';
+		const sourceChatHref = task.source_chat_thread_id
+			? `${DASHBOARD_CHAT}?thread=${task.source_chat_thread_id}${task.source_chat_message_id ? `&message=${task.source_chat_message_id}` : ''}`
+			: DASHBOARD_CHAT;
+		const renderSourceChatLink = (mode: 'modal' | 'detail') => {
+			if (!task.source_chat_message_id) return null;
+			return (
+				<section className={mode === 'modal' ? 'workflow-trello-modal-section workflow-trello-modal-section-compact' : 'workflow-source-chat-card'}>
+					<div className={mode === 'modal' ? 'workflow-trello-modal-section-head' : 'workflow-source-chat-card-head'}>
+						<MessagesSquare size={18} />
+						<h3>{workflow.labels.sourceChatMessage ?? 'Source chat message'}</h3>
+					</div>
+					<p>{workflow.labels.sourceChatHint ?? 'This task was created from a chat decision.'}</p>
+					<Link href={sourceChatHref} className={mode === 'modal' ? 'workflow-trello-modal-save' : 'app-button app-button-secondary'}>
+						<ArrowRight size={15} />
+						<span>{workflow.buttons.openSourceChat ?? 'Open source chat'}</span>
+					</Link>
+				</section>
+			);
+		};
+		const submitReviewUpdate = async (reviewState: TaskDetail['review_state']) => {
+			await updateTaskReview({
+				id: task.id,
+				review_state: reviewState,
+				notes: reviewNotes.trim() || undefined,
+			}).unwrap();
+			setReviewNotes('');
+		};
+		const submitArtifactVersion = async () => {
+			await createTaskVersion({
+				id: task.id,
+				attachment_id: versionAttachmentId ? Number(versionAttachmentId) : null,
+				notes: versionNotes.trim(),
+				approval_state: versionApprovalState,
+			}).unwrap();
+			setVersionNotes('');
+			setVersionApprovalState('pending');
+		};
+		const submitAnnotation = async () => {
+			if (!selectedAnnotationAttachment || !annotationBody.trim()) return;
+			await createAttachmentAnnotation({
+				attachmentId: selectedAnnotationAttachment.id,
+				version_id: annotationVersionId ? Number(annotationVersionId) : null,
+				x_percent: annotationX || '50',
+				y_percent: annotationY || '50',
+				body: annotationBody.trim(),
+				resolved: annotationResolved,
+			}).unwrap();
+			setAnnotationBody('');
+			setAnnotationResolved(false);
+		};
+		const createHandoffChecklist = async () => {
+			if (!handoffTemplate) return;
+			const checklist = await addChecklist({
+				id: task.id,
+				title: handoffTemplate.title,
+				sort_order: checklistGroups.length,
+			}).unwrap();
+			for (const [index, itemTitle] of handoffTemplate.items.entries()) {
+				await addChecklistItem({
+					id: task.id,
+					checklist_id: checklist.id,
+					title: itemTitle,
+					sort_order: index,
+				}).unwrap();
+			}
+		};
 
 		if (selectedTaskId) {
 			return (
@@ -2851,13 +3595,41 @@ const DesignWorkflowShell = ({ title, variant, projectId, taskId }: Props) => {
 							<div className="min-w-0">
 								<div className="workflow-trello-modal-status-row">
 									<Chip status={task.status}>{labelFor(task.status)}</Chip>
+									<Chip tone={task.review_state === 'approved' ? 'progress' : task.review_state === 'changes_requested' ? 'urgent' : task.review_state === 'needs_review' ? 'warning' : 'neutral'}>
+										<span className="inline-flex items-center gap-1.5">
+											<ShieldCheck size={12} />
+											<span>{labelFor(task.review_state)}</span>
+										</span>
+									</Chip>
 									<span>{task.project.name}</span>
 								</div>
 								<h2>{task.title}</h2>
 							</div>
 						</div>
 
+						{renderSourceChatLink('modal')}
+
 						<div className="workflow-trello-modal-actions" ref={taskAddActionsRef}>
+							<button
+								type="button"
+								disabled={updateTaskReviewState.isLoading}
+								onClick={() => void updateTaskReview({ id: task.id, review_state: task.review_state === 'needs_review' ? 'changes_requested' : 'needs_review' })}
+								className="workflow-trello-modal-action"
+							>
+								<ShieldCheck size={17} />
+								<span>{task.review_state === 'needs_review' ? (workflow.buttons.requestChanges ?? 'Request changes') : (workflow.buttons.requestReview ?? 'Request review')}</span>
+							</button>
+							{isManager ? (
+								<button
+									type="button"
+									disabled={updateTaskReviewState.isLoading}
+									onClick={() => void updateTaskReview({ id: task.id, review_state: 'approved' })}
+									className="workflow-trello-modal-action"
+								>
+									<CheckCircle2 size={17} />
+									<span>{workflow.buttons.approve ?? 'Approve'}</span>
+								</button>
+							) : null}
 							<Popover.Root>
 								<Popover.Trigger className="workflow-trello-modal-action-primary">
 									<Plus size={18} />
@@ -3416,6 +4188,7 @@ const DesignWorkflowShell = ({ title, variant, projectId, taskId }: Props) => {
 								</Chip>
 								<Chip tone={taskDueDelivery?.tone}>{taskDueDelivery?.label ?? dateFor(task.due_date)}</Chip>
 							</div>
+							{renderSourceChatLink('detail')}
 						</div>
 						{isManager ? <div className="workflow-task-stats grid gap-3 p-4">
 							<div>
@@ -3433,6 +4206,303 @@ const DesignWorkflowShell = ({ title, variant, projectId, taskId }: Props) => {
 						</div> : null}
 					</div>
 				</Surface>
+
+				<div className="workflow-task-detail-tabs" role="tablist" aria-label="Task detail sections">
+					{detailTabs.map((tab) => (
+						<button
+							key={tab.key}
+							type="button"
+							role="tab"
+							aria-selected={taskDetailTab === tab.key}
+							data-active={taskDetailTab === tab.key}
+							onClick={() => setTaskDetailTab(tab.key)}
+						>
+							{tab.icon}
+							<span>{tab.label}</span>
+						</button>
+					))}
+				</div>
+
+				{taskDetailTab === 'review' ? (
+					<Surface
+						className="workflow-task-detail-panel workflow-review-panel"
+						title={workflow.labels.review ?? 'Review'}
+						description={workflow.labels.reviewWorkflowHint ?? 'Approval state stays separate from board status.'}
+						action={<Chip tone={reviewTone}>{labelFor(task.review_state)}</Chip>}
+					>
+						<div className="workflow-review-grid">
+							<div className="workflow-review-state-card">
+								<div>
+									<span className="workflow-review-kicker">{workflow.labels.statusLabel}</span>
+									<h3>{labelFor(task.review_state)}</h3>
+									<p>{workflow.labels.boardStatus ?? 'Board status'}: {labelFor(task.status)}</p>
+								</div>
+								<div className="workflow-review-meta-grid">
+									<div>
+										<span>{workflow.labels.reviewRequestedBy ?? 'Requested by'}</span>
+										<b>{task.review_requested_by ? `${task.review_requested_by.first_name} ${task.review_requested_by.last_name}` : workflow.labels.noDate}</b>
+										<small>{dateTimeFor(task.review_requested_at)}</small>
+									</div>
+									<div>
+										<span>{workflow.labels.approvedBy ?? 'Approved by'}</span>
+										<b>{task.review_approved_by ? `${task.review_approved_by.first_name} ${task.review_approved_by.last_name}` : workflow.labels.noDate}</b>
+										<small>{dateTimeFor(task.review_approved_at)}</small>
+									</div>
+								</div>
+								{taskMutable ? (
+									<div className="workflow-review-action-stack">
+										<FieldLabel htmlFor="task-review-notes">{workflow.labels.optionalNote}</FieldLabel>
+										<Area
+											id="task-review-notes"
+											value={reviewNotes}
+											onChange={setReviewNotes}
+											rows={3}
+											placeholder={workflow.labels.reviewNotesPlaceholder ?? 'Review notes'}
+											startIcon={<MessagesSquare size={17} />}
+										/>
+										<div className="workflow-review-actions">
+											<button
+												type="button"
+												className="app-button"
+												disabled={updateTaskReviewState.isLoading}
+												onClick={() => submitReviewUpdate('needs_review')}
+											>
+												<ShieldCheck size={16} />
+												<span>{workflow.buttons.requestReview ?? 'Request review'}</span>
+											</button>
+											<button
+												type="button"
+												className="app-button app-button-secondary"
+												disabled={updateTaskReviewState.isLoading}
+												onClick={() => submitReviewUpdate('changes_requested')}
+											>
+												<CircleAlert size={16} />
+												<span>{workflow.buttons.requestChanges ?? 'Request changes'}</span>
+											</button>
+											{isManager ? (
+												<button
+													type="button"
+													className="app-button app-button-secondary"
+													disabled={updateTaskReviewState.isLoading}
+													onClick={() => submitReviewUpdate('approved')}
+												>
+													<CheckCircle2 size={16} />
+													<span>{workflow.buttons.approve ?? 'Approve'}</span>
+												</button>
+											) : null}
+										</div>
+									</div>
+								) : null}
+							</div>
+
+							<div className="workflow-artifact-card">
+								<div className="workflow-tool-card-heading">
+									<div className="flex items-center gap-2">
+										<span className="workflow-tool-icon workflow-tool-icon-cyan"><Paperclip size={15} /></span>
+										<p>{workflow.labels.artifactVersions ?? 'Artifact versions'}</p>
+									</div>
+									<Chip>{task.artifact_versions.length}</Chip>
+								</div>
+								{taskMutable ? (
+									<div className="workflow-artifact-create">
+										<div>
+											<FieldLabel htmlFor="artifact-attachment">{workflow.labels.attachmentsPanel ?? 'Attachments'}</FieldLabel>
+											<SelectField
+												id="artifact-attachment"
+												value={versionAttachmentId}
+												onChange={setVersionAttachmentId}
+												options={[
+													{ value: '', label: workflow.labels.noLinkedFile ?? 'No linked file' },
+													...task.attachments.map((attachment) => ({ value: attachment.id, label: attachment.name })),
+												]}
+												startIcon={<Paperclip size={18} />}
+											/>
+										</div>
+										<div>
+											<FieldLabel htmlFor="artifact-approval">{workflow.labels.statusLabel}</FieldLabel>
+											<SelectField
+												id="artifact-approval"
+												value={versionApprovalState}
+												onChange={(value) => setVersionApprovalState(value as TaskArtifactVersion['approval_state'])}
+												options={['pending', 'changes_requested', 'approved'].map((value) => ({ value, label: labelFor(value) }))}
+												startIcon={<ShieldCheck size={18} />}
+											/>
+										</div>
+										<div className="md:col-span-2">
+											<FieldLabel htmlFor="artifact-notes">{workflow.labels.optionalNote}</FieldLabel>
+											<Area
+												id="artifact-notes"
+												value={versionNotes}
+												onChange={setVersionNotes}
+												rows={3}
+												placeholder={workflow.labels.versionNotesPlaceholder ?? 'Version notes'}
+												startIcon={<MessagesSquare size={18} />}
+											/>
+										</div>
+										<button type="button" className="app-button" onClick={submitArtifactVersion}>
+											<Plus size={16} />
+											<span>{createTaskVersionState.isLoading ? workflow.buttons.saving : (workflow.buttons.addVersion ?? 'Add version')}</span>
+										</button>
+										{handoffTemplate ? (
+											<button
+												type="button"
+												className="app-button app-button-secondary"
+												disabled={addChecklistState.isLoading || addChecklistItemState.isLoading}
+												onClick={createHandoffChecklist}
+											>
+												<CheckCircle2 size={16} />
+												<span>{workflow.buttons.addHandoffChecklist ?? 'Add handoff checklist'}</span>
+											</button>
+										) : null}
+									</div>
+								) : null}
+								<div className="workflow-artifact-list">
+									{task.artifact_versions.map((version) => (
+										<div key={version.id} className="workflow-artifact-row" data-state={version.approval_state}>
+											<div>
+												<b>v{version.version_number}</b>
+												<span>{labelFor(version.approval_state)}</span>
+											</div>
+											<p>{version.notes || (workflow.labels.optionalNote ?? 'No note')}</p>
+											<small>
+												{version.attachment?.name ?? (workflow.labels.noLinkedFile ?? 'No linked file')} - {version.uploaded_by.first_name} {version.uploaded_by.last_name} - {dateTimeFor(version.created_at)}
+											</small>
+										</div>
+									))}
+									{task.artifact_versions.length === 0 ? <EmptyState title={workflow.labels.artifactVersions ?? 'Artifact versions'} description={workflow.emptyStates.noActivity.description} /> : null}
+								</div>
+							</div>
+						</div>
+					</Surface>
+				) : null}
+
+				{taskDetailTab === 'files' ? (
+					<Surface
+						className="workflow-task-detail-panel workflow-files-panel"
+						title={workflow.labels.files ?? 'Files'}
+						description={workflow.labels.annotationWorkflowHint ?? 'Review pins stay linked to the selected file and version.'}
+					>
+						<div className="workflow-files-grid">
+							<div className="workflow-files-list">
+								{task.attachments.map((attachment) => {
+									const attachmentUrl = resolveMediaUrl(attachment.file_url ?? attachment.file);
+									const isImage = isImageAttachment(attachment);
+									return (
+										<button
+											key={attachment.id}
+											type="button"
+											className="workflow-file-review-card"
+											data-active={selectedAnnotationAttachment?.id === attachment.id}
+											onClick={() => setSelectedAnnotationAttachmentId(attachment.id)}
+										>
+											{isImage ? (
+												<Image src={attachmentUrl} alt={attachment.name} width={128} height={88} unoptimized />
+											) : (
+												<span><Paperclip size={20} /></span>
+											)}
+											<b>{attachment.name}</b>
+											<small>{formatFileSize(attachment.size)} - {attachment.annotation_count} {workflow.labels.annotations ?? 'annotations'}</small>
+										</button>
+									);
+								})}
+								{task.attachments.length === 0 ? <EmptyState title={workflow.labels.files ?? 'Files'} description={workflow.emptyStates.noActivity.description} /> : null}
+							</div>
+
+							<div className="workflow-annotation-workbench">
+								{selectedAnnotationAttachment ? (
+									<>
+										<div className="workflow-annotation-stage">
+											{isImageAttachment(selectedAnnotationAttachment) ? (
+												<Image src={selectedAnnotationAttachmentUrl} alt={selectedAnnotationAttachment.name} width={860} height={520} unoptimized />
+											) : (
+												<div className="workflow-annotation-file-placeholder">
+													<Paperclip size={26} />
+													<span>{selectedAnnotationAttachment.name}</span>
+												</div>
+											)}
+											{selectedAttachmentAnnotations.map((annotation) => (
+												<span
+													key={annotation.id}
+													className="workflow-annotation-pin"
+													data-resolved={annotation.resolved}
+													style={{ left: `${annotation.x_percent}%`, top: `${annotation.y_percent}%` }}
+													title={annotation.body}
+												>
+													{annotation.resolved ? <CheckCircle2 size={13} /> : <CircleAlert size={13} />}
+												</span>
+											))}
+										</div>
+										<div className="workflow-annotation-body">
+											{taskMutable ? (
+												<div className="workflow-annotation-form">
+													<div>
+														<FieldLabel htmlFor="annotation-version">{workflow.labels.artifactVersions ?? 'Artifact versions'}</FieldLabel>
+														<SelectField
+															id="annotation-version"
+															value={annotationVersionId}
+															onChange={setAnnotationVersionId}
+															options={[
+																{ value: '', label: workflow.labels.noLinkedVersion ?? 'No linked version' },
+																...selectedAnnotationVersionOptions.map((version) => ({ value: version.id, label: `v${version.version_number} - ${labelFor(version.approval_state)}` })),
+															]}
+															startIcon={<ShieldCheck size={18} />}
+														/>
+													</div>
+													<div className="workflow-annotation-position-grid">
+														<div>
+															<FieldLabel htmlFor="annotation-x">X %</FieldLabel>
+															<Field id="annotation-x" type="number" min={0} value={annotationX} onChange={setAnnotationX} />
+														</div>
+														<div>
+															<FieldLabel htmlFor="annotation-y">Y %</FieldLabel>
+															<Field id="annotation-y" type="number" min={0} value={annotationY} onChange={setAnnotationY} />
+														</div>
+													</div>
+													<div className="md:col-span-2">
+														<FieldLabel htmlFor="annotation-body">{workflow.labels.addComment}</FieldLabel>
+														<Area
+															id="annotation-body"
+															value={annotationBody}
+															onChange={setAnnotationBody}
+															rows={3}
+															placeholder={workflow.labels.annotationPlaceholder ?? 'Annotation'}
+															startIcon={<MessagesSquare size={18} />}
+														/>
+													</div>
+													<ToggleField label={workflow.labels.resolved ?? 'Resolved'} checked={annotationResolved} onChange={setAnnotationResolved} />
+													<button
+														type="button"
+														className="app-button"
+														disabled={!annotationBody.trim() || createAnnotationState.isLoading}
+														onClick={submitAnnotation}
+													>
+														<Plus size={16} />
+														<span>{createAnnotationState.isLoading ? workflow.buttons.saving : (workflow.buttons.addAnnotation ?? 'Add annotation')}</span>
+													</button>
+												</div>
+											) : null}
+											<div className="workflow-annotation-list">
+												{selectedAttachmentAnnotations.map((annotation) => (
+													<div key={annotation.id} className="workflow-annotation-row" data-resolved={annotation.resolved}>
+														<div>
+															<b>{annotation.author.first_name} {annotation.author.last_name}</b>
+															<span>{annotation.x_percent}%, {annotation.y_percent}%</span>
+														</div>
+														<p>{annotation.body}</p>
+														<small>{annotation.resolved ? (workflow.labels.resolved ?? 'Resolved') : (workflow.labels.open ?? 'Open')} - {dateTimeFor(annotation.created_at)}</small>
+													</div>
+												))}
+												{selectedAttachmentAnnotations.length === 0 ? <EmptyState title={workflow.labels.annotations ?? 'Annotations'} description={workflow.emptyStates.noCommentsYet.description} /> : null}
+											</div>
+										</div>
+									</>
+								) : (
+									<EmptyState title={workflow.labels.files ?? 'Files'} description={workflow.emptyStates.noActivity.description} />
+								)}
+							</div>
+						</div>
+					</Surface>
+				) : null}
 
 				<Surface className="workflow-task-detail-panel workflow-task-tools-panel workflow-trello-tools-panel" title={workflow.labels.cardActions ?? "Card actions"}>
 					<div className="workflow-trello-action-row">
@@ -4455,6 +5525,59 @@ const DesignWorkflowShell = ({ title, variant, projectId, taskId }: Props) => {
 			reportFilters.start_date || reportFilters.end_date
 				? `${reportFilters.start_date || workflow.labels.noDate} - ${reportFilters.end_date || workflow.labels.noDate}`
 				: workflow.labels.allTimeWindow;
+		const exportTimeReport = () => {
+			downloadCsv('design-workflow-time-report.csv', [
+				['Project', 'Manager', 'Status', 'Priority', 'Minutes', 'Hours'],
+				...sortedReport.map((row) => [
+					row.project.name,
+					`${row.project.manager.first_name} ${row.project.manager.last_name}`.trim() || row.project.manager.email,
+					labelFor(row.project.status),
+					labelFor(row.project.priority),
+					row.minutes,
+					Math.round((row.minutes / 60) * 100) / 100,
+				]),
+			]);
+		};
+		const exportWorkflowReport = (report?: WorkflowAnalyticsReport) => {
+			if (!report) return;
+			downloadCsv('design-workflow-analytics-report.csv', [
+				['Metric', 'Value'],
+				['Tasks sampled', report.tasks_sampled],
+				['Lead time days', report.lead_time_days],
+				['Cycle time days', report.cycle_time_days],
+				['Blocked tasks', report.blocked_tasks],
+				['Blocked time minutes', report.blocked_time_minutes],
+				['Needs review', report.review_bottlenecks.needs_review],
+				['Changes requested', report.review_bottlenecks.changes_requested],
+				['Pending review minutes', report.review_bottlenecks.pending_review_minutes],
+				['Estimated minutes', report.estimate_vs_actual.estimated_minutes],
+				['Actual minutes', report.estimate_vs_actual.actual_minutes],
+				['Variance minutes', report.estimate_vs_actual.variance_minutes],
+				[],
+				['Designer', 'Open tasks', 'Overdue tasks', 'Remaining minutes', 'Load percent', 'Forecast days', 'Risk'],
+				...report.designer_forecast.map((row) => [
+					`${row.user.first_name} ${row.user.last_name}`.trim() || row.user.email,
+					row.open_tasks,
+					row.overdue_tasks,
+					row.remaining_minutes,
+					row.load_percent,
+					row.forecast_days,
+					row.risk,
+				]),
+			]);
+		};
+		const exportPrintableReport = () => {
+			openPrintableReport({ dateWindow, totalMinutes, timeReport: sortedReport, workflowReport });
+		};
+		const reviewBottlenecks = workflowReport?.review_bottlenecks;
+		const estimateVsActual = workflowReport?.estimate_vs_actual;
+		const forecastRows = workflowReport?.designer_forecast ?? [];
+		const statusRows = workflowReport
+			? STATUS_COLUMNS.map((statusValue) => ({
+					status: statusValue,
+					count: workflowReport.status_counts[statusValue] ?? 0,
+				}))
+			: [];
 
 		return (
 			<div className="workflow-report-shell">
@@ -4482,6 +5605,18 @@ const DesignWorkflowShell = ({ title, variant, projectId, taskId }: Props) => {
 						<RefreshCcw size={15} />
 						<span>{workflow.buttons.clearFilters}</span>
 					</button>
+					<button type="button" onClick={exportTimeReport} className="workflow-report-clear workflow-report-export" disabled={timeReport.length === 0}>
+						<Save size={15} />
+						<span>{workflow.buttons.exportCsv ?? 'Export CSV'}</span>
+					</button>
+					<button type="button" onClick={() => exportWorkflowReport(workflowReport)} className="workflow-report-clear workflow-report-export" disabled={!workflowReport}>
+						<Table2 size={15} />
+						<span>{workflow.buttons.exportAnalyticsCsv ?? 'Export analytics'}</span>
+					</button>
+					<button type="button" onClick={exportPrintableReport} className="workflow-report-clear workflow-report-export">
+						<FileText size={15} />
+						<span>{workflow.buttons.exportPdf ?? 'Export PDF'}</span>
+					</button>
 				</section>
 
 				<section className="workflow-report-metrics">
@@ -4506,6 +5641,106 @@ const DesignWorkflowShell = ({ title, variant, projectId, taskId }: Props) => {
 						<strong>{topRow ? topRow.project.name : workflow.labels.noReportProject}</strong>
 					</div>
 				</section>
+
+				{workflowReport ? (
+					<section className="workflow-analytics-grid">
+						<article className="workflow-analytics-panel workflow-analytics-panel-strong">
+							<div className="workflow-analytics-panel-head">
+								<p>{workflow.labels.deliveryFlow ?? 'Delivery flow'}</p>
+								<h2>{workflow.labels.leadCycleTime ?? 'Lead and cycle time'}</h2>
+							</div>
+							<div className="workflow-analytics-kpis">
+								<div>
+									<span>{workflow.labels.leadTime ?? 'Lead time'}</span>
+									<strong>{workflowReport.lead_time_days}d</strong>
+								</div>
+								<div>
+									<span>{workflow.labels.cycleTime ?? 'Cycle time'}</span>
+									<strong>{workflowReport.cycle_time_days}d</strong>
+								</div>
+								<div>
+									<span>{workflow.labels.blockedTime ?? 'Blocked time'}</span>
+									<strong>{formatMinutes(workflowReport.blocked_time_minutes)}</strong>
+								</div>
+								<div>
+									<span>{workflow.labels.blockedTasks ?? 'Blocked tasks'}</span>
+									<strong>{workflowReport.blocked_tasks}</strong>
+								</div>
+							</div>
+						</article>
+
+						<article className="workflow-analytics-panel">
+							<div className="workflow-analytics-panel-head">
+								<p>{workflow.labels.reviewBottlenecks ?? 'Review bottlenecks'}</p>
+								<h2>{formatMinutes(reviewBottlenecks?.pending_review_minutes ?? 0)}</h2>
+							</div>
+							<div className="workflow-analytics-stack">
+								<span>{workflow.labels.needsReview ?? 'Needs review'} <b>{reviewBottlenecks?.needs_review ?? 0}</b></span>
+								<span>{workflow.labels.changesRequested ?? 'Changes requested'} <b>{reviewBottlenecks?.changes_requested ?? 0}</b></span>
+								<span>{workflow.labels.approved ?? 'Approved'} <b>{reviewBottlenecks?.approved ?? 0}</b></span>
+								<span>{workflow.labels.averageReviewWait ?? 'Average wait'} <b>{formatMinutes(reviewBottlenecks?.average_pending_review_minutes ?? 0)}</b></span>
+							</div>
+						</article>
+
+						<article className="workflow-analytics-panel">
+							<div className="workflow-analytics-panel-head">
+								<p>{workflow.labels.estimateVsActual ?? 'Estimate vs actual'}</p>
+								<h2>{formatMinutes(Math.abs(estimateVsActual?.variance_minutes ?? 0))}</h2>
+							</div>
+							<div className="workflow-analytics-stack">
+								<span>{workflow.labels.estimatedLoad ?? 'Estimated'} <b>{formatMinutes(estimateVsActual?.estimated_minutes ?? 0)}</b></span>
+								<span>{workflow.labels.trackedTime ?? 'Actual'} <b>{formatMinutes(estimateVsActual?.actual_minutes ?? 0)}</b></span>
+								<span>{workflow.labels.variance ?? 'Variance'} <b>{formatMinutes(estimateVsActual?.variance_minutes ?? 0)}</b></span>
+								<span>{workflow.labels.actualRatio ?? 'Actual ratio'} <b>{Math.round((estimateVsActual?.actual_to_estimate_ratio ?? 0) * 100)}%</b></span>
+							</div>
+						</article>
+					</section>
+				) : null}
+
+				{workflowReport ? (
+					<section className="workflow-forecast-board">
+						<div className="workflow-report-board-head">
+							<div>
+								<p>{workflow.labels.designerForecast ?? 'Designer forecast'}</p>
+								<h2>{workflow.labels.capacityForecast ?? 'Capacity forecast'}</h2>
+							</div>
+							<span>{workflowReport.tasks_sampled} {workflow.labels.cards}</span>
+						</div>
+						<div className="workflow-forecast-layout">
+							<div className="workflow-forecast-list">
+								{forecastRows.map((row) => (
+									<article key={row.user.id} className="workflow-forecast-card" data-risk={row.risk}>
+										<div className="workflow-forecast-card-head">
+											<AvatarBadge user={row.user} size={34} />
+											<div className="min-w-0">
+												<h3>{row.user.first_name} {row.user.last_name}</h3>
+												<p>{row.open_tasks} {workflow.labels.openLower} - {row.overdue_tasks} {workflow.labels.overdueLower}</p>
+											</div>
+											<strong>{row.load_percent}%</strong>
+										</div>
+										<div className="workflow-forecast-track" aria-hidden="true">
+											<span style={{ width: `${Math.min(row.load_percent, 100)}%` }} />
+										</div>
+										<div className="workflow-forecast-card-foot">
+											<span>{formatMinutes(row.remaining_minutes)}</span>
+											<span>{row.forecast_days} {workflow.labels.daysUnit.toLowerCase()}</span>
+											<span>{workflow.labels[row.risk] ?? row.risk}</span>
+										</div>
+									</article>
+								))}
+								{forecastRows.length === 0 ? <EmptyState {...workflow.emptyStates.noWorkloadData} /> : null}
+							</div>
+							<div className="workflow-status-distribution">
+								{statusRows.map((row) => (
+									<div key={row.status}>
+										<span>{labelFor(row.status)}</span>
+										<strong>{row.count}</strong>
+									</div>
+								))}
+							</div>
+						</div>
+					</section>
+				) : null}
 
 				{timeReport.length ? (
 					<section className="workflow-report-analytics">
@@ -4622,6 +5857,22 @@ const DesignWorkflowShell = ({ title, variant, projectId, taskId }: Props) => {
 		};
 		const toneForNotification = (notification: NotificationItem) =>
 			notification.type === 'chat_message' ? 'cyan' : notification.task ? 'green' : notification.is_read ? 'indigo' : 'rose';
+		const updatePreference = (key: 'mentions' | 'assignments' | 'review_requests' | 'due_soon', value: boolean) => {
+			void updateNotificationPreferences({ [key]: value });
+		};
+		const snoozeForOneHour = (notification: NotificationItem) => {
+			const snoozedUntil = new Date(Date.now() + 60 * 60 * 1000).toISOString();
+			void snoozeNotification({ id: notification.id, snoozed_until: snoozedUntil });
+		};
+		const runNotificationTaskAction = (notification: NotificationItem, action: 'accept_assignment' | 'move_status', status?: TaskStatus) => {
+			void runNotificationAction({ id: notification.id, action, status });
+		};
+		const submitNotificationComment = (notification: NotificationItem) => {
+			const body = notificationCommentDrafts[notification.id]?.trim();
+			if (!body) return;
+			void runNotificationAction({ id: notification.id, action: 'comment', body });
+			setNotificationCommentDrafts((current) => ({ ...current, [notification.id]: '' }));
+		};
 
 		return (
 			<div className="workflow-notifications-shell">
@@ -4674,6 +5925,42 @@ const DesignWorkflowShell = ({ title, variant, projectId, taskId }: Props) => {
 					</div>
 				</section>
 
+				<section className="workflow-notification-preferences">
+					<div>
+						<p>{workflow.labels.notificationPreferences ?? 'Notification preferences'}</p>
+						<h2>{workflow.labels.digestFrequency ?? 'Digest frequency'}</h2>
+					</div>
+					<div className="workflow-notification-preference-grid">
+						{[
+							['mentions', workflow.labels.mentions ?? 'Mentions'],
+							['assignments', workflow.labels.assignments ?? 'Assignments'],
+							['review_requests', workflow.labels.reviewRequests ?? 'Review requests'],
+							['due_soon', workflow.labels.dueSoon ?? 'Due soon'],
+						].map(([key, label]) => (
+							<label key={key} className="workflow-notification-preference-toggle">
+								<input
+									type="checkbox"
+									checked={Boolean(resolvedNotificationPreferences[key as keyof NotificationPreference])}
+									onChange={(event) => updatePreference(key as 'mentions' | 'assignments' | 'review_requests' | 'due_soon', event.target.checked)}
+								/>
+								<span>{label}</span>
+							</label>
+						))}
+						<label className="workflow-notification-digest-select">
+							<span>{workflow.labels.digestFrequency ?? 'Digest frequency'}</span>
+							<select
+								value={resolvedNotificationPreferences.digest_frequency}
+								onChange={(event) => void updateNotificationPreferences({ digest_frequency: event.target.value as NotificationPreference['digest_frequency'] })}
+							>
+								<option value="instant">{workflow.labels.instant ?? 'Instant'}</option>
+								<option value="daily">{workflow.labels.daily ?? 'Daily'}</option>
+								<option value="weekly">{workflow.labels.weekly ?? 'Weekly'}</option>
+								<option value="off">{workflow.labels.off ?? 'Off'}</option>
+							</select>
+						</label>
+					</div>
+				</section>
+
 				<section className="workflow-notifications-board">
 					<div className="workflow-notifications-board-head">
 						<div>
@@ -4694,6 +5981,12 @@ const DesignWorkflowShell = ({ title, variant, projectId, taskId }: Props) => {
 									: notification.project
 										? (workflow.labels.notificationProject ?? 'Project')
 										: (workflow.labels.notificationWorkflow ?? 'Workflow');
+							const chatThreadId = typeof notification.payload.thread_id === 'number'
+								? notification.payload.thread_id
+								: typeof notification.payload.thread_id === 'string'
+									? Number(notification.payload.thread_id)
+									: 0;
+							const chatHref = Number.isFinite(chatThreadId) && chatThreadId > 0 ? `${DASHBOARD_CHAT}?thread=${chatThreadId}` : DASHBOARD_CHAT;
 							return (
 							<article key={notification.id} className="workflow-notifications-card" data-unread={!notification.is_read} data-tone={tone}>
 								<div className="workflow-notifications-card-rail" aria-hidden="true" />
@@ -4712,6 +6005,8 @@ const DesignWorkflowShell = ({ title, variant, projectId, taskId }: Props) => {
 									<div className="workflow-notifications-meta">
 										<span><CalendarDays size={13} />{dateTimeFor(notification.created_at)}</span>
 										{contextName ? <span><FolderKanban size={13} />{contextName}</span> : null}
+										{notification.snoozed_until ? <span><Clock3 size={13} />{workflow.labels.snoozedUntil ?? 'Snoozed until'} {dateTimeFor(notification.snoozed_until)}</span> : null}
+										{notification.action_taken_at ? <span><CheckCircle2 size={13} />{workflow.labels.actionTaken ?? 'Action taken'}</span> : null}
 									</div>
 								</div>
 								<div className="workflow-notifications-actions">
@@ -4722,7 +6017,7 @@ const DesignWorkflowShell = ({ title, variant, projectId, taskId }: Props) => {
 										</button>
 									) : null}
 									{notification.type === 'chat_message' ? (
-										<Link href={DASHBOARD_CHAT} className="workflow-notifications-action-button">
+										<Link href={chatHref} className="workflow-notifications-action-button">
 											<MessagesSquare size={16} />
 											<span>{workflow.buttons.openChat}</span>
 										</Link>
@@ -4733,7 +6028,43 @@ const DesignWorkflowShell = ({ title, variant, projectId, taskId }: Props) => {
 											<span>{workflow.buttons.markAsRead}</span>
 										</button>
 									) : null}
+									<button type="button" onClick={() => snoozeForOneHour(notification)} className="workflow-notifications-action-button">
+										<Clock3 size={16} />
+										<span>{workflow.buttons.snooze ?? 'Snooze 1h'}</span>
+									</button>
+									{notification.task && !notification.action_taken_at ? (
+										<>
+											<button type="button" onClick={() => runNotificationTaskAction(notification, 'accept_assignment')} className="workflow-notifications-action-button">
+												<Users size={16} />
+												<span>{workflow.buttons.acceptAssignment ?? 'Accept'}</span>
+											</button>
+											<button type="button" onClick={() => runNotificationTaskAction(notification, 'move_status', 'in_progress')} className="workflow-notifications-action-button">
+												<ArrowRight size={16} />
+												<span>{workflow.buttons.moveToProgress ?? 'Move to progress'}</span>
+											</button>
+										</>
+									) : null}
 								</div>
+								{notification.task && !notification.action_taken_at ? (
+									<form
+										className="workflow-notifications-comment-action"
+										onSubmit={(event) => {
+											event.preventDefault();
+											submitNotificationComment(notification);
+										}}
+									>
+										<input
+											value={notificationCommentDrafts[notification.id] ?? ''}
+											onChange={(event) => setNotificationCommentDrafts((current) => ({ ...current, [notification.id]: event.target.value }))}
+											placeholder={workflow.labels.commentPlaceholder ?? 'Write comment'}
+											aria-label={workflow.labels.commentPlaceholder ?? 'Write comment'}
+										/>
+										<button type="submit" disabled={!notificationCommentDrafts[notification.id]?.trim()}>
+											<MessagesSquare size={15} />
+											<span>{workflow.buttons.postComment ?? 'Post comment'}</span>
+										</button>
+									</form>
+								) : null}
 							</article>
 							);
 						})}

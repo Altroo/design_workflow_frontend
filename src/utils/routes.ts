@@ -1,6 +1,9 @@
 // Site root
-export const SITE_ROOT = `${process.env.NEXT_PUBLIC_DOMAIN_URL_PREFIX}/`;
-export const BACKEND_SITE_ADMIN = `${process.env.NEXT_PUBLIC_API_URL}/gestion-interne-gf62`;
+const DOMAIN_PREFIX = process.env.NEXT_PUBLIC_DOMAIN_URL_PREFIX?.replace(/\/$/, '') ?? '';
+const API_PREFIX = process.env.NEXT_PUBLIC_API_URL?.replace(/\/$/, '') ?? '';
+
+export const SITE_ROOT = DOMAIN_PREFIX ? `${DOMAIN_PREFIX}/` : '/';
+export const BACKEND_SITE_ADMIN = `${API_PREFIX}/gestion-interne-gf62`;
 // Auth
 export const AUTH_LOGIN = `${SITE_ROOT}/login`;
 // Auth forgot password
