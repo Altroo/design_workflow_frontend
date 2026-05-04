@@ -511,6 +511,11 @@ textarea.app-input {
 	box-shadow: 0 8px 18px -18px rgba(15, 23, 42, 0.45);
 }
 
+.workflow-language-toggle {
+	flex: 0 0 auto;
+	min-height: 40px;
+}
+
 .workflow-topbar-icon:hover,
 .workflow-topbar-control:hover,
 .workflow-topbar-profile:hover {
@@ -3376,6 +3381,14 @@ button:focus-visible {
 }
 
 @media (max-width: 1100px) {
+	.workflow-report-filterbar {
+		grid-template-columns: 1fr;
+	}
+
+	.workflow-report-actions {
+		grid-template-columns: repeat(2, minmax(0, 1fr));
+	}
+
 	.workflow-report-metrics {
 		grid-template-columns: repeat(2, minmax(0, 1fr));
 	}
@@ -5099,6 +5112,16 @@ button:focus-visible {
 
 	.workflow-topbar-controls {
 		gap: 6px;
+	}
+
+	.workflow-language-toggle {
+		gap: 5px;
+		padding: 6px 8px !important;
+	}
+
+	.workflow-language-toggle img {
+		width: 24px;
+		height: 16px;
 	}
 
 	.workflow-topbar-profile {

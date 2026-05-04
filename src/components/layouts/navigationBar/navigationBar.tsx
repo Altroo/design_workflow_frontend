@@ -472,7 +472,7 @@ const NavigationBar = ({ title, children, hideTopbar = false }: Props) => {
 									onClick={() => setLanguage(language === 'fr' ? 'en' : 'fr')}
 									aria-label={language === 'fr' ? 'Passer en anglais' : 'Switch to French'}
 									title={language === 'fr' ? 'Passer en anglais' : 'Switch to French'}
-									className="workflow-topbar-control workflow-focus-ring hidden items-center gap-2 px-3 py-2 text-sm font-bold text-(--ink) transition sm:inline-flex"
+									className="workflow-topbar-control workflow-language-toggle workflow-focus-ring inline-flex items-center gap-2 px-3 py-2 text-sm font-bold text-(--ink) transition"
 								>
 									<Image
 										src={language === 'fr' ? FlagFR : FlagGB}
