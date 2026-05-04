@@ -28,27 +28,29 @@ const renderWithLanguage = (lang: 'fr' | 'en', setLanguage = jest.fn()) => {
 };
 
 describe('LanguageSwitcher', () => {
-	it('displays EN when current language is fr', () => {
+	it('displays FR when current language is fr', () => {
 		renderWithLanguage('fr');
-		expect(screen.getByText('EN')).toBeInTheDocument();
+		expect(screen.getByText('FR')).toBeInTheDocument();
+		expect(screen.getAllByRole('button', { name: 'Passer en anglais' })).toHaveLength(2);
 	});
 
-	it('displays FR when current language is en', () => {
+	it('displays EN when current language is en', () => {
 		renderWithLanguage('en');
-		expect(screen.getByText('FR')).toBeInTheDocument();
+		expect(screen.getByText('EN')).toBeInTheDocument();
+		expect(screen.getAllByRole('button', { name: 'Switch to French' })).toHaveLength(2);
 	});
 
 	it('calls setLanguage with en when clicking while in fr', () => {
 		const setLanguage = jest.fn();
 		renderWithLanguage('fr', setLanguage);
-		fireEvent.click(screen.getByText('EN'));
+		fireEvent.click(screen.getByText('FR'));
 		expect(setLanguage).toHaveBeenCalledWith('en');
 	});
 
 	it('calls setLanguage with fr when clicking while in en', () => {
 		const setLanguage = jest.fn();
 		renderWithLanguage('en', setLanguage);
-		fireEvent.click(screen.getByText('FR'));
+		fireEvent.click(screen.getByText('EN'));
 		expect(setLanguage).toHaveBeenCalledWith('fr');
 	});
 });

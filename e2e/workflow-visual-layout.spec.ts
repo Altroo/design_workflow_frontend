@@ -1,0 +1,82 @@
+import { expect, test } from '@playwright/test';
+import { existsSync, mkdirSync } from 'node:fs';
+import { join } from 'node:path';
+
+const authStatePath = '.playwright/.auth/design-workflow-e2e.json';
+const screenshotDir = 'test-results/workflow-visual';
+
+test.describe('workflow visual layout pass', () => {
+	test.skip(!existsSync(authStatePath), 'Run the authenticated dashboard setup before visual layout checks.');
+	test.use({ storageState: authStatePath, viewport: { width: 1920, height: 900 } });
+
+	test.beforeAll(() => {
+		mkdirSync(screenshotDir, { recursive: true });
+	});
+
+	test.beforeEach(async ({ context, page }) => {
+		await context.addCookies([{ name: 'app-language', value: 'fr', url: 'http://localhost:3004' }]);
+		await page.addInitScript(() => {
+			window.localStorage.setItem('app-language', 'fr');
+		});
+	});
+
+	test('captures and checks the premium workflow pages', async ({ page }) => {
+		await page.goto('/dashboard/board');
+		await expect(page.locator('.workflow-kanban-toolbar')).toBeVisible();
+		await expect(page.locator('.workflow-kanban-filter-grid')).toBeVisible();
+		await expect(page.locator('.workflow-topbar-controls')).toContainText('FR');
+		await expect(page.locator('.workflow-saved-view-bar')).toContainText(/Vues enregistr.es|Nom de la vue|Priv.e/i);
+		await expect(page.locator('.workflow-kanban-filter-grid')).toContainText(/Toutes les revues|Ordre manuel/i);
+		await expect(page.locator('.workflow-saved-view-bar')).not.toContainText(/Saved views|View name|Private/i);
+		const filterRowCount = await page.locator('.workflow-kanban-filter-grid').evaluate((grid) => {
+			const tops = Array.from(grid.children).map((child) => Math.round(child.getBoundingClientRect().top));
+			return new Set(tops).size;
+		});
+		expect(filterRowCount).toBeGreaterThanOrEqual(2);
+		await page.screenshot({ path: join(screenshotDir, 'board.png'), fullPage: true });
+
+		await page.goto('/dashboard/projects');
+		await expect(page.locator('.workflow-projects-layout')).toBeVisible();
+		await expect(page.locator('.workflow-projects-card-grid')).toBeVisible();
+		await page.screenshot({ path: join(screenshotDir, 'projects.png'), fullPage: true });
+
+		await page.goto('/dashboard/team');
+		await expect(page.locator('.workflow-team-grid')).toBeVisible();
+		await expect(page.locator('.workflow-team-analytics')).toBeVisible();
+		await expect(page.locator('.workflow-team-board')).toBeVisible();
+		const teamLayout = await page.locator('.workflow-team-grid').evaluate((grid) => {
+			const analytics = grid.querySelector('.workflow-team-analytics')?.getBoundingClientRect();
+			const board = grid.querySelector('.workflow-team-board')?.getBoundingClientRect();
+			const bounds = grid.getBoundingClientRect();
+			return {
+				analyticsWidth: analytics?.width ?? bounds.width,
+				boardWidth: board?.width ?? 0,
+				topDelta: Math.abs((analytics?.top ?? 0) - (board?.top ?? 0)),
+				totalWidth: bounds.width,
+			};
+		});
+		expect(teamLayout.analyticsWidth).toBeLessThan(teamLayout.totalWidth * 0.55);
+		expect(teamLayout.boardWidth).toBeGreaterThan(teamLayout.analyticsWidth);
+		expect(teamLayout.topDelta).toBeLessThan(4);
+		await page.screenshot({ path: join(screenshotDir, 'team.png'), fullPage: true });
+
+		await page.goto('/dashboard/reports/time');
+		await expect(page.locator('.workflow-report-filterbar')).toBeVisible();
+		await expect(page.locator('.workflow-report-date-fields')).toBeVisible();
+		await expect(page.locator('.workflow-report-actions')).toBeVisible();
+		await expect(page.locator('.workflow-report-filterbar')).toContainText(/Effacer les filtres|Exporter CSV|Exporter PDF/i);
+		const widestReportAction = await page.locator('.workflow-report-actions button').evaluateAll((buttons) =>
+			Math.max(...buttons.map((button) => button.getBoundingClientRect().width)),
+		);
+		expect(widestReportAction).toBeLessThan(190);
+		await page.screenshot({ path: join(screenshotDir, 'reports.png'), fullPage: true });
+
+		await page.goto('/dashboard/chat');
+		await expect(page.locator('.workflow-chat-sidebar')).toBeVisible();
+		await expect(page.locator('.workflow-chat-task-room-section')).toHaveCount(0);
+		await expect(page.locator('.workflow-chat-room-header')).toContainText(/messages/i);
+		await expect(page.getByRole('button', { name: /Filtrer par/i })).toBeVisible();
+		await expect(page.locator('.workflow-chat-tools-toggle span')).toHaveText(/Filtrer par/i);
+		await page.screenshot({ path: join(screenshotDir, 'chat.png'), fullPage: true });
+	});
+});

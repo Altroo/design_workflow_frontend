@@ -75,6 +75,10 @@ export type TranslationDictionary = {
     changePassword: string;
     logout: string;
     administration: string;
+    workspace: string;
+    signedIn: string;
+    collapseNavigation: string;
+    expandNavigation: string;
     openInbox: string;
     noNotificationsYet: string;
     workflowUpdate: string;

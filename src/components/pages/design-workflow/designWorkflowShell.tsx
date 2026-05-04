@@ -5236,27 +5236,26 @@ const DesignWorkflowShell = ({ title, variant, projectId, taskId }: Props) => {
 					<MetricCard icon={<Clock3 size={16} />} label={workflow.labels.estimatedLoad ?? 'Estimated load'} value={formatWorkDays(totalEstimatedMinutes, workflow.labels.daysUnit)} tone="green" />
 				</section>
 
-				{workload.length ? (
-					<section className="workflow-team-analytics">
-						<div className="workflow-team-panel-pill">
-							<span>{workflow.labels.teamLoadMap}</span>
-							<em>{formatMinutes(totalActualMinutes)} {workflow.labels.loggedSuffix}</em>
-						</div>
-						<div className="workflow-team-chart-body" style={{ height: teamChartHeight }}>
-							<Bar data={teamBarData} options={teamBarOptions} />
-						</div>
-						<div className="workflow-team-chart-keys">
-							{chartRows.map((row, index) => (
-								<span key={row.user.id}>
-									<b>#{index + 1}</b>
-									{`${row.user.first_name} ${row.user.last_name}`.trim() || row.user.email}
-								</span>
-							))}
-						</div>
-					</section>
-				) : null}
-
 				<section className="workflow-team-grid">
+					{workload.length ? (
+						<section className="workflow-team-analytics">
+							<div className="workflow-team-panel-pill">
+								<span>{workflow.labels.teamLoadMap}</span>
+								<em>{formatMinutes(totalActualMinutes)} {workflow.labels.loggedSuffix}</em>
+							</div>
+							<div className="workflow-team-chart-body" style={{ height: teamChartHeight }}>
+								<Bar data={teamBarData} options={teamBarOptions} />
+							</div>
+							<div className="workflow-team-chart-keys">
+								{chartRows.map((row, index) => (
+									<span key={row.user.id}>
+										<b>#{index + 1}</b>
+										{`${row.user.first_name} ${row.user.last_name}`.trim() || row.user.email}
+									</span>
+								))}
+							</div>
+						</section>
+					) : null}
 					<div className="workflow-team-board">
 						<div className="workflow-team-panel-pill">
 							<span>{workflow.sections.teamWorkload.title}</span>
@@ -5593,30 +5592,34 @@ const DesignWorkflowShell = ({ title, variant, projectId, taskId }: Props) => {
 				</section>
 
 				<section className="workflow-report-filterbar">
-					<div>
-						<FieldLabel>{workflow.labels.startDate}</FieldLabel>
-						<DateField value={reportFilters.start_date} onChange={(value) => setReportFilters((current) => ({ ...current, start_date: value }))} />
+					<div className="workflow-report-date-fields">
+						<div>
+							<FieldLabel>{workflow.labels.startDate}</FieldLabel>
+							<DateField value={reportFilters.start_date} onChange={(value) => setReportFilters((current) => ({ ...current, start_date: value }))} />
+						</div>
+						<div>
+							<FieldLabel>{workflow.labels.endDate}</FieldLabel>
+							<DateField value={reportFilters.end_date} onChange={(value) => setReportFilters((current) => ({ ...current, end_date: value }))} />
+						</div>
 					</div>
-					<div>
-						<FieldLabel>{workflow.labels.endDate}</FieldLabel>
-						<DateField value={reportFilters.end_date} onChange={(value) => setReportFilters((current) => ({ ...current, end_date: value }))} />
+					<div className="workflow-report-actions">
+						<button type="button" onClick={() => setReportFilters({ start_date: '', end_date: '' })} className="workflow-report-clear">
+							<RefreshCcw size={15} />
+							<span>{workflow.buttons.clearFilters}</span>
+						</button>
+						<button type="button" onClick={exportTimeReport} className="workflow-report-clear workflow-report-export" disabled={timeReport.length === 0}>
+							<Save size={15} />
+							<span>{workflow.buttons.exportCsv ?? 'Export CSV'}</span>
+						</button>
+						<button type="button" onClick={() => exportWorkflowReport(workflowReport)} className="workflow-report-clear workflow-report-export" disabled={!workflowReport}>
+							<Table2 size={15} />
+							<span>{workflow.buttons.exportAnalyticsCsv ?? 'Export analytics'}</span>
+						</button>
+						<button type="button" onClick={exportPrintableReport} className="workflow-report-clear workflow-report-export">
+							<FileText size={15} />
+							<span>{workflow.buttons.exportPdf ?? 'Export PDF'}</span>
+						</button>
 					</div>
-					<button type="button" onClick={() => setReportFilters({ start_date: '', end_date: '' })} className="workflow-report-clear">
-						<RefreshCcw size={15} />
-						<span>{workflow.buttons.clearFilters}</span>
-					</button>
-					<button type="button" onClick={exportTimeReport} className="workflow-report-clear workflow-report-export" disabled={timeReport.length === 0}>
-						<Save size={15} />
-						<span>{workflow.buttons.exportCsv ?? 'Export CSV'}</span>
-					</button>
-					<button type="button" onClick={() => exportWorkflowReport(workflowReport)} className="workflow-report-clear workflow-report-export" disabled={!workflowReport}>
-						<Table2 size={15} />
-						<span>{workflow.buttons.exportAnalyticsCsv ?? 'Export analytics'}</span>
-					</button>
-					<button type="button" onClick={exportPrintableReport} className="workflow-report-clear workflow-report-export">
-						<FileText size={15} />
-						<span>{workflow.buttons.exportPdf ?? 'Export PDF'}</span>
-					</button>
 				</section>
 
 				<section className="workflow-report-metrics">

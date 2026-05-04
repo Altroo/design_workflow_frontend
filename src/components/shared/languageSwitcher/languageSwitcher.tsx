@@ -11,28 +11,30 @@ const LanguageSwitcher: React.FC = () => {
 		setLanguage(language === 'fr' ? 'en' : 'fr');
 	};
 
-	const flag = language === 'fr' ? '🇬🇧' : '🇫🇷';
-	const label = language === 'fr' ? 'English' : 'Français';
+	const flag = language === 'fr' ? '🇫🇷' : '🇬🇧';
+	const currentLabel = language === 'fr' ? 'FR' : 'EN';
+	const switchLabel = language === 'fr' ? 'Passer en anglais' : 'Switch to French';
 
 	return (
 		<>
 			<Desktop>
 				<button
 					type="button"
-					title={label}
+					title={switchLabel}
+					aria-label={switchLabel}
 					onClick={toggleLanguage}
 					className="app-pill inline-flex items-center gap-2 px-3 py-2 text-sm font-medium text-(--ink)"
 				>
 					<span>{flag}</span>
-						{language === 'fr' ? 'EN' : 'FR'}
+					{currentLabel}
 				</button>
 			</Desktop>
 			<TabletAndMobile>
 				<button
 					type="button"
-					title={label}
+					title={switchLabel}
 					onClick={toggleLanguage}
-					aria-label={label}
+					aria-label={switchLabel}
 					className="app-pill inline-flex h-10 w-10 items-center justify-center text-base"
 				>
 					{flag}

@@ -349,7 +349,7 @@ const NavigationBar = ({ title, children, hideTopbar = false }: Props) => {
 					</div>
 					<button
 						type="button"
-						aria-label={railOpen ? 'Collapse navigation' : 'Expand navigation'}
+						aria-label={railOpen ? t.navigation.collapseNavigation : t.navigation.expandNavigation}
 						onClick={() => setRailOpen((current) => !current)}
 						className="app-pill workflow-focus-ring flex h-10 w-10 shrink-0 items-center justify-center text-(--ink)"
 					>
@@ -358,7 +358,7 @@ const NavigationBar = ({ title, children, hideTopbar = false }: Props) => {
 				</div>
 
 				<nav aria-label="Workflow navigation" className={['mt-5 flex flex-1 flex-col gap-2', railOpen ? 'w-full items-stretch' : 'items-center'].join(' ')}>
-					<p className="workflow-nav-section px-2 text-[11px] font-bold uppercase tracking-[0.18em] text-(--accent-strong)">Workspace</p>
+					<p className="workflow-nav-section px-2 text-[11px] font-bold uppercase tracking-[0.18em] text-(--accent-strong)">{t.navigation.workspace}</p>
 					{workflowItems.map(renderNavLink)}
 					<div className="mt-5 w-full border-t border-[color:var(--line)] pt-4">
 						<p className="workflow-nav-section mb-2 px-2 text-[11px] font-semibold uppercase tracking-[0.18em] text-(--ink-muted)">
@@ -369,7 +369,7 @@ const NavigationBar = ({ title, children, hideTopbar = false }: Props) => {
 				</nav>
 
 				<div className="workflow-rail-user mt-5 rounded-lg border border-[color:var(--line)] bg-(--accent-tint) p-3">
-					<p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-(--ink-muted)">Signed in</p>
+					<p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-(--ink-muted)">{t.navigation.signedIn}</p>
 					<p className="mt-1 truncate text-sm font-semibold text-(--ink)">
 						{profile.first_name} {profile.last_name}
 					</p>
@@ -470,17 +470,19 @@ const NavigationBar = ({ title, children, hideTopbar = false }: Props) => {
 								<button
 									type="button"
 									onClick={() => setLanguage(language === 'fr' ? 'en' : 'fr')}
+									aria-label={language === 'fr' ? 'Passer en anglais' : 'Switch to French'}
+									title={language === 'fr' ? 'Passer en anglais' : 'Switch to French'}
 									className="workflow-topbar-control workflow-focus-ring hidden items-center gap-2 px-3 py-2 text-sm font-bold text-(--ink) transition sm:inline-flex"
 								>
 									<Image
-										src={language === 'fr' ? FlagGB : FlagFR}
+										src={language === 'fr' ? FlagFR : FlagGB}
 										alt=""
 										width={30}
 										height={20}
 										className="workflow-language-flag"
 										aria-hidden="true"
 									/>
-									<span>{language === 'fr' ? 'EN' : 'FR'}</span>
+									<span>{language === 'fr' ? 'FR' : 'EN'}</span>
 								</button>
 
 								<div ref={profileMenuRef} className="relative">

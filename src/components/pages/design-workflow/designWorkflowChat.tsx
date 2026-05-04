@@ -392,9 +392,10 @@ const DesignWorkflowChat = () => {
 	const discardRecordingRef = useRef(false);
 
 	const { data: threads = [], refetch: refetchThreads } = useGetChatThreadsQuery();
+	const chatThreads = useMemo(() => threads.filter((thread) => thread.kind !== 'task'), [threads]);
 	const selectedThread = useMemo(
-		() => threads.find((thread) => thread.id === selectedThreadId) ?? threads[0],
-		[threads, selectedThreadId],
+		() => chatThreads.find((thread) => thread.id === selectedThreadId) ?? chatThreads[0],
+		[chatThreads, selectedThreadId],
 	);
 	const threadPreviewLabels = useMemo(() => ({
 		deleted: t.workflow.labels.messageDeleted ?? 'Message deleted',
@@ -405,33 +406,24 @@ const DesignWorkflowChat = () => {
 	}), [t]);
 	const privateThreadByUserId = useMemo(() => {
 		const byUserId = new Map<number, ChatThread>();
-		threads
+		chatThreads
 			.filter((thread) => thread.kind === 'private')
 			.forEach((thread) => {
 				const peer = thread.participants.find((user) => user.id !== profile.id);
 				if (peer) byUserId.set(peer.id, thread);
 			});
 		return byUserId;
-	}, [profile.id, threads]);
-	const publicThreads = useMemo(() => threads.filter((thread) => thread.kind === 'public'), [threads]);
+	}, [chatThreads, profile.id]);
+	const publicThreads = useMemo(() => chatThreads.filter((thread) => thread.kind === 'public'), [chatThreads]);
 	const projectThreadByProjectId = useMemo(() => {
 		const byProjectId = new Map<number, ChatThread>();
-		threads
+		chatThreads
 			.filter((thread) => thread.kind === 'project' && thread.project)
 			.forEach((thread) => {
 				if (thread.project) byProjectId.set(thread.project.id, thread);
 			});
 		return byProjectId;
-	}, [threads]);
-	const taskThreadByTaskId = useMemo(() => {
-		const byTaskId = new Map<number, ChatThread>();
-		threads
-			.filter((thread) => thread.kind === 'task' && thread.task)
-			.forEach((thread) => {
-				if (thread.task) byTaskId.set(thread.task.id, thread);
-			});
-		return byTaskId;
-	}, [threads]);
+	}, [chatThreads]);
 	const { data: currentMessages = [], refetch: refetchMessages } = useGetChatMessagesQuery(
 		{ threadId: selectedThread?.id ?? 0, limit: PAGE_SIZE, q: searchTerm || undefined, ...searchFilters },
 		{ skip: !selectedThread?.id },
@@ -458,10 +450,10 @@ const DesignWorkflowChat = () => {
 	useEffect(() => {
 		const requestedThreadId = Number(searchParams.get('thread') ?? 0);
 		if (!requestedThreadId || selectedThreadId) return;
-		if (threads.some((thread) => thread.id === requestedThreadId)) {
+		if (chatThreads.some((thread) => thread.id === requestedThreadId)) {
 			setSelectedThreadId(requestedThreadId);
 		}
-	}, [searchParams, selectedThreadId, threads]);
+	}, [chatThreads, searchParams, selectedThreadId]);
 
 	const usersResponse = useGetUsersListQuery({ with_pagination: false });
 	const usersRaw = (usersResponse.data ?? []) as Array<Partial<UserClass>> | { results?: Array<Partial<UserClass>>; data?: Array<Partial<UserClass>> };
@@ -488,10 +480,10 @@ const DesignWorkflowChat = () => {
 	}), [profile.avatar, profile.email, profile.first_name, profile.id, profile.last_name, profile.role]);
 
 	useEffect(() => {
-		if (!selectedThreadId && threads[0]) {
-			setSelectedThreadId(threads[0].id);
+		if (!selectedThreadId && chatThreads[0]) {
+			setSelectedThreadId(chatThreads[0].id);
 		}
-	}, [selectedThreadId, threads]);
+	}, [chatThreads, selectedThreadId]);
 
 	useEffect(() => {
 		setOlderMessages([]);
@@ -785,16 +777,6 @@ const DesignWorkflowChat = () => {
 		setSelectedThreadId(thread.id);
 	};
 
-	const startTaskThread = async (task: TaskCard) => {
-		const existing = taskThreadByTaskId.get(task.id);
-		if (existing) {
-			setSelectedThreadId(existing.id);
-			return;
-		}
-		const thread = await createThread({ kind: 'task', task_id: task.id }).unwrap();
-		setSelectedThreadId(thread.id);
-	};
-
 	const emitTyping = (isTyping = true) => {
 		if (!selectedThread?.id || !wsRef.current || wsRef.current.readyState !== WebSocket.OPEN) return;
 		wsRef.current.send(JSON.stringify({ type: 'chat.typing', thread_id: selectedThread.id, is_typing: isTyping }));
@@ -1041,37 +1023,6 @@ const DesignWorkflowChat = () => {
 											{preview?.kind === 'photo' ? <ImageIcon size={13} /> : null}
 											{preview?.kind === 'attachment' ? <Paperclip size={13} /> : null}
 											<span>{preview?.text ?? (t.workflow.labels.noMessageYet ?? 'No message yet')}</span>
-										</small>
-									</span>
-									{thread?.unread_count ? <i>{thread.unread_count}</i> : null}
-								</button>
-							);
-						})}
-					</div>
-				</div>
-				<div className="workflow-chat-context-section workflow-chat-task-room-section">
-					<div className="workflow-chat-panel-pill workflow-chat-panel-pill-slate">
-						{t.workflow.labels.cards ?? 'Tasks'}
-						<em>{activeTasks.length}</em>
-					</div>
-					<div className="workflow-chat-context-list">
-						{activeTasks.slice(0, 12).map((task) => {
-							const thread = taskThreadByTaskId.get(task.id);
-							const preview = thread ? threadPreview(thread, profile.id, threadPreviewLabels, tasks, projects) : null;
-							return (
-								<button
-									key={task.id}
-									type="button"
-									onClick={() => void startTaskThread(task)}
-									className={['workflow-chat-context-button', thread?.unread_count ? 'is-unread' : '', selectedThread?.id === thread?.id ? 'is-active' : ''].join(' ')}
-								>
-									<span className="workflow-chat-context-icon"><CheckSquare2 size={15} /></span>
-									<span className="workflow-chat-direct-copy">
-										<b>{task.title}</b>
-										<small className="workflow-chat-thread-preview">
-											{preview?.kind === 'photo' ? <ImageIcon size={13} /> : null}
-											{preview?.kind === 'attachment' ? <Paperclip size={13} /> : null}
-											<span>{preview?.text ?? task.project.name}</span>
 										</small>
 									</span>
 									{thread?.unread_count ? <i>{thread.unread_count}</i> : null}
@@ -1949,7 +1900,7 @@ const DesignWorkflowChat = () => {
 							</div>
 						</div>
 						<div className="workflow-chat-forward-list">
-							{threads.map((thread) => (
+							{chatThreads.map((thread) => (
 								<button key={thread.id} type="button" onClick={() => forwardToThread(thread)}>
 									<Users size={16} />
 									<span>{threadTitle(thread, profile.id, t.workflow.labels.publicStudio ?? 'Studio public', t.workflow.labels.privateChat ?? 'Private chat')}</span>

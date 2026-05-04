@@ -830,7 +830,7 @@ textarea.app-input {
 
 .workflow-kanban-filter-grid {
 	display: grid;
-	grid-template-columns: minmax(240px, 1.35fr) repeat(2, minmax(170px, 1fr));
+	grid-template-columns: repeat(4, minmax(220px, 1fr));
 	gap: 10px;
 	align-items: center;
 	width: 100%;
@@ -1293,8 +1293,8 @@ button:focus-visible {
 }
 
 .workflow-kanban-filter-grid {
-	grid-template-columns: minmax(240px, 1.2fr) repeat(6, minmax(150px, 0.8fr));
-	gap: 8px;
+	grid-template-columns: repeat(4, minmax(220px, 1fr));
+	gap: 10px;
 }
 
 .workflow-kanban-filter-grid .app-input,
@@ -2298,7 +2298,6 @@ button:focus-visible {
 .workflow-team-analytics {
 	position: relative;
 	overflow: hidden;
-	margin: 0 18px 18px;
 	border: 1px solid var(--line);
 	border-radius: 20px;
 	background:
@@ -2353,7 +2352,7 @@ button:focus-visible {
 
 .workflow-team-grid {
 	display: grid;
-	grid-template-columns: 1fr;
+	grid-template-columns: minmax(380px, 0.75fr) minmax(0, 1.25fr);
 	gap: 16px;
 	align-items: start;
 	padding: 0 18px 18px;
@@ -2376,6 +2375,7 @@ button:focus-visible {
 
 .workflow-team-side {
 	display: grid;
+	grid-column: 1 / -1;
 	grid-template-columns: minmax(280px, 0.9fr) minmax(0, 1fr) minmax(0, 1fr);
 	gap: 14px;
 	border: 0;
@@ -2732,17 +2732,32 @@ button:focus-visible {
 
 .workflow-report-filterbar {
 	display: grid;
-	grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) auto;
-	gap: 10px;
+	grid-template-columns: minmax(420px, 1fr) minmax(520px, 0.9fr);
+	gap: 14px;
 	align-items: end;
 	border-bottom: 1px solid var(--line);
-	background: #fff;
-	padding: 14px 22px;
+	background: #f8fafc;
+	padding: 16px 22px;
+}
+
+.workflow-report-date-fields,
+.workflow-report-actions {
+	display: grid;
+	gap: 10px;
+	min-width: 0;
+}
+
+.workflow-report-date-fields {
+	grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.workflow-report-actions {
+	grid-template-columns: repeat(4, minmax(130px, 1fr));
 }
 
 .workflow-report-filterbar .app-input,
 .workflow-report-clear {
-	min-height: 40px;
+	min-height: 44px;
 	border-radius: 12px;
 }
 
@@ -2753,27 +2768,28 @@ button:focus-visible {
 	gap: 8px;
 	border: 1px solid var(--line);
 	background: #fff;
-	padding: 0 14px;
+	padding: 0 12px;
 	color: var(--ink);
 	font-size: 12px;
 	font-weight: 900;
+	white-space: nowrap;
 }
 
 .workflow-report-metrics {
 	display: grid;
 	grid-template-columns: repeat(4, minmax(0, 1fr));
-	gap: 12px;
-	padding: 18px 18px 0;
+	gap: 16px;
+	padding: 18px 22px 0;
 }
 
 .workflow-report-metric {
 	display: grid;
 	gap: 8px;
-	min-height: 98px;
+	min-height: 112px;
 	border: 1px solid var(--line);
-	border-radius: 18px;
+	border-radius: 16px;
 	background: rgba(255, 255, 255, 0.94);
-	padding: 14px;
+	padding: 16px;
 	box-shadow: 0 16px 32px -28px rgba(15, 23, 42, 0.38);
 }
 
@@ -2848,9 +2864,9 @@ button:focus-visible {
 
 .workflow-analytics-grid {
 	display: grid;
-	grid-template-columns: minmax(0, 1.1fr) minmax(0, 0.9fr) minmax(0, 0.9fr);
-	gap: 14px;
-	padding: 0 18px 18px;
+	grid-template-columns: repeat(3, minmax(260px, 1fr));
+	gap: 16px;
+	padding: 18px 22px 22px;
 }
 
 .workflow-analytics-panel,
@@ -2862,13 +2878,24 @@ button:focus-visible {
 }
 
 .workflow-analytics-panel {
-	padding: 16px;
+	position: relative;
+	overflow: hidden;
+	display: flex;
+	min-height: 232px;
+	flex-direction: column;
+	padding: 18px;
+}
+
+.workflow-analytics-panel::before {
+	content: '';
+	position: absolute;
+	inset: 0 0 auto;
+	height: 3px;
+	background: linear-gradient(90deg, #3f3cff, rgba(20, 184, 200, 0.64), transparent 72%);
 }
 
 .workflow-analytics-panel-strong {
-	background:
-		linear-gradient(135deg, rgba(63, 60, 255, 0.08), rgba(20, 184, 200, 0.08)),
-		#ffffff;
+	background: #ffffff;
 }
 
 .workflow-analytics-panel-head p {
@@ -2889,8 +2916,8 @@ button:focus-visible {
 .workflow-analytics-kpis {
 	display: grid;
 	grid-template-columns: repeat(2, minmax(0, 1fr));
-	gap: 10px;
-	margin-top: 14px;
+	gap: 12px;
+	margin-top: 16px;
 }
 
 .workflow-analytics-kpis div,
@@ -2899,7 +2926,7 @@ button:focus-visible {
 	border: 1px solid rgba(15, 23, 42, 0.07);
 	border-radius: 14px;
 	background: #f8fafc;
-	padding: 10px;
+	padding: 14px;
 }
 
 .workflow-analytics-kpis span,
@@ -2922,8 +2949,21 @@ button:focus-visible {
 
 .workflow-analytics-stack {
 	display: grid;
-	gap: 8px;
-	margin-top: 14px;
+	gap: 10px;
+	margin-top: 16px;
+}
+
+.workflow-analytics-stack span {
+	display: flex;
+	min-height: 58px;
+	align-items: center;
+	justify-content: space-between;
+	gap: 12px;
+}
+
+.workflow-analytics-stack b {
+	margin-top: 0;
+	white-space: nowrap;
 }
 
 .workflow-forecast-board {
@@ -3379,6 +3419,11 @@ button:focus-visible {
 	}
 
 	.workflow-report-filterbar {
+		grid-template-columns: 1fr;
+	}
+
+	.workflow-report-date-fields,
+	.workflow-report-actions {
 		grid-template-columns: 1fr;
 	}
 
@@ -4274,8 +4319,8 @@ button:focus-visible {
 
 .workflow-projects-layout {
 	display: grid;
-	grid-template-columns: minmax(340px, 0.82fr) minmax(0, 1.18fr);
-	gap: 16px;
+	grid-template-columns: 1fr;
+	gap: 18px;
 	padding: 18px;
 }
 
@@ -4285,7 +4330,7 @@ button:focus-visible {
 
 .workflow-projects-create,
 .workflow-projects-list {
-	padding: 10px;
+	padding: 18px;
 }
 
 .workflow-projects-create {
@@ -4347,8 +4392,8 @@ button:focus-visible {
 
 .workflow-projects-card-grid {
 	display: grid;
-	grid-template-columns: repeat(2, minmax(0, 1fr));
-	gap: 12px;
+	grid-template-columns: repeat(auto-fit, minmax(360px, 1fr));
+	gap: 16px;
 }
 
 .workflow-project-card-modern {
@@ -4812,11 +4857,6 @@ button:focus-visible {
 		grid-template-columns: repeat(2, minmax(0, 1fr));
 	}
 
-	.workflow-team-analytics {
-		margin-right: 18px;
-		margin-left: 18px;
-	}
-
 	.workflow-team-grid {
 		grid-template-columns: 1fr;
 	}
@@ -5021,7 +5061,6 @@ button:focus-visible {
 	}
 
 	.workflow-team-analytics {
-		margin: 0 14px 14px;
 		padding: 14px;
 	}
 
