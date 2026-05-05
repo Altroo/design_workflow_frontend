@@ -11973,6 +11973,262 @@ button.workflow-chat-ref-card {
 	color: #1e40af;
 }
 
+/* Template-aligned workflow detail pages sweep. */
+.workflow-project-detail-page {
+	display: grid;
+	gap: 18px;
+	overflow: visible;
+	border: 0;
+	border-radius: 0;
+	background: transparent;
+	box-shadow: none;
+}
+
+.workflow-project-detail-header,
+.workflow-project-detail-panel,
+.workflow-project-detail-meta-card,
+.workflow-project-detail-feed-item {
+	border: 1px solid #e5e7eb;
+	background: #ffffff;
+	box-shadow: 0 20px 44px -38px rgba(17, 24, 39, 0.42);
+}
+
+.workflow-project-detail-header {
+	min-height: 106px;
+	border-radius: 20px;
+	border-bottom: 1px solid #e5e7eb;
+	padding: 26px 28px;
+}
+
+.workflow-project-detail-header p {
+	color: #6b7280 !important;
+	letter-spacing: 0.1em;
+}
+
+.workflow-project-detail-header h1 {
+	color: #030712 !important;
+	font-size: 30px !important;
+	letter-spacing: 0;
+}
+
+.workflow-project-detail-grid {
+	gap: 18px;
+	padding: 0;
+}
+
+.workflow-project-detail-panel {
+	overflow: hidden;
+	border-radius: 20px;
+	padding: 18px;
+}
+
+.workflow-project-detail-panel::before,
+.workflow-project-detail-meta-card::before,
+.workflow-project-detail-feed-item::before {
+	display: none !important;
+}
+
+.workflow-project-detail-panel .workflow-overview-panel-pill {
+	min-height: 30px;
+	border: 0;
+	background: transparent !important;
+	padding: 0;
+	color: #111827;
+}
+
+.workflow-project-detail-panel .workflow-overview-panel-pill b {
+	color: #6b7280;
+	letter-spacing: 0.08em;
+}
+
+.workflow-project-detail-panel .workflow-overview-panel-pill em,
+.workflow-projects-actions span,
+.workflow-project-detail-pager span {
+	border: 1px solid #e5e7eb;
+	background: #f9fafb;
+	color: #111827;
+}
+
+.workflow-project-detail-description {
+	margin: 14px 0 16px;
+	color: #374151;
+}
+
+.workflow-project-detail-meta-card,
+.workflow-project-detail-feed-item {
+	border-radius: 16px;
+	background: #ffffff;
+}
+
+.workflow-project-detail-meta-card span,
+.workflow-project-detail-feed-item small {
+	color: #6b7280;
+}
+
+.workflow-project-detail-meta-card p,
+.workflow-project-detail-feed-item p {
+	color: #030712;
+}
+
+.workflow-project-detail-feed-icon {
+	border-color: #e5e7eb;
+	background: #f3f4f6;
+	color: #111827;
+}
+
+.workflow-project-detail-page .app-button,
+.workflow-project-detail-page .workflow-upload-submit {
+	border-color: #111827;
+	background: #111827;
+	color: #ffffff;
+	box-shadow: 0 16px 30px -24px rgba(17, 24, 39, 0.55);
+}
+
+.workflow-project-detail-page .app-button:hover,
+.workflow-project-detail-page .workflow-upload-submit:hover {
+	border-color: #030712;
+	background: #030712;
+	color: #ffffff;
+}
+
+.workflow-project-detail-page .app-button:disabled,
+.workflow-project-detail-page .workflow-upload-submit:disabled {
+	border-color: #d1d5db;
+	background: #e5e7eb;
+	color: #6b7280;
+	box-shadow: none;
+}
+
+.workflow-project-detail-page .app-input,
+.workflow-project-detail-page .workflow-field,
+.workflow-project-detail-page textarea,
+.workflow-project-detail-page select {
+	border-color: #d1d5db !important;
+	background: #ffffff !important;
+	color: #111827 !important;
+	box-shadow: none !important;
+}
+
+.workflow-project-detail-page .workflow-task-card {
+	border-color: #e5e7eb;
+	border-radius: 16px;
+	background: #ffffff;
+	box-shadow: 0 18px 36px -32px rgba(17, 24, 39, 0.42);
+}
+
+.workflow-project-detail-page .workflow-task-card:hover {
+	border-color: #d1d5db;
+	box-shadow: 0 22px 44px -34px rgba(17, 24, 39, 0.52);
+}
+
+.workflow-project-detail-page .workflow-task-cover-empty {
+	background:
+		linear-gradient(135deg, rgba(17, 24, 39, 0.04), rgba(255, 255, 255, 0.88)),
+		#f3f4f6 !important;
+}
+
+.workflow-project-detail-page .workflow-task-cover-empty::before,
+.workflow-project-detail-page .workflow-task-cover-empty::after {
+	background: rgba(17, 24, 39, 0.08) !important;
+}
+
+.workflow-project-detail-page .workflow-task-cover-mark {
+	border-color: #e5e7eb;
+	background: #f9fafb;
+	color: #111827;
+}
+
+.workflow-project-detail-page .workflow-task-cover-chip,
+.workflow-project-detail-page .workflow-chip,
+.workflow-project-detail-page .workflow-chip[data-tone],
+.workflow-project-detail-page .workflow-chip[data-status] {
+	border: 1px solid #d1d5db !important;
+	background: #ffffff !important;
+	color: #111827 !important;
+}
+
+.workflow-project-detail-page .workflow-project-detail-pager button {
+	border-color: #d1d5db;
+	background: #ffffff;
+	color: #111827;
+}
+
+.workflow-project-detail-page .workflow-project-detail-pager button:not(:disabled):hover {
+	border-color: #111827;
+	background: #111827;
+	color: #ffffff;
+}
+
+.workflow-project-detail-page .workflow-project-detail-feed {
+	gap: 12px;
+}
+
+.workflow-task-modal .workflow-trello-modal-action-primary,
+.workflow-task-modal .workflow-trello-modal-action-primary:hover,
+.workflow-task-modal .workflow-trello-modal-save,
+.workflow-task-modal .workflow-trello-modal-checklist-add button,
+.workflow-task-modal .workflow-trello-modal-upload-row button,
+.workflow-task-modal .workflow-trello-modal-comment-box button {
+	border-color: #111827 !important;
+	background: #111827 !important;
+	color: #ffffff !important;
+	box-shadow: 0 16px 30px -24px rgba(17, 24, 39, 0.55) !important;
+}
+
+.workflow-task-modal .workflow-trello-modal-action:hover,
+.workflow-task-modal .workflow-trello-modal-secondary-action:hover,
+.workflow-task-modal .workflow-trello-modal-description-button:hover {
+	border-color: #111827;
+	background: #f9fafb;
+	color: #111827;
+}
+
+.workflow-task-modal .workflow-trello-modal-feed-item small {
+	color: #111827;
+}
+
+.workflow-task-modal .workflow-trello-modal-check[data-checked='true'] {
+	border-color: #111827;
+	background: #111827;
+}
+
+.workflow-task-modal .workflow-trello-modal-progress span {
+	background: #111827;
+}
+
+@media (max-width: 1180px) {
+	.workflow-project-detail-grid {
+		grid-template-columns: 1fr;
+	}
+}
+
+@media (max-width: 720px) {
+	.workflow-project-detail-page {
+		gap: 14px;
+	}
+
+	.workflow-project-detail-header {
+		align-items: flex-start;
+		flex-direction: column;
+		border-radius: 18px;
+		padding: 18px;
+	}
+
+	.workflow-project-detail-header h1 {
+		font-size: 24px !important;
+		white-space: normal;
+	}
+
+	.workflow-project-detail-panel {
+		border-radius: 18px;
+		padding: 14px;
+	}
+
+	.workflow-project-detail-meta {
+		grid-template-columns: 1fr;
+	}
+}
+
 /* Template-aligned workflow notifications and users sweep. */
 .workflow-notifications-shell,
 .workflow-users-shell {

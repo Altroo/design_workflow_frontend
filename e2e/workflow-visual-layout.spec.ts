@@ -38,6 +38,12 @@ test.describe('workflow visual layout pass', () => {
 		await expect(page.locator('.workflow-board-surface')).not.toContainText(/Chargement tableau|Loading board/i);
 		await expect.poll(async () => page.locator('[data-testid^="board-task-"]').count()).toBeGreaterThan(0);
 		await page.screenshot({ path: join(screenshotDir, 'board.png'), fullPage: true });
+		await page.locator('[data-testid^="board-task-"]').first().click();
+		await expect(page.locator('.workflow-task-modal')).toBeVisible();
+		await expect(page.locator('.workflow-task-modal')).toContainText(/Commentaires|Activit.|Fichiers|Review|Revue/i);
+		await page.screenshot({ path: join(screenshotDir, 'task-modal.png'), fullPage: true });
+		await page.keyboard.press('Escape');
+		await expect(page.locator('.workflow-task-modal')).toHaveCount(0);
 
 		await page.goto('/dashboard/projects');
 		await expect(page.locator('.workflow-projects-layout')).toBeVisible();
@@ -45,6 +51,13 @@ test.describe('workflow visual layout pass', () => {
 		await expect(page.locator('.workflow-projects-list')).not.toContainText(/Chargement projets|Loading projects/i);
 		await expect.poll(async () => page.locator('.workflow-project-card-modern').count()).toBeGreaterThan(0);
 		await page.screenshot({ path: join(screenshotDir, 'projects.png'), fullPage: true });
+		const firstProjectHref = await page.locator('.workflow-project-card-open').first().getAttribute('href');
+		expect(firstProjectHref).toBeTruthy();
+		await page.goto(firstProjectHref!);
+		await expect(page.locator('.workflow-project-detail-page')).toBeVisible();
+		await expect(page.locator('.workflow-project-detail-grid')).toBeVisible();
+		await expect(page.locator('.workflow-project-detail-panel').first()).toBeVisible();
+		await page.screenshot({ path: join(screenshotDir, 'project-detail.png'), fullPage: true });
 
 		await page.goto('/dashboard/team');
 		await expect(page.locator('.workflow-team-grid')).toBeVisible();

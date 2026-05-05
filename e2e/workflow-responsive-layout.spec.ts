@@ -51,6 +51,15 @@ const waitForProjectsReady = async (page: Page) => {
 	await expect.poll(async () => page.locator('.workflow-project-card-modern').count()).toBeGreaterThan(0);
 };
 
+const openFirstProjectDetail = async (page: Page) => {
+	const firstProjectHref = await page.locator('.workflow-project-card-open').first().getAttribute('href');
+	expect(firstProjectHref).toBeTruthy();
+	await page.goto(firstProjectHref!);
+	await expect(page.locator('.workflow-project-detail-page')).toBeVisible();
+	await expect(page.locator('.workflow-project-detail-grid')).toBeVisible();
+	await expect(page.locator('.workflow-project-detail-panel').first()).toBeVisible();
+};
+
 const waitForTeamReady = async (page: Page) => {
 	await expect(page.locator('.workflow-team-grid')).toBeVisible();
 	await expect.poll(async () => page.locator('.workflow-team-card').count()).toBeGreaterThan(0);
@@ -111,6 +120,8 @@ test.describe('workflow responsive visual pass', () => {
 		await page.goto('/dashboard/projects');
 		await waitForProjectsReady(page);
 		await capturePage(page, 'tablet-projects');
+		await openFirstProjectDetail(page);
+		await capturePage(page, 'tablet-project-detail');
 
 		await page.goto('/dashboard/team');
 		await waitForTeamReady(page);
@@ -169,6 +180,8 @@ test.describe('workflow responsive visual pass', () => {
 		await page.goto('/dashboard/projects');
 		await waitForProjectsReady(page);
 		await capturePage(page, 'mobile-projects');
+		await openFirstProjectDetail(page);
+		await capturePage(page, 'mobile-project-detail');
 
 		await page.goto('/dashboard/team');
 		await waitForTeamReady(page);
