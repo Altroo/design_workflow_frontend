@@ -196,8 +196,13 @@ jest.mock('@/utils/helpers', () => ({
 
 jest.mock('next/image', () => ({
 	__esModule: true,
-	// eslint-disable-next-line @next/next/no-img-element
-	default: (props: Record<string, unknown>) => <img {...props} alt="" />,
+	default: ({ alt = '', ...props }: Record<string, unknown>) => {
+		delete props.unoptimized;
+		delete props.priority;
+		delete props.fill;
+		// eslint-disable-next-line @next/next/no-img-element
+		return <img {...props} alt={String(alt)} />;
+	},
 }));
 
 import UsersListClient from './users-list';
@@ -212,100 +217,98 @@ describe('UsersListClient', () => {
 			expect(screen.getByTestId('protected')).toBeInTheDocument();
 		});
 
-		it('renders paginated data grid', () => {
+		it('renders workflow users table', () => {
 			render(<UsersListClient />);
-			expect(screen.getByTestId('paginated-data-grid')).toBeInTheDocument();
+			expect(screen.getByRole('table')).toBeInTheDocument();
 		});
 
 		it('renders Nouveau utilisateur button', () => {
 			render(<UsersListClient />);
-			expect(screen.getByText('Nouveau utilisateur')).toBeInTheDocument();
+			expect(screen.getByRole('button', { name: 'Nouveau utilisateur' })).toBeInTheDocument();
 		});
 
 		it('renders data rows', () => {
 			render(<UsersListClient />);
-			expect(screen.getByTestId('row-1')).toBeInTheDocument();
-			expect(screen.getByTestId('row-2')).toBeInTheDocument();
+			expect(screen.getAllByText('John Doe').length).toBeGreaterThan(0);
+			expect(screen.getAllByText('Jane Smith').length).toBeGreaterThan(0);
 		});
 	});
 
 	describe('Column renderCell', () => {
 		it('renders avatar with image src', () => {
 			render(<UsersListClient />);
-			const imgs = screen.getAllByRole('img');
-			expect(imgs.length).toBeGreaterThan(0);
+			expect(screen.getAllByAltText('John Doe').length).toBeGreaterThan(0);
 		});
 
 		it('renders first_name and last_name', () => {
 			render(<UsersListClient />);
-			expect(screen.getByText('John')).toBeInTheDocument();
-			expect(screen.getByText('Jane')).toBeInTheDocument();
-			expect(screen.getByText('Doe')).toBeInTheDocument();
-			expect(screen.getByText('Smith')).toBeInTheDocument();
+			expect(screen.getAllByText('John Doe').length).toBeGreaterThan(0);
+			expect(screen.getAllByText('Jane Smith').length).toBeGreaterThan(0);
 		});
 
 		it('renders email values', () => {
 			render(<UsersListClient />);
-			expect(screen.getByText('john@test.com')).toBeInTheDocument();
-			expect(screen.getByText('jane@test.com')).toBeInTheDocument();
+			expect(screen.getAllByText('john@test.com').length).toBeGreaterThan(0);
+			expect(screen.getAllByText('jane@test.com').length).toBeGreaterThan(0);
 		});
 
 		it('renders gender values', () => {
 			render(<UsersListClient />);
-			expect(screen.getByText('Homme')).toBeInTheDocument();
-			expect(screen.getByText('Femme')).toBeInTheDocument();
+			expect(screen.getAllByText('Homme').length).toBeGreaterThan(0);
+			expect(screen.getAllByText('Femme').length).toBeGreaterThan(0);
 		});
 
-		it('renders date_joined and last_login (null shows dash)', () => {
+		it('renders registration dates', () => {
 			render(<UsersListClient />);
-			expect(screen.getByText('—')).toBeInTheDocument();
+			expect(screen.getAllByText('10/01/2025').length).toBeGreaterThan(0);
+			expect(screen.getAllByText('15/02/2025').length).toBeGreaterThan(0);
 		});
 
 		it('renders action buttons for each row', () => {
 			render(<UsersListClient />);
-			expect(screen.getAllByText('Voir').length).toBeGreaterThanOrEqual(2);
-			expect(screen.getAllByText('Modifier').length).toBeGreaterThanOrEqual(2);
-			expect(screen.getAllByText('Supprimer').length).toBeGreaterThanOrEqual(2);
+			expect(screen.getAllByRole('button', { name: 'Voir' }).length).toBeGreaterThanOrEqual(2);
+			expect(screen.getAllByRole('button', { name: 'Modifier' }).length).toBeGreaterThanOrEqual(2);
+			expect(screen.getAllByRole('button', { name: 'Supprimer' }).length).toBeGreaterThanOrEqual(2);
 		});
 	});
 
 	describe('Action handlers', () => {
 		it('navigates to add page', () => {
 			render(<UsersListClient />);
-			fireEvent.click(screen.getByText('Nouveau utilisateur'));
+			fireEvent.click(screen.getByRole('button', { name: 'Nouveau utilisateur' }));
 			expect(mockPush).toHaveBeenCalled();
 		});
 
 		it('navigates to view page', () => {
 			render(<UsersListClient />);
-			fireEvent.click(screen.getAllByText('Voir')[0]);
+			fireEvent.click(screen.getAllByRole('button', { name: 'Voir' })[0]);
 			expect(mockPush).toHaveBeenCalled();
 		});
 
 		it('navigates to edit page', () => {
 			render(<UsersListClient />);
-			fireEvent.click(screen.getAllByText('Modifier')[0]);
+			fireEvent.click(screen.getAllByRole('button', { name: 'Modifier' })[0]);
 			expect(mockPush).toHaveBeenCalled();
 		});
 
 		it('opens delete modal', async () => {
 			render(<UsersListClient />);
-			await act(async () => { fireEvent.click(screen.getAllByText('Supprimer')[0]); });
+			await act(async () => { fireEvent.click(screen.getAllByRole('button', { name: 'Supprimer' })[0]); });
 			expect(screen.getByTestId('action-modal')).toBeInTheDocument();
 			expect(screen.getByText('Supprimer cet utilisateur ?')).toBeInTheDocument();
 		});
 
 		it('closes delete modal on Annuler', async () => {
 			render(<UsersListClient />);
-			await act(async () => { fireEvent.click(screen.getAllByText('Supprimer')[0]); });
+			await act(async () => { fireEvent.click(screen.getAllByRole('button', { name: 'Supprimer' })[0]); });
 			await act(async () => { fireEvent.click(screen.getByText('Annuler')); });
 			expect(screen.queryByTestId('action-modal')).not.toBeInTheDocument();
 		});
 
 		it('deletes user on confirm', async () => {
 			render(<UsersListClient />);
-			await act(async () => { fireEvent.click(screen.getAllByText('Supprimer')[0]); });
-			const btns = screen.getAllByText('Supprimer');
+			await act(async () => { fireEvent.click(screen.getAllByRole('button', { name: 'Supprimer' })[0]); });
+			const btns = screen.getAllByRole('button', { name: 'Supprimer' });
 			await act(async () => { fireEvent.click(btns[btns.length - 1]); });
 			await waitFor(() => {
 				expect(mockDeleteUser).toHaveBeenCalled();
@@ -316,8 +319,8 @@ describe('UsersListClient', () => {
 		it('handles delete error', async () => {
 			mockDeleteUser.mockReturnValueOnce({ unwrap: () => Promise.reject(new Error('fail')) });
 			render(<UsersListClient />);
-			await act(async () => { fireEvent.click(screen.getAllByText('Supprimer')[0]); });
-			const btns = screen.getAllByText('Supprimer');
+			await act(async () => { fireEvent.click(screen.getAllByRole('button', { name: 'Supprimer' })[0]); });
+			const btns = screen.getAllByRole('button', { name: 'Supprimer' });
 			await act(async () => { fireEvent.click(btns[btns.length - 1]); });
 			await waitFor(() => {
 				expect(mockOnError).toHaveBeenCalledWith("Erreur lors de la suppression de l'utilisateur");
@@ -328,23 +331,23 @@ describe('UsersListClient', () => {
 	describe('Column headers', () => {
 		it('renders all expected column headers', () => {
 			render(<UsersListClient />);
-			for (const h of ['Avatar', 'Nom', 'Prénom', 'Email', 'Genre', 'Admin', 'Active', "Date d'inscription", 'Dernière connexion', 'Actions']) {
+			for (const h of ['Utilisateur', 'Email', 'Genre', 'Active', 'Admin', "Date d'inscription", 'Actions']) {
 				expect(screen.getByText(h)).toBeInTheDocument();
 			}
 		});
 	});
 
 	describe('Loading and empty states', () => {
-		it('renders grid when loading', () => {
+		it('keeps the users shell when loading', () => {
 			mockUseGetUsersListQuery.mockReturnValueOnce({ data: { results: [], count: 0, next: null, previous: null }, isLoading: true, refetch: mockRefetch });
 			render(<UsersListClient />);
-			expect(screen.getByTestId('paginated-data-grid')).toBeInTheDocument();
+			expect(screen.getByText('Registre utilisateurs')).toBeInTheDocument();
 		});
 
-		it('renders grid when empty', () => {
+		it('renders empty state when empty', () => {
 			mockUseGetUsersListQuery.mockReturnValueOnce({ data: { results: [], count: 0, next: null, previous: null }, isLoading: false, refetch: mockRefetch });
 			render(<UsersListClient />);
-			expect(screen.getByTestId('paginated-data-grid')).toBeInTheDocument();
+			expect(screen.getAllByText('Aucun utilisateur trouvé.').length).toBeGreaterThan(0);
 		});
 	});
 });

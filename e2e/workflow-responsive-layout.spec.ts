@@ -68,6 +68,22 @@ const waitForChatReady = async (page: Page) => {
 	await expect(page.locator('body')).not.toContainText(/Sélectionnez une conversation|Select a conversation/i);
 };
 
+const waitForNotificationsReady = async (page: Page) => {
+	await expect(page.locator('.workflow-notifications-shell')).toBeVisible();
+	await expect(page.locator('.workflow-notifications-metrics')).toBeVisible();
+	await expect(page.locator('.workflow-notification-preferences')).toBeVisible();
+	await expect(page.locator('.workflow-notifications-board')).toBeVisible();
+	await expect(page.locator('.workflow-notifications-list > *').first()).toBeVisible();
+};
+
+const waitForUsersReady = async (page: Page) => {
+	await expect(page.locator('.workflow-users-shell')).toBeVisible();
+	await expect(page.locator('.workflow-users-metrics')).toBeVisible();
+	await expect(page.locator('.workflow-users-board')).toBeVisible();
+	await expect(page.locator('.workflow-users-table-wrap:visible, .workflow-users-mobile-list:visible').first()).toBeVisible();
+	await expect.poll(async () => page.locator('.workflow-users-table tbody tr, .workflow-users-mobile-card').count()).toBeGreaterThan(0);
+};
+
 test.describe('workflow responsive visual pass', () => {
 	test.skip(!existsSync(authStatePath), 'Run the authenticated dashboard setup before responsive checks.');
 	test.use({ storageState: authStatePath });
@@ -81,6 +97,7 @@ test.describe('workflow responsive visual pass', () => {
 	});
 
 	test('keeps tablet workflow pages readable without body overflow', async ({ page }) => {
+		test.setTimeout(60_000);
 		await page.setViewportSize({ width: 820, height: 1180 });
 
 		await page.goto('/dashboard/board');
@@ -109,9 +126,18 @@ test.describe('workflow responsive visual pass', () => {
 		await waitForChatReady(page);
 		await expect(page.locator('.workflow-chat-thread-button, .workflow-chat-context-button, .workflow-chat-direct-button').first()).toBeVisible();
 		await capturePage(page, 'tablet-chat');
+
+		await page.goto('/dashboard/notifications');
+		await waitForNotificationsReady(page);
+		await capturePage(page, 'tablet-notifications');
+
+		await page.goto('/dashboard/users');
+		await waitForUsersReady(page);
+		await capturePage(page, 'tablet-users');
 	});
 
 	test('keeps mobile workflow pages compact and keeps language switching available', async ({ page }) => {
+		test.setTimeout(60_000);
 		await page.setViewportSize({ width: 390, height: 844 });
 
 		await page.goto('/dashboard/board');
@@ -158,5 +184,13 @@ test.describe('workflow responsive visual pass', () => {
 		await expect(page.locator('.workflow-chat-thread-button, .workflow-chat-context-button, .workflow-chat-direct-button').first()).toBeVisible();
 		await expect(page.getByRole('button', { name: /Filtrer par/i })).toBeVisible();
 		await capturePage(page, 'mobile-chat');
+
+		await page.goto('/dashboard/notifications');
+		await waitForNotificationsReady(page);
+		await capturePage(page, 'mobile-notifications');
+
+		await page.goto('/dashboard/users');
+		await waitForUsersReady(page);
+		await capturePage(page, 'mobile-users');
 	});
 });

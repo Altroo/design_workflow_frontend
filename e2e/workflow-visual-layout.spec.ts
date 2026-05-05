@@ -90,5 +90,21 @@ test.describe('workflow visual layout pass', () => {
 		await expect(page.getByRole('button', { name: /Filtrer par/i })).toBeVisible();
 		await expect(page.locator('.workflow-chat-tools-toggle span')).toHaveText(/Filtrer par/i);
 		await page.screenshot({ path: join(screenshotDir, 'chat.png'), fullPage: true });
+
+		await page.goto('/dashboard/notifications');
+		await expect(page.locator('.workflow-notifications-shell')).toBeVisible();
+		await expect(page.locator('.workflow-notifications-metrics')).toBeVisible();
+		await expect(page.locator('.workflow-notification-preferences')).toBeVisible();
+		await expect(page.locator('.workflow-notifications-board')).toBeVisible();
+		await expect(page.locator('.workflow-notifications-list > *').first()).toBeVisible();
+		await page.screenshot({ path: join(screenshotDir, 'notifications.png'), fullPage: true });
+
+		await page.goto('/dashboard/users');
+		await expect(page.locator('.workflow-users-shell')).toBeVisible();
+		await expect(page.locator('.workflow-users-metrics')).toBeVisible();
+		await expect(page.locator('.workflow-users-board')).toBeVisible();
+		await expect(page.locator('.workflow-users-table-wrap')).toBeVisible();
+		await expect.poll(async () => page.locator('.workflow-users-table tbody tr').count()).toBeGreaterThan(0);
+		await page.screenshot({ path: join(screenshotDir, 'users.png'), fullPage: true });
 	});
 });
