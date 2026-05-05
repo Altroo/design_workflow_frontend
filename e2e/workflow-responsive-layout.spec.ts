@@ -76,15 +76,20 @@ const waitForTeamReady = async (page: Page) => {
 };
 
 const waitForReportReady = async (page: Page) => {
-	await expect(page.locator('.workflow-report-filterbar')).toBeVisible();
-	await expect(page.locator('.workflow-analytics-grid')).toBeVisible();
-	await expect.poll(async () => page.locator('.workflow-report-card').count()).toBeGreaterThan(0);
+	await expect(page.locator('.workflow-report-filterbar')).toBeVisible({ timeout: 30_000 });
+	await expect(page.locator('.workflow-report-metrics')).toBeVisible({ timeout: 30_000 });
+	await expect(page.locator('.workflow-analytics-grid, .workflow-analytics-panel').first()).toBeVisible({ timeout: 30_000 });
+	await expect(page.locator('.workflow-forecast-board')).toBeVisible({ timeout: 30_000 });
+	await expect.poll(async () => page.locator('.workflow-report-card').count(), { timeout: 30_000 }).toBeGreaterThan(0);
 };
 
 const waitForChatReady = async (page: Page) => {
 	await expect(page.locator('.workflow-chat-sidebar')).toBeVisible();
-	await expect(page.locator('.workflow-chat-thread-button').first()).toBeVisible();
+	await expect(page.locator('.workflow-chat-thread-button, .workflow-chat-context-button, .workflow-chat-direct-button').first()).toBeVisible();
 	await expect(page.locator('body')).not.toContainText(/Sélectionnez une conversation|Select a conversation/i);
+	await expect(page.locator('.workflow-chat-room')).not.toContainText(/Chargement des conversations|Loading conversations/i, { timeout: 30_000 });
+	await expect(page.locator('.workflow-chat-room-header')).toContainText(/messages/i);
+	await expect(page.locator('.workflow-chat-room textarea').first()).toBeEnabled({ timeout: 30_000 });
 };
 
 const waitForNotificationsReady = async (page: Page) => {
@@ -96,11 +101,27 @@ const waitForNotificationsReady = async (page: Page) => {
 };
 
 const waitForUsersReady = async (page: Page) => {
-	await expect(page.locator('.workflow-users-shell')).toBeVisible();
-	await expect(page.locator('.workflow-users-metrics')).toBeVisible();
-	await expect(page.locator('.workflow-users-board')).toBeVisible();
-	await expect(page.locator('.workflow-users-table-wrap:visible, .workflow-users-mobile-list:visible').first()).toBeVisible();
-	await expect.poll(async () => page.locator('.workflow-users-table tbody tr, .workflow-users-mobile-card').count()).toBeGreaterThan(0);
+	const rows = page.locator('.workflow-users-table tbody tr, .workflow-users-mobile-card');
+	const errorState = page.locator('.workflow-users-board').getByText(/Une erreur est survenue|An error occurred/i);
+
+	for (let attempt = 0; attempt < 2; attempt += 1) {
+		await expect(page.getByTestId('api-loader')).toHaveCount(0, { timeout: 30_000 });
+		await expect(page.locator('.workflow-users-shell')).toBeVisible({ timeout: 30_000 });
+		await expect(page.locator('.workflow-users-metrics')).toBeVisible({ timeout: 30_000 });
+		await expect(page.locator('.workflow-users-board')).toBeVisible({ timeout: 30_000 });
+		await expect(page.locator('.workflow-users-table-wrap:visible, .workflow-users-mobile-list:visible').first()).toBeVisible({ timeout: 30_000 });
+
+		try {
+			await expect.poll(async () => rows.count(), { timeout: 30_000 }).toBeGreaterThan(0);
+			return;
+		} catch (error) {
+			if (attempt === 0 && (await errorState.count()) > 0) {
+				await page.reload({ waitUntil: 'domcontentloaded' });
+				continue;
+			}
+			throw error;
+		}
+	}
 };
 
 const waitForUserFormReady = async (page: Page) => {

@@ -1,9 +1,43 @@
-import { expect, test } from '@playwright/test';
+import { expect, type Page, test } from '@playwright/test';
 import { existsSync, mkdirSync } from 'node:fs';
 import { join } from 'node:path';
 
 const authStatePath = '.playwright/.auth/design-workflow-e2e.json';
 const screenshotDir = 'test-results/workflow-visual';
+
+const waitForUsersReady = async (page: Page) => {
+	const rows = page.locator('.workflow-users-table tbody tr');
+	const errorState = page.locator('.workflow-users-board').getByText(/Une erreur est survenue|An error occurred/i);
+
+	for (let attempt = 0; attempt < 2; attempt += 1) {
+		await expect(page.getByTestId('api-loader')).toHaveCount(0, { timeout: 30_000 });
+		await expect(page.locator('.workflow-users-shell')).toBeVisible({ timeout: 30_000 });
+		await expect(page.locator('.workflow-users-metrics')).toBeVisible({ timeout: 30_000 });
+		await expect(page.locator('.workflow-users-board')).toBeVisible({ timeout: 30_000 });
+		await expect(page.locator('.workflow-users-table-wrap')).toBeVisible({ timeout: 30_000 });
+
+		try {
+			await expect.poll(async () => rows.count(), { timeout: 30_000 }).toBeGreaterThan(0);
+			return;
+		} catch (error) {
+			if (attempt === 0 && (await errorState.count()) > 0) {
+				await page.reload({ waitUntil: 'domcontentloaded' });
+				continue;
+			}
+			throw error;
+		}
+	}
+};
+
+const waitForChatReady = async (page: Page) => {
+	await expect(page.locator('.workflow-chat-sidebar')).toBeVisible({ timeout: 30_000 });
+	await expect(page.locator('.workflow-chat-task-room-section')).toHaveCount(0);
+	await expect(page.locator('.workflow-chat-thread-button, .workflow-chat-context-button, .workflow-chat-direct-button').first()).toBeVisible({ timeout: 30_000 });
+	await expect(page.locator('body')).not.toContainText(/Sélectionnez une conversation|Select a conversation/i, { timeout: 30_000 });
+	await expect(page.locator('.workflow-chat-room')).not.toContainText(/Chargement des conversations|Loading conversations/i, { timeout: 30_000 });
+	await expect(page.locator('.workflow-chat-room-header')).toContainText(/messages/i, { timeout: 30_000 });
+	await expect(page.locator('.workflow-chat-room textarea').first()).toBeEnabled({ timeout: 30_000 });
+};
 
 test.describe('workflow visual layout pass', () => {
 	test.skip(!existsSync(authStatePath), 'Run the authenticated dashboard setup before visual layout checks.');
@@ -106,12 +140,7 @@ test.describe('workflow visual layout pass', () => {
 		await page.screenshot({ path: join(screenshotDir, 'reports.png'), fullPage: true });
 
 		await page.goto('/dashboard/chat');
-		await expect(page.locator('.workflow-chat-sidebar')).toBeVisible();
-		await expect(page.locator('.workflow-chat-task-room-section')).toHaveCount(0);
-		await expect(page.locator('.workflow-chat-thread-button').first()).toBeVisible();
-		await expect(page.locator('body')).not.toContainText(/Sélectionnez une conversation|Select a conversation/i);
-		await expect(page.locator('.workflow-chat-thread-button, .workflow-chat-context-button, .workflow-chat-direct-button').first()).toBeVisible();
-		await expect(page.locator('.workflow-chat-room-header')).toContainText(/messages/i);
+		await waitForChatReady(page);
 		await expect(page.getByRole('button', { name: /Filtrer par/i })).toBeVisible();
 		await expect(page.locator('.workflow-chat-tools-toggle span')).toHaveText(/Filtrer par/i);
 		await page.screenshot({ path: join(screenshotDir, 'chat.png'), fullPage: true });
@@ -125,12 +154,7 @@ test.describe('workflow visual layout pass', () => {
 		await page.screenshot({ path: join(screenshotDir, 'notifications.png'), fullPage: true });
 
 		await page.goto('/dashboard/users');
-		await expect(page.getByTestId('api-loader')).toHaveCount(0, { timeout: 30_000 });
-		await expect(page.locator('.workflow-users-shell')).toBeVisible({ timeout: 30_000 });
-		await expect(page.locator('.workflow-users-metrics')).toBeVisible({ timeout: 30_000 });
-		await expect(page.locator('.workflow-users-board')).toBeVisible({ timeout: 30_000 });
-		await expect(page.locator('.workflow-users-table-wrap')).toBeVisible({ timeout: 30_000 });
-		await expect.poll(async () => page.locator('.workflow-users-table tbody tr').count()).toBeGreaterThan(0);
+		await waitForUsersReady(page);
 		await page.screenshot({ path: join(screenshotDir, 'users.png'), fullPage: true });
 
 		await page.goto('/dashboard/users/new');

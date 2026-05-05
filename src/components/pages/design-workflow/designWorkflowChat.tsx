@@ -355,6 +355,7 @@ const DesignWorkflowChat = () => {
 	const token = useAppSelector(getAccessToken);
 	const chatDataReady = Boolean(token && (typeof profile.id === 'number' || profile.email));
 	const [selectedThreadId, setSelectedThreadId] = useState<number | null>(null);
+	const [optimisticSelectedThread, setOptimisticSelectedThread] = useState<ChatThread | null>(null);
 	const [body, setBody] = useState('');
 	const [files, setFiles] = useState<File[]>([]);
 	const [filePreviewUrls, setFilePreviewUrls] = useState<string[]>([]);
@@ -395,6 +396,7 @@ const DesignWorkflowChat = () => {
 	const mediaRecorderRef = useRef<MediaRecorder | null>(null);
 	const recordedChunksRef = useRef<BlobPart[]>([]);
 	const discardRecordingRef = useRef(false);
+	const autoStartedProjectThreadRef = useRef(false);
 
 	const { data: threads = [], isLoading: threadsLoading, isFetching: threadsFetching, refetch: refetchThreads } = useGetChatThreadsQuery(undefined, { skip: !chatDataReady });
 	const chatThreads = useMemo(() => threads.filter((thread) => thread.kind !== 'task'), [threads]);
@@ -407,8 +409,11 @@ const DesignWorkflowChat = () => {
 		[chatThreads],
 	);
 	const selectedThread = useMemo(
-		() => chatThreads.find((thread) => thread.id === selectedThreadId) ?? preferredThread,
-		[chatThreads, preferredThread, selectedThreadId],
+		() =>
+			chatThreads.find((thread) => thread.id === selectedThreadId) ??
+			(optimisticSelectedThread?.id === selectedThreadId ? optimisticSelectedThread : undefined) ??
+			preferredThread,
+		[chatThreads, optimisticSelectedThread, preferredThread, selectedThreadId],
 	);
 	const chatInitialLoading = chatDataReady && chatThreads.length === 0 && (threadsLoading || threadsFetching);
 	const threadPreviewLabels = useMemo(() => ({
@@ -460,6 +465,29 @@ const DesignWorkflowChat = () => {
 		[...activeTasks, ...archivedTasks].forEach((task) => byId.set(task.id, task));
 		return Array.from(byId.values());
 	}, [activeTasks, archivedTasks]);
+
+	useEffect(() => {
+		if (selectedThread || selectedThreadId || chatInitialLoading || projects.length === 0 || autoStartedProjectThreadRef.current) return;
+		const firstProject = projects[0];
+		if (!firstProject) return;
+		autoStartedProjectThreadRef.current = true;
+		void createThread({ kind: 'project', project_id: firstProject.id })
+			.unwrap()
+			.then((thread) => {
+				setOptimisticSelectedThread(thread);
+				setSelectedThreadId(thread.id);
+			})
+			.catch(() => {
+				autoStartedProjectThreadRef.current = false;
+			});
+	}, [chatInitialLoading, createThread, projects, selectedThread, selectedThreadId]);
+
+	useEffect(() => {
+		if (!optimisticSelectedThread) return;
+		if (chatThreads.some((thread) => thread.id === optimisticSelectedThread.id)) {
+			setOptimisticSelectedThread(null);
+		}
+	}, [chatThreads, optimisticSelectedThread]);
 
 	useEffect(() => {
 		const requestedThreadId = Number(searchParams.get('thread') ?? 0);
@@ -778,6 +806,7 @@ const DesignWorkflowChat = () => {
 			return;
 		}
 		const thread = await createThread({ kind: 'private', recipient_id: user.id }).unwrap();
+		setOptimisticSelectedThread(thread);
 		setSelectedThreadId(thread.id);
 	};
 
@@ -788,6 +817,7 @@ const DesignWorkflowChat = () => {
 			return;
 		}
 		const thread = await createThread({ kind: 'project', project_id: project.id }).unwrap();
+		setOptimisticSelectedThread(thread);
 		setSelectedThreadId(thread.id);
 	};
 
@@ -1060,6 +1090,7 @@ const DesignWorkflowChat = () => {
 									type="button"
 									onClick={async () => {
 										const nextThread = thread ?? (await createThread({ kind: 'private', recipient_id: user.id }).unwrap());
+										if (!thread) setOptimisticSelectedThread(nextThread);
 										setSelectedThreadId(nextThread.id);
 									}}
 									className={['workflow-chat-direct-button', thread?.unread_count ? 'is-unread' : '', selectedThread?.id === thread?.id ? 'is-active' : ''].join(' ')}
