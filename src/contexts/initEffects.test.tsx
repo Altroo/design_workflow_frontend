@@ -26,7 +26,7 @@ describe('InitEffects', () => {
 
 		(useAppDispatch as jest.Mock).mockReturnValue(mockDispatch);
 		(useAppSelector as jest.Mock).mockImplementation((selector) => {
-			if (selector === getAccessToken) return { access: 'mock-token' };
+			if (selector === getAccessToken) return 'mock-token';
 			return undefined;
 		});
 
@@ -54,6 +54,21 @@ describe('InitEffects', () => {
 				expect.objectContaining({ type: 'INIT_APP_SESSION_TOKENS' }),
 			);
 		});
+	});
+
+	it('uses nested session.user access token for profile loading', () => {
+		(useAppSelector as jest.Mock).mockImplementation((selector) => {
+			if (selector === getAccessToken) return undefined;
+			return undefined;
+		});
+		(useSession as jest.Mock).mockReturnValue({
+			data: { user: { name: 'Test', accessToken: 'nested-token' } },
+			status: 'authenticated',
+		});
+
+		render(<InitEffects />);
+
+		expect(useGetProfilQuery).toHaveBeenCalledWith(undefined, { skip: false });
 	});
 
 	it('does not dispatch INIT_APP_SESSION_TOKENS when unauthenticated', async () => {

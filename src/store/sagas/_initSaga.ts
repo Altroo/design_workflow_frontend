@@ -6,15 +6,17 @@ import { setWSMaintenance } from '../slices/wsSlice';
 import { allowAnyInstance } from '@/utils/helpers';
 import { getApi } from '@/utils/apiHelpers';
 import type { AxiosInstance } from 'axios';
+import { getAccessTokenFromSession } from '@/store/session';
 
 export function* initAppSaga() {
 	yield call(initMaintenanceSaga);
 }
 
 export function* initAppSessionTokensSaga(payload: { type: string; session: AppSession }) {
+	const accessToken = getAccessTokenFromSession(payload.session);
 	const stateToken = {
 		user: payload.session.user,
-		access: payload.session.accessToken,
+		access: accessToken,
 		refresh: payload.session.refreshToken,
 		access_expiration: payload.session.accessTokenExpiration,
 		refresh_expiration: payload.session.refreshTokenExpiration,

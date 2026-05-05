@@ -21,6 +21,7 @@ test.describe('workflow visual layout pass', () => {
 	});
 
 	test('captures and checks the premium workflow pages', async ({ page }) => {
+		test.setTimeout(90_000);
 		await page.goto('/dashboard/board');
 		await expect(page.locator('.workflow-kanban-toolbar')).toBeVisible();
 		await expect(page.locator('.workflow-kanban-filter-grid')).toBeVisible();
@@ -44,6 +45,17 @@ test.describe('workflow visual layout pass', () => {
 		await page.screenshot({ path: join(screenshotDir, 'task-modal.png'), fullPage: true });
 		await page.keyboard.press('Escape');
 		await expect(page.locator('.workflow-task-modal')).toHaveCount(0);
+
+		await page.goto('/dashboard/overview');
+		await expect(page.locator('.workflow-overview-page')).toBeVisible();
+		await expect(page.locator('.workflow-overview-metrics')).toBeVisible();
+		await expect(page.locator('.workflow-overview-grid')).toBeVisible();
+		await page.screenshot({ path: join(screenshotDir, 'overview.png'), fullPage: true });
+
+		await page.goto('/dashboard/my-work');
+		await expect(page.locator('.workflow-board-lanes')).toBeVisible();
+		await expect(page.locator('.workflow-board-surface')).not.toContainText(/Chargement tableau|Loading board/i);
+		await page.screenshot({ path: join(screenshotDir, 'my-work.png'), fullPage: true });
 
 		await page.goto('/dashboard/projects');
 		await expect(page.locator('.workflow-projects-layout')).toBeVisible();
@@ -113,11 +125,29 @@ test.describe('workflow visual layout pass', () => {
 		await page.screenshot({ path: join(screenshotDir, 'notifications.png'), fullPage: true });
 
 		await page.goto('/dashboard/users');
-		await expect(page.locator('.workflow-users-shell')).toBeVisible();
-		await expect(page.locator('.workflow-users-metrics')).toBeVisible();
-		await expect(page.locator('.workflow-users-board')).toBeVisible();
-		await expect(page.locator('.workflow-users-table-wrap')).toBeVisible();
+		await expect(page.getByTestId('api-loader')).toHaveCount(0, { timeout: 30_000 });
+		await expect(page.locator('.workflow-users-shell')).toBeVisible({ timeout: 30_000 });
+		await expect(page.locator('.workflow-users-metrics')).toBeVisible({ timeout: 30_000 });
+		await expect(page.locator('.workflow-users-board')).toBeVisible({ timeout: 30_000 });
+		await expect(page.locator('.workflow-users-table-wrap')).toBeVisible({ timeout: 30_000 });
 		await expect.poll(async () => page.locator('.workflow-users-table tbody tr').count()).toBeGreaterThan(0);
 		await page.screenshot({ path: join(screenshotDir, 'users.png'), fullPage: true });
+
+		await page.goto('/dashboard/users/new');
+		await expect(page.getByTestId('api-loader')).toHaveCount(0, { timeout: 30_000 });
+		await expect(page.locator('.workflow-user-form-shell')).toBeVisible({ timeout: 30_000 });
+		await expect(page.locator('.workflow-user-form-grid')).toBeVisible({ timeout: 30_000 });
+		await page.screenshot({ path: join(screenshotDir, 'user-new.png'), fullPage: true });
+
+		await page.goto('/dashboard/settings/edit-profile');
+		await expect(page.locator('.workflow-profile-shell')).toBeVisible();
+		await expect(page.locator('.workflow-profile-fields')).toBeVisible();
+		await expect(page.getByTestId('api-loader')).toHaveCount(0, { timeout: 20_000 });
+		await page.screenshot({ path: join(screenshotDir, 'profile.png'), fullPage: true });
+
+		await page.goto('/dashboard/settings/password');
+		await expect(page.locator('.workflow-password-shell')).toBeVisible();
+		await expect(page.locator('.workflow-password-fields')).toBeVisible();
+		await page.screenshot({ path: join(screenshotDir, 'password.png'), fullPage: true });
 	});
 });

@@ -45,6 +45,12 @@ const waitForBoardReady = async (page: Page) => {
 	await expect.poll(async () => page.locator('[data-testid^="board-task-"]').count()).toBeGreaterThan(0);
 };
 
+const waitForOverviewReady = async (page: Page) => {
+	await expect(page.locator('.workflow-overview-page')).toBeVisible();
+	await expect(page.locator('.workflow-overview-metrics')).toBeVisible();
+	await expect(page.locator('.workflow-overview-grid')).toBeVisible();
+};
+
 const waitForProjectsReady = async (page: Page) => {
 	await expect(page.locator('.workflow-projects-layout')).toBeVisible();
 	await expect(page.locator('.workflow-projects-list')).not.toContainText(/Chargement projets|Loading projects/i);
@@ -93,6 +99,23 @@ const waitForUsersReady = async (page: Page) => {
 	await expect.poll(async () => page.locator('.workflow-users-table tbody tr, .workflow-users-mobile-card').count()).toBeGreaterThan(0);
 };
 
+const waitForUserFormReady = async (page: Page) => {
+	await expect(page.getByTestId('api-loader')).toHaveCount(0, { timeout: 30_000 });
+	await expect(page.locator('.workflow-user-form-shell')).toBeVisible({ timeout: 30_000 });
+	await expect(page.locator('.workflow-user-form-grid')).toBeVisible({ timeout: 30_000 });
+};
+
+const waitForProfileReady = async (page: Page) => {
+	await expect(page.locator('.workflow-profile-shell')).toBeVisible();
+	await expect(page.locator('.workflow-profile-fields')).toBeVisible();
+	await expect(page.getByTestId('api-loader')).toHaveCount(0, { timeout: 20_000 });
+};
+
+const waitForPasswordReady = async (page: Page) => {
+	await expect(page.locator('.workflow-password-shell')).toBeVisible();
+	await expect(page.locator('.workflow-password-fields')).toBeVisible();
+};
+
 test.describe('workflow responsive visual pass', () => {
 	test.skip(!existsSync(authStatePath), 'Run the authenticated dashboard setup before responsive checks.');
 	test.use({ storageState: authStatePath });
@@ -106,7 +129,7 @@ test.describe('workflow responsive visual pass', () => {
 	});
 
 	test('keeps tablet workflow pages readable without body overflow', async ({ page }) => {
-		test.setTimeout(60_000);
+		test.setTimeout(90_000);
 		await page.setViewportSize({ width: 820, height: 1180 });
 
 		await page.goto('/dashboard/board');
@@ -116,6 +139,10 @@ test.describe('workflow responsive visual pass', () => {
 		await expect(page.locator('.workflow-kanban-filter-grid')).not.toContainText(/Needs Review|Backlog/i);
 		await waitForBoardReady(page);
 		await capturePage(page, 'tablet-board');
+
+		await page.goto('/dashboard/overview');
+		await waitForOverviewReady(page);
+		await capturePage(page, 'tablet-overview');
 
 		await page.goto('/dashboard/projects');
 		await waitForProjectsReady(page);
@@ -145,10 +172,22 @@ test.describe('workflow responsive visual pass', () => {
 		await page.goto('/dashboard/users');
 		await waitForUsersReady(page);
 		await capturePage(page, 'tablet-users');
+
+		await page.goto('/dashboard/users/new');
+		await waitForUserFormReady(page);
+		await capturePage(page, 'tablet-user-new');
+
+		await page.goto('/dashboard/settings/edit-profile');
+		await waitForProfileReady(page);
+		await capturePage(page, 'tablet-profile');
+
+		await page.goto('/dashboard/settings/password');
+		await waitForPasswordReady(page);
+		await capturePage(page, 'tablet-password');
 	});
 
 	test('keeps mobile workflow pages compact and keeps language switching available', async ({ page }) => {
-		test.setTimeout(60_000);
+		test.setTimeout(90_000);
 		await page.setViewportSize({ width: 390, height: 844 });
 
 		await page.goto('/dashboard/board');
@@ -176,6 +215,10 @@ test.describe('workflow responsive visual pass', () => {
 			await page.keyboard.press('Escape');
 			await expect(page.locator('.workflow-task-modal')).toHaveCount(0);
 		}
+
+		await page.goto('/dashboard/overview');
+		await waitForOverviewReady(page);
+		await capturePage(page, 'mobile-overview');
 
 		await page.goto('/dashboard/projects');
 		await waitForProjectsReady(page);
@@ -205,5 +248,17 @@ test.describe('workflow responsive visual pass', () => {
 		await page.goto('/dashboard/users');
 		await waitForUsersReady(page);
 		await capturePage(page, 'mobile-users');
+
+		await page.goto('/dashboard/users/new');
+		await waitForUserFormReady(page);
+		await capturePage(page, 'mobile-user-new');
+
+		await page.goto('/dashboard/settings/edit-profile');
+		await waitForProfileReady(page);
+		await capturePage(page, 'mobile-profile');
+
+		await page.goto('/dashboard/settings/password');
+		await waitForPasswordReady(page);
+		await capturePage(page, 'mobile-password');
 	});
 });

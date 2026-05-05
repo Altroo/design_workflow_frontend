@@ -9,6 +9,7 @@ import { getAccessToken } from '@/store/selectors';
 import { useGetProfilQuery } from '@/store/services/account';
 import { accountSetProfilAction } from '@/store/actions/accountActions';
 import { DASHBOARD_PASSWORD } from '@/utils/routes';
+import { getAccessTokenFromSession } from '@/store/session';
 
 export const InitEffects: React.FC = () => {
 	const { data: session, status } = useSession();
@@ -16,7 +17,8 @@ export const InitEffects: React.FC = () => {
 	const router = useRouter();
 	const pathname = usePathname();
 	const initState = useAppSelector(getAccessToken);
-	const accessToken = initState ?? undefined;
+	const sessionAccessToken = session ? getAccessTokenFromSession(session) : undefined;
+	const accessToken = initState ?? sessionAccessToken ?? undefined;
 	const skip = !accessToken || status !== 'authenticated';
 
 	const appInitializedRef = useRef(false);
@@ -33,15 +35,15 @@ export const InitEffects: React.FC = () => {
 
 	// Sync Redux tokens whenever the access token changes (covers initial login + every refresh)
 	useEffect(() => {
-		if (status === 'authenticated' && session?.accessToken &&
-			lastAccessTokenRef.current !== session.accessToken) {
-			lastAccessTokenRef.current = session.accessToken;
+		if (status === 'authenticated' && session && sessionAccessToken &&
+			lastAccessTokenRef.current !== sessionAccessToken) {
+			lastAccessTokenRef.current = sessionAccessToken;
 			dispatch(initAppSessionTokensAction(session));
 		}
 		if (status !== 'authenticated') {
 			lastAccessTokenRef.current = null;
 		}
-	}, [status, session, dispatch]);
+	}, [status, session, sessionAccessToken, dispatch]);
 
 	// Dispatch user profile to Redux
 	useEffect(() => {

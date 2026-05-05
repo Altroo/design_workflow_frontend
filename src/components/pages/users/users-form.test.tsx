@@ -198,7 +198,7 @@ describe('UsersFormClient', () => {
 
 		it('renders section headers', () => {
 			renderWithProviders(<UsersFormClient session={mockSession} />);
-			expect(screen.getByText('Photo de profil')).toBeInTheDocument();
+			expect(screen.getByText('Identité')).toBeInTheDocument();
 			expect(screen.getByText('Informations personnelles')).toBeInTheDocument();
 			expect(screen.getByText('Paramètres du compte')).toBeInTheDocument();
 			expect(screen.getByText('Permissions')).toBeInTheDocument();

@@ -46,6 +46,45 @@ describe('init sagas', () => {
 		expect(dispatched).toEqual([setInitState(expectedAppToken)]);
 	});
 
+	it('initAppSessionTokensSaga accepts access token from session.user', async () => {
+		const mockSession = {
+			user: {
+				pk: 1,
+				email: 'test@example.com',
+				first_name: 'John',
+				last_name: 'Doe',
+				accessToken: 'nested-access-token',
+				id: '',
+				emailVerified: null as null,
+				name: '',
+			},
+			accessToken: '',
+			refreshToken: 'refresh-token',
+			accessTokenExpiration: '2025-01-01',
+			refreshTokenExpiration: '2025-01-02',
+			expires: '2025-01-03',
+		};
+
+		const dispatched: unknown[] = [];
+		await runSaga(
+			{ dispatch: (action: unknown) => dispatched.push(action) },
+			initAppSessionTokensSaga,
+			{ type: Types.INIT_APP_SESSION_TOKENS, session: mockSession as never },
+		).toPromise();
+
+		expect(dispatched).toEqual([
+			setInitState({
+				initStateToken: {
+					user: mockSession.user,
+					access: 'nested-access-token',
+					refresh: mockSession.refreshToken,
+					access_expiration: mockSession.accessTokenExpiration,
+					refresh_expiration: mockSession.refreshTokenExpiration,
+				},
+			}),
+		]);
+	});
+
 	it('refreshAppTokenStatesSaga dispatches setInitState with correct payload', async () => {
 		const payload = {
 			type: Types.REFRESH_APP_TOKEN_STATES,
