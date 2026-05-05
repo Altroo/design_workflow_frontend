@@ -5205,7 +5205,7 @@ const DesignWorkflowShell = ({ title, variant, projectId, taskId }: Props) => {
 				{
 					label: workflow.labels.estimatedLoad,
 					data: chartRows.map((row) => row.estimated_minutes),
-					backgroundColor: '#3f3cff',
+					backgroundColor: '#111827',
 					borderRadius: 10,
 					borderSkipped: false,
 					barThickness: 14,
@@ -5213,7 +5213,7 @@ const DesignWorkflowShell = ({ title, variant, projectId, taskId }: Props) => {
 				{
 					label: workflow.labels.logged,
 					data: chartRows.map((row) => row.actual_minutes),
-					backgroundColor: '#14b8c8',
+					backgroundColor: '#9ca3af',
 					borderRadius: 10,
 					borderSkipped: false,
 					barThickness: 14,
@@ -5447,7 +5447,7 @@ const DesignWorkflowShell = ({ title, variant, projectId, taskId }: Props) => {
 		const topSharePercent = totalMinutes && topRow ? Math.round((topRow.minutes / totalMinutes) * 100) : 0;
 		const remainingProjectCount = Math.max(0, timeReport.length - topDistributionRows.length);
 		const reportBarHeight = Math.min(430, Math.max(260, chartRows.length * 44 + 150));
-		const reportPalette = ['#3f3cff', '#14b8c8', '#12b981', '#f59e0b', '#ef4444', '#7c3aed', '#0f172a', '#94a3b8'];
+		const reportPalette = ['#111827', '#374151', '#6b7280', '#9ca3af', '#cbd5e1', '#4b5563', '#0f172a', '#d1d5db'];
 		const reportBarData: ChartData<'bar', number[], string> = {
 			labels: chartRows.map((row) => row.project.name),
 			datasets: [
@@ -5547,10 +5547,10 @@ const DesignWorkflowShell = ({ title, variant, projectId, taskId }: Props) => {
 				{
 					label: workflow.labels.effortCurve,
 					data: chartRows.map((row) => row.minutes),
-					borderColor: '#3f3cff',
-					backgroundColor: 'rgba(63, 60, 255, 0.12)',
+					borderColor: '#111827',
+					backgroundColor: 'rgba(17, 24, 39, 0.08)',
 					fill: true,
-					pointBackgroundColor: '#14b8c8',
+					pointBackgroundColor: '#6b7280',
 					pointBorderColor: '#ffffff',
 					pointBorderWidth: 3,
 					pointRadius: 5,
