@@ -11814,6 +11814,8 @@ button.workflow-chat-ref-card {
 }
 
 .workflow-trello-modal-cover {
+	position: relative;
+	min-height: min(260px, 34vh);
 	overflow: hidden;
 	border: 1px solid rgba(255, 255, 255, 0.12);
 	border-radius: 8px;
@@ -11821,8 +11823,6 @@ button.workflow-chat-ref-card {
 }
 
 .workflow-trello-modal-cover img {
-	width: 100%;
-	height: min(260px, 34vh);
 	object-fit: contain;
 	background:
 		linear-gradient(45deg, rgba(255, 255, 255, 0.04) 25%, transparent 25%),

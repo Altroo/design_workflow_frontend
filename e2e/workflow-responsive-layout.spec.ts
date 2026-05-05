@@ -35,7 +35,11 @@ const openBoardFilters = async (page: Page) => {
 	if (await toolbar.isVisible()) return;
 	const toggle = page.locator('.workflow-board-filter-toggle');
 	await expect(toggle).toBeVisible();
-	await toggle.click();
+	for (let attempt = 0; attempt < 3; attempt += 1) {
+		await toggle.click();
+		await page.waitForTimeout(120);
+		if (await toolbar.isVisible()) break;
+	}
 	await expect(toolbar).toBeVisible();
 };
 

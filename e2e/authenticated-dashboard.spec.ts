@@ -67,9 +67,11 @@ test.describe('authenticated dashboard', () => {
 		await expect(page).toHaveURL(/\/dashboard\/reports\/time/);
 		await expect(page.locator('body')).toContainText(/Reports|Rapports|Analytics|Temps/i, { timeout: 30_000 });
 		await expect(page.getByRole('button', { name: /Export CSV|Exporter CSV/i })).toBeVisible();
-		await expect(page.getByRole('button', { name: /Export analytics|Exporter analytics/i })).toBeVisible();
+		await expect(page.getByRole('button', { name: /Export analytics|Exporter (analytics|l'analyse)/i })).toBeVisible();
 		await expect(page.getByRole('button', { name: /Export PDF|Exporter PDF/i })).toBeVisible();
-		await expect(page.locator('body')).toContainText(/Lead and cycle time|Review bottlenecks|Capacity forecast|Studio analytics|Analytics/i);
+		await expect(page.locator('body')).toContainText(
+			/Lead and cycle time|Review bottlenecks|Capacity forecast|Studio analytics|D.lai et temps de cycle|Goulots de revue|Pr.vision capacit.|Studio analyse|Analytics/i,
+		);
 	});
 
 	test('opens notification center actions and preferences', async ({ page }) => {
@@ -117,7 +119,7 @@ test.describe('seeded premium workflow coverage', () => {
 
 		await expect(page.locator('.workflow-task-modal, .workflow-trello-modal-detail')).toBeVisible();
 		await expect(page.locator('body')).toContainText(/E2E pin: tighten spacing around logo|Artifact versions|e2e-material-board/i);
-		await expect(page.getByRole('button', { name: /Approve|Request changes|Request review/i }).first()).toBeVisible();
+		await expect(page.getByRole('button', { name: /Approve|Request changes|Request review|Approuver|Demander modifications|Demander revue/i }).first()).toBeVisible();
 	});
 
 	test('opens seeded chat-source task back link', async ({ page }) => {

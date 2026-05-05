@@ -1205,7 +1205,7 @@ const TaskCardItem = ({
 			>
 				{task.cover_image_url ? (
 					<div className="workflow-trello-card-cover">
-						<Image src={resolveMediaUrl(task.cover_image_url)} alt={task.title} width={420} height={160} unoptimized />
+						<Image src={resolveMediaUrl(task.cover_image_url)} alt={task.title} width={420} height={160} unoptimized loading="eager" />
 					</div>
 				) : null}
 				<div className="workflow-trello-card-body">
@@ -4058,7 +4058,7 @@ const DesignWorkflowShell = ({ title, variant, projectId, taskId }: Props) => {
 								<div className="workflow-trello-modal-cover-card">
 									<div className="workflow-trello-modal-cover">
 										{task.cover_image_url ? (
-											<Image src={resolveMediaUrl(task.cover_image_url)} alt={task.title} width={760} height={260} unoptimized />
+											<Image src={resolveMediaUrl(task.cover_image_url)} alt={task.title} fill sizes="(min-width: 1024px) 760px, 100vw" unoptimized loading="eager" className="object-contain" />
 										) : (
 											<div><ImagePlus size={22} /><span>{workflow.labels.noCardImage ?? 'No card image'}</span></div>
 										)}
@@ -4108,7 +4108,7 @@ const DesignWorkflowShell = ({ title, variant, projectId, taskId }: Props) => {
 														onClick={() => openAttachmentPreview(attachment, attachmentUrl, fileMeta)}
 														aria-label={`${workflow.labels.preview ?? 'Preview'} ${attachment.name}`}
 													>
-														<Image src={attachmentUrl} alt={attachment.name} width={92} height={68} unoptimized loading="eager" />
+														<Image src={attachmentUrl} alt={attachment.name} width={92} height={68} unoptimized loading="eager" className="h-auto w-auto" style={{ width: 'auto', height: 'auto' }} />
 													</button>
 												) : (
 													<span><Paperclip size={17} /></span>
@@ -4456,7 +4456,7 @@ const DesignWorkflowShell = ({ title, variant, projectId, taskId }: Props) => {
 											onClick={() => setSelectedAnnotationAttachmentId(attachment.id)}
 										>
 											{isImage ? (
-												<Image src={attachmentUrl} alt={attachment.name} width={128} height={88} unoptimized loading="eager" />
+												<Image src={attachmentUrl} alt={attachment.name} width={128} height={88} unoptimized loading="eager" className="h-auto w-auto" style={{ width: 'auto', height: 'auto' }} />
 											) : (
 												<span><Paperclip size={20} /></span>
 											)}
@@ -4473,7 +4473,7 @@ const DesignWorkflowShell = ({ title, variant, projectId, taskId }: Props) => {
 									<>
 										<div className="workflow-annotation-stage">
 											{isImageAttachment(selectedAnnotationAttachment) ? (
-												<Image src={selectedAnnotationAttachmentUrl} alt={selectedAnnotationAttachment.name} width={860} height={520} unoptimized loading="eager" />
+												<Image src={selectedAnnotationAttachmentUrl} alt={selectedAnnotationAttachment.name} width={860} height={520} unoptimized loading="eager" className="h-auto w-auto" style={{ width: 'auto', height: 'auto' }} />
 											) : (
 												<div className="workflow-annotation-file-placeholder">
 													<Paperclip size={26} />
@@ -4855,7 +4855,7 @@ const DesignWorkflowShell = ({ title, variant, projectId, taskId }: Props) => {
 														onClick={() => openAttachmentPreview(attachment, attachmentUrl, fileMeta)}
 														aria-label={`${workflow.labels.preview ?? 'Preview'} ${attachment.name}`}
 													>
-														<Image src={attachmentUrl} alt={attachment.name} width={72} height={52} unoptimized loading="eager" className="workflow-attachment-thumb" />
+														<Image src={attachmentUrl} alt={attachment.name} width={72} height={52} unoptimized loading="eager" className="workflow-attachment-thumb h-auto w-auto" style={{ width: 'auto', height: 'auto' }} />
 													</button>
 												) : <span className="workflow-attachment-file-icon"><Paperclip size={16} /></span>}
 												<div className="workflow-attachment-copy">
