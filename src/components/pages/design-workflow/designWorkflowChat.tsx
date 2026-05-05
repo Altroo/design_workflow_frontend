@@ -396,9 +396,9 @@ const DesignWorkflowChat = () => {
 	const chatThreads = useMemo(() => threads.filter((thread) => thread.kind !== 'task'), [threads]);
 	const preferredThread = useMemo(
 		() =>
+			chatThreads.find((thread) => thread.kind === 'public') ??
 			chatThreads.find((thread) => thread.unread_count > 0) ??
 			chatThreads.find((thread) => thread.last_message) ??
-			chatThreads.find((thread) => thread.kind === 'public') ??
 			chatThreads[0],
 		[chatThreads],
 	);

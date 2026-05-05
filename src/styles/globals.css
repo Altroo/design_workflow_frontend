@@ -12323,6 +12323,379 @@ button.workflow-chat-ref-card {
 	}
 }
 
+/* Template-aligned workflow projects and chat sweep */
+.workflow-projects-page,
+.workflow-chat-shell {
+	overflow: visible;
+	border: 0;
+	border-radius: 0;
+	background: transparent;
+	box-shadow: none;
+}
+
+.workflow-projects-page {
+	display: grid;
+	gap: 20px;
+}
+
+.workflow-chat-shell {
+	height: calc(100vh - 104px);
+	max-height: calc(100vh - 104px);
+	min-height: 640px;
+}
+
+.workflow-projects-header,
+.workflow-projects-create,
+.workflow-projects-list,
+.workflow-chat-sidebar,
+.workflow-chat-room {
+	border: 1px solid #e5e7eb;
+	border-radius: 22px;
+	background: #ffffff;
+	box-shadow: 0 18px 38px -34px rgba(17, 24, 39, 0.42);
+}
+
+.workflow-projects-header {
+	min-height: 108px;
+	border-bottom: 1px solid #e5e7eb;
+	padding: 26px 30px;
+}
+
+.workflow-projects-header p,
+.workflow-chat-sidebar-head p,
+.workflow-chat-room-title span,
+.workflow-project-card-main span,
+.workflow-project-card-stats b {
+	color: #6b7280;
+	letter-spacing: 0.08em;
+}
+
+.workflow-projects-header h1 {
+	font-size: clamp(28px, 2.25vw, 40px);
+	line-height: 1;
+}
+
+.workflow-projects-actions span,
+.workflow-project-card-pill em,
+.workflow-chat-sidebar-head > span,
+.workflow-chat-panel-pill em,
+.workflow-chat-room-title em {
+	border-color: #e5e7eb;
+	background: #f9fafb;
+	color: #111827;
+	box-shadow: none;
+}
+
+.workflow-projects-metrics,
+.workflow-projects-layout {
+	padding: 0;
+}
+
+.workflow-projects-metrics {
+	gap: 18px;
+}
+
+.workflow-projects-metrics .workflow-overview-metric {
+	min-height: 138px;
+	border-color: #e5e7eb;
+	border-radius: 22px;
+	background: #ffffff;
+	box-shadow: 0 18px 38px -34px rgba(17, 24, 39, 0.42);
+}
+
+.workflow-projects-metrics .workflow-overview-metric::before,
+.workflow-project-card-modern::before,
+.workflow-chat-sidebar::before,
+.workflow-chat-room::before {
+	height: 0;
+	background: transparent;
+}
+
+.workflow-projects-metrics .workflow-overview-metric-pill em {
+	background: #f3f4f6;
+	color: #111827;
+}
+
+.workflow-projects-metrics .workflow-overview-metric > p {
+	color: #030712;
+	font-size: clamp(28px, 2vw, 36px);
+}
+
+.workflow-projects-layout {
+	grid-template-columns: minmax(360px, 0.58fr) minmax(0, 1.42fr);
+	align-items: start;
+	gap: 20px;
+}
+
+.workflow-projects-list {
+	min-width: 0;
+}
+
+.workflow-projects-list .workflow-overview-panel-head,
+.workflow-projects-create .workflow-overview-panel-head {
+	border-bottom-color: #e5e7eb;
+}
+
+.workflow-projects-list .workflow-overview-panel-head > span,
+.workflow-projects-create .workflow-overview-panel-head > span {
+	background: #f3f4f6;
+	color: #111827;
+}
+
+.workflow-projects-card-grid {
+	grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+	gap: 14px;
+}
+
+.workflow-project-card-modern,
+.workflow-project-card-stats span {
+	border-color: #e5e7eb;
+	background: #ffffff;
+	box-shadow: 0 16px 32px -32px rgba(17, 24, 39, 0.42);
+}
+
+.workflow-project-card-modern:hover {
+	border-color: #9ca3af;
+	box-shadow: 0 20px 38px -34px rgba(17, 24, 39, 0.5);
+}
+
+.workflow-project-card-stats span {
+	background: #f9fafb;
+}
+
+.workflow-project-card-open:hover {
+	border-color: #9ca3af;
+	background: #f9fafb;
+	color: #111827;
+}
+
+.workflow-projects-create .app-button,
+.workflow-project-card-open {
+	box-shadow: none;
+}
+
+.workflow-projects-create .app-button:not(.app-button-ghost) {
+	border-color: #111827;
+	background: #111827;
+	color: #ffffff;
+}
+
+.workflow-chat-content {
+	grid-template-columns: minmax(280px, 320px) minmax(0, 1fr);
+	gap: 20px;
+	padding: 0;
+}
+
+.workflow-chat-sidebar {
+	gap: 12px;
+	padding: 14px;
+}
+
+.workflow-chat-sidebar-head,
+.workflow-chat-room-header,
+.workflow-chat-stream {
+	background: #ffffff;
+}
+
+.workflow-chat-sidebar-head {
+	border: 1px solid #eef2f7;
+	border-radius: 18px;
+	padding: 16px;
+}
+
+.workflow-chat-panel-pill {
+	background: transparent;
+	color: #6b7280;
+}
+
+.workflow-chat-thread-button,
+.workflow-chat-context-button,
+.workflow-chat-direct-button {
+	min-height: 52px;
+	border-color: transparent;
+	border-radius: 16px;
+	background: #f9fafb;
+}
+
+.workflow-chat-thread-button:hover,
+.workflow-chat-context-button:hover,
+.workflow-chat-direct-button:hover,
+.workflow-chat-thread-button.is-active,
+.workflow-chat-context-button.is-active,
+.workflow-chat-direct-button.is-active,
+.workflow-chat-thread-button.is-unread,
+.workflow-chat-context-button.is-unread,
+.workflow-chat-direct-button.is-unread {
+	border-color: #d1d5db;
+	background: #ffffff;
+	box-shadow: inset 3px 0 0 #111827;
+	transform: none;
+}
+
+.workflow-chat-thread-button.is-unread .workflow-chat-thread-preview,
+.workflow-chat-context-button.is-unread .workflow-chat-thread-preview,
+.workflow-chat-direct-button.is-unread .workflow-chat-thread-preview {
+	color: #374151;
+}
+
+.workflow-chat-context-icon,
+.workflow-chat-empty-state > span {
+	background: #f3f4f6;
+	color: #111827;
+}
+
+.workflow-chat-room {
+	border-radius: 22px;
+}
+
+.workflow-chat-room-header {
+	border-bottom-color: #e5e7eb;
+	padding: 18px;
+}
+
+.workflow-chat-tools-toggle,
+.workflow-chat-search,
+.workflow-chat-filter-select,
+.workflow-chat-filter-date,
+.workflow-chat-mini-toggle,
+.workflow-chat-ref-toggle,
+.workflow-chat-composer .app-pill,
+.workflow-chat-composer .app-input {
+	border-color: #e5e7eb;
+	background: #ffffff;
+	box-shadow: none;
+}
+
+.workflow-chat-tools-toggle:hover,
+.workflow-chat-tools-toggle.is-open,
+.workflow-chat-mini-toggle.is-active {
+	border-color: #9ca3af;
+	background: #f9fafb;
+	color: #111827;
+}
+
+.workflow-chat-stream {
+	padding: 18px;
+}
+
+.workflow-chat-empty-state {
+	border-color: #d1d5db;
+	background: #ffffff;
+}
+
+.workflow-chat-bubble-mine {
+	border-color: #111827;
+	background: #f9fafb;
+}
+
+.workflow-chat-inline-tag,
+.workflow-chat-inline-tag-user,
+.workflow-chat-inline-tag-task,
+.workflow-chat-inline-tag-project {
+	background: #f3f4f6;
+	color: #111827;
+}
+
+.workflow-chat-rich-task > span,
+.workflow-chat-rich-project > span,
+.workflow-chat-voice-player {
+	background: #f3f4f6;
+	color: #111827;
+}
+
+.workflow-chat-voice-player > button {
+	background: #111827;
+	color: #ffffff;
+}
+
+.workflow-chat-voice-waveform span,
+.workflow-chat-voice-player[data-playing='true'] .workflow-chat-voice-waveform span {
+	background: #9ca3af;
+}
+
+.workflow-chat-voice-waveform span[data-active='true'],
+.workflow-chat-voice-player[data-playing='true'] .workflow-chat-voice-waveform span[data-active='true'] {
+	background: #111827;
+}
+
+.workflow-chat-composer {
+	border-top-color: #e5e7eb;
+	background: #ffffff;
+}
+
+.workflow-chat-composer .app-button:not(.app-button-ghost) {
+	border-color: #111827;
+	background: #111827;
+	color: #ffffff;
+}
+
+@media (max-width: 1280px) {
+	.workflow-projects-layout {
+		grid-template-columns: 1fr;
+	}
+}
+
+@media (max-width: 760px) {
+	.workflow-projects-page {
+		gap: 14px;
+	}
+
+	.workflow-projects-header,
+	.workflow-projects-create,
+	.workflow-projects-list,
+	.workflow-chat-sidebar,
+	.workflow-chat-room {
+		border-radius: 18px;
+	}
+
+	.workflow-projects-header {
+		min-height: auto;
+		padding: 16px;
+	}
+
+	.workflow-projects-metrics {
+		grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+		gap: 12px;
+	}
+
+	.workflow-projects-metrics .workflow-overview-metric {
+		min-height: 110px;
+		border-radius: 18px;
+		padding: 14px;
+	}
+
+	.workflow-projects-metrics .workflow-overview-metric > p {
+		font-size: 24px;
+	}
+
+	.workflow-projects-card-grid,
+	.workflow-project-card-stats {
+		grid-template-columns: 1fr;
+	}
+
+	.workflow-chat-shell {
+		height: auto;
+		max-height: none;
+		min-height: 0;
+	}
+
+	.workflow-chat-content {
+		grid-template-columns: 1fr;
+		gap: 14px;
+		padding: 0;
+		overflow: visible;
+	}
+
+	.workflow-chat-sidebar {
+		max-height: 248px;
+		overflow: auto;
+	}
+
+	.workflow-chat-room {
+		min-height: 620px;
+	}
+}
+
 .workflow-trello-modal-activity-head {
 	display: flex;
 	align-items: center;
