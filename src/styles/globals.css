@@ -11980,6 +11980,858 @@ button.workflow-chat-ref-card {
 	color: #1e40af;
 }
 
+/* Workload template parity sweep.
+   This final layer restores the project-management-admin-dashboard-template visual system
+   after the earlier neutral pass: green primary, grey app canvas, Bootstrap-like cards,
+   a 20.5rem desktop sidebar, 7.5rem header rhythm, and 360px Kanban lanes. */
+:root {
+	--app-bg: #f8f8f8;
+	--surface: #ffffff;
+	--surface-muted: #f8f8f8;
+	--surface-strong: #eeeeee;
+	--ink: #393939;
+	--ink-soft: #737b8b;
+	--ink-muted: #969ba0;
+	--line: #eeeeee;
+	--line-strong: #d8dde7;
+	--accent: #00a15d;
+	--accent-strong: #006e40;
+	--accent-soft: rgba(0, 161, 93, 0.1);
+	--accent-tint: rgba(0, 161, 93, 0.05);
+	--shadow-sm: 0 0.9375rem 1.875rem rgba(0, 0, 0, 0.02);
+	--shadow-md: 0 1rem 2.5rem rgba(0, 0, 0, 0.05);
+	--shadow-lg: 0 1.5rem 4rem rgba(0, 0, 0, 0.08);
+	--radius: 1.25rem;
+	--control-radius: 3.125rem;
+}
+
+html,
+body {
+	background: #f8f8f8 !important;
+	color: #393939;
+	font-family: Roboto, "Segoe UI", Arial, sans-serif;
+	font-size: 0.875rem;
+	line-height: 1.5;
+}
+
+.workflow-shell {
+	grid-template-columns: 5rem minmax(0, 1fr);
+	background: #f8f8f8;
+}
+
+.workflow-shell-expanded {
+	grid-template-columns: 20.5rem minmax(0, 1fr);
+}
+
+.workflow-main {
+	min-height: 100vh;
+	background: #f8f8f8 !important;
+	padding: 0 2.5rem 2.5rem;
+}
+
+.workflow-main > div {
+	max-width: none !important;
+	gap: 1.875rem !important;
+}
+
+.workflow-main main {
+	padding-bottom: 0 !important;
+}
+
+.workflow-rail {
+	width: 100%;
+	height: 100vh;
+	padding: 1.875rem !important;
+	border-right: 0 !important;
+	border-radius: 0 !important;
+	background: #ffffff !important;
+	box-shadow: 0 0.9375rem 1.875rem rgba(0, 0, 0, 0.02) !important;
+}
+
+.workflow-rail > div:first-child {
+	min-height: 5.625rem;
+	padding-bottom: 1.5rem !important;
+	border-bottom-color: #eeeeee !important;
+}
+
+.workflow-rail-logo {
+	width: 3.75rem !important;
+	height: 3.75rem !important;
+	border-radius: 1.875rem !important;
+	background:
+		linear-gradient(180deg, #23d58a 0%, #00a15d 100%) !important;
+	box-shadow: none !important;
+	font-size: 1rem !important;
+	font-weight: 700 !important;
+}
+
+.workflow-topbar [class*='bg-(--accent)'] {
+	background:
+		linear-gradient(180deg, #23d58a 0%, #00a15d 100%) !important;
+	color: #ffffff !important;
+	box-shadow: none !important;
+}
+
+.workflow-rail-title p:first-child,
+.workflow-nav-section,
+.workflow-projects-header p,
+.workflow-team-header p,
+.workflow-report-hero p,
+.workflow-report-board-head p,
+.workflow-report-chart-head p,
+.workflow-chat-sidebar-head p,
+.workflow-chat-room-title span,
+.workflow-overview-panel-pill span,
+.workflow-overview-metric-pill span {
+	color: #737b8b !important;
+	font-size: 0.875rem !important;
+	font-weight: 600 !important;
+	letter-spacing: 0 !important;
+	text-transform: none !important;
+}
+
+.workflow-rail-title p:last-child {
+	color: #000000 !important;
+	font-family: Nunito, Roboto, sans-serif;
+	font-size: 1.25rem !important;
+	font-weight: 700 !important;
+	line-height: 1.1;
+}
+
+.workflow-nav-link {
+	min-height: 3.25rem;
+	border: 0 !important;
+	border-radius: 0.875rem !important;
+	background: transparent !important;
+	box-shadow: none !important;
+	color: #737b8b !important;
+	font-size: 1rem !important;
+	font-weight: 500 !important;
+}
+
+.workflow-nav-link:hover,
+.workflow-nav-link[aria-current='page'],
+.workflow-nav-link[class*='bg-(--accent-soft)'] {
+	background: rgba(0, 161, 93, 0.1) !important;
+	color: #00a15d !important;
+}
+
+.workflow-nav-link:hover svg,
+.workflow-nav-link[aria-current='page'] svg,
+.workflow-nav-link[class*='bg-(--accent-soft)'] svg,
+.workflow-nav-link .text-\(\--accent-strong\) {
+	color: #00a15d !important;
+}
+
+.workflow-nav-badge {
+	background: #00a15d !important;
+	color: #ffffff !important;
+}
+
+.workflow-rail-user {
+	border-color: #eeeeee !important;
+	border-radius: 1.25rem !important;
+	background: #f8f8f8 !important;
+}
+
+.workflow-topbar {
+	width: 100%;
+	min-height: 7.5rem;
+	margin-left: 0;
+	display: flex;
+	align-items: center;
+	justify-content: flex-end;
+}
+
+.workflow-commandbar {
+	border: 0 !important;
+	border-radius: 0 !important;
+	background: transparent !important;
+	box-shadow: none !important;
+	backdrop-filter: none !important;
+	padding: 0 !important;
+}
+
+.workflow-topbar-icon,
+.workflow-topbar-control,
+.workflow-topbar-profile,
+.app-pill,
+.app-input,
+.app-button {
+	border-radius: 3.125rem !important;
+}
+
+.workflow-topbar-icon,
+.workflow-topbar-control,
+.workflow-topbar-profile {
+	min-height: 3.25rem;
+	border: 1px solid #eeeeee !important;
+	background: #ffffff !important;
+	box-shadow: 0 0.9375rem 1.875rem rgba(0, 0, 0, 0.02) !important;
+	color: #000000 !important;
+}
+
+.workflow-topbar-icon:hover,
+.workflow-topbar-control:hover,
+.workflow-topbar-profile:hover,
+.app-pill:hover {
+	border-color: rgba(0, 161, 93, 0.28) !important;
+	background: rgba(0, 161, 93, 0.08) !important;
+	color: #00a15d !important;
+}
+
+.workflow-topbar-avatar {
+	background: #eeeeee !important;
+	box-shadow: none !important;
+}
+
+.workflow-language-flag {
+	width: 1.875rem;
+	height: 1.25rem;
+	border-radius: 0.25rem;
+}
+
+.workflow-kanban-page,
+.workflow-overview-page,
+.workflow-projects-page,
+.workflow-team-page,
+.workflow-report-shell,
+.workflow-chat-shell,
+.workflow-notifications-shell,
+.workflow-users-shell,
+.workflow-user-form-shell,
+.workflow-profile-shell,
+.workflow-password-shell,
+.workflow-project-detail-page {
+	color: #393939;
+}
+
+.workflow-kanban-page,
+.workflow-overview-page,
+.workflow-projects-page,
+.workflow-team-page,
+.workflow-report-shell,
+.workflow-notifications-shell,
+.workflow-users-shell,
+.workflow-user-form-shell,
+.workflow-profile-shell,
+.workflow-password-shell,
+.workflow-project-detail-page {
+	display: grid;
+	gap: 1.875rem;
+}
+
+.workflow-kanban-header,
+.workflow-kanban-toolbar,
+.workflow-saved-view-bar,
+.workflow-overview-header,
+.workflow-overview-metric,
+.workflow-overview-panel,
+.workflow-overview-chart-card,
+.workflow-projects-header,
+.workflow-projects-create,
+.workflow-projects-list,
+.workflow-project-card-modern,
+.workflow-project-card-stats span,
+.workflow-team-header,
+.workflow-team-analytics,
+.workflow-team-board,
+.workflow-team-spotlight,
+.workflow-team-lane,
+.workflow-team-card,
+.workflow-report-hero,
+.workflow-report-filterbar,
+.workflow-report-metric,
+.workflow-report-chart-card,
+.workflow-report-board,
+.workflow-report-card,
+.workflow-report-insight,
+.workflow-chat-sidebar,
+.workflow-chat-room,
+.workflow-notifications-shell > section,
+.workflow-notifications-metrics > *,
+.workflow-notification-preferences,
+.workflow-notifications-board,
+.workflow-users-shell > section,
+.workflow-users-metrics > *,
+.workflow-users-board,
+.workflow-user-form-panel,
+.workflow-profile-shell > section,
+.workflow-password-card,
+.workflow-password-visual,
+.workflow-task-detail-panel,
+.workflow-task-tools-grid > .app-card-muted,
+.workflow-trello-modal-main,
+.workflow-trello-modal-activity {
+	border: 1px solid rgba(0, 0, 0, 0.125) !important;
+	border-radius: 1.25rem !important;
+	background: #ffffff !important;
+	box-shadow: 0 0.9375rem 1.875rem rgba(0, 0, 0, 0.02) !important;
+}
+
+.workflow-kanban-header,
+.workflow-overview-header,
+.workflow-projects-header,
+.workflow-team-header,
+.workflow-report-hero {
+	min-height: 7.5rem;
+	padding: 2rem !important;
+	align-items: center;
+}
+
+.workflow-kanban-header h1,
+.workflow-overview-header h1,
+.workflow-projects-header h1,
+.workflow-team-header h1,
+.workflow-report-hero h1,
+.workflow-report-board-head h2,
+.workflow-report-chart-head h2,
+.workflow-chat-room-title h2 {
+	color: #000000 !important;
+	font-size: clamp(1.875rem, 2.1vw, 2.25rem) !important;
+	font-weight: 700 !important;
+	line-height: 1.2 !important;
+}
+
+.workflow-kanban-header-metrics span,
+.workflow-projects-actions span,
+.workflow-team-header-actions span,
+.workflow-report-window,
+.workflow-report-board-head > span,
+.workflow-report-chart-head > span,
+.workflow-chat-sidebar-head > span,
+.workflow-chat-panel-pill,
+.workflow-chat-room-title em,
+.workflow-overview-metric-pill,
+.workflow-overview-panel-pill,
+.workflow-project-card-pill,
+.workflow-team-panel-pill {
+	border: 0 !important;
+	border-radius: 3.125rem !important;
+	background: rgba(0, 161, 93, 0.1) !important;
+	color: #00a15d !important;
+	box-shadow: none !important;
+}
+
+.workflow-kanban-toolbar,
+.workflow-report-filterbar {
+	padding: 1.25rem !important;
+}
+
+.workflow-kanban-filter-grid {
+	display: grid !important;
+	grid-template-columns: repeat(4, minmax(14rem, 1fr)) !important;
+	gap: 0.875rem !important;
+}
+
+.workflow-kanban-filter-grid > * {
+	min-width: 0;
+}
+
+.workflow-kanban-search,
+.workflow-kanban-filter-grid .app-input,
+.workflow-report-filterbar .app-input,
+.workflow-report-clear,
+.workflow-chat-search,
+.workflow-chat-filter-select,
+.workflow-chat-filter-date,
+.workflow-chat-mini-toggle,
+.workflow-chat-ref-toggle,
+.workflow-chat-composer .app-pill,
+.workflow-chat-composer .app-input,
+.workflow-user-form-shell .app-input,
+.workflow-user-form-shell select,
+.workflow-user-form-shell textarea {
+	min-height: 3.5rem !important;
+	border: 1px solid #eeeeee !important;
+	background: #ffffff !important;
+	box-shadow: none !important;
+	color: #393939 !important;
+	font-size: 0.875rem !important;
+}
+
+.workflow-kanban-search:focus,
+.workflow-kanban-filter-grid .app-input:focus,
+.workflow-report-filterbar .app-input:focus,
+.workflow-chat-search:focus,
+.workflow-chat-composer .app-input:focus,
+.workflow-user-form-shell .app-input:focus,
+.workflow-user-form-shell textarea:focus {
+	border-color: #00a15d !important;
+	box-shadow: 0 0 0 0.25rem rgba(0, 161, 93, 0.12) !important;
+}
+
+.workflow-board-segment,
+.workflow-board-segment button,
+.workflow-board-filter-toggle,
+.workflow-saved-view-bar .app-button,
+.workflow-saved-view-bar button,
+.workflow-chat-tools-toggle,
+.workflow-trello-modal-secondary-action,
+.workflow-trello-modal-description-button,
+.workflow-project-card-open,
+.workflow-notifications-action-button {
+	border: 1px solid #eeeeee !important;
+	background: #ffffff !important;
+	color: #393939 !important;
+	box-shadow: none !important;
+}
+
+.workflow-board-segment button.is-active,
+.workflow-board-filter-toggle[aria-expanded='true'],
+.workflow-chat-tools-toggle.is-open,
+.workflow-chat-tools-toggle:hover,
+.workflow-project-card-open:hover,
+.workflow-notifications-action-primary,
+.workflow-saved-view-bar .app-button:last-child,
+.workflow-user-form-submit button,
+.workflow-projects-create .app-button:not(.app-button-ghost),
+.workflow-chat-composer .app-button:not(.app-button-ghost),
+.workflow-trello-modal-action-primary,
+.workflow-trello-modal-save,
+.workflow-trello-modal-checklist-add button,
+.workflow-trello-modal-upload-row button,
+.workflow-trello-modal-comment-box button {
+	border-color: #00a15d !important;
+	background: #00a15d !important;
+	color: #ffffff !important;
+	box-shadow: 0 0.5rem 1.375rem rgba(0, 161, 93, 0.18) !important;
+}
+
+.workflow-board-surface {
+	padding: 1.25rem !important;
+	border: 1px solid rgba(0, 0, 0, 0.125) !important;
+	border-radius: 1.25rem !important;
+	background: #ffffff !important;
+	box-shadow: 0 0.9375rem 1.875rem rgba(0, 0, 0, 0.02) !important;
+}
+
+.workflow-board-layout {
+	gap: 1.25rem !important;
+}
+
+.workflow-board-lanes {
+	gap: 1.25rem !important;
+	padding-bottom: 0.5rem !important;
+}
+
+.workflow-board-lanes::-webkit-scrollbar {
+	width: 0.5rem;
+	height: 0.5rem;
+	background: #ececec;
+}
+
+.workflow-board-lanes::-webkit-scrollbar-thumb {
+	border-radius: 0.625rem;
+	background: #7e7e7e;
+}
+
+.workflow-column {
+	width: 22.5rem !important;
+	min-width: 22.5rem !important;
+	border: 0 !important;
+	border-radius: 0 !important;
+	background: transparent !important;
+	box-shadow: none !important;
+	padding: 0 !important;
+}
+
+.workflow-column-header {
+	min-height: 4rem;
+	margin-bottom: 1.5rem;
+	border: 0 !important;
+	border-radius: 0.875rem !important;
+	background: #ffffff !important;
+	box-shadow: none !important;
+}
+
+.workflow-column-header h2 {
+	color: #000000 !important;
+	font-size: 1.25rem !important;
+	font-weight: 600 !important;
+	line-height: 1.5 !important;
+}
+
+.workflow-column-count,
+.workflow-column-icon,
+.workflow-column-empty > span {
+	background: rgba(0, 161, 93, 0.1) !important;
+	color: #00a15d !important;
+}
+
+.workflow-trello-board-card,
+.workflow-task-card,
+.workflow-task-card-board,
+.workflow-column-empty {
+	border: 1px solid rgba(0, 0, 0, 0.125) !important;
+	border-radius: 1.25rem !important;
+	background: #ffffff !important;
+	box-shadow: none !important;
+}
+
+.workflow-trello-board-card {
+	padding: 1rem !important;
+	cursor: grab;
+}
+
+.workflow-trello-board-card:hover,
+.workflow-project-card-modern:hover,
+.workflow-team-card:hover {
+	border-color: rgba(0, 161, 93, 0.35) !important;
+	box-shadow: 0 0.9375rem 1.875rem rgba(0, 0, 0, 0.05) !important;
+	transform: none !important;
+}
+
+.workflow-trello-card-cover {
+	border: 0 !important;
+	border-radius: 0.875rem !important;
+	background: #eeeeee !important;
+	box-shadow: none !important;
+}
+
+.workflow-trello-card-title,
+.workflow-project-card-main h3,
+.workflow-team-person h3,
+.workflow-team-spotlight-body h3,
+.workflow-chat-thread-button b,
+.workflow-chat-context-button b,
+.workflow-chat-direct-copy b {
+	color: #000000 !important;
+	font-weight: 700 !important;
+}
+
+.workflow-chip,
+.workflow-chip[data-tone],
+.workflow-chip[data-status],
+.workflow-trello-card-badges span,
+.workflow-trello-card-badges span[data-tone],
+.workflow-trello-card-badges span[data-complete='true'],
+.workflow-trello-card-labels span,
+.workflow-label-chip,
+.workflow-project-card-stats span,
+.workflow-team-status-chips .app-chip,
+.workflow-report-rank {
+	border: 1px solid #eeeeee !important;
+	border-radius: 3.125rem !important;
+	background: #ffffff !important;
+	color: #737b8b !important;
+	box-shadow: none !important;
+}
+
+.workflow-report-bar,
+.workflow-team-load-track,
+.workflow-team-estimate-track,
+.workflow-trello-modal-progress,
+.workflow-checklist-progress {
+	height: 0.625rem !important;
+	border-radius: 3.125rem !important;
+	background: #ececec !important;
+}
+
+.workflow-report-bar span,
+.workflow-team-load-track span,
+.workflow-team-estimate-track span,
+.workflow-trello-modal-progress span,
+.workflow-checklist-progress span {
+	background: #00a15d !important;
+}
+
+.workflow-projects-layout {
+	grid-template-columns: minmax(25rem, 0.42fr) minmax(0, 1fr) !important;
+	gap: 1.25rem !important;
+}
+
+.workflow-projects-metrics,
+.workflow-team-metrics,
+.workflow-report-metrics {
+	gap: 1.25rem !important;
+}
+
+.workflow-overview-metric,
+.workflow-report-metric {
+	min-height: 9.5rem !important;
+	padding: 1.5rem !important;
+}
+
+.workflow-overview-metric > p,
+.workflow-report-metric strong,
+.workflow-team-metrics .workflow-overview-metric > p,
+.workflow-projects-metrics .workflow-overview-metric > p {
+	color: #000000 !important;
+	font-size: clamp(2rem, 2.35vw, 2.625rem) !important;
+	font-weight: 700 !important;
+	line-height: 1.15 !important;
+}
+
+.workflow-projects-card-grid {
+	grid-template-columns: repeat(auto-fit, minmax(20rem, 1fr)) !important;
+	gap: 1rem !important;
+}
+
+.workflow-project-card-modern {
+	padding: 1.25rem !important;
+}
+
+.workflow-project-card-pill,
+.workflow-project-card-stats span,
+.workflow-team-panel-pill,
+.workflow-report-window {
+	min-height: 2.25rem;
+	padding: 0.45rem 0.875rem;
+}
+
+.workflow-team-grid {
+	grid-template-columns: minmax(28rem, 0.9fr) minmax(0, 1.1fr) !important;
+	gap: 1.25rem !important;
+}
+
+.workflow-team-card-grid {
+	grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+	gap: 1rem !important;
+}
+
+.workflow-report-filterbar {
+	display: grid !important;
+	grid-template-columns: minmax(0, 1fr) auto !important;
+	align-items: end;
+}
+
+.workflow-report-date-fields {
+	display: grid !important;
+	grid-template-columns: repeat(2, minmax(15rem, 1fr)) !important;
+	gap: 1rem !important;
+}
+
+.workflow-report-actions {
+	display: grid !important;
+	grid-template-columns: repeat(4, minmax(8.75rem, auto)) !important;
+	gap: 0.75rem !important;
+}
+
+.workflow-report-actions button,
+.workflow-report-clear {
+	white-space: nowrap;
+}
+
+.workflow-chat-shell {
+	height: calc(100vh - 9.375rem) !important;
+	max-height: none !important;
+	min-height: 43.75rem !important;
+}
+
+.workflow-chat-content {
+	grid-template-columns: minmax(20rem, 26rem) minmax(0, 1fr) !important;
+	gap: 1.25rem !important;
+	height: 100%;
+}
+
+.workflow-chat-sidebar,
+.workflow-chat-room {
+	border-radius: 1.25rem !important;
+}
+
+.workflow-chat-sidebar {
+	padding: 0 !important;
+	overflow: hidden auto;
+}
+
+.workflow-chat-sidebar-head {
+	border: 0 !important;
+	border-bottom: 1px solid #eeeeee !important;
+	border-radius: 0 !important;
+	padding: 1.5rem !important;
+	background: #ffffff !important;
+}
+
+.workflow-chat-thread-section,
+.workflow-chat-context-section,
+.workflow-chat-direct-section {
+	padding: 0 1rem 1rem;
+}
+
+.workflow-chat-thread-button,
+.workflow-chat-context-button,
+.workflow-chat-direct-button {
+	min-height: 4rem !important;
+	border: 0 !important;
+	border-bottom: 1px solid #eeeeee !important;
+	border-radius: 0 !important;
+	background: #ffffff !important;
+	box-shadow: none !important;
+}
+
+.workflow-chat-thread-button:hover,
+.workflow-chat-context-button:hover,
+.workflow-chat-direct-button:hover,
+.workflow-chat-thread-button.is-active,
+.workflow-chat-context-button.is-active,
+.workflow-chat-direct-button.is-active,
+.workflow-chat-thread-button.is-unread,
+.workflow-chat-context-button.is-unread,
+.workflow-chat-direct-button.is-unread {
+	background: rgba(0, 161, 93, 0.08) !important;
+	box-shadow: inset 0.25rem 0 0 #00a15d !important;
+}
+
+.workflow-chat-context-icon,
+.workflow-chat-avatar,
+.workflow-chat-empty-state > span {
+	background: linear-gradient(209.58deg, #00a15d 4.57%, #c7e220 98.19%) !important;
+	color: #ffffff !important;
+}
+
+.workflow-chat-room-header {
+	min-height: 5.5rem;
+	border-bottom: 1px solid #eeeeee !important;
+	padding: 1.5rem !important;
+}
+
+.workflow-chat-stream {
+	padding: 1.5rem 2rem !important;
+	background: #ffffff !important;
+}
+
+.workflow-chat-bubble,
+.workflow-chat-bubble-mine {
+	border: 1px solid #eeeeee !important;
+	border-radius: 0.875rem !important;
+	background: #ffffff !important;
+	box-shadow: 0 0.5rem 1.5rem rgba(0, 0, 0, 0.04) !important;
+}
+
+.workflow-chat-bubble-mine {
+	border-color: rgba(0, 161, 93, 0.25) !important;
+	background: rgba(0, 161, 93, 0.06) !important;
+}
+
+.workflow-chat-composer {
+	border-top: 1px solid #eeeeee !important;
+	background: #ffffff !important;
+	padding: 1rem !important;
+}
+
+.workflow-trello-modal-backdrop,
+.workflow-task-modal-backdrop {
+	background: rgba(0, 0, 0, 0.52) !important;
+}
+
+.workflow-task-modal,
+.workflow-trello-modal-detail {
+	border-radius: 1.25rem !important;
+	background: #ffffff !important;
+}
+
+.workflow-trello-modal-main,
+.workflow-trello-modal-activity {
+	border-radius: 1.25rem !important;
+}
+
+@media (max-width: 87.5rem) {
+	.workflow-shell-expanded {
+		grid-template-columns: 17rem minmax(0, 1fr);
+	}
+
+	.workflow-main {
+		padding: 0 1.875rem 1.875rem;
+	}
+
+	.workflow-topbar,
+	.workflow-kanban-header,
+	.workflow-overview-header,
+	.workflow-projects-header,
+	.workflow-team-header,
+	.workflow-report-hero {
+		min-height: 5.5rem;
+	}
+}
+
+@media (max-width: 80rem) {
+	.workflow-kanban-filter-grid {
+		grid-template-columns: repeat(2, minmax(14rem, 1fr)) !important;
+	}
+
+	.workflow-projects-layout,
+	.workflow-team-grid,
+	.workflow-report-filterbar,
+	.workflow-chat-content {
+		grid-template-columns: 1fr !important;
+	}
+
+	.workflow-chat-shell {
+		height: auto !important;
+		max-height: none !important;
+	}
+
+	.workflow-report-actions {
+		grid-template-columns: repeat(2, minmax(8.75rem, 1fr)) !important;
+	}
+}
+
+@media (max-width: 63.9375rem) {
+	.workflow-shell,
+	.workflow-shell-expanded {
+		grid-template-columns: 1fr;
+	}
+
+	.workflow-main {
+		padding: 0 1.25rem 1.25rem;
+	}
+
+	.workflow-topbar {
+		min-height: 5rem;
+	}
+}
+
+@media (max-width: 47.9375rem) {
+	.workflow-main {
+		padding: 0 0.9375rem 0.9375rem;
+	}
+
+	.workflow-kanban-page,
+	.workflow-overview-page,
+	.workflow-projects-page,
+	.workflow-team-page,
+	.workflow-report-shell,
+	.workflow-notifications-shell,
+	.workflow-users-shell,
+	.workflow-user-form-shell,
+	.workflow-profile-shell,
+	.workflow-password-shell,
+	.workflow-project-detail-page {
+		gap: 1.25rem;
+	}
+
+	.workflow-kanban-header,
+	.workflow-overview-header,
+	.workflow-projects-header,
+	.workflow-team-header,
+	.workflow-report-hero,
+	.workflow-kanban-toolbar,
+	.workflow-report-filterbar {
+		padding: 1rem !important;
+	}
+
+	.workflow-kanban-header h1,
+	.workflow-overview-header h1,
+	.workflow-projects-header h1,
+	.workflow-team-header h1,
+	.workflow-report-hero h1 {
+		font-size: 2rem !important;
+	}
+
+	.workflow-kanban-filter-grid,
+	.workflow-report-date-fields,
+	.workflow-report-actions,
+	.workflow-team-card-grid {
+		grid-template-columns: 1fr !important;
+	}
+
+	.workflow-column {
+		width: 20rem !important;
+		min-width: 20rem !important;
+	}
+}
+
 /* Neutral workflow sweep for template-aligned board, overview, and account surfaces. */
 :root {
 	--accent: #111827;
