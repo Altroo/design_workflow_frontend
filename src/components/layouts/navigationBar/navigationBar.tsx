@@ -344,7 +344,7 @@ const NavigationBar = ({ title, children, hideTopbar = false }: Props) => {
 						DW
 					</div>
 					<div className="workflow-rail-title min-w-0">
-						<p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-(--ink-muted)">Design Workflow</p>
+						<p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-(--ink-muted)">{t.navigation.productName}</p>
 						<p className="truncate text-base font-semibold text-(--ink)">{title}</p>
 					</div>
 					<button
@@ -400,7 +400,7 @@ const NavigationBar = ({ title, children, hideTopbar = false }: Props) => {
 								</div>
 								<div className="hidden sm:block">
 									<p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-(--ink-muted)">
-										Design Workflow
+										{t.navigation.productName}
 									</p>
 									<p className="text-sm font-semibold text-(--ink)">{title}</p>
 								</div>

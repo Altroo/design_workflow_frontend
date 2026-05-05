@@ -4,7 +4,7 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { AlarmClock, AlertTriangle, ArrowDown, BriefcaseBusiness, CalendarDays, CheckCheck, CheckSquare2, Edit3, Eye, FileText, Forward, ImageIcon, Images, Mic, MoreHorizontal, Paperclip, Pause, Play, Reply, Search, Send, SlidersHorizontal, SmilePlus, Square, ThumbsUp, Trash2, Users, X } from 'lucide-react';
+import { AlarmClock, AlertTriangle, ArrowDown, BriefcaseBusiness, CalendarDays, CheckCheck, CheckSquare2, Edit3, Eye, FileText, Forward, ImageIcon, Images, MessagesSquare, Mic, MoreHorizontal, Paperclip, Pause, Play, Reply, Search, Send, SlidersHorizontal, SmilePlus, Square, ThumbsUp, Trash2, Users, X } from 'lucide-react';
 import {
 	useAddChatReminderMutation,
 	useCreateChatThreadMutation,
@@ -349,6 +349,7 @@ const DesignWorkflowChat = () => {
 	const locale = language === 'en' ? 'en-US' : 'fr-FR';
 	const profile = useAppSelector(getProfilState);
 	const token = useAppSelector(getAccessToken);
+	const chatDataReady = Boolean(token && (typeof profile.id === 'number' || profile.email));
 	const [selectedThreadId, setSelectedThreadId] = useState<number | null>(null);
 	const [body, setBody] = useState('');
 	const [files, setFiles] = useState<File[]>([]);
@@ -391,12 +392,21 @@ const DesignWorkflowChat = () => {
 	const recordedChunksRef = useRef<BlobPart[]>([]);
 	const discardRecordingRef = useRef(false);
 
-	const { data: threads = [], refetch: refetchThreads } = useGetChatThreadsQuery();
+	const { data: threads = [], isLoading: threadsLoading, isFetching: threadsFetching, refetch: refetchThreads } = useGetChatThreadsQuery(undefined, { skip: !chatDataReady });
 	const chatThreads = useMemo(() => threads.filter((thread) => thread.kind !== 'task'), [threads]);
-	const selectedThread = useMemo(
-		() => chatThreads.find((thread) => thread.id === selectedThreadId) ?? chatThreads[0],
-		[chatThreads, selectedThreadId],
+	const preferredThread = useMemo(
+		() =>
+			chatThreads.find((thread) => thread.unread_count > 0) ??
+			chatThreads.find((thread) => thread.last_message) ??
+			chatThreads.find((thread) => thread.kind === 'public') ??
+			chatThreads[0],
+		[chatThreads],
 	);
+	const selectedThread = useMemo(
+		() => chatThreads.find((thread) => thread.id === selectedThreadId) ?? preferredThread,
+		[chatThreads, preferredThread, selectedThreadId],
+	);
+	const chatInitialLoading = chatDataReady && chatThreads.length === 0 && (threadsLoading || threadsFetching);
 	const threadPreviewLabels = useMemo(() => ({
 		deleted: t.workflow.labels.messageDeleted ?? 'Message deleted',
 		photo: t.workflow.labels.photoMessage ?? 'Photo',
@@ -426,7 +436,7 @@ const DesignWorkflowChat = () => {
 	}, [chatThreads]);
 	const { data: currentMessages = [], refetch: refetchMessages } = useGetChatMessagesQuery(
 		{ threadId: selectedThread?.id ?? 0, limit: PAGE_SIZE, q: searchTerm || undefined, ...searchFilters },
-		{ skip: !selectedThread?.id },
+		{ skip: !chatDataReady || !selectedThread?.id },
 	);
 	const [loadOlderMessages] = useLazyGetChatMessagesQuery();
 	const [createThread] = useCreateChatThreadMutation();
@@ -438,9 +448,9 @@ const DesignWorkflowChat = () => {
 	const [reactChatMessage] = useReactChatMessageMutation();
 	const [markChatDecision] = useMarkChatDecisionMutation();
 	const [addChatReminder] = useAddChatReminderMutation();
-	const { data: projects = [] } = useGetProjectsQuery();
-	const { data: activeTasks = [] } = useGetTasksQuery({ archived: false });
-	const { data: archivedTasks = [] } = useGetTasksQuery({ archived: true });
+	const { data: projects = [] } = useGetProjectsQuery(undefined, { skip: !chatDataReady });
+	const { data: activeTasks = [] } = useGetTasksQuery({ archived: false }, { skip: !chatDataReady });
+	const { data: archivedTasks = [] } = useGetTasksQuery({ archived: true }, { skip: !chatDataReady });
 	const tasks = useMemo(() => {
 		const byId = new Map<number, TaskCard>();
 		[...activeTasks, ...archivedTasks].forEach((task) => byId.set(task.id, task));
@@ -455,7 +465,7 @@ const DesignWorkflowChat = () => {
 		}
 	}, [chatThreads, searchParams, selectedThreadId]);
 
-	const usersResponse = useGetUsersListQuery({ with_pagination: false });
+	const usersResponse = useGetUsersListQuery({ with_pagination: false }, { skip: !chatDataReady });
 	const usersRaw = (usersResponse.data ?? []) as Array<Partial<UserClass>> | { results?: Array<Partial<UserClass>>; data?: Array<Partial<UserClass>> };
 	const users = (Array.isArray(usersRaw) ? usersRaw : usersRaw.results ?? usersRaw.data ?? [])
 		.filter((user): user is WorkflowUser => typeof user.id === 'number' && Boolean(user.email) && user.id !== profile.id)
@@ -480,10 +490,10 @@ const DesignWorkflowChat = () => {
 	}), [profile.avatar, profile.email, profile.first_name, profile.id, profile.last_name, profile.role]);
 
 	useEffect(() => {
-		if (!selectedThreadId && chatThreads[0]) {
-			setSelectedThreadId(chatThreads[0].id);
+		if (!selectedThreadId && preferredThread) {
+			setSelectedThreadId(preferredThread.id);
 		}
-	}, [chatThreads, selectedThreadId]);
+	}, [preferredThread, selectedThreadId]);
 
 	useEffect(() => {
 		setOlderMessages([]);
@@ -1236,6 +1246,30 @@ const DesignWorkflowChat = () => {
 						</div>
 					) : null}
 
+					{chatInitialLoading ? (
+						<div className="workflow-chat-empty-state">
+							<span><MessagesSquare size={22} /></span>
+							<h3>{t.workflow.labels.loading ?? t.common.loading ?? 'Loading...'}</h3>
+							<p>{t.workflow.labels.loadingConversation ?? t.workflow.labels.selectConversationHint ?? 'Loading conversations.'}</p>
+						</div>
+					) : null}
+
+					{!chatInitialLoading && !selectedThread ? (
+						<div className="workflow-chat-empty-state">
+							<span><MessagesSquare size={22} /></span>
+							<h3>{t.workflow.labels.selectConversation ?? 'Select a conversation'}</h3>
+							<p>{t.workflow.labels.selectConversationHint ?? 'Choose a project or direct message.'}</p>
+						</div>
+					) : null}
+
+					{!chatInitialLoading && selectedThread && messageList.length === 0 ? (
+						<div className="workflow-chat-empty-state">
+							<span><MessagesSquare size={22} /></span>
+							<h3>{t.workflow.labels.emptyConversation ?? t.workflow.labels.noMessageYet ?? 'No message yet'}</h3>
+							<p>{t.workflow.labels.emptyConversationHint ?? threadTitle(selectedThread, profile.id, t.workflow.labels.publicStudio ?? 'Public channel', t.workflow.labels.privateChat ?? 'Private chat')}</p>
+						</div>
+					) : null}
+
 					{groupedMessages.map((group) => (
 						<div key={group.day} className="space-y-3">
 							<div className="flex justify-center">
@@ -1623,6 +1657,7 @@ const DesignWorkflowChat = () => {
 						<button
 							type="button"
 							onClick={() => fileInputRef.current?.click()}
+							disabled={!selectedThread?.id}
 							className="app-pill grid h-11 w-11 place-items-center text-(--ink)"
 							aria-label={t.workflow.buttons.shareFiles ?? 'Share files'}
 						>
@@ -1631,6 +1666,7 @@ const DesignWorkflowChat = () => {
 						<button
 							type="button"
 							onClick={toggleVoiceRecording}
+							disabled={!selectedThread?.id}
 							className={['app-pill grid h-11 w-11 place-items-center text-(--ink)', recording ? 'is-recording' : ''].join(' ')}
 							aria-label={t.workflow.buttons.voiceNote ?? 'Voice note'}
 						>
@@ -1681,6 +1717,7 @@ const DesignWorkflowChat = () => {
 								}}
 								rows={2}
 								placeholder={t.workflow.labels.messagePlaceholder ?? 'Message'}
+								disabled={!selectedThread?.id}
 								className="app-input min-h-[48px] w-full resize-none"
 							/>
 							{mentionOptions.length ? (
@@ -1730,7 +1767,7 @@ const DesignWorkflowChat = () => {
 						<button
 							type="button"
 							onClick={submit}
-							disabled={sendMessageState.isLoading || (!body.trim() && files.length === 0)}
+							disabled={!selectedThread?.id || sendMessageState.isLoading || (!body.trim() && files.length === 0)}
 							className="app-button h-11 px-4"
 						>
 							<Send size={16} />

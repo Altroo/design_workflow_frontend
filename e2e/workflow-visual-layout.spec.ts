@@ -25,6 +25,7 @@ test.describe('workflow visual layout pass', () => {
 		await expect(page.locator('.workflow-kanban-toolbar')).toBeVisible();
 		await expect(page.locator('.workflow-kanban-filter-grid')).toBeVisible();
 		await expect(page.locator('.workflow-topbar-controls')).toContainText('FR');
+		await expect(page.locator('.workflow-rail-title')).toContainText(/Flux Design/i);
 		await expect(page.locator('.workflow-saved-view-bar')).toContainText(/Vues enregistr.es|Nom de la vue|Priv.e/i);
 		await expect(page.locator('.workflow-kanban-filter-grid')).toContainText(/Toutes les revues|Ordre manuel/i);
 		await expect(page.locator('.workflow-saved-view-bar')).not.toContainText(/Saved views|View name|Private/i);
@@ -33,17 +34,23 @@ test.describe('workflow visual layout pass', () => {
 			return new Set(tops).size;
 		});
 		expect(filterRowCount).toBeGreaterThanOrEqual(2);
+		await expect(page.locator('.workflow-board-lanes')).toBeVisible();
+		await expect(page.locator('.workflow-board-surface')).not.toContainText(/Chargement tableau|Loading board/i);
+		await expect.poll(async () => page.locator('[data-testid^="board-task-"]').count()).toBeGreaterThan(0);
 		await page.screenshot({ path: join(screenshotDir, 'board.png'), fullPage: true });
 
 		await page.goto('/dashboard/projects');
 		await expect(page.locator('.workflow-projects-layout')).toBeVisible();
 		await expect(page.locator('.workflow-projects-card-grid')).toBeVisible();
+		await expect(page.locator('.workflow-projects-list')).not.toContainText(/Chargement projets|Loading projects/i);
+		await expect.poll(async () => page.locator('.workflow-project-card-modern').count()).toBeGreaterThan(0);
 		await page.screenshot({ path: join(screenshotDir, 'projects.png'), fullPage: true });
 
 		await page.goto('/dashboard/team');
 		await expect(page.locator('.workflow-team-grid')).toBeVisible();
 		await expect(page.locator('.workflow-team-analytics')).toBeVisible();
 		await expect(page.locator('.workflow-team-board')).toBeVisible();
+		await expect.poll(async () => page.locator('.workflow-team-card').count()).toBeGreaterThan(0);
 		const teamLayout = await page.locator('.workflow-team-grid').evaluate((grid) => {
 			const analytics = grid.querySelector('.workflow-team-analytics')?.getBoundingClientRect();
 			const board = grid.querySelector('.workflow-team-board')?.getBoundingClientRect();
@@ -65,6 +72,8 @@ test.describe('workflow visual layout pass', () => {
 		await expect(page.locator('.workflow-report-date-fields')).toBeVisible();
 		await expect(page.locator('.workflow-report-actions')).toBeVisible();
 		await expect(page.locator('.workflow-report-filterbar')).toContainText(/Effacer les filtres|Exporter CSV|Exporter PDF/i);
+		await expect(page.locator('.workflow-analytics-grid')).toBeVisible();
+		await expect(page.locator('.workflow-forecast-board')).toBeVisible();
 		const widestReportAction = await page.locator('.workflow-report-actions button').evaluateAll((buttons) =>
 			Math.max(...buttons.map((button) => button.getBoundingClientRect().width)),
 		);
@@ -74,6 +83,9 @@ test.describe('workflow visual layout pass', () => {
 		await page.goto('/dashboard/chat');
 		await expect(page.locator('.workflow-chat-sidebar')).toBeVisible();
 		await expect(page.locator('.workflow-chat-task-room-section')).toHaveCount(0);
+		await expect(page.locator('.workflow-chat-thread-button').first()).toBeVisible();
+		await expect(page.locator('body')).not.toContainText(/Sélectionnez une conversation|Select a conversation/i);
+		await expect(page.locator('.workflow-chat-thread-button, .workflow-chat-context-button, .workflow-chat-direct-button').first()).toBeVisible();
 		await expect(page.locator('.workflow-chat-room-header')).toContainText(/messages/i);
 		await expect(page.getByRole('button', { name: /Filtrer par/i })).toBeVisible();
 		await expect(page.locator('.workflow-chat-tools-toggle span')).toHaveText(/Filtrer par/i);

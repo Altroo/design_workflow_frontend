@@ -14,7 +14,7 @@ import type {
 	WorkloadRow,
 	WorkflowUser,
 } from '@/types/designWorkflowTypes';
-import { getProfilState, getWSOnlineUserIdsState } from '@/store/selectors';
+import { getAccessToken, getProfilState, getWSOnlineUserIdsState } from '@/store/selectors';
 
 jest.setTimeout(15000);
 
@@ -541,6 +541,7 @@ const mockProfile = (profile: WorkflowUser) => {
 	};
 	mockUseAppSelector.mockImplementation((selector: unknown) => {
 		if (selector === getProfilState) return profileState;
+		if (selector === getAccessToken) return 'test-access-token';
 		if (selector === getWSOnlineUserIdsState) return [];
 		return undefined;
 	});

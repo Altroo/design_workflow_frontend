@@ -1334,6 +1334,51 @@ button:focus-visible {
 	white-space: nowrap;
 }
 
+.workflow-board-view-notice {
+	display: flex;
+	align-items: flex-start;
+	gap: 10px;
+	border-bottom: 1px solid var(--line);
+	background: #ffffff;
+	padding: 10px 16px;
+	color: var(--ink-soft);
+	font-size: 12px;
+	font-weight: 800;
+}
+
+.workflow-board-view-notice svg {
+	flex: 0 0 auto;
+	margin-top: 2px;
+	color: var(--ink);
+}
+
+.workflow-board-view-notice-copy {
+	display: inline-flex;
+	min-width: 0;
+	align-items: center;
+	gap: 6px;
+}
+
+.workflow-board-view-notice-copy b {
+	color: var(--ink);
+}
+
+.workflow-board-view-notice-copy small {
+	display: inline-flex;
+	min-width: 0;
+	max-width: 260px;
+	border: 1px solid var(--line);
+	border-radius: 999px;
+	background: #f8fafc;
+	padding: 3px 8px;
+	color: var(--ink);
+	font-size: 11px;
+	font-weight: 900;
+	white-space: nowrap;
+	overflow: hidden;
+	text-overflow: ellipsis;
+}
+
 .workflow-workspace-search-results {
 	margin-top: 10px;
 	border: 1px solid var(--line);
@@ -2051,6 +2096,25 @@ button:focus-visible {
 
 	.workflow-saved-view-bar {
 		grid-template-columns: 1fr;
+	}
+
+	.workflow-board-view-notice {
+		padding: 10px 14px;
+	}
+
+	.workflow-board-view-notice-copy {
+		display: grid;
+		gap: 5px;
+	}
+
+	.workflow-board-view-notice-copy b {
+		font-size: 11px;
+		line-height: 1.35;
+	}
+
+	.workflow-board-view-notice-copy small {
+		max-width: 100%;
+		width: fit-content;
 	}
 
 	.workflow-board-table-wrap {
@@ -6236,6 +6300,44 @@ button:focus-visible {
 		linear-gradient(90deg, rgba(15, 23, 42, 0.035) 0 1px, transparent 1px 42px),
 		linear-gradient(180deg, rgba(15, 23, 42, 0.035) 0 1px, transparent 1px 42px),
 		#f8fafc;
+}
+
+.workflow-chat-empty-state {
+	display: grid;
+	min-height: 260px;
+	place-items: center;
+	align-content: center;
+	gap: 10px;
+	border: 1px dashed rgba(100, 116, 139, 0.22);
+	border-radius: 18px;
+	background: rgba(255, 255, 255, 0.72);
+	color: var(--ink-soft);
+	text-align: center;
+}
+
+.workflow-chat-empty-state > span {
+	display: grid;
+	width: 48px;
+	height: 48px;
+	place-items: center;
+	border-radius: 16px;
+	background: #eef2ff;
+	color: var(--accent-strong);
+}
+
+.workflow-chat-empty-state h3 {
+	margin: 0;
+	color: var(--ink);
+	font-size: 16px;
+	font-weight: 900;
+}
+
+.workflow-chat-empty-state p {
+	margin: 0;
+	max-width: 320px;
+	font-size: 13px;
+	font-weight: 650;
+	line-height: 1.5;
 }
 
 .workflow-chat-load-older,

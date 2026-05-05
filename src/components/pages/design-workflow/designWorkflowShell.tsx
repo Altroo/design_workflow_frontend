@@ -142,7 +142,7 @@ import type {
 } from '@/types/designWorkflowTypes';
 import { DASHBOARD_BOARD, DASHBOARD_CHAT, DASHBOARD_PROJECT_VIEW, DASHBOARD_TASK_VIEW } from '@/utils/routes';
 import { useAppSelector, useLanguage } from '@/utils/hooks';
-import { getProfilState, getWSOnlineUserIdsState } from '@/store/selectors';
+import { getAccessToken, getProfilState, getWSOnlineUserIdsState } from '@/store/selectors';
 import type { UserClass } from '@/models/classes';
 import type { TranslationDictionary } from '@/types/languageTypes';
 
@@ -1599,6 +1599,7 @@ const BoardColumn = ({
 const DesignWorkflowShell = ({ title, variant, projectId, taskId }: Props) => {
 	const router = useRouter();
 	const profile = useAppSelector(getProfilState);
+	const token = useAppSelector(getAccessToken);
 	const onlineUserIds = useAppSelector(getWSOnlineUserIdsState);
 	const { t } = useLanguage();
 	const workflow = t.workflow;
@@ -1640,12 +1641,16 @@ const DesignWorkflowShell = ({ title, variant, projectId, taskId }: Props) => {
 	};
 	const isSuperuser = Boolean((profile as { is_superuser?: boolean }).is_superuser);
 	const isManager = profile.role === 'manager' || profile.is_staff || isSuperuser;
+	const hasHydratedProfile = typeof profile.id === 'number' || Boolean(profile.email);
+	const workflowDataReady = Boolean(token && hasHydratedProfile);
 	const [boardFilters, setBoardFilters] = useState<BoardFiltersState>(emptyBoardFilters);
 	const [boardViewMode, setBoardViewMode] = useState<BoardViewMode>('board');
 	const [boardCalendarMonth, setBoardCalendarMonth] = useState<Date | null>(null);
 	const [savedViewName, setSavedViewName] = useState('');
 	const [savedViewVisibility, setSavedViewVisibility] = useState<SavedView['visibility']>('private');
 	const [selectedSavedViewId, setSelectedSavedViewId] = useState<number | null>(null);
+	const [autoAppliedSavedViewId, setAutoAppliedSavedViewId] = useState<number | null>(null);
+	const [emptyDefaultSavedViewName, setEmptyDefaultSavedViewName] = useState('');
 	const defaultSavedViewAppliedRef = useRef(false);
 	const [notificationsUnreadOnly, setNotificationsUnreadOnly] = useState(false);
 	const [notificationCommentDrafts, setNotificationCommentDrafts] = useState<Record<number, string>>({});
@@ -1720,9 +1725,9 @@ const DesignWorkflowShell = ({ title, variant, projectId, taskId }: Props) => {
 	}, [taskId, variant]);
 
 	const { data: summary } = useGetDashboardSummaryQuery(undefined, {
-		skip: variant !== 'overview' || !isManager,
+		skip: !workflowDataReady || variant !== 'overview' || !isManager,
 	});
-	const { data: usersResponse, isLoading: usersLoading } = useGetUsersListQuery({ with_pagination: false }, { skip: !isManager });
+	const { data: usersResponse, isLoading: usersLoading } = useGetUsersListQuery({ with_pagination: false }, { skip: !workflowDataReady || !isManager });
 	const users = normalizeUsers(usersResponse as UsersListResponse | undefined);
 	const currentUserOption =
 		typeof profile.id === 'number'
@@ -1743,18 +1748,18 @@ const DesignWorkflowShell = ({ title, variant, projectId, taskId }: Props) => {
 		`${user.first_name} ${user.last_name}${user.id === profile.id ? ` (${workflow.labels.you})` : ''}`;
 	const validReassignAssigneeSelected = users.some((user) => String(user.id) === reassignForm.assignee_id);
 	const { data: projectsData, isLoading: projectsLoading } = useGetProjectsQuery(undefined, {
-		skip: !['projects', 'overview', 'board', 'project-detail', 'task-detail'].includes(variant),
+		skip: !workflowDataReady || !['projects', 'overview', 'board', 'project-detail', 'task-detail'].includes(variant),
 	});
 	const projects = projectsData ?? EMPTY_PROJECTS;
 	const { data: savedViews = [] } = useGetSavedViewsQuery(undefined, {
-		skip: !['board', 'my-work'].includes(variant),
+		skip: !workflowDataReady || !['board', 'my-work'].includes(variant),
 	});
 	const { data: workspaceSearchResults = [] } = useSearchWorkspaceQuery(
 		{ q: boardFilters.search.trim(), types: 'task,project,user,chat,file' },
-		{ skip: !['board', 'my-work'].includes(variant) || boardFilters.search.trim().length < 2 },
+		{ skip: !workflowDataReady || !['board', 'my-work'].includes(variant) || boardFilters.search.trim().length < 2 },
 	);
 	const { data: project, isLoading: projectLoading } = useGetProjectQuery(projectId ?? 0, {
-		skip: variant !== 'project-detail' || !projectId,
+		skip: !workflowDataReady || variant !== 'project-detail' || !projectId,
 	});
 	const tasksParams =
 		variant === 'overview'
@@ -1772,16 +1777,28 @@ const DesignWorkflowShell = ({ title, variant, projectId, taskId }: Props) => {
 					blocked: boardFilters.blockedOnly || undefined,
 					archived: boardFilters.archivedOnly || undefined,
 				};
-	const { data: tasksData, isLoading: tasksLoading } = useGetTasksQuery(tasksParams, {
-		skip: !['board', 'my-work', 'overview'].includes(variant),
+	const { data: tasksData, isLoading: tasksLoading, isFetching: tasksFetching } = useGetTasksQuery(tasksParams, {
+		skip: !workflowDataReady || !['board', 'my-work', 'overview'].includes(variant),
 	});
 	const tasks = tasksData ?? EMPTY_TASKS;
+	const { data: unfilteredBoardTasksData = EMPTY_TASKS, isLoading: unfilteredBoardTasksLoading, isFetching: unfilteredBoardTasksFetching } = useGetTasksQuery(
+		{
+			mine: variant === 'my-work' ? true : undefined,
+			sort: 'sort_order',
+			archived: false,
+		},
+		{ skip: !workflowDataReady || !['board', 'my-work'].includes(variant) || !autoAppliedSavedViewId },
+	);
 	const { data: taskData, isLoading: taskLoading } = useGetTaskQuery(activeTaskId ?? 0, {
-		skip: !activeTaskId,
+		skip: !workflowDataReady || !activeTaskId,
 	});
+	const projectsBusy = !workflowDataReady || projectsLoading;
+	const projectBusy = !workflowDataReady || projectLoading;
+	const tasksBusy = !workflowDataReady || tasksLoading || tasksFetching;
+	const taskBusy = !workflowDataReady || taskLoading;
 	const task = useMemo(() => normalizeTaskDetail(taskData), [taskData]);
 	const { data: workloadData } = useGetWorkloadQuery(undefined, {
-		skip: !isManager || !['team', 'overview'].includes(variant),
+		skip: !workflowDataReady || !isManager || !['team', 'overview'].includes(variant),
 	});
 	const workload = workloadData ?? EMPTY_WORKLOAD;
 	const { data: timeReportData } = useGetTimeReportQuery(
@@ -1789,7 +1806,7 @@ const DesignWorkflowShell = ({ title, variant, projectId, taskId }: Props) => {
 			start_date: reportFilters.start_date || undefined,
 			end_date: reportFilters.end_date || undefined,
 		},
-		{ skip: variant !== 'report-time' || !isManager },
+		{ skip: !workflowDataReady || variant !== 'report-time' || !isManager },
 	);
 	const timeReport = timeReportData ?? EMPTY_TIME_REPORT;
 	const { data: workflowReport } = useGetWorkflowReportQuery(
@@ -1797,21 +1814,21 @@ const DesignWorkflowShell = ({ title, variant, projectId, taskId }: Props) => {
 			start_date: reportFilters.start_date || undefined,
 			end_date: reportFilters.end_date || undefined,
 		},
-		{ skip: variant !== 'report-time' || !isManager },
+		{ skip: !workflowDataReady || variant !== 'report-time' || !isManager },
 	);
 	const { data: notificationsData } = useGetNotificationsQuery(
 		{ unread: notificationsUnreadOnly || undefined },
-		{ skip: variant !== 'notifications' },
+		{ skip: !workflowDataReady || variant !== 'notifications' },
 	);
 	const notifications = notificationsData ?? EMPTY_NOTIFICATIONS;
 	const { data: notificationPreferences } = useGetNotificationPreferencesQuery(undefined, {
-		skip: variant !== 'notifications',
+		skip: !workflowDataReady || variant !== 'notifications',
 	});
 	const resolvedNotificationPreferences = notificationPreferences ?? DEFAULT_NOTIFICATION_PREFERENCES;
-	const { data: labels = [] } = useGetLabelsQuery(undefined, { skip: !activeTaskId && variant !== 'project-detail' });
+	const { data: labels = [] } = useGetLabelsQuery(undefined, { skip: !workflowDataReady || (!activeTaskId && variant !== 'project-detail') });
 	const { data: selectedAttachmentAnnotations = EMPTY_ANNOTATIONS } = useGetAttachmentAnnotationsQuery(
 		selectedAnnotationAttachmentId ?? 0,
-		{ skip: !selectedAnnotationAttachmentId },
+		{ skip: !workflowDataReady || !selectedAnnotationAttachmentId },
 	);
 
 	const [createProject, createProjectState] = useCreateProjectMutation();
@@ -1885,7 +1902,31 @@ const DesignWorkflowShell = ({ title, variant, projectId, taskId }: Props) => {
 		defaultSavedViewAppliedRef.current = true;
 		setBoardFilters(filtersFromSavedView(defaultView));
 		setSelectedSavedViewId(defaultView.id);
+		setAutoAppliedSavedViewId(defaultView.id);
+		setEmptyDefaultSavedViewName('');
 	}, [savedViews, variant]);
+
+	useEffect(() => {
+		if (!autoAppliedSavedViewId || !['board', 'my-work'].includes(variant)) return;
+		if (tasksLoading || tasksFetching || unfilteredBoardTasksLoading || unfilteredBoardTasksFetching) return;
+		if (tasks.length > 0 || unfilteredBoardTasksData.length === 0) return;
+		const emptyView = savedViews.find((view) => view.id === autoAppliedSavedViewId);
+		setBoardFilters(emptyBoardFilters());
+		setSelectedSavedViewId(null);
+		setAutoAppliedSavedViewId(null);
+		setEmptyDefaultSavedViewName(emptyView?.name ?? '');
+		setBoardFiltersOpen(true);
+	}, [
+		autoAppliedSavedViewId,
+		savedViews,
+		tasks.length,
+		tasksFetching,
+		tasksLoading,
+		unfilteredBoardTasksData.length,
+		unfilteredBoardTasksFetching,
+		unfilteredBoardTasksLoading,
+		variant,
+	]);
 
 	useEffect(() => {
 		const handleMove = (event: MouseEvent | PointerEvent) => {
@@ -1992,6 +2033,8 @@ const DesignWorkflowShell = ({ title, variant, projectId, taskId }: Props) => {
 	const applySavedView = (view: SavedView) => {
 		setBoardFilters(filtersFromSavedView(view));
 		setSelectedSavedViewId(view.id);
+		setAutoAppliedSavedViewId(null);
+		setEmptyDefaultSavedViewName('');
 		setBoardFiltersOpen(true);
 	};
 
@@ -2001,6 +2044,8 @@ const DesignWorkflowShell = ({ title, variant, projectId, taskId }: Props) => {
 		const view = await createSavedView(savedViewPayloadFromFilters(name, boardFilters, savedViewVisibility)).unwrap();
 		setSavedViewName('');
 		setSelectedSavedViewId(view.id);
+		setAutoAppliedSavedViewId(null);
+		setEmptyDefaultSavedViewName('');
 	};
 
 	const markCurrentViewDefault = async () => {
@@ -2012,6 +2057,8 @@ const DesignWorkflowShell = ({ title, variant, projectId, taskId }: Props) => {
 		if (!selectedSavedViewId) return;
 		await deleteSavedView(selectedSavedViewId).unwrap();
 		setSelectedSavedViewId(null);
+		setAutoAppliedSavedViewId(null);
+		setEmptyDefaultSavedViewName('');
 	};
 
 	const filteredBoardTasks = boardDraft.filter((taskItem) => {
@@ -2443,9 +2490,9 @@ const DesignWorkflowShell = ({ title, variant, projectId, taskId }: Props) => {
 						</div>
 						<p className="workflow-overview-panel-copy">{workflow.sections.overdueTasks.description}</p>
 						<div className="workflow-overview-task-list">
-						{tasksLoading ? <EmptyState {...workflow.emptyStates.loadingCards} /> : null}
-						{!tasksLoading && tasks.slice(0, 4).map((taskItem) => <TaskCardItem key={taskItem.id} task={taskItem} compact copy={workflow} labelFor={labelFor} dateFor={dateFor} onOpen={setSelectedTaskId} onArchive={handleArchiveTask} showTime={isManager} />)}
-						{!tasksLoading && tasks.length === 0 ? (
+						{tasksBusy ? <EmptyState {...workflow.emptyStates.loadingCards} /> : null}
+						{!tasksBusy && tasks.slice(0, 4).map((taskItem) => <TaskCardItem key={taskItem.id} task={taskItem} compact copy={workflow} labelFor={labelFor} dateFor={dateFor} onOpen={setSelectedTaskId} onArchive={handleArchiveTask} showTime={isManager} />)}
+						{!tasksBusy && tasks.length === 0 ? (
 							<EmptyState {...workflow.emptyStates.noUrgentCards} />
 						) : null}
 						</div>
@@ -2485,8 +2532,8 @@ const DesignWorkflowShell = ({ title, variant, projectId, taskId }: Props) => {
 						</div>
 						<p className="workflow-overview-panel-copy">{workflow.sections.projects.description}</p>
 						<div className="workflow-overview-projects">
-							{projectsLoading ? <EmptyState {...workflow.emptyStates.loadingProjects} /> : null}
-							{!projectsLoading && projectPreview.map((projectItem) => (
+							{projectsBusy ? <EmptyState {...workflow.emptyStates.loadingProjects} /> : null}
+							{!projectsBusy && projectPreview.map((projectItem) => (
 								<Link key={projectItem.id} href={DASHBOARD_PROJECT_VIEW(projectItem.id)} className="workflow-overview-project">
 									<div>
 										<p>{projectItem.name}</p>
@@ -2495,7 +2542,7 @@ const DesignWorkflowShell = ({ title, variant, projectId, taskId }: Props) => {
 									<Chip status={projectItem.status}>{labelFor(projectItem.status)}</Chip>
 								</Link>
 							))}
-							{!projectsLoading && projectPreview.length === 0 ? <EmptyState {...workflow.emptyStates.noProjects} /> : null}
+							{!projectsBusy && projectPreview.length === 0 ? <EmptyState {...workflow.emptyStates.noProjects} /> : null}
 						</div>
 					</div>
 				</section>
@@ -2507,6 +2554,8 @@ const DesignWorkflowShell = ({ title, variant, projectId, taskId }: Props) => {
 		defaultSavedViewAppliedRef.current = true;
 		setBoardFilters(emptyBoardFilters());
 		setSelectedSavedViewId(null);
+		setAutoAppliedSavedViewId(null);
+		setEmptyDefaultSavedViewName('');
 	};
 
 	const renderSearchResultIcon = (result: WorkspaceSearchResult) => {
@@ -2895,9 +2944,18 @@ const DesignWorkflowShell = ({ title, variant, projectId, taskId }: Props) => {
 					</div>
 					{renderWorkspaceSearchResults()}
 				</section>
+				{emptyDefaultSavedViewName ? (
+					<div className="workflow-board-view-notice" role="status">
+						<Bookmark size={16} />
+						<span className="workflow-board-view-notice-copy">
+							<b>{workflow.labels.emptyDefaultViewSkipped ?? 'Default saved view is empty. Showing all active cards.'}</b>
+							<small>{emptyDefaultSavedViewName}</small>
+						</span>
+					</div>
+				) : null}
 
 				<section className="workflow-board-surface overflow-x-auto">
-					{tasksLoading ? (
+					{tasksBusy ? (
 						<EmptyState {...workflow.emptyStates.loadingBoard} />
 					) : boardViewMode === 'table' ? (
 						renderBoardTable()
@@ -3070,7 +3128,7 @@ const DesignWorkflowShell = ({ title, variant, projectId, taskId }: Props) => {
 					<em>{projects.length}</em>
 				</div>
 				<p className="workflow-overview-panel-copy">{workflow.sections.projects.description}</p>
-				{projectsLoading ? (
+				{projectsBusy ? (
 					<EmptyState {...workflow.emptyStates.loadingProjects} />
 				) : (
 					<div className="workflow-projects-card-grid">
@@ -3111,7 +3169,7 @@ const DesignWorkflowShell = ({ title, variant, projectId, taskId }: Props) => {
 	};
 
 	const renderProjectDetail = () => {
-		if (projectLoading) {
+		if (projectBusy) {
 			return <EmptyState {...workflow.emptyStates.loadingProject} />;
 		}
 
@@ -3391,7 +3449,7 @@ const DesignWorkflowShell = ({ title, variant, projectId, taskId }: Props) => {
 	};
 
 	const renderTaskDetail = () => {
-		if (taskLoading) {
+		if (taskBusy) {
 			return <EmptyState {...workflow.emptyStates.loadingTask} />;
 		}
 		if (!task) {
@@ -5192,6 +5250,10 @@ const DesignWorkflowShell = ({ title, variant, projectId, taskId }: Props) => {
 					ticks: {
 						color: '#64748b',
 						font: { weight: 'bold' },
+						autoSkip: true,
+						maxRotation: 0,
+						maxTicksLimit: 4,
+						minRotation: 0,
 						callback: (value) => formatWorkDays(Number(value) || 0, workflow.labels.daysUnit),
 					},
 				},
@@ -5418,6 +5480,10 @@ const DesignWorkflowShell = ({ title, variant, projectId, taskId }: Props) => {
 					ticks: {
 						color: '#64748b',
 						font: { weight: 'bold' },
+						autoSkip: true,
+						maxRotation: 0,
+						maxTicksLimit: 4,
+						minRotation: 0,
 						callback: (value) => formatMinutes(Number(value) || 0),
 					},
 				},
@@ -5515,6 +5581,10 @@ const DesignWorkflowShell = ({ title, variant, projectId, taskId }: Props) => {
 					ticks: {
 						color: '#64748b',
 						font: { weight: 'bold' },
+						autoSkip: true,
+						maxRotation: 0,
+						maxTicksLimit: 5,
+						minRotation: 0,
 						callback: (value) => formatMinutes(Number(value) || 0),
 					},
 				},

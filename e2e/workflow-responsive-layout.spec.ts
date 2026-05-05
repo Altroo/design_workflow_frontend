@@ -39,6 +39,35 @@ const openBoardFilters = async (page: Page) => {
 	await expect(toolbar).toBeVisible();
 };
 
+const waitForBoardReady = async (page: Page) => {
+	await expect(page.locator('.workflow-board-lanes')).toBeVisible();
+	await expect(page.locator('.workflow-board-surface')).not.toContainText(/Chargement tableau|Loading board/i);
+	await expect.poll(async () => page.locator('[data-testid^="board-task-"]').count()).toBeGreaterThan(0);
+};
+
+const waitForProjectsReady = async (page: Page) => {
+	await expect(page.locator('.workflow-projects-layout')).toBeVisible();
+	await expect(page.locator('.workflow-projects-list')).not.toContainText(/Chargement projets|Loading projects/i);
+	await expect.poll(async () => page.locator('.workflow-project-card-modern').count()).toBeGreaterThan(0);
+};
+
+const waitForTeamReady = async (page: Page) => {
+	await expect(page.locator('.workflow-team-grid')).toBeVisible();
+	await expect.poll(async () => page.locator('.workflow-team-card').count()).toBeGreaterThan(0);
+};
+
+const waitForReportReady = async (page: Page) => {
+	await expect(page.locator('.workflow-report-filterbar')).toBeVisible();
+	await expect(page.locator('.workflow-analytics-grid')).toBeVisible();
+	await expect.poll(async () => page.locator('.workflow-report-card').count()).toBeGreaterThan(0);
+};
+
+const waitForChatReady = async (page: Page) => {
+	await expect(page.locator('.workflow-chat-sidebar')).toBeVisible();
+	await expect(page.locator('.workflow-chat-thread-button').first()).toBeVisible();
+	await expect(page.locator('body')).not.toContainText(/Sélectionnez une conversation|Select a conversation/i);
+};
+
 test.describe('workflow responsive visual pass', () => {
 	test.skip(!existsSync(authStatePath), 'Run the authenticated dashboard setup before responsive checks.');
 	test.use({ storageState: authStatePath });
@@ -59,25 +88,26 @@ test.describe('workflow responsive visual pass', () => {
 		await expect(page.locator('.workflow-topbar-controls')).toContainText('FR');
 		await expect(page.locator('.workflow-saved-view-bar')).toContainText(/Vues enregistr.es|Nom de la vue|Priv.e/i);
 		await expect(page.locator('.workflow-kanban-filter-grid')).not.toContainText(/Needs Review|Backlog/i);
+		await waitForBoardReady(page);
 		await capturePage(page, 'tablet-board');
 
 		await page.goto('/dashboard/projects');
-		await expect(page.locator('.workflow-projects-layout')).toBeVisible();
+		await waitForProjectsReady(page);
 		await capturePage(page, 'tablet-projects');
 
 		await page.goto('/dashboard/team');
-		await expect(page.locator('.workflow-team-grid')).toBeVisible();
-		await expect(page.locator('.workflow-team-analytics')).toBeVisible();
+		await waitForTeamReady(page);
 		await capturePage(page, 'tablet-team');
 
 		await page.goto('/dashboard/reports/time');
-		await expect(page.locator('.workflow-report-filterbar')).toBeVisible();
 		await expect(page.locator('.workflow-report-actions')).toBeVisible();
+		await waitForReportReady(page);
 		await capturePage(page, 'tablet-reports');
 
 		await page.goto('/dashboard/chat');
-		await expect(page.locator('.workflow-chat-sidebar')).toBeVisible();
 		await expect(page.locator('.workflow-chat-task-room-section')).toHaveCount(0);
+		await waitForChatReady(page);
+		await expect(page.locator('.workflow-chat-thread-button, .workflow-chat-context-button, .workflow-chat-direct-button').first()).toBeVisible();
 		await capturePage(page, 'tablet-chat');
 	});
 
@@ -95,6 +125,7 @@ test.describe('workflow responsive visual pass', () => {
 		await expect(page.locator('.workflow-topbar-controls')).toContainText('FR');
 		await expect(page.locator('.workflow-saved-view-bar')).toContainText(/Vues enregistr.es|Nom de la vue|Priv.e/i);
 		await expect(page.locator('.workflow-kanban-filter-grid')).not.toContainText(/Needs Review|Backlog/i);
+		await waitForBoardReady(page);
 		const boardLanesOverflow = await page.locator('.workflow-board-lanes').evaluate((lanes) => lanes.scrollWidth > lanes.clientWidth);
 		expect(boardLanesOverflow).toBe(true);
 		await capturePage(page, 'mobile-board');
@@ -110,20 +141,21 @@ test.describe('workflow responsive visual pass', () => {
 		}
 
 		await page.goto('/dashboard/projects');
-		await expect(page.locator('.workflow-projects-layout')).toBeVisible();
+		await waitForProjectsReady(page);
 		await capturePage(page, 'mobile-projects');
 
 		await page.goto('/dashboard/team');
-		await expect(page.locator('.workflow-team-grid')).toBeVisible();
+		await waitForTeamReady(page);
 		await capturePage(page, 'mobile-team');
 
 		await page.goto('/dashboard/reports/time');
-		await expect(page.locator('.workflow-report-filterbar')).toBeVisible();
+		await waitForReportReady(page);
 		await capturePage(page, 'mobile-reports');
 
 		await page.goto('/dashboard/chat');
-		await expect(page.locator('.workflow-chat-sidebar')).toBeVisible();
 		await expect(page.locator('.workflow-chat-task-room-section')).toHaveCount(0);
+		await waitForChatReady(page);
+		await expect(page.locator('.workflow-chat-thread-button, .workflow-chat-context-button, .workflow-chat-direct-button').first()).toBeVisible();
 		await expect(page.getByRole('button', { name: /Filtrer par/i })).toBeVisible();
 		await capturePage(page, 'mobile-chat');
 	});
