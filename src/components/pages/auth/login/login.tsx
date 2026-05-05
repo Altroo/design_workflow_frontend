@@ -65,7 +65,7 @@ const LoginPageContent = () => {
 		<div className="auth-login-card relative overflow-hidden bg-white">
 			<div className="auth-login-lane">
 				<div className="flex items-center justify-between gap-3">
-					<b>Secure access</b>
+					<b>{t.settings.security}</b>
 					<em>+</em>
 				</div>
 			</div>
@@ -73,10 +73,10 @@ const LoginPageContent = () => {
 			<div className="relative z-10 p-4 sm:p-5">
 				<div className="mb-5 flex items-start justify-between gap-4">
 					<div>
-						<p className="text-[10px] font-bold uppercase tracking-[0.18em] text-(--ink-muted)">Kanban board</p>
+						<p className="text-[10px] font-bold uppercase tracking-[0.18em] text-(--ink-muted)">{t.workflow.labels.board}</p>
 						<h1 className="mt-1 text-2xl font-extrabold text-(--ink)">{t.auth.login}</h1>
 						<p className="mt-2 text-xs font-semibold leading-5 text-(--ink-soft)">
-							Open studio cards, comments, files and delivery lanes.
+							{t.workflow.sections.boardLanes.description}
 						</p>
 					</div>
 					<div className="auth-login-mark">DW</div>
@@ -131,7 +131,7 @@ const LoginPageContent = () => {
 							/>
 							<button
 								type="button"
-								aria-label={showPassword ? 'Hide password' : 'Show password'}
+								aria-label={t.common.togglePasswordVisibility}
 								onClick={() => setShowPassword((current) => !current)}
 								className="absolute right-2 top-1/2 grid h-8 w-8 -translate-y-1/2 place-items-center rounded-full text-(--ink-soft) transition hover:bg-(--surface-muted) hover:text-(--ink)"
 							>

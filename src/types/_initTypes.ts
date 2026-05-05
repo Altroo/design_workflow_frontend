@@ -45,6 +45,17 @@ export type AppSession = Session & {
 	accessToken?: string;
 	user?: Session['user'] & {
 		accessToken?: string;
+		pk?: number | string | null;
+		first_name?: string | null;
+		last_name?: string | null;
+		role?: 'manager' | 'designer' | null;
+		is_staff?: boolean | null;
+		is_superuser?: boolean | null;
+		can_view?: boolean | null;
+		can_print?: boolean | null;
+		can_create?: boolean | null;
+		can_edit?: boolean | null;
+		can_delete?: boolean | null;
 	};
 };
 

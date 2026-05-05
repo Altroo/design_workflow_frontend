@@ -1,4 +1,4 @@
-import { getAccessTokenFromSession } from './session';
+import { getAccessTokenFromSession, getUserProfileFromSession } from './session';
 import type { AppSession } from '@/types/_initTypes';
 
 describe('getAccessTokenFromSession', () => {
@@ -81,5 +81,40 @@ describe('getAccessTokenFromSession', () => {
 			expires: '',
 		} as unknown as AppSession;
 		expect(getAccessTokenFromSession(session)).toBe('only-root');
+	});
+});
+
+describe('getUserProfileFromSession', () => {
+	it('returns undefined when session has no usable user id', () => {
+		expect(getUserProfileFromSession(undefined)).toBeUndefined();
+		expect(getUserProfileFromSession({ expires: '2099-12-31', user: { email: 'test@example.com' } } as AppSession)).toBeUndefined();
+	});
+
+	it('builds a staff profile from session user data', () => {
+		const profile = getUserProfileFromSession({
+			expires: '2099-12-31',
+			user: {
+				pk: 9,
+				email: 'admin@example.com',
+				first_name: 'Admin',
+				last_name: 'User',
+				id: '9',
+				emailVerified: null,
+				name: 'Admin User',
+				role: 'manager',
+				is_staff: true,
+			},
+		} as AppSession);
+
+		expect(profile).toEqual(expect.objectContaining({
+			id: 9,
+			first_name: 'Admin',
+			last_name: 'User',
+			email: 'admin@example.com',
+			is_staff: true,
+			can_view: true,
+			can_create: true,
+			role: 'manager',
+		}));
 	});
 });

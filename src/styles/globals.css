@@ -5236,9 +5236,9 @@ button:focus-visible {
 }
 
 .auth-rail-pill-active {
-	border-color: #dfe3ff;
-	background: #f6f7ff;
-	color: #2620d9;
+	border-color: #d1d5db;
+	background: #f8fafc;
+	color: #111827;
 }
 
 .auth-rail-dot {
@@ -5368,15 +5368,15 @@ button:focus-visible {
 
 .auth-board-column[data-tone='indigo'] .auth-column-pill,
 .auth-login-lane {
-	background: #3f3cff;
+	background: #111827;
 }
 
 .auth-board-column[data-tone='amber'] .auth-column-pill {
-	background: #f59e0b;
+	background: #374151;
 }
 
 .auth-board-column[data-tone='green'] .auth-column-pill {
-	background: #12b981;
+	background: #030712;
 }
 
 .auth-preview-card,
@@ -5441,10 +5441,16 @@ button:focus-visible {
 	box-shadow:
 		18px 0 0 -2px #cbd5e1,
 		18px 0 0 0 #ffffff,
-		36px 0 0 -2px #3f3cff,
+		36px 0 0 -2px #64748b,
 		36px 0 0 0 #ffffff,
-		54px 0 0 -2px #14b8c8,
+		54px 0 0 -2px #94a3b8,
 		54px 0 0 0 #ffffff;
+}
+
+.auth-preview-card img,
+.auth-mini-card img,
+.app-card-muted img {
+	filter: grayscale(1) saturate(0);
 }
 
 .auth-login-dock {
@@ -5586,7 +5592,7 @@ button:focus-visible {
 		align-items: flex-start;
 	}
 
-	.auth-board-header .flex {
+	.auth-top-pill-decorator {
 		display: none;
 	}
 
@@ -8488,6 +8494,7 @@ button.workflow-chat-ref-card {
 }
 
 .workflow-users-avatar {
+	position: relative;
 	display: grid;
 	width: 42px;
 	height: 42px;

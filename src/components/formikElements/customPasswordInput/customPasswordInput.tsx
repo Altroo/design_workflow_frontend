@@ -48,6 +48,7 @@ const CustomPasswordInput = forwardRef<HTMLInputElement, Props>((props: Props, r
 					placeholder={props.placeholder}
 					disabled={props.disabled}
 					onClick={props.onClick}
+					suppressHydrationWarning
 					className={['app-input w-full', props.startIcon ? 'pl-14' : '', 'pr-14', props.error ? 'border-red-300 bg-red-50' : ''].join(' ')}
 				/>
 				<button

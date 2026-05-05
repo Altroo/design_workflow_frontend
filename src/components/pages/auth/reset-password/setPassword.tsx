@@ -53,10 +53,10 @@ const SetPasswordPageContent = ({ email, code }: Props) => {
 
 	return (
 		<div className="app-card px-5 py-6 sm:px-7 sm:py-7">
-			<p className="text-xs font-semibold uppercase tracking-[0.22em] text-(--ink-soft)">Security</p>
+			<p className="text-xs font-semibold uppercase tracking-[0.22em] text-(--ink-soft)">{t.settings.security}</p>
 			<h1 className="mt-3 text-4xl font-semibold text-(--ink)">{t.auth.setNewPassword}</h1>
 			<p className="mt-3 text-sm leading-6 text-(--ink-soft)">
-				Create strong password. Keep workspace secure.
+				{t.metadata.setNewPasswordDescription}
 			</p>
 
 			<form onSubmit={formik.handleSubmit} className="mt-8 space-y-5">

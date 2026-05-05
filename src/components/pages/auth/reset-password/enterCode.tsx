@@ -105,7 +105,7 @@ const EnterCodePageContent = ({ email }: Props) => {
 
 	return (
 		<div className="app-card px-5 py-6 sm:px-7 sm:py-7">
-			<p className="text-xs font-semibold uppercase tracking-[0.22em] text-(--ink-soft)">Verification</p>
+			<p className="text-xs font-semibold uppercase tracking-[0.22em] text-(--ink-soft)">{t.auth.confirmCode}</p>
 			<h1 className="mt-3 text-4xl font-semibold text-(--ink)">{t.auth.enterCode}</h1>
 			<p className="mt-3 text-sm leading-6 text-(--ink-soft)">
 				{t.auth.codeSentTo} <span className="font-semibold text-(--ink)">{email}</span>
@@ -133,7 +133,7 @@ const EnterCodePageContent = ({ email }: Props) => {
 								}
 							}}
 							inputMode="numeric"
-							className="h-14 rounded-lg border border-[color:var(--line-strong)] bg-white text-center text-xl font-semibold outline-none transition focus:border-[color:var(--accent)] focus:shadow-[0_0_0_4px_rgba(127,86,217,0.18)]"
+							className="h-14 rounded-lg border border-[color:var(--line-strong)] bg-white text-center text-xl font-semibold outline-none transition focus:border-[color:var(--accent)] focus:shadow-[0_0_0_4px_rgba(17,24,39,0.16)]"
 						/>
 					))}
 				</div>

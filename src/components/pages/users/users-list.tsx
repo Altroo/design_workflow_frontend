@@ -118,7 +118,7 @@ const UsersListClient: React.FC<SessionProps> = ({ session }) => {
 		return (
 			<div className="workflow-users-avatar">
 				{avatarUrl ? (
-					<Image src={avatarUrl} alt={fullNameFor(user)} width={42} height={42} unoptimized className="h-full w-full object-cover" />
+					<Image src={avatarUrl} alt={fullNameFor(user)} fill sizes="42px" unoptimized className="object-cover" />
 				) : (
 					<span>{initialsFor(user)}</span>
 				)}

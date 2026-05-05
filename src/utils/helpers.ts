@@ -5,6 +5,8 @@ import { SITE_ROOT } from '@/utils/routes';
 import type { APIContentTypeInterface, ApiErrorResponseType, InitStateToken } from '@/types/_initTypes';
 import type { Language } from '@/types/languageTypes';
 import { translations } from '@/translations';
+import { getAccessTokenFromSession } from '@/store/session';
+import type { AppSession } from '@/types/_initTypes';
 
 /** Module-level language for non-React utility code */
 let currentLang: Language = 'fr';
@@ -92,8 +94,9 @@ export const isAuthenticatedInstance = (
 					if (error.config && !error.config._retried) {
 						error.config._retried = true;
 						const freshSession = await getSession();
-						if (freshSession?.accessToken) {
-							error.config.headers['Authorization'] = `Bearer ${freshSession.accessToken}`;
+						const freshAccessToken = getAccessTokenFromSession(freshSession as AppSession);
+						if (freshAccessToken) {
+							error.config.headers['Authorization'] = `Bearer ${freshAccessToken}`;
 							return instance(error.config);
 						}
 					}

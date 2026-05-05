@@ -4,6 +4,7 @@ import path from 'path';
 
 const isDev = process.env.NODE_ENV === 'development';
 const isProd = process.env.NODE_ENV === 'production';
+const devWatchIgnored = /(?:^|[\\/])(?:node_modules|\.git)(?:[\\/]|$)|^[a-z]:[\\/](?:DumpStack\.log\.tmp|hiberfil\.sys|pagefile\.sys|swapfile\.sys)$/i;
 
 type http = 'http' | 'https' | undefined;
 
@@ -44,6 +45,7 @@ const nextConfig: NextConfig = {
 	poweredByHeader: false,
 	compress: false,
 	typedRoutes: true,
+	outputFileTracingRoot: __dirname,
 
 	experimental: {
 		typedEnv: true,
@@ -63,6 +65,17 @@ const nextConfig: NextConfig = {
 		minimumCacheTTL: 60,
 		remotePatterns,
 		dangerouslyAllowLocalIP: isProd,
+	},
+
+	webpack(config, { dev }) {
+		if (dev) {
+			config.watchOptions = {
+				...config.watchOptions,
+				ignored: devWatchIgnored,
+			};
+		}
+
+		return config;
 	},
 
 	async headers() {

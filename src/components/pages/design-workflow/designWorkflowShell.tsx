@@ -654,7 +654,9 @@ const AvatarBadge = ({
 			style={{ width: size, height: size }}
 		>
 			{avatarUrl ? (
-				<Image src={avatarUrl} alt={label} width={size} height={size} unoptimized className="rounded-full object-cover" style={{ width: size, height: size }} />
+				<span className="relative block overflow-hidden rounded-full" style={{ width: size, height: size }}>
+					<Image src={avatarUrl} alt={label} fill sizes={`${size}px`} unoptimized className="object-cover" />
+				</span>
 			) : (
 				<span
 					className="workflow-avatar-initials inline-flex items-center justify-center rounded-full bg-(--surface-strong) text-center text-xs font-bold leading-none text-(--ink)"
@@ -1128,7 +1130,7 @@ const ToggleField = ({
 	onChange: (checked: boolean) => void;
 }) => (
 	<label className="inline-flex items-center gap-3 text-sm font-medium text-(--ink-soft)">
-		<input type="checkbox" checked={checked} onChange={(event) => onChange(event.target.checked)} className="app-check" />
+		<input type="checkbox" checked={checked} onChange={(event) => onChange(event.target.checked)} className="app-check" suppressHydrationWarning />
 		<span>{label}</span>
 	</label>
 );
@@ -4106,7 +4108,7 @@ const DesignWorkflowShell = ({ title, variant, projectId, taskId }: Props) => {
 														onClick={() => openAttachmentPreview(attachment, attachmentUrl, fileMeta)}
 														aria-label={`${workflow.labels.preview ?? 'Preview'} ${attachment.name}`}
 													>
-														<Image src={attachmentUrl} alt={attachment.name} width={92} height={68} unoptimized />
+														<Image src={attachmentUrl} alt={attachment.name} width={92} height={68} unoptimized loading="eager" />
 													</button>
 												) : (
 													<span><Paperclip size={17} /></span>
@@ -4454,7 +4456,7 @@ const DesignWorkflowShell = ({ title, variant, projectId, taskId }: Props) => {
 											onClick={() => setSelectedAnnotationAttachmentId(attachment.id)}
 										>
 											{isImage ? (
-												<Image src={attachmentUrl} alt={attachment.name} width={128} height={88} unoptimized />
+												<Image src={attachmentUrl} alt={attachment.name} width={128} height={88} unoptimized loading="eager" />
 											) : (
 												<span><Paperclip size={20} /></span>
 											)}
@@ -4471,7 +4473,7 @@ const DesignWorkflowShell = ({ title, variant, projectId, taskId }: Props) => {
 									<>
 										<div className="workflow-annotation-stage">
 											{isImageAttachment(selectedAnnotationAttachment) ? (
-												<Image src={selectedAnnotationAttachmentUrl} alt={selectedAnnotationAttachment.name} width={860} height={520} unoptimized />
+												<Image src={selectedAnnotationAttachmentUrl} alt={selectedAnnotationAttachment.name} width={860} height={520} unoptimized loading="eager" />
 											) : (
 												<div className="workflow-annotation-file-placeholder">
 													<Paperclip size={26} />
@@ -4853,7 +4855,7 @@ const DesignWorkflowShell = ({ title, variant, projectId, taskId }: Props) => {
 														onClick={() => openAttachmentPreview(attachment, attachmentUrl, fileMeta)}
 														aria-label={`${workflow.labels.preview ?? 'Preview'} ${attachment.name}`}
 													>
-														<Image src={attachmentUrl} alt={attachment.name} width={72} height={52} unoptimized className="workflow-attachment-thumb" />
+														<Image src={attachmentUrl} alt={attachment.name} width={72} height={52} unoptimized loading="eager" className="workflow-attachment-thumb" />
 													</button>
 												) : <span className="workflow-attachment-file-icon"><Paperclip size={16} /></span>}
 												<div className="workflow-attachment-copy">
@@ -6015,6 +6017,7 @@ const DesignWorkflowShell = ({ title, variant, projectId, taskId }: Props) => {
 									type="checkbox"
 									checked={Boolean(resolvedNotificationPreferences[key as keyof NotificationPreference])}
 									onChange={(event) => updatePreference(key as 'mentions' | 'assignments' | 'review_requests' | 'due_soon', event.target.checked)}
+									suppressHydrationWarning
 								/>
 								<span>{label}</span>
 							</label>
@@ -6216,7 +6219,7 @@ const DesignWorkflowShell = ({ title, variant, projectId, taskId }: Props) => {
 							</button>
 						</header>
 						<div className="workflow-attachment-preview-frame">
-							<Image src={attachmentPreview.url} alt={attachmentPreview.name} width={1200} height={820} unoptimized />
+							<Image src={attachmentPreview.url} alt={attachmentPreview.name} width={1200} height={820} unoptimized loading="eager" />
 						</div>
 						<footer>
 							<a href={attachmentPreview.url} target="_blank" rel="noreferrer">{workflow.buttons.open ?? 'Open'}</a>

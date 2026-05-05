@@ -135,4 +135,61 @@ describe('Protected component', () => {
 
 		expect(screen.getByText('Hydrated Content')).toBeInTheDocument();
 	});
+
+	it('uses session user as an immediate fallback while profile fetch hydrates', () => {
+		(useAppSelector as jest.Mock).mockReturnValue({});
+		(usePermission as jest.Mock).mockReturnValue({
+			is_staff: false,
+			can_view: false,
+			can_print: false,
+			can_create: false,
+			can_edit: false,
+			can_delete: false,
+		});
+		(useSession as jest.Mock).mockReturnValue({
+			data: {
+				accessToken: 'token',
+				user: {
+					pk: 8,
+					email: 'admin@example.com',
+					first_name: 'Admin',
+					last_name: 'User',
+					role: 'manager',
+					is_staff: true,
+				},
+			},
+			status: 'authenticated',
+		});
+		(useGetProfilQuery as jest.Mock).mockReturnValue({ data: undefined, isLoading: false, isFetching: true });
+
+		render(
+			<Protected>
+				<div>Session Content</div>
+			</Protected>,
+		);
+
+		expect(screen.getByText('Session Content')).toBeInTheDocument();
+	});
+
+	it('renders access denied instead of spinning forever when profile cannot hydrate', () => {
+		(useAppSelector as jest.Mock).mockReturnValue({});
+		(usePermission as jest.Mock).mockReturnValue({
+			is_staff: false,
+			can_view: false,
+			can_print: false,
+			can_create: false,
+			can_edit: false,
+			can_delete: false,
+		});
+		(useGetProfilQuery as jest.Mock).mockReturnValue({ data: undefined, isLoading: false, isFetching: false });
+
+		render(
+			<Protected>
+				<div>Blocked Content</div>
+			</Protected>,
+		);
+
+		expect(screen.getByText('Accès Refusé')).toBeInTheDocument();
+		expect(screen.queryByText('Blocked Content')).not.toBeInTheDocument();
+	});
 });

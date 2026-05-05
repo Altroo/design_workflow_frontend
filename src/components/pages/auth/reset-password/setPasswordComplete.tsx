@@ -16,9 +16,16 @@ const SetPasswordCompleteClient: React.FC = () => {
 		<AuthLayout>
 			<div className="app-card px-5 py-6 sm:px-7 sm:py-7">
 				<div className="app-card-muted flex items-center justify-center p-6">
-					<Image src={SuccessIlluSVG} alt="" width={240} height={180} className="h-auto w-full max-w-[240px]" priority />
+					<Image
+						src={SuccessIlluSVG}
+						alt=""
+						width={240}
+						height={180}
+						priority
+						style={{ width: 240, height: 180 }}
+					/>
 				</div>
-				<p className="mt-6 text-xs font-semibold uppercase tracking-[0.22em] text-(--ink-soft)">Done</p>
+				<p className="mt-6 text-xs font-semibold uppercase tracking-[0.22em] text-(--ink-soft)">{t.auth.passwordChanged}</p>
 				<h1 className="mt-3 text-4xl font-semibold text-(--ink)">{t.auth.passwordChanged}</h1>
 				<p className="mt-3 text-sm leading-6 text-(--ink-soft)">{t.auth.passwordChangedMessage}</p>
 				<Link href={AUTH_LOGIN} className="app-button mt-6 w-full justify-center">

@@ -80,10 +80,10 @@ describe('ResetPasswordClient', () => {
 			);
 		});
 
-		const titles = screen.getAllByText('Récupération');
+		const titles = screen.getAllByText(/Récupération/i);
 		expect(titles.length).toBeGreaterThanOrEqual(1);
 
-		const subtitles = screen.getAllByText('du mot de passe');
+		const subtitles = screen.getAllByText(/du mot de passe/i);
 		expect(subtitles.length).toBeGreaterThanOrEqual(1);
 
 		const instructions = screen.getAllByText(

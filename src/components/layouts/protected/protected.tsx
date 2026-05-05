@@ -1,6 +1,6 @@
 'use client';
 
-import { ReactNode, useEffect } from 'react';
+import { ReactNode, useEffect, useMemo } from 'react';
 import { usePermission, useAppSelector, useAppDispatch } from '@/utils/hooks';
 import { getProfilState } from '@/store/selectors';
 import NoPermission from '@/components/shared/noPermission/noPermission';
@@ -9,6 +9,7 @@ import { useInitAccessToken } from '@/contexts/InitContext';
 import { useGetProfilQuery } from '@/store/services/account';
 import { accountSetProfilAction } from '@/store/actions/accountActions';
 import type { UserClass } from '@/models/classes';
+import { getUserProfileFromSession } from '@/store/session';
 
 type PermissionKey = 'is_staff' | 'can_view' | 'can_print' | 'can_create' | 'can_edit' | 'can_delete';
 
@@ -40,22 +41,27 @@ export const Protected = (props: ProtectedProps) => {
 		skip: !shouldFetchProfile,
 	});
 	const required = props.permission ?? 'is_staff';
-	const activeProfile = profil.id ? profil : fetchedProfile;
-	const permissions = profil.id ? storePermissions : permissionsFor(fetchedProfile);
+	const sessionProfile = useMemo(() => getUserProfileFromSession(session ?? undefined), [session]);
+	const activeProfile = profil.id ? profil : fetchedProfile ?? sessionProfile;
+	const permissions = profil.id ? storePermissions : permissionsFor(fetchedProfile ?? sessionProfile);
 
 	useEffect(() => {
-		if (fetchedProfile) dispatch(accountSetProfilAction(fetchedProfile));
-	}, [dispatch, fetchedProfile]);
+		if (fetchedProfile) {
+			dispatch(accountSetProfilAction(fetchedProfile));
+			return;
+		}
+		if (!profil.id && sessionProfile) dispatch(accountSetProfilAction(sessionProfile));
+	}, [dispatch, fetchedProfile, profil.id, sessionProfile]);
 
 	if (!activeProfile?.id) {
-		if (status === 'unauthenticated' || (status === 'authenticated' && !token && !isLoading && !isFetching)) {
-			return <NoPermission />;
+		if (status === 'loading' || isLoading || isFetching) {
+			return (
+				<div className="flex items-center justify-center py-12">
+					<div className="h-10 w-10 animate-spin rounded-full border-4 border-[color:var(--line)] border-t-[color:var(--accent)]" />
+				</div>
+			);
 		}
-		return (
-			<div className="flex items-center justify-center py-12">
-				<div className="h-10 w-10 animate-spin rounded-full border-4 border-[color:var(--line)] border-t-[color:var(--accent)]" />
-			</div>
-		);
+		return <NoPermission />;
 	}
 
 	if (!permissions[required]) {

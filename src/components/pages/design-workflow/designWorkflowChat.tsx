@@ -185,7 +185,11 @@ const Avatar = ({ user, size = 32 }: { user: WorkflowUser; size?: number }) => {
 	const avatarUrl = resolveMediaUrl(user.avatar);
 	const initials = `${user.first_name?.[0] ?? ''}${user.last_name?.[0] ?? user.email?.[0] ?? ''}`.trim().toUpperCase() || 'U';
 	if (avatarUrl) {
-		return <Image src={avatarUrl} alt={userLabel(user)} width={size} height={size} unoptimized className="workflow-chat-avatar rounded-full object-cover" style={{ width: size, height: size }} />;
+		return (
+			<span className="workflow-chat-avatar relative block overflow-hidden rounded-full" style={{ width: size, height: size }}>
+				<Image src={avatarUrl} alt={userLabel(user)} fill sizes={`${size}px`} unoptimized className="object-cover" />
+			</span>
+		);
 	}
 	return (
 		<span
@@ -1532,6 +1536,7 @@ const DesignWorkflowChat = () => {
 																	width={720}
 																	height={288}
 																	unoptimized
+																	loading="eager"
 																	className="w-full object-cover"
 																/>
 																<div className="workflow-chat-attachment-label">

@@ -44,7 +44,7 @@ const ResetPasswordPageContent = () => {
 
 	return (
 		<div className="app-card px-5 py-6 sm:px-7 sm:py-7">
-			<p className="text-xs font-semibold uppercase tracking-[0.22em] text-(--ink-soft)">Recovery</p>
+			<p className="text-xs font-semibold uppercase tracking-[0.22em] text-(--ink-soft)">{t.auth.resetPassword}</p>
 			<h1 className="mt-3 text-4xl font-semibold text-(--ink)">
 				{t.auth.recovery} {t.auth.ofPassword}
 			</h1>
