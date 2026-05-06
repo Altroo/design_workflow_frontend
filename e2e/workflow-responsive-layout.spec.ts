@@ -253,7 +253,47 @@ const openFirstProjectDetail = async (page: Page) => {
 const waitForTeamReady = async (page: Page) => {
 	await expect(page.locator('.workflow-team-grid')).toBeVisible();
 	await expect.poll(async () => page.locator('.workflow-team-card').count()).toBeGreaterThan(0);
+	await expectMobileTeamSummary(page);
 	await expectContentCardInSnapshot(page, '.workflow-team-card', 'team');
+};
+
+const expectMobileTeamSummary = async (page: Page) => {
+	const viewport = page.viewportSize();
+	if (!viewport || viewport.width > 480) return;
+
+	const metrics = page.locator('.workflow-team-metrics .workflow-overview-metric');
+	await expect.poll(async () => metrics.count(), { timeout: 10_000 }).toBeGreaterThanOrEqual(4);
+	const metricLayout = await page.locator('.workflow-team-metrics').evaluate((grid) => {
+		const cards = Array.from(grid.querySelectorAll<HTMLElement>('.workflow-overview-metric')).slice(0, 4);
+		const gridBox = grid.getBoundingClientRect();
+		const rows = new Set(cards.map((card) => Math.round(card.getBoundingClientRect().top)));
+		return {
+			cards: cards.map((card) => {
+				const box = card.getBoundingClientRect();
+				return {
+					height: box.height,
+					leftOverflow: box.left < gridBox.left - 1,
+					rightOverflow: box.right > gridBox.right + 1,
+					widthRatio: gridBox.width ? box.width / gridBox.width : 1,
+				};
+			}),
+			rowCount: rows.size,
+		};
+	});
+	expect(metricLayout.rowCount).toBeLessThanOrEqual(2);
+	for (const card of metricLayout.cards) {
+		expect(card.height).toBeGreaterThanOrEqual(96);
+		expect(card.height).toBeLessThanOrEqual(140);
+		expect(card.widthRatio).toBeGreaterThan(0.42);
+		expect(card.widthRatio).toBeLessThan(0.56);
+		expect(card.leftOverflow).toBe(false);
+		expect(card.rightOverflow).toBe(false);
+	}
+
+	const clippedPillCount = await page.locator('.workflow-team-panel-pill em').evaluateAll((values) =>
+		values.filter((value) => value.scrollWidth > value.clientWidth + 1).length,
+	);
+	expect(clippedPillCount).toBe(0);
 };
 
 const waitForReportReady = async (page: Page) => {

@@ -1875,10 +1875,10 @@ const DesignWorkflowShell = ({ title, variant, projectId, taskId }: Props) => {
 		},
 		{ skip: !workflowDataReady || variant !== 'report-time' || !isManager },
 	);
-	const { data: notificationsData } = useGetNotificationsQuery(
-		{ unread: notificationsUnreadOnly || undefined },
-		{ skip: !workflowDataReady || variant !== 'notifications' },
-	);
+	const notificationQueryArgs = notificationsUnreadOnly ? { unread: true } : undefined;
+	const { data: notificationsData } = useGetNotificationsQuery(notificationQueryArgs, {
+		skip: !workflowDataReady || variant !== 'notifications',
+	});
 	const notifications = notificationsData ?? EMPTY_NOTIFICATIONS;
 	const { data: notificationPreferences } = useGetNotificationPreferencesQuery(undefined, {
 		skip: !workflowDataReady || variant !== 'notifications',

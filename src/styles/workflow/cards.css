@@ -187,6 +187,65 @@
 }
 
 @media (max-width: 720px) {
+	.workflow-team-metrics {
+		grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+		gap: 0.875rem !important;
+	}
+
+	.workflow-team-metrics .workflow-overview-metric {
+		min-height: 7.5rem !important;
+		padding: 1rem !important;
+	}
+
+	.workflow-team-metrics .workflow-overview-metric-pill {
+		display: grid !important;
+		grid-template-columns: minmax(0, 1fr) 2rem !important;
+		align-items: start !important;
+		gap: 0.5rem !important;
+		width: 100% !important;
+	}
+
+	.workflow-team-metrics .workflow-overview-metric-pill b {
+		min-width: 0 !important;
+		font-size: 0.6875rem !important;
+		line-height: 1.15 !important;
+		overflow-wrap: anywhere !important;
+		white-space: normal !important;
+	}
+
+	.workflow-team-metrics .workflow-overview-metric-pill em {
+		width: 2rem !important;
+		height: 2rem !important;
+		padding: 0.45rem !important;
+	}
+
+	.workflow-team-metrics .workflow-overview-metric > p {
+		margin-top: 0.875rem !important;
+		font-size: clamp(1.45rem, 7.4vw, 1.875rem) !important;
+		line-height: 1.05 !important;
+		overflow-wrap: anywhere !important;
+		white-space: normal !important;
+	}
+
+	.workflow-team-panel-pill {
+		display: grid !important;
+		grid-template-columns: minmax(0, 1fr) auto !important;
+		align-items: center !important;
+		gap: 0.75rem !important;
+		width: 100% !important;
+	}
+
+	.workflow-team-panel-pill span {
+		min-width: 0 !important;
+		line-height: 1.2 !important;
+		white-space: normal !important;
+	}
+
+	.workflow-team-panel-pill em {
+		max-width: none !important;
+		white-space: nowrap !important;
+	}
+
 	.workflow-notification-preferences {
 		grid-template-columns: 1fr !important;
 		align-items: stretch !important;
@@ -309,6 +368,7 @@
 }
 
 @media (max-width: 360px) {
+	.workflow-team-metrics,
 	.workflow-notifications-actions {
 		grid-template-columns: 1fr !important;
 	}
