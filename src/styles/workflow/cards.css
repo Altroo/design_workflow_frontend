@@ -197,6 +197,7 @@
 		display: grid !important;
 		grid-template-columns: 1fr !important;
 		justify-content: stretch !important;
+		gap: 0.5rem !important;
 		width: 100% !important;
 	}
 
@@ -204,11 +205,37 @@
 	.workflow-notification-digest-select {
 		width: 100% !important;
 		min-width: 0 !important;
+		min-height: 44px !important;
+		border-radius: 0.875rem !important;
+		padding: 0 0.875rem !important;
+		background: #ffffff !important;
+	}
+
+	.workflow-notification-preference-toggle {
+		justify-content: flex-start !important;
+	}
+
+	.workflow-notification-preference-toggle input {
+		flex: none !important;
+		margin: 0 !important;
+	}
+
+	.workflow-notification-preference-toggle span {
+		min-width: 0 !important;
+		flex: 1 1 auto !important;
+		line-height: 1.2 !important;
+		overflow-wrap: anywhere !important;
+		text-align: left !important;
+		white-space: normal !important;
+	}
+
+	.workflow-notification-digest-select {
 		justify-content: space-between !important;
 	}
 
 	.workflow-notification-digest-select select {
 		min-width: 0 !important;
 		max-width: 8.5rem !important;
+		flex: none !important;
 	}
 }

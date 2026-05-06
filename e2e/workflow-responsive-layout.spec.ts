@@ -81,6 +81,30 @@ const expectSeededNotificationCards = async (page: Page) => {
 	await expect(reviewCard.getByRole('button', { name: /Accept|Move to progress|Accepter|progress/i }).first()).toBeVisible();
 };
 
+const expectMobileNotificationPreferences = async (page: Page) => {
+	const viewport = page.viewportSize();
+	if (!viewport || viewport.width > 480) return;
+
+	const toggles = page.locator('.workflow-notification-preference-toggle');
+	await expect.poll(async () => toggles.count(), { timeout: 10_000 }).toBeGreaterThanOrEqual(4);
+	for (let index = 0; index < 4; index += 1) {
+		const metrics = await toggles.nth(index).evaluate((toggle) => {
+			const input = toggle.querySelector('input')?.getBoundingClientRect();
+			const label = toggle.querySelector('span')?.getBoundingClientRect();
+			const box = toggle.getBoundingClientRect();
+			return {
+				labelGap: input && label ? label.left - input.right : 0,
+				labelRightGap: label ? box.right - label.right : 0,
+				rowHeight: box.height,
+			};
+		});
+		expect(metrics.rowHeight).toBeGreaterThanOrEqual(42);
+		expect(metrics.labelGap).toBeGreaterThanOrEqual(4);
+		expect(metrics.labelGap).toBeLessThanOrEqual(14);
+		expect(metrics.labelRightGap).toBeGreaterThanOrEqual(8);
+	}
+};
+
 const openBoardFilters = async (page: Page) => {
 	const toolbar = page.locator('.workflow-kanban-toolbar');
 	if (await toolbar.isVisible()) return;
@@ -191,6 +215,7 @@ const waitForNotificationsReady = async (page: Page) => {
 	await expect(page.locator('.workflow-notification-preferences')).toBeVisible();
 	await expect(page.locator('.workflow-notifications-board')).toBeVisible();
 	await expect(page.locator('.workflow-notifications-list > *').first()).toBeVisible();
+	await expectMobileNotificationPreferences(page);
 	await expectSeededNotificationCards(page);
 	await expectContentCardInSnapshot(page, seeded ? '.workflow-notifications-card' : '.workflow-notifications-list > *', 'notification');
 };
