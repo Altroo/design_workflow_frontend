@@ -16495,3 +16495,429 @@ body {
 		height: 12.5rem !important;
 	}
 }
+
+/* Final operational density pass for notifications, users, and settings forms. */
+.workflow-notifications-shell,
+.workflow-users-shell,
+.workflow-user-form-shell,
+.workflow-profile-shell,
+.workflow-password-shell {
+	gap: 1rem !important;
+	overflow: visible !important;
+	border: 0 !important;
+	border-radius: 0 !important;
+	background: transparent !important;
+	box-shadow: none !important;
+}
+
+.workflow-user-form-shell {
+	width: min(100%, 96rem) !important;
+	margin-inline: auto !important;
+}
+
+.workflow-profile-shell,
+.workflow-password-shell {
+	width: min(100%, 90rem) !important;
+}
+
+.workflow-notifications-hero,
+.workflow-users-hero,
+.workflow-user-form-hero {
+	min-height: 5.75rem !important;
+	border-radius: 1.125rem !important;
+	padding: 1.125rem 1.5rem !important;
+}
+
+.workflow-notifications-hero h1,
+.workflow-users-hero h1,
+.workflow-user-form-hero h1 {
+	font-size: clamp(1.625rem, 1.75vw, 2rem) !important;
+	line-height: 1.08 !important;
+}
+
+.workflow-users-hero span {
+	max-width: 44rem !important;
+	margin-top: 0.375rem !important;
+	font-size: 0.8125rem !important;
+	line-height: 1.4 !important;
+}
+
+.workflow-notifications-hero-actions,
+.workflow-users-hero-actions {
+	flex-wrap: wrap !important;
+	justify-content: flex-end !important;
+}
+
+.workflow-notifications-toggle,
+.workflow-notifications-mark-all,
+.workflow-users-danger-outline,
+.workflow-users-hero-actions .app-button,
+.workflow-user-form-back {
+	min-height: 2.5rem !important;
+	border-radius: 999px !important;
+	padding: 0 0.875rem !important;
+	font-size: 0.8125rem !important;
+}
+
+.workflow-notifications-metrics,
+.workflow-users-metrics {
+	grid-template-columns: repeat(4, minmax(0, 1fr)) !important;
+	gap: 0.875rem !important;
+}
+
+.workflow-notifications-metric,
+.workflow-users-metric {
+	min-height: 6.25rem !important;
+	border-radius: 1rem !important;
+	padding: 1rem !important;
+}
+
+.workflow-notifications-metric svg,
+.workflow-users-metric svg {
+	width: 2rem !important;
+	height: 2rem !important;
+	padding: 0.5rem !important;
+}
+
+.workflow-notifications-metric span,
+.workflow-users-metric span {
+	font-size: 0.6875rem !important;
+	line-height: 1.2 !important;
+}
+
+.workflow-notifications-metric strong,
+.workflow-users-metric strong {
+	font-size: clamp(1.65rem, 1.65vw, 2rem) !important;
+	line-height: 1 !important;
+}
+
+.workflow-notification-preferences,
+.workflow-notifications-board,
+.workflow-users-board,
+.workflow-user-form-panel {
+	border-radius: 1.125rem !important;
+}
+
+.workflow-notification-preferences {
+	grid-template-columns: minmax(16rem, 0.64fr) minmax(0, 1.36fr) !important;
+	align-items: center !important;
+	gap: 1rem !important;
+	padding: 1rem !important;
+}
+
+.workflow-notification-preference-grid {
+	display: flex !important;
+	flex-wrap: wrap !important;
+	justify-content: flex-end !important;
+	gap: 0.625rem !important;
+}
+
+.workflow-notification-preference-toggle,
+.workflow-notification-digest-select {
+	min-height: 2.375rem !important;
+	border-radius: 999px !important;
+	padding: 0 0.75rem !important;
+}
+
+.workflow-notifications-board-head,
+.workflow-users-board-head {
+	padding: 1rem !important;
+}
+
+.workflow-notifications-board-head h2,
+.workflow-users-board-head h2 {
+	font-size: 1.25rem !important;
+	line-height: 1.15 !important;
+}
+
+.workflow-notifications-list {
+	gap: 0.75rem !important;
+	padding: 0.875rem !important;
+}
+
+.workflow-notifications-card {
+	grid-template-columns: 2.375rem minmax(0, 1fr) !important;
+	gap: 0.75rem !important;
+	border-radius: 0.875rem !important;
+	padding: 0.875rem !important;
+}
+
+.workflow-notifications-card-icon {
+	width: 2.375rem !important;
+	height: 2.375rem !important;
+}
+
+.workflow-notifications-card-kicker,
+.workflow-notifications-meta,
+.workflow-notifications-actions {
+	gap: 0.5rem !important;
+}
+
+.workflow-notifications-card h3 {
+	font-size: 0.9375rem !important;
+	line-height: 1.25 !important;
+}
+
+.workflow-notifications-card p,
+.workflow-notifications-meta {
+	font-size: 0.8125rem !important;
+	line-height: 1.45 !important;
+}
+
+.workflow-notifications-actions,
+.workflow-notifications-comment-action {
+	grid-column: 2 !important;
+}
+
+.workflow-notifications-action-button,
+.workflow-notifications-comment-action button {
+	min-height: 2.125rem !important;
+	border-radius: 999px !important;
+	padding: 0 0.75rem !important;
+	font-size: 0.75rem !important;
+}
+
+.workflow-users-toolbar {
+	padding: 0.875rem 1rem !important;
+}
+
+.workflow-users-toolbar .app-input {
+	min-height: 2.5rem !important;
+	border-radius: 999px !important;
+}
+
+.workflow-users-page-pill,
+.workflow-users-toolbar .app-pill {
+	min-height: 2.25rem !important;
+	border-radius: 999px !important;
+	padding: 0 0.75rem !important;
+	font-size: 0.75rem !important;
+}
+
+.workflow-users-table-wrap {
+	padding: 0.875rem !important;
+}
+
+.workflow-users-table {
+	border-radius: 0.875rem !important;
+}
+
+.workflow-users-table th {
+	padding-block: 0.75rem !important;
+	font-size: 0.6875rem !important;
+}
+
+.workflow-users-table td {
+	padding-block: 0.75rem !important;
+}
+
+.workflow-users-avatar {
+	width: 2.25rem !important;
+	height: 2.25rem !important;
+}
+
+.workflow-users-icon-button,
+.workflow-users-icon-button-danger {
+	width: 2.125rem !important;
+	height: 2.125rem !important;
+	border-radius: 999px !important;
+}
+
+.workflow-user-form-grid {
+	grid-template-columns: minmax(18rem, 0.5fr) minmax(0, 1.5fr) !important;
+	gap: 1rem !important;
+	padding: 1rem !important;
+}
+
+.workflow-profile-grid,
+.workflow-password-grid {
+	grid-template-columns: minmax(18rem, 0.48fr) minmax(0, 1.52fr) !important;
+}
+
+.workflow-user-form-side,
+.workflow-user-form-main {
+	gap: 1rem !important;
+}
+
+.workflow-user-form-panel {
+	padding: 0.875rem !important;
+}
+
+.workflow-user-form-panel-head,
+.workflow-user-form-panel-pill {
+	min-height: 3rem !important;
+	border-radius: 0.875rem !important;
+	padding: 0.75rem !important;
+}
+
+.workflow-user-form-panel-head h2 {
+	font-size: 1rem !important;
+	line-height: 1.2 !important;
+}
+
+.workflow-user-form-icon,
+.workflow-password-lock {
+	width: 2.375rem !important;
+	height: 2.375rem !important;
+	border-radius: 0.75rem !important;
+}
+
+.workflow-password-lock svg {
+	width: 1.25rem !important;
+	height: 1.25rem !important;
+}
+
+.workflow-user-form-avatar {
+	padding: 0.75rem 0 0 !important;
+}
+
+.workflow-user-form-avatar > div {
+	max-width: 28rem !important;
+}
+
+.workflow-profile-shell .workflow-user-form-avatar > div,
+.workflow-password-shell .workflow-user-form-avatar > div {
+	max-width: 24rem !important;
+}
+
+.workflow-password-card {
+	min-height: 0 !important;
+}
+
+.workflow-password-visual {
+	min-height: 10.5rem !important;
+	margin-top: 0.75rem !important;
+	border-radius: 0.875rem !important;
+}
+
+.workflow-password-dots {
+	right: 1rem !important;
+	bottom: 1rem !important;
+}
+
+.workflow-password-dots span {
+	width: 0.375rem !important;
+	height: 0.375rem !important;
+}
+
+.workflow-user-form-fields,
+.workflow-user-form-permissions,
+.workflow-profile-fields,
+.workflow-password-fields,
+.workflow-user-form-toggle-stack {
+	gap: 0.75rem !important;
+	margin-top: 0.75rem !important;
+}
+
+.workflow-user-form-toggle {
+	min-height: 2.625rem !important;
+	border-radius: 0.875rem !important;
+	padding: 0.625rem 0.75rem !important;
+}
+
+.workflow-user-form-shell .app-input,
+.workflow-user-form-shell select,
+.workflow-user-form-shell input,
+.workflow-user-form-shell textarea {
+	min-height: 2.75rem !important;
+	border-radius: 0.875rem !important;
+}
+
+.workflow-user-form-submit {
+	margin-top: 0 !important;
+}
+
+.workflow-user-form-submit button {
+	min-height: 2.5rem !important;
+	padding-inline: 1rem !important;
+}
+
+@media (max-width: 90rem) {
+	.workflow-user-form-shell {
+		width: 100% !important;
+	}
+}
+
+@media (max-width: 72rem) {
+	.workflow-notification-preferences,
+	.workflow-user-form-grid,
+	.workflow-profile-grid,
+	.workflow-password-grid {
+		grid-template-columns: 1fr !important;
+	}
+
+	.workflow-notification-preference-grid {
+		justify-content: flex-start !important;
+	}
+}
+
+@media (max-width: 47.9375rem) {
+	.workflow-notifications-hero,
+	.workflow-users-hero,
+	.workflow-user-form-hero {
+		align-items: flex-start !important;
+		flex-direction: column !important;
+		padding: 1rem !important;
+	}
+
+	.workflow-notifications-hero-actions,
+	.workflow-users-hero-actions,
+	.workflow-users-hero-actions .app-button,
+	.workflow-users-danger-outline,
+	.workflow-user-form-back {
+		justify-content: center !important;
+		width: 100% !important;
+	}
+
+	.workflow-notifications-metrics,
+	.workflow-users-metrics {
+		grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+	}
+
+	.workflow-user-form-fields,
+	.workflow-user-form-permissions {
+		grid-template-columns: 1fr !important;
+	}
+
+	.workflow-users-mobile-meta {
+		grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+	}
+
+	.workflow-users-mobile-meta > span {
+		min-height: 4.375rem !important;
+	}
+
+	.workflow-users-mobile-meta .workflow-users-status-icon {
+		width: 1.875rem !important;
+		height: 1.875rem !important;
+		min-height: 1.875rem !important;
+		padding: 0 !important;
+		border-radius: 999px !important;
+	}
+
+	.workflow-notification-preference-toggle,
+	.workflow-notification-digest-select,
+	.workflow-notifications-action-button,
+	.workflow-notifications-comment-action button,
+	.workflow-user-form-submit,
+	.workflow-user-form-submit button {
+		width: 100% !important;
+	}
+
+	.workflow-notifications-card {
+		grid-template-columns: 2.25rem minmax(0, 1fr) !important;
+	}
+
+	.workflow-notifications-actions,
+	.workflow-notifications-comment-action {
+		grid-column: 1 / -1 !important;
+	}
+}
+
+@media (max-width: 22.5rem) {
+	.workflow-notifications-metrics,
+	.workflow-users-metrics,
+	.workflow-users-mobile-meta {
+		grid-template-columns: 1fr !important;
+	}
+}
