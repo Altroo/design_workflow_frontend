@@ -12385,7 +12385,6 @@ body {
 .workflow-saved-view-bar .app-button:last-child,
 .workflow-user-form-submit button,
 .workflow-projects-create .app-button:not(.app-button-ghost),
-.workflow-chat-composer .app-button:not(.app-button-ghost),
 .workflow-trello-modal-action-primary,
 .workflow-trello-modal-save,
 .workflow-trello-modal-checklist-add button,
@@ -17094,7 +17093,6 @@ body {
 }
 
 .workflow-projects-create .app-button:not(.app-button-ghost),
-.workflow-chat-composer .app-button:not(.app-button-ghost),
 .workflow-task-modal .workflow-trello-modal-action-primary,
 .workflow-task-modal .workflow-trello-modal-save,
 .workflow-task-modal .workflow-trello-modal-checklist-add button,
@@ -17114,7 +17112,6 @@ body {
 }
 
 .workflow-projects-create .app-button:not(.app-button-ghost):hover,
-.workflow-chat-composer .app-button:not(.app-button-ghost):hover,
 .workflow-user-form-submit button:hover,
 .workflow-users-hero-actions .app-button:hover,
 .workflow-notifications-action-primary:hover,
@@ -17139,15 +17136,6 @@ body {
 .workflow-nav-link:hover,
 .workflow-nav-link[aria-current='page'],
 .workflow-nav-link[class*='bg-(--accent-soft)'],
-.workflow-chat-thread-button:hover,
-.workflow-chat-context-button:hover,
-.workflow-chat-direct-button:hover,
-.workflow-chat-thread-button.is-active,
-.workflow-chat-context-button.is-active,
-.workflow-chat-direct-button.is-active,
-.workflow-chat-thread-button.is-unread,
-.workflow-chat-context-button.is-unread,
-.workflow-chat-direct-button.is-unread,
 .workflow-users-danger-outline:hover,
 .workflow-notifications-toggle:hover,
 .workflow-notifications-action-button:hover,
@@ -17186,40 +17174,6 @@ body {
 	color: var(--accent-strong) !important;
 }
 
-.workflow-column,
-.workflow-trello-board-card {
-	--status-accent: #111827;
-	--status-soft: #f8fafc;
-	--status-text: #111827;
-	--card-status-accent: #111827;
-	--card-status-soft: #f8fafc;
-	--card-status-text: #111827;
-}
-
-.workflow-column[data-status='in_progress'],
-.workflow-column[data-status='in_review'],
-.workflow-column[data-status='done'],
-.workflow-trello-board-card[data-status='in_progress'],
-.workflow-trello-board-card[data-status='in_review'],
-.workflow-trello-board-card[data-status='done'] {
-	--status-accent: var(--accent);
-	--status-soft: var(--accent-soft);
-	--status-text: var(--accent-strong);
-	--card-status-accent: var(--accent);
-	--card-status-soft: var(--accent-soft);
-	--card-status-text: var(--accent-strong);
-}
-
-.workflow-column[data-status='blocked'],
-.workflow-trello-board-card[data-status='blocked'] {
-	--status-accent: #e11d48;
-	--status-soft: #fff1f2;
-	--status-text: #9f1239;
-	--card-status-accent: #e11d48;
-	--card-status-soft: #fff1f2;
-	--card-status-text: #9f1239;
-}
-
 .workflow-team-load-track,
 .workflow-team-estimate-track,
 .workflow-report-bar,
@@ -17229,8 +17183,7 @@ body {
 	background: #e5e7eb !important;
 }
 
-.workflow-report-rank,
-.workflow-chat-voice-player > button {
+.workflow-report-rank {
 	background: var(--accent) !important;
 	color: #ffffff !important;
 }
@@ -17368,36 +17321,17 @@ body {
 	color: var(--ink) !important;
 }
 
-.workflow-column[data-status='todo'],
-.workflow-trello-board-card[data-status='todo'] {
-	--status-accent: #111827 !important;
-	--status-soft: #f8fafc !important;
-	--status-text: #111827 !important;
-	--card-status-accent: #111827 !important;
-	--card-status-soft: #f8fafc !important;
-	--card-status-text: #111827 !important;
+/* Kanban status colors stay semantic because they aid board scanning. */
+.workflow-column,
+.workflow-trello-board-card {
+	--status-accent: #64748b;
+	--status-soft: #f8fafc;
+	--status-text: #334155;
+	--card-status-accent: #64748b;
+	--card-status-soft: #f8fafc;
+	--card-status-text: #334155;
 }
 
-.workflow-column[data-status] .workflow-column-icon,
-.workflow-column[data-status] .workflow-column-count,
-.workflow-column[data-status] .workflow-column-empty > span,
-.workflow-task-cover-mark,
-.workflow-task-cover-chip {
-	border-color: color-mix(in srgb, var(--status-accent, var(--ink)) 18%, #e5e7eb) !important;
-	background: color-mix(in srgb, var(--status-soft, #f8fafc) 74%, #ffffff) !important;
-	color: var(--status-accent, var(--ink)) !important;
-	box-shadow: none !important;
-}
-
-.workflow-trello-board-card[data-status] .workflow-chip[data-status],
-.workflow-project-card-modern .workflow-chip,
-.workflow-project-card-modern .app-chip {
-	border-color: var(--line) !important;
-	background: var(--surface-muted) !important;
-	color: var(--ink-soft) !important;
-}
-
-/* Kanban semantics: status cards keep distinct colors because they aid scanning. */
 .workflow-column[data-status='backlog'],
 .workflow-board-card-shell:has(.workflow-trello-board-card[data-status='backlog']),
 .workflow-trello-board-card[data-status='backlog'] {
@@ -17464,6 +17398,17 @@ body {
 	--card-status-text: #166534 !important;
 }
 
+.workflow-column[data-status] .workflow-column-icon,
+.workflow-column[data-status] .workflow-column-count,
+.workflow-column[data-status] .workflow-column-empty > span,
+.workflow-task-cover-mark,
+.workflow-task-cover-chip {
+	border-color: color-mix(in srgb, var(--status-accent, var(--ink)) 18%, #e5e7eb) !important;
+	background: color-mix(in srgb, var(--status-soft, #f8fafc) 74%, #ffffff) !important;
+	color: var(--status-accent, var(--ink)) !important;
+	box-shadow: none !important;
+}
+
 .workflow-trello-board-card[data-status] .workflow-trello-card-project,
 .workflow-trello-board-card[data-status] .workflow-trello-card-badges span,
 .workflow-trello-board-card[data-status] .workflow-chip[data-status],
@@ -17472,6 +17417,13 @@ body {
 	border-color: color-mix(in srgb, var(--card-status-accent, var(--status-accent)) 18%, #e5e7eb) !important;
 	background: color-mix(in srgb, var(--card-status-soft, var(--status-soft)) 62%, #ffffff) !important;
 	color: var(--card-status-text, var(--status-text)) !important;
+}
+
+.workflow-project-card-modern .workflow-chip,
+.workflow-project-card-modern .app-chip {
+	border-color: var(--line) !important;
+	background: var(--surface-muted) !important;
+	color: var(--ink-soft) !important;
 }
 
 /* Chat uses a quieter slate accent so conversations do not compete with Kanban colors. */
