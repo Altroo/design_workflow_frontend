@@ -56,6 +56,18 @@ const expectSlateChatAccent = async (page: Page) => {
 	expect(await readCssProperty(sendButton, 'background-color')).not.toBe('rgb(0, 161, 93)');
 };
 
+const expectFrenchUiChrome = async (locator: Locator, expected: RegExp, forbiddenEnglish: RegExp) => {
+	await expect(locator).toContainText(expected, { timeout: 30_000 });
+	await expect(locator).not.toContainText(forbiddenEnglish);
+};
+
+const boardEnglishChrome = /Saved views|View name|Private|All statuses|All priorities|All assignees|All reviews|Due date ascending|Manual order|Needs Review|Backlog/i;
+const projectEnglishChrome = /Create project|Project name|Short project context|Target end|Start date|Loading projects/i;
+const teamEnglishChrome = /Team members|Open tasks|Overdue tasks|Estimated load|Team load map|Attention lane|Available lane|No delivery pressure|No clear availability/i;
+const reportEnglishChrome = /Start date|End date|Clear filters|Lead and cycle time|Lead time|Cycle time|Blocked time|Review bottlenecks|Estimate vs actual|Designer forecast|Capacity forecast|Export analytics/i;
+const chatEnglishChrome = /Public channel|Private chat|Project room|Task room|Write a message|Filter by|No message|No messages|Select a conversation|Loading conversations|Direct messages|Channels|Live conversations|Search in chat|Media files/i;
+const notificationEnglishChrome = /Notification preferences|Digest frequency|Review requests|Due soon|Daily|Weekly|Unread only|Mark all read|Mark as read|Notification center|Alert feed|Task alerts|Chat alerts/i;
+
 const waitForUsersReady = async (page: Page) => {
 	const rows = page.locator('.workflow-users-table tbody tr');
 	const errorState = page.locator('.workflow-users-board').getByText(/Une erreur est survenue|An error occurred/i);
@@ -114,7 +126,8 @@ test.describe('workflow visual layout pass', () => {
 		await expect(page.locator('.workflow-rail-title')).toContainText(/Flux Design/i);
 		await expect(page.locator('.workflow-saved-view-bar')).toContainText(/Vues enregistr.es|Nom de la vue|Priv.e/i);
 		await expect(page.locator('.workflow-kanban-filter-grid')).toContainText(/Toutes les revues|Ordre manuel/i);
-		await expect(page.locator('.workflow-saved-view-bar')).not.toContainText(/Saved views|View name|Private/i);
+		await expectFrenchUiChrome(page.locator('.workflow-saved-view-bar'), /Vues enregistr.es|Nom de la vue|Priv.e/i, boardEnglishChrome);
+		await expectFrenchUiChrome(page.locator('.workflow-kanban-filter-grid'), /Tous les statuts|Toutes les priorit.s|Tous les assign.s|Toutes les revues|Ordre manuel/i, boardEnglishChrome);
 		const filterRowCount = await page.locator('.workflow-kanban-filter-grid').evaluate((grid) => {
 			const tops = Array.from(grid.children).map((child) => Math.round(child.getBoundingClientRect().top));
 			return new Set(tops).size;
@@ -127,7 +140,10 @@ test.describe('workflow visual layout pass', () => {
 		await page.screenshot({ path: join(screenshotDir, 'board.png'), fullPage: true });
 		await page.locator('[data-testid^="board-task-"]').first().click();
 		await expect(page.locator('.workflow-task-modal')).toBeVisible();
-		await expect(page.locator('.workflow-task-modal')).toContainText(/Commentaires|Activit.|Fichiers|Review|Revue/i);
+		await expect(page.locator('.workflow-task-modal')).toContainText(/Demander modifications|Approuver|Pi.ces jointes|Commentaires/i);
+		const taskModalActions = (await page.locator('.workflow-task-modal .workflow-trello-modal-action').allTextContents()).join(' ');
+		expect(taskModalActions).toMatch(/Demander modifications|Approuver|Liste|Membres|Archiver/i);
+		expect(taskModalActions).not.toMatch(/Request changes|\bApprove\b|Checklist|\bMembers\b|\bArchive\b/i);
 		await page.screenshot({ path: join(screenshotDir, 'task-modal.png'), fullPage: true });
 		await page.keyboard.press('Escape');
 		await expect(page.locator('.workflow-task-modal')).toHaveCount(0);
@@ -151,6 +167,7 @@ test.describe('workflow visual layout pass', () => {
 		await expect(page.locator('.workflow-project-card-modern').first()).toBeVisible();
 		await expectSharedCardShell(page.locator('.workflow-projects-create'));
 		await expectSharedCardShell(page.locator('.workflow-project-card-modern').first());
+		await expectFrenchUiChrome(page.locator('.workflow-projects-create'), /Cr.er un projet|Nom du projet|Fin cible/i, projectEnglishChrome);
 		await page.screenshot({ path: join(screenshotDir, 'projects.png'), fullPage: true });
 		const firstProjectHref = await page.locator('.workflow-project-card-open').first().getAttribute('href');
 		expect(firstProjectHref).toBeTruthy();
@@ -181,6 +198,7 @@ test.describe('workflow visual layout pass', () => {
 		expect(teamLayout.topDelta).toBeLessThan(4);
 		await expectSharedCardShell(page.locator('.workflow-team-analytics'));
 		await expectSharedCardShell(page.locator('.workflow-team-card').first());
+		await expectFrenchUiChrome(page.locator('.workflow-team-page'), /Membres .quipe|T.ches ouvertes|Charge estim.e|Carte charge .quipe/i, teamEnglishChrome);
 		await page.screenshot({ path: join(screenshotDir, 'team.png'), fullPage: true });
 
 		await page.goto('/dashboard/reports/time');
@@ -196,6 +214,8 @@ test.describe('workflow visual layout pass', () => {
 		expect(widestReportAction).toBeLessThan(190);
 		await expectSharedCardShell(page.locator('.workflow-report-metric').first());
 		await expectSharedCardShell(page.locator('.workflow-report-chart-card').first());
+		await expectFrenchUiChrome(page.locator('.workflow-report-filterbar'), /Date de d.but|Date de fin|Effacer les filtres|Exporter CSV|Exporter PDF/i, reportEnglishChrome);
+		await expectFrenchUiChrome(page.locator('.workflow-analytics-grid'), /D.lai et temps de cycle|Goulots de revue|Estim. vs r.el|Pr.vision designer/i, reportEnglishChrome);
 		await page.screenshot({ path: join(screenshotDir, 'reports.png'), fullPage: true });
 
 		await page.goto('/dashboard/chat');
@@ -203,6 +223,9 @@ test.describe('workflow visual layout pass', () => {
 		await expect(page.getByRole('button', { name: /Filtrer par/i })).toBeVisible();
 		await expect(page.locator('.workflow-chat-tools-toggle span')).toHaveText(/Filtrer par/i);
 		await expectSlateChatAccent(page);
+		await expectFrenchUiChrome(page.locator('.workflow-chat-sidebar'), /Canal public|Projets|Messages directs/i, chatEnglishChrome);
+		await expect(page.locator('.workflow-chat-room textarea').first()).toHaveAttribute('placeholder', /crire un message/i);
+		await expect(page.locator('.workflow-chat-room')).not.toContainText(chatEnglishChrome);
 		await page.screenshot({ path: join(screenshotDir, 'chat.png'), fullPage: true });
 
 		await page.goto('/dashboard/notifications');
@@ -213,6 +236,8 @@ test.describe('workflow visual layout pass', () => {
 		await expect(page.locator('.workflow-notifications-list > *').first()).toBeVisible();
 		await expectSharedCardShell(page.locator('.workflow-notifications-metric').first());
 		await expectSharedCardShell(page.locator('.workflow-notification-preferences'));
+		await expectFrenchUiChrome(page.locator('.workflow-notification-preferences'), /Pr.f.rences notifications|Fr.quence du r.sum.|Demandes de revue|Quotidien/i, notificationEnglishChrome);
+		await expectFrenchUiChrome(page.locator('.workflow-notifications-board'), /Centre notifications|Flux alertes/i, notificationEnglishChrome);
 		await page.screenshot({ path: join(screenshotDir, 'notifications.png'), fullPage: true });
 
 		await page.goto('/dashboard/users');
