@@ -569,7 +569,7 @@ const getChecklistTemplates = (labels: WorkflowCopy['labels']): ChecklistTemplat
 	},
 ];
 
-const WORKFLOW_CHART_PALETTE = ['#00a15d', '#111827', '#475569', '#94a3b8', '#cbd5e1', '#e5e7eb'];
+const WORKFLOW_CHART_PALETTE = ['#111827', '#475569', '#64748b', '#94a3b8', '#cbd5e1', '#e5e7eb'];
 
 const BOARD_STATUS_META: Record<TaskStatus, { accent: string; text: string; soft: string; icon: ReactNode }> = {
 	backlog: { accent: '#64748b', text: '#334155', soft: '#f8fafc', icon: <Archive size={14} /> },
@@ -5244,7 +5244,7 @@ const DesignWorkflowShell = ({ title, variant, projectId, taskId }: Props) => {
 				{
 					label: workflow.labels.estimatedLoad,
 					data: chartRows.map((row) => row.estimated_minutes),
-					backgroundColor: '#00a15d',
+					backgroundColor: '#111827',
 					borderRadius: 10,
 					borderSkipped: false,
 					barThickness: 14,
@@ -5586,8 +5586,8 @@ const DesignWorkflowShell = ({ title, variant, projectId, taskId }: Props) => {
 				{
 					label: workflow.labels.effortCurve,
 					data: chartRows.map((row) => row.minutes),
-					borderColor: '#00a15d',
-					backgroundColor: 'rgba(0, 161, 93, 0.1)',
+					borderColor: '#111827',
+					backgroundColor: 'rgba(17, 24, 39, 0.08)',
 					fill: true,
 					pointBackgroundColor: '#6b7280',
 					pointBorderColor: '#ffffff',

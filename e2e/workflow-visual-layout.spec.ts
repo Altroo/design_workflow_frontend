@@ -49,6 +49,25 @@ const expectSemanticBoardColors = async (page: Page) => {
 	await expect(await readCssVariable(reviewCard, '--card-status-accent')).toBe(expectedStatusAccents.in_review);
 };
 
+const expectNeutralWorkspaceChrome = async (page: Page) => {
+	await expect(await readCssVariable(page.locator('html'), '--accent')).toBe('#111827');
+
+	const activeNav = page.locator('.workflow-nav-link[aria-current="page"], .workflow-nav-link[class*="bg-(--accent-soft)"]').first();
+	await expect(activeNav).toBeVisible({ timeout: 30_000 });
+	expect(await readCssProperty(activeNav, 'background-color')).toBe('rgb(241, 245, 249)');
+	expect(await readCssProperty(activeNav, 'color')).not.toBe('rgb(0, 161, 93)');
+
+	const languageToggle = page.locator('.workflow-language-toggle').first();
+	await expect(languageToggle).toBeVisible({ timeout: 30_000 });
+	expect(await readCssProperty(languageToggle, 'border-top-color')).not.toBe('rgb(16, 185, 129)');
+	expect(await readCssProperty(languageToggle, 'border-top-color')).not.toBe('rgb(34, 197, 94)');
+
+	const primaryButton = page.locator('.app-button:not(.app-button-secondary):not(.app-button-ghost)').first();
+	if ((await primaryButton.count()) > 0) {
+		expect(await readCssProperty(primaryButton, 'background-color')).not.toBe('rgb(0, 161, 93)');
+	}
+};
+
 const expectSlateChatAccent = async (page: Page) => {
 	const chatShell = page.locator('.workflow-chat-shell');
 	await expect(await readCssVariable(chatShell, '--chat-accent')).toBe('#475569');
@@ -62,7 +81,18 @@ const expectSlateChatAccent = async (page: Page) => {
 
 	const sendButton = page.locator('.workflow-chat-composer .app-button:not(.app-button-ghost)').first();
 	await expect(sendButton).toBeVisible({ timeout: 30_000 });
-	expect(await readCssProperty(sendButton, 'background-color')).not.toBe('rgb(0, 161, 93)');
+	expect(await readCssProperty(sendButton, 'background-color')).toBe('rgb(71, 85, 105)');
+
+	const ownBubble = page.locator('.workflow-chat-bubble-mine').first();
+	if ((await ownBubble.count()) > 0) {
+		expect(await readCssProperty(ownBubble, 'background-color')).toBe('rgb(71, 85, 105)');
+	}
+
+	const chatAvatar = page.locator('.workflow-chat-direct-button .workflow-chat-avatar').first();
+	if ((await chatAvatar.count()) > 0) {
+		expect(await readCssProperty(chatAvatar, 'background-color')).not.toBe('rgb(34, 197, 94)');
+		expect(await readCssProperty(chatAvatar, 'background-color')).not.toBe('rgb(16, 185, 129)');
+	}
 };
 
 const expectFrenchUiChrome = async (locator: Locator, expected: RegExp, forbiddenEnglish: RegExp) => {
@@ -149,8 +179,12 @@ test.describe('workflow visual layout pass', () => {
 		test.setTimeout(90_000);
 		await page.goto('/dashboard/board');
 		await expectSharedPageHeader(page.locator('.workflow-kanban-header'));
+		await expectNeutralWorkspaceChrome(page);
 		await expect(page.locator('.workflow-kanban-toolbar')).toBeVisible();
 		await expect(page.locator('.workflow-kanban-filter-grid')).toBeVisible();
+		const activeBoardSegment = page.locator('.workflow-board-segment button.is-active').first();
+		await expect(activeBoardSegment).toBeVisible();
+		expect(await readCssProperty(activeBoardSegment, 'background-color')).not.toBe('rgb(0, 161, 93)');
 		await expect(page.locator('.workflow-topbar-controls')).toContainText('FR');
 		await expect(page.locator('.workflow-rail-title')).toContainText(/Flux Design/i);
 		await expect(page.locator('.workflow-saved-view-bar')).toContainText(/Vues enregistr.es|Nom de la vue|Priv.e/i);
@@ -199,6 +233,9 @@ test.describe('workflow visual layout pass', () => {
 		await expect(page.locator('.workflow-project-card-modern').first()).toBeVisible();
 		await expectSharedCardShell(page.locator('.workflow-projects-create'));
 		await expectSharedCardShell(page.locator('.workflow-project-card-modern').first());
+		const projectPrimary = page.locator('.workflow-projects-create .app-button:not(.app-button-ghost)').first();
+		await expect(projectPrimary).toBeVisible();
+		expect(await readCssProperty(projectPrimary, 'background-color')).not.toBe('rgb(0, 161, 93)');
 		await expectFrenchUiChrome(page.locator('.workflow-projects-create'), /Cr.er un projet|Nom du projet|Fin cible/i, projectEnglishChrome);
 		await page.screenshot({ path: join(screenshotDir, 'projects.png'), fullPage: true });
 		await openAvailableProjectDetail(page);
@@ -247,6 +284,7 @@ test.describe('workflow visual layout pass', () => {
 		expect(widestReportAction).toBeLessThan(190);
 		await expectSharedCardShell(page.locator('.workflow-report-metric').first());
 		await expectSharedCardShell(page.locator('.workflow-report-chart-card').first());
+		expect(await readCssProperty(page.locator('.workflow-report-metric svg').first(), 'background-color')).not.toBe('rgb(0, 161, 93)');
 		await expectFrenchUiChrome(page.locator('.workflow-report-filterbar'), /Date de d.but|Date de fin|Effacer les filtres|Exporter CSV|Exporter PDF/i, reportEnglishChrome);
 		await expectFrenchUiChrome(page.locator('.workflow-analytics-grid'), /D.lai et temps de cycle|Goulots de revue|Estim. vs r.el|Pr.vision designer/i, reportEnglishChrome);
 		await page.screenshot({ path: join(screenshotDir, 'reports.png'), fullPage: true });
