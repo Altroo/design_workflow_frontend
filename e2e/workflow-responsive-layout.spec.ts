@@ -226,7 +226,70 @@ const waitForProjectsReady = async (page: Page) => {
 	await expect(page.locator('.workflow-projects-layout')).toBeVisible();
 	await expect.poll(async () => page.locator('.workflow-project-card-modern').count()).toBeGreaterThan(0);
 	await expect(page.locator('.workflow-project-card-modern').first()).toBeVisible();
+	await expectMobileProjectsSummary(page);
 	await expectContentCardInSnapshot(page, '.workflow-project-card-modern', 'project');
+};
+
+const expectMobileProjectsSummary = async (page: Page) => {
+	const viewport = page.viewportSize();
+	if (!viewport || viewport.width > 480) return;
+
+	const metrics = page.locator('.workflow-projects-metrics .workflow-overview-metric');
+	await expect.poll(async () => metrics.count(), { timeout: 10_000 }).toBeGreaterThanOrEqual(4);
+	const metricLayout = await page.locator('.workflow-projects-metrics').evaluate((grid) => {
+		const cards = Array.from(grid.querySelectorAll<HTMLElement>('.workflow-overview-metric')).slice(0, 4);
+		const gridBox = grid.getBoundingClientRect();
+		const rows = new Set(cards.map((card) => Math.round(card.getBoundingClientRect().top)));
+		return {
+			cards: cards.map((card) => {
+				const box = card.getBoundingClientRect();
+				return {
+					height: box.height,
+					leftOverflow: box.left < gridBox.left - 1,
+					rightOverflow: box.right > gridBox.right + 1,
+					widthRatio: gridBox.width ? box.width / gridBox.width : 1,
+				};
+			}),
+			rowCount: rows.size,
+		};
+	});
+	expect(metricLayout.rowCount).toBeLessThanOrEqual(2);
+	for (const card of metricLayout.cards) {
+		expect(card.height).toBeGreaterThanOrEqual(96);
+		expect(card.height).toBeLessThanOrEqual(140);
+		expect(card.widthRatio).toBeGreaterThan(0.42);
+		expect(card.widthRatio).toBeLessThan(0.56);
+		expect(card.leftOverflow).toBe(false);
+		expect(card.rightOverflow).toBe(false);
+	}
+
+	const stats = page.locator('.workflow-project-card-modern .workflow-project-card-stats').first();
+	await expect(stats).toBeVisible({ timeout: 10_000 });
+	const statLayout = await stats.evaluate((group) => {
+		const groupBox = group.getBoundingClientRect();
+		const tiles = Array.from(group.querySelectorAll<HTMLElement>('span')).slice(0, 3);
+		const rows = new Set(tiles.map((tile) => Math.round(tile.getBoundingClientRect().top)));
+		return {
+			rowCount: rows.size,
+			tiles: tiles.map((tile) => {
+				const tileBox = tile.getBoundingClientRect();
+				return {
+					height: tileBox.height,
+					leftOverflow: tileBox.left < groupBox.left - 1,
+					rightOverflow: tileBox.right > groupBox.right + 1,
+					widthRatio: groupBox.width ? tileBox.width / groupBox.width : 1,
+				};
+			}),
+		};
+	});
+	expect(statLayout.rowCount).toBe(1);
+	for (const tile of statLayout.tiles) {
+		expect(tile.height).toBeLessThanOrEqual(82);
+		expect(tile.widthRatio).toBeGreaterThan(0.25);
+		expect(tile.widthRatio).toBeLessThan(0.36);
+		expect(tile.leftOverflow).toBe(false);
+		expect(tile.rightOverflow).toBe(false);
+	}
 };
 
 const openFirstProjectDetail = async (page: Page) => {
@@ -248,6 +311,30 @@ const openFirstProjectDetail = async (page: Page) => {
 	await expect(page.locator('.workflow-project-detail-page')).toBeVisible();
 	await expect(page.locator('.workflow-project-detail-grid')).toBeVisible();
 	await expect(page.locator('.workflow-project-detail-panel').first()).toBeVisible();
+	await expectMobileProjectDetail(page);
+};
+
+const expectMobileProjectDetail = async (page: Page) => {
+	const viewport = page.viewportSize();
+	if (!viewport || viewport.width > 480) return;
+
+	const covers = page.locator('.workflow-project-detail-page .workflow-task-cover');
+	await expect.poll(async () => covers.count(), { timeout: 10_000 }).toBeGreaterThanOrEqual(1);
+	const coverLayout = await covers.first().evaluate((cover) => {
+		const box = cover.getBoundingClientRect();
+		const card = cover.closest('.workflow-task-card')?.getBoundingClientRect();
+		return {
+			cardWidth: card?.width ?? 0,
+			height: box.height,
+			leftOverflow: card ? box.left < card.left - 1 : true,
+			rightOverflow: card ? box.right > card.right + 1 : true,
+		};
+	});
+	expect(coverLayout.cardWidth).toBeGreaterThan(240);
+	expect(coverLayout.height).toBeGreaterThanOrEqual(56);
+	expect(coverLayout.height).toBeLessThanOrEqual(78);
+	expect(coverLayout.leftOverflow).toBe(false);
+	expect(coverLayout.rightOverflow).toBe(false);
 };
 
 const waitForTeamReady = async (page: Page) => {
