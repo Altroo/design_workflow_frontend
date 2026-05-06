@@ -533,6 +533,30 @@ const waitForUserFormReady = async (page: Page) => {
 	await expectMobileUserFormShell(page);
 };
 
+const waitForUserDetailReady = async (page: Page) => {
+	await expect(page.getByTestId('api-loader')).toHaveCount(0, { timeout: 30_000 });
+	await expect(page.locator('.workflow-user-detail-shell')).toBeVisible({ timeout: 30_000 });
+	await expect(page.locator('.workflow-user-detail-hero')).toBeVisible({ timeout: 30_000 });
+	await expect(page.locator('.workflow-user-detail-profile-card')).toBeVisible({ timeout: 30_000 });
+	await expect(page.locator('.workflow-user-detail-panel').first()).toBeVisible({ timeout: 30_000 });
+	await expectMobileUserDetail(page);
+};
+
+const openFirstUserDetail = async (page: Page) => {
+	const firstVisibleAction = page
+		.locator('.workflow-users-mobile-card:visible .workflow-users-mobile-actions button, .workflow-users-table tbody tr:visible .workflow-users-row-actions button')
+		.first();
+	await expect(firstVisibleAction).toBeVisible({ timeout: 10_000 });
+	await firstVisibleAction.click();
+	await waitForUserDetailReady(page);
+};
+
+const openCurrentUserEdit = async (page: Page) => {
+	await expect(page.locator('.workflow-user-detail-edit')).toBeVisible({ timeout: 10_000 });
+	await page.locator('.workflow-user-detail-edit').click();
+	await waitForUserFormReady(page);
+};
+
 const waitForProfileReady = async (page: Page) => {
 	await expect(page.locator('.workflow-profile-shell')).toBeVisible();
 	await expect(page.locator('.workflow-profile-fields')).toBeVisible();
@@ -663,6 +687,50 @@ const expectMobileUserFormShell = async (page: Page) => {
 	}
 };
 
+const expectMobileUserDetail = async (page: Page) => {
+	const viewport = page.viewportSize();
+	if (!viewport || viewport.width > 480) return;
+
+	const actions = page.locator('.workflow-user-detail-actions');
+	await expect(actions).toBeVisible({ timeout: 10_000 });
+	const actionLayout = await actions.evaluate((group) => {
+		const groupBox = group.getBoundingClientRect();
+		const items = Array.from(group.children)
+			.filter((child): child is HTMLElement => child instanceof HTMLElement && child.offsetParent !== null)
+			.map((child) => {
+				const box = child.getBoundingClientRect();
+				return {
+					height: box.height,
+					leftOverflow: box.left < groupBox.left - 1,
+					rightOverflow: box.right > groupBox.right + 1,
+					widthRatio: groupBox.width ? box.width / groupBox.width : 1,
+					top: Math.round(box.top),
+				};
+			});
+		return {
+			items,
+			rowCount: new Set(items.map((item) => item.top)).size,
+		};
+	});
+	expect(actionLayout.rowCount).toBeLessThanOrEqual(1);
+	for (const item of actionLayout.items) {
+		expect(item.height).toBeLessThanOrEqual(56);
+		expect(item.widthRatio).toBeGreaterThan(0.25);
+		expect(item.widthRatio).toBeLessThan(0.4);
+		expect(item.leftOverflow).toBe(false);
+		expect(item.rightOverflow).toBe(false);
+	}
+
+	const detailRows = page.locator('.workflow-user-detail-info-row');
+	await expect.poll(async () => detailRows.count(), { timeout: 10_000 }).toBeGreaterThanOrEqual(6);
+	const rowLayout = await detailRows.first().evaluate((row) => {
+		const box = row.getBoundingClientRect();
+		return { height: box.height, width: box.width };
+	});
+	expect(rowLayout.width).toBeGreaterThan(240);
+	expect(rowLayout.height).toBeLessThanOrEqual(82);
+};
+
 test.describe('workflow responsive visual pass', () => {
 	test.skip(!existsSync(authStatePath), 'Run the authenticated dashboard setup before responsive checks.');
 	test.use({ storageState: authStatePath });
@@ -677,7 +745,7 @@ test.describe('workflow responsive visual pass', () => {
 	});
 
 	test('keeps tablet workflow pages readable without body overflow', async ({ page }) => {
-		test.setTimeout(90_000);
+		test.setTimeout(120_000);
 		await page.setViewportSize({ width: 820, height: 1180 });
 
 		await page.goto('/dashboard/board');
@@ -721,6 +789,10 @@ test.describe('workflow responsive visual pass', () => {
 		await page.goto('/dashboard/users');
 		await waitForUsersReady(page);
 		await capturePage(page, 'tablet-users');
+		await openFirstUserDetail(page);
+		await capturePage(page, 'tablet-user-detail');
+		await openCurrentUserEdit(page);
+		await capturePage(page, 'tablet-user-edit');
 
 		await page.goto('/dashboard/users/new');
 		await waitForUserFormReady(page);
@@ -736,7 +808,7 @@ test.describe('workflow responsive visual pass', () => {
 	});
 
 	test('keeps mobile workflow pages compact and keeps language switching available', async ({ page }) => {
-		test.setTimeout(90_000);
+		test.setTimeout(120_000);
 		await page.setViewportSize({ width: 390, height: 844 });
 
 		await page.goto('/dashboard/board');
@@ -798,6 +870,10 @@ test.describe('workflow responsive visual pass', () => {
 		await page.goto('/dashboard/users');
 		await waitForUsersReady(page);
 		await capturePage(page, 'mobile-users');
+		await openFirstUserDetail(page);
+		await capturePage(page, 'mobile-user-detail');
+		await openCurrentUserEdit(page);
+		await capturePage(page, 'mobile-user-edit');
 
 		await page.goto('/dashboard/users/new');
 		await waitForUserFormReady(page);

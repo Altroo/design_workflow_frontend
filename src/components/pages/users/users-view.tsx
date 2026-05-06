@@ -21,6 +21,7 @@ import { useToast, useLanguage } from '@/utils/hooks';
 import ActionModals from '@/components/htmlElements/modals/actionModal/actionModals';
 import { Protected } from '@/components/layouts/protected/protected';
 import ApiAlert from '@/components/formikElements/apiLoading/apiAlert/apiAlert';
+import { WorkflowIconPill, WorkflowPageHero } from '@/components/shared/workflow/workflowPrimitives';
 
 interface InfoRowProps {
 	label: string;
@@ -28,19 +29,14 @@ interface InfoRowProps {
 }
 
 const InfoRow: React.FC<InfoRowProps> = ({ label, value }) => (
-	<div className="flex flex-col gap-1 rounded-lg border border-[color:var(--line)] bg-white px-4 py-3 shadow-(--shadow-sm)">
-		<span className="text-xs font-medium uppercase tracking-[0.18em] text-(--ink-soft)">{label}</span>
-		<span className="text-sm font-medium text-(--ink)">{value && String(value).length > 0 ? value : '-'}</span>
+	<div className="workflow-user-detail-info-row">
+		<span>{label}</span>
+		<strong>{value && String(value).length > 0 ? value : '-'}</strong>
 	</div>
 );
 
 const BoolBadge = ({ value, yes, no }: { value?: boolean; yes: string; no: string }) => (
-	<span
-		className={[
-			'inline-flex rounded-full px-3 py-1 text-xs font-semibold',
-			value ? 'bg-(--accent) text-white' : 'bg-(--surface-muted) text-(--ink)',
-		].join(' ')}
-	>
+	<span className="workflow-user-detail-badge" data-active={value}>
 		{value ? yes : no}
 	</span>
 );
@@ -81,62 +77,70 @@ const UsersViewClient: React.FC<Props> = ({ session, id }) => {
 		<div className="min-h-screen">
 			<NavigationBar title={t.users.userDetails}>
 				<Protected>
-					<div className="mx-auto w-full max-w-6xl px-4 py-6 sm:px-6">
-						<div className="mb-5 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-							<button
-								type="button"
-								onClick={() => router.push(USERS_LIST)}
-								className="app-pill inline-flex items-center gap-2 border border-[color:var(--line)] bg-white px-4 py-2 text-sm font-medium text-(--ink)"
-							>
-								<ArrowLeft className="h-4 w-4" />
-								<span>{t.navigation.usersList}</span>
-							</button>
-							{!isLoading && !error && userData ? (
-								<div className="flex flex-wrap gap-2">
+					<div className="workflow-user-detail-shell">
+						<WorkflowPageHero
+							element="div"
+							className="workflow-user-detail-hero"
+							eyebrow={t.users.usersStudio}
+							title={t.users.userDetails}
+							description={userData ? ([userData.first_name, userData.last_name].filter(Boolean).join(' ') || userData.email) : undefined}
+							actionsClassName="workflow-user-detail-actions"
+							actions={
+								<>
 									<button
 										type="button"
-										onClick={() => router.push(USERS_EDIT(id))}
-										className="app-pill inline-flex items-center gap-2 border border-[color:var(--line)] bg-white px-4 py-2 text-sm font-medium text-(--ink)"
+										onClick={() => router.push(USERS_LIST)}
+										className="workflow-user-detail-back"
 									>
-										<PencilLine className="h-4 w-4" />
-										<span>{t.common.edit}</span>
+										<ArrowLeft className="h-4 w-4" />
+										<span>{t.navigation.usersList}</span>
 									</button>
-									<button
-										type="button"
-										onClick={() => setShowDeleteModal(true)}
-										className="app-pill inline-flex items-center gap-2 border border-[color:var(--line)] bg-white px-4 py-2 text-sm font-medium text-(--ink)"
-									>
-										<Trash2 className="h-4 w-4" />
-										<span>{t.common.delete}</span>
-									</button>
-								</div>
-							) : null}
-						</div>
+									{!isLoading && !error && userData ? (
+										<>
+											<button
+												type="button"
+												onClick={() => router.push(USERS_EDIT(id))}
+												className="workflow-user-detail-action workflow-user-detail-edit"
+											>
+												<PencilLine className="h-4 w-4" />
+												<span>{t.common.edit}</span>
+											</button>
+											<button
+												type="button"
+												onClick={() => setShowDeleteModal(true)}
+												className="workflow-user-detail-action workflow-user-detail-delete"
+											>
+												<Trash2 className="h-4 w-4" />
+												<span>{t.common.delete}</span>
+											</button>
+										</>
+									) : null}
+								</>
+							}
+						/>
 
 						{isLoading ? (
 							<ApiProgress backdropColor="#FFFFFF" circularColor="var(--accent)" />
 						) : (axiosError?.status as number) > 400 ? (
 							<ApiAlert errorDetails={axiosError?.data.details} />
 						) : !userData ? (
-							<div className="app-card border border-[color:var(--line)] bg-white p-6 text-sm text-(--ink-soft)">
+							<div className="workflow-user-detail-empty">
 								{t.users.userNotFound}
 							</div>
 						) : (
-							<div className="space-y-5">
-								<section className="app-card border border-[color:var(--line-strong)] bg-white p-6 sm:p-8">
-									<div className="flex flex-col gap-5 sm:flex-row sm:items-center">
-										<div className="flex h-24 w-24 items-center justify-center rounded-lg bg-(--accent) text-2xl font-semibold text-white">
+							<div className="workflow-user-detail-content">
+								<section className="workflow-user-detail-profile-card">
+									<div className="workflow-user-detail-profile">
+										<div className="workflow-user-detail-avatar">
 											{initials}
 										</div>
-										<div className="flex-1">
-											<p className="text-xs font-medium uppercase tracking-[0.24em] text-(--ink-soft)">
-												{t.users.userDetails}
-											</p>
-											<h2 className="mt-2 text-3xl font-semibold text-(--ink)">
+										<div className="workflow-user-detail-profile-copy">
+											<p>{t.users.userDetails}</p>
+											<h2>
 												{[userData.first_name, userData.last_name].filter(Boolean).join(' ') || userData.email}
 											</h2>
-											<div className="mt-3 flex flex-wrap gap-2">
-												<span className="app-pill border border-[color:var(--line)] bg-(--surface-muted) px-3 py-1 text-xs font-semibold text-(--ink)">
+											<div className="workflow-user-detail-badges">
+												<span className="workflow-user-detail-badge">
 													ID: {userData.id}
 												</span>
 												<BoolBadge value={userData.is_staff} yes={t.users.admin} no={t.common.no} />
@@ -146,13 +150,10 @@ const UsersViewClient: React.FC<Props> = ({ session, id }) => {
 									</div>
 								</section>
 
-								<section className="grid gap-5 lg:grid-cols-2">
-									<div className="app-card border border-[color:var(--line-strong)] bg-white p-6">
-										<div className="mb-4 flex items-center gap-3">
-											<Mail className="h-5 w-5 text-(--ink)" />
-											<h3 className="text-lg font-semibold text-(--ink)">{t.users.generalInfo}</h3>
-										</div>
-										<div className="grid gap-3">
+								<section className="workflow-user-detail-grid">
+									<div className="workflow-user-detail-panel">
+										<WorkflowIconPill icon={<Mail className="h-4 w-4" />} label={t.users.generalInfo} />
+										<div className="workflow-user-detail-info-grid">
 											<InfoRow label={t.users.email} value={userData.email} />
 											<InfoRow label={t.users.gender} value={userData.gender} />
 											<InfoRow label={t.users.admin} value={userData.is_staff ? t.common.yes : t.common.no} />
@@ -160,12 +161,9 @@ const UsersViewClient: React.FC<Props> = ({ session, id }) => {
 										</div>
 									</div>
 
-									<div className="app-card border border-[color:var(--line-strong)] bg-white p-6">
-										<div className="mb-4 flex items-center gap-3">
-											<CalendarClock className="h-5 w-5 text-(--ink)" />
-											<h3 className="text-lg font-semibold text-(--ink)">Timeline</h3>
-										</div>
-										<div className="grid gap-3">
+									<div className="workflow-user-detail-panel">
+										<WorkflowIconPill icon={<CalendarClock className="h-4 w-4" />} label={t.users.lastUpdate} />
+										<div className="workflow-user-detail-info-grid">
 											<InfoRow label={t.users.registrationDate} value={formatDate(userData.date_joined)} />
 											<InfoRow label={t.users.lastUpdate} value={formatDate(userData.date_updated)} />
 											<InfoRow label={t.users.lastLogin} value={formatDate(userData.last_login)} />
@@ -173,12 +171,9 @@ const UsersViewClient: React.FC<Props> = ({ session, id }) => {
 									</div>
 								</section>
 
-								<section className="app-card border border-[color:var(--line-strong)] bg-white p-6">
-									<div className="mb-4 flex items-center gap-3">
-										<Shield className="h-5 w-5 text-(--ink)" />
-										<h3 className="text-lg font-semibold text-(--ink)">{t.users.permissions}</h3>
-									</div>
-									<div className="grid gap-3 md:grid-cols-2 xl:grid-cols-5">
+								<section className="workflow-user-detail-panel workflow-user-detail-permissions">
+									<WorkflowIconPill icon={<Shield className="h-4 w-4" />} label={t.users.permissions} />
+									<div className="workflow-user-detail-permission-grid">
 										<InfoRow label={t.users.canView} value={userData.can_view ? t.common.yes : t.common.no} />
 										<InfoRow label={t.users.canPrint} value={userData.can_print ? t.common.yes : t.common.no} />
 										<InfoRow label={t.users.canCreate} value={userData.can_create ? t.common.yes : t.common.no} />

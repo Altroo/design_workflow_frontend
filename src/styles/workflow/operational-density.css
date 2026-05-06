@@ -917,3 +917,290 @@
 		grid-template-columns: 1fr !important;
 	}
 }
+
+/* Users detail uses the same workflow card shell as Users and Settings. */
+.workflow-user-detail-shell {
+	display: grid !important;
+	width: min(100%, 90rem) !important;
+	margin-inline: auto !important;
+	gap: 1rem !important;
+	overflow: visible !important;
+	border: 0 !important;
+	border-radius: 0 !important;
+	background: transparent !important;
+	box-shadow: none !important;
+}
+
+.workflow-user-detail-hero {
+	display: flex !important;
+	align-items: center !important;
+	justify-content: space-between !important;
+	gap: 1rem !important;
+	min-height: 5.75rem !important;
+	border: 1px solid var(--line) !important;
+	border-radius: 18px !important;
+	background:
+		linear-gradient(90deg, rgba(248, 250, 252, 0.92), rgba(255, 255, 255, 0) 44%),
+		#ffffff !important;
+	padding: 1.125rem 1.5rem !important;
+	box-shadow: 0 1.125rem 2.75rem -2.375rem rgba(15, 23, 42, 0.38) !important;
+}
+
+.workflow-user-detail-hero p,
+.workflow-user-detail-profile-copy p,
+.workflow-user-detail-info-row span {
+	color: var(--ink-muted) !important;
+	font-size: 0.6875rem !important;
+	font-weight: 900 !important;
+	letter-spacing: 0.08em !important;
+	line-height: 1.2 !important;
+	text-transform: uppercase !important;
+}
+
+.workflow-user-detail-hero h1 {
+	margin: 0.25rem 0 0 !important;
+	color: var(--ink) !important;
+	font-size: clamp(1.625rem, 1.75vw, 2rem) !important;
+	font-weight: 950 !important;
+	line-height: 1.08 !important;
+}
+
+.workflow-user-detail-hero span {
+	display: block !important;
+	max-width: 44rem !important;
+	margin-top: 0.375rem !important;
+	color: var(--ink-soft) !important;
+	font-size: 0.8125rem !important;
+	font-weight: 700 !important;
+	line-height: 1.4 !important;
+}
+
+.workflow-user-detail-actions {
+	display: flex !important;
+	flex-wrap: wrap !important;
+	justify-content: flex-end !important;
+	gap: 0.5rem !important;
+}
+
+.workflow-user-detail-back,
+.workflow-user-detail-action {
+	display: inline-flex !important;
+	align-items: center !important;
+	justify-content: center !important;
+	gap: 0.5rem !important;
+	min-height: 2.5rem !important;
+	border: 1px solid var(--line) !important;
+	border-radius: 999px !important;
+	background: #ffffff !important;
+	padding: 0 0.875rem !important;
+	color: var(--ink) !important;
+	font-size: 0.8125rem !important;
+	font-weight: 850 !important;
+	box-shadow: 0 0.75rem 1.5rem -1.35rem rgba(15, 23, 42, 0.22) !important;
+}
+
+.workflow-user-detail-edit {
+	border-color: var(--ink) !important;
+	background: var(--ink) !important;
+	color: #ffffff !important;
+}
+
+.workflow-user-detail-delete {
+	color: var(--ink-soft) !important;
+}
+
+.workflow-user-detail-content {
+	display: grid !important;
+	gap: 1rem !important;
+}
+
+.workflow-user-detail-profile-card,
+.workflow-user-detail-panel,
+.workflow-user-detail-empty {
+	position: relative !important;
+	overflow: hidden !important;
+	border: 1px solid var(--line) !important;
+	border-radius: 18px !important;
+	background: #ffffff !important;
+	padding: 1rem !important;
+	box-shadow: 0 1.125rem 2.75rem -2.375rem rgba(15, 23, 42, 0.38) !important;
+}
+
+.workflow-user-detail-profile-card::before,
+.workflow-user-detail-panel::before {
+	position: absolute !important;
+	inset: 0 auto auto 0 !important;
+	width: 100% !important;
+	height: 0.25rem !important;
+	background: linear-gradient(90deg, #e5e7eb, rgba(229, 231, 235, 0.55), transparent) !important;
+	content: '' !important;
+}
+
+.workflow-user-detail-profile {
+	display: grid !important;
+	grid-template-columns: 5rem minmax(0, 1fr) !important;
+	align-items: center !important;
+	gap: 1rem !important;
+}
+
+.workflow-user-detail-avatar {
+	display: grid !important;
+	width: 5rem !important;
+	height: 5rem !important;
+	place-items: center !important;
+	border: 1px solid var(--line) !important;
+	border-radius: 16px !important;
+	background: var(--ink) !important;
+	color: #ffffff !important;
+	font-size: 1.375rem !important;
+	font-weight: 950 !important;
+}
+
+.workflow-user-detail-profile-copy {
+	min-width: 0 !important;
+}
+
+.workflow-user-detail-profile-copy h2 {
+	margin: 0.25rem 0 0 !important;
+	color: var(--ink) !important;
+	font-size: clamp(1.5rem, 2vw, 2.125rem) !important;
+	font-weight: 950 !important;
+	line-height: 1.08 !important;
+	overflow-wrap: anywhere !important;
+}
+
+.workflow-user-detail-badges {
+	display: flex !important;
+	flex-wrap: wrap !important;
+	gap: 0.5rem !important;
+	margin-top: 0.75rem !important;
+}
+
+.workflow-user-detail-badge {
+	display: inline-flex !important;
+	align-items: center !important;
+	justify-content: center !important;
+	min-height: 2rem !important;
+	border: 1px solid var(--line) !important;
+	border-radius: 999px !important;
+	background: var(--surface-muted) !important;
+	padding: 0 0.75rem !important;
+	color: var(--ink) !important;
+	font-size: 0.75rem !important;
+	font-weight: 850 !important;
+}
+
+.workflow-user-detail-badge[data-active='true'] {
+	border-color: var(--ink) !important;
+	background: var(--ink) !important;
+	color: #ffffff !important;
+}
+
+.workflow-user-detail-grid {
+	display: grid !important;
+	grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+	gap: 1rem !important;
+}
+
+.workflow-user-detail-info-grid,
+.workflow-user-detail-permission-grid {
+	display: grid !important;
+	grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+	gap: 0.75rem !important;
+	margin-top: 0.75rem !important;
+}
+
+.workflow-user-detail-permission-grid {
+	grid-template-columns: repeat(5, minmax(0, 1fr)) !important;
+}
+
+.workflow-user-detail-info-row {
+	display: grid !important;
+	align-content: space-between !important;
+	min-height: 4.625rem !important;
+	border: 1px solid var(--line) !important;
+	border-radius: 0.875rem !important;
+	background: var(--surface-muted) !important;
+	padding: 0.75rem !important;
+}
+
+.workflow-user-detail-info-row strong {
+	min-width: 0 !important;
+	color: var(--ink) !important;
+	font-size: 0.9375rem !important;
+	font-weight: 900 !important;
+	line-height: 1.2 !important;
+	overflow-wrap: anywhere !important;
+}
+
+@media (max-width: 72rem) {
+	.workflow-user-detail-permission-grid {
+		grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+	}
+}
+
+@media (max-width: 47.9375rem) {
+	.workflow-user-detail-shell {
+		gap: 0.875rem !important;
+	}
+
+	.workflow-user-detail-hero {
+		align-items: flex-start !important;
+		flex-direction: column !important;
+		padding: 1rem !important;
+	}
+
+	.workflow-user-detail-actions,
+	.workflow-user-detail-back,
+	.workflow-user-detail-action {
+		width: 100% !important;
+	}
+
+	.workflow-user-detail-actions {
+		display: grid !important;
+		grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+	}
+
+	.workflow-user-detail-back,
+	.workflow-user-detail-action {
+		min-width: 0 !important;
+		padding-inline: 0.5rem !important;
+		font-size: 0.6875rem !important;
+		line-height: 1.1 !important;
+		overflow-wrap: anywhere !important;
+		white-space: normal !important;
+	}
+
+	.workflow-user-detail-profile {
+		grid-template-columns: 3.75rem minmax(0, 1fr) !important;
+	}
+
+	.workflow-user-detail-avatar {
+		width: 3.75rem !important;
+		height: 3.75rem !important;
+		border-radius: 0.875rem !important;
+		font-size: 1rem !important;
+	}
+
+	.workflow-user-detail-grid,
+	.workflow-user-detail-info-grid,
+	.workflow-user-detail-permission-grid {
+		grid-template-columns: 1fr !important;
+	}
+
+	.workflow-user-detail-permission-grid,
+	.workflow-user-detail-info-grid {
+		gap: 0.5rem !important;
+	}
+
+	.workflow-user-detail-info-row {
+		min-height: 3.875rem !important;
+		padding: 0.625rem !important;
+	}
+}
+
+@media (max-width: 22.5rem) {
+	.workflow-user-detail-actions {
+		grid-template-columns: 1fr !important;
+	}
+}

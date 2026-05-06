@@ -220,6 +220,33 @@ const waitForUsersReady = async (page: Page) => {
 	}
 };
 
+const waitForUserDetailReady = async (page: Page) => {
+	await expect(page.getByTestId('api-loader')).toHaveCount(0, { timeout: 30_000 });
+	await expect(page.locator('.workflow-user-detail-shell')).toBeVisible({ timeout: 30_000 });
+	await expectSharedPageHeader(page.locator('.workflow-user-detail-hero'));
+	await expect(page.locator('.workflow-user-detail-profile-card')).toBeVisible({ timeout: 30_000 });
+	await expect(page.locator('.workflow-user-detail-panel').first()).toBeVisible({ timeout: 30_000 });
+	await expectSharedCardShell(page.locator('.workflow-user-detail-profile-card'));
+};
+
+const openFirstUserDetail = async (page: Page) => {
+	const firstVisibleAction = page
+		.locator('.workflow-users-mobile-card:visible .workflow-users-mobile-actions button, .workflow-users-table tbody tr:visible .workflow-users-row-actions button')
+		.first();
+	await expect(firstVisibleAction).toBeVisible({ timeout: 10_000 });
+	await firstVisibleAction.click();
+	await waitForUserDetailReady(page);
+};
+
+const openCurrentUserEdit = async (page: Page) => {
+	await expect(page.locator('.workflow-user-detail-edit')).toBeVisible({ timeout: 10_000 });
+	await page.locator('.workflow-user-detail-edit').click();
+	await expect(page.getByTestId('api-loader')).toHaveCount(0, { timeout: 30_000 });
+	await expect(page.locator('.workflow-user-form-shell')).toBeVisible({ timeout: 30_000 });
+	await expectSharedPageHeader(page.locator('.workflow-user-form-hero'));
+	await expect(page.locator('.workflow-user-form-grid')).toBeVisible({ timeout: 30_000 });
+};
+
 const waitForChatReady = async (page: Page) => {
 	await expect(page.locator('.workflow-chat-sidebar')).toBeVisible({ timeout: 30_000 });
 	await expect(page.locator('.workflow-chat-task-room-section')).toHaveCount(0);
@@ -266,7 +293,7 @@ test.describe('workflow visual layout pass', () => {
 	});
 
 	test('captures and checks the premium workflow pages', async ({ page }) => {
-		test.setTimeout(90_000);
+		test.setTimeout(120_000);
 		await page.goto('/dashboard/board');
 		await expectNoNextDevIndicator(page);
 		await expectSharedPageHeader(page.locator('.workflow-kanban-header'));
@@ -411,6 +438,10 @@ test.describe('workflow visual layout pass', () => {
 		await waitForUsersReady(page);
 		await expectSharedPageHeader(page.locator('.workflow-users-hero'));
 		await page.screenshot({ path: join(screenshotDir, 'users.png'), fullPage: true });
+		await openFirstUserDetail(page);
+		await page.screenshot({ path: join(screenshotDir, 'user-detail.png'), fullPage: true });
+		await openCurrentUserEdit(page);
+		await page.screenshot({ path: join(screenshotDir, 'user-edit.png'), fullPage: true });
 
 		await page.goto('/dashboard/users/new');
 		await expect(page.getByTestId('api-loader')).toHaveCount(0, { timeout: 30_000 });
