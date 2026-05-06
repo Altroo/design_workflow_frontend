@@ -1180,6 +1180,49 @@ const TaskPeople = ({ task }: { task: TaskCard }) => {
 	);
 };
 
+const BoardTaskCover = ({
+	task,
+	labelFor,
+}: {
+	task: TaskCard;
+	labelFor: (value: string) => string;
+}) => {
+	const [failedCoverUrl, setFailedCoverUrl] = useState<string | null>(null);
+	const statusMeta = BOARD_STATUS_META[task.status];
+	const rawCoverUrl = task.cover_image_url ? resolveMediaUrl(task.cover_image_url) : null;
+	const coverUrl = rawCoverUrl && failedCoverUrl !== rawCoverUrl ? rawCoverUrl : null;
+	const coverStyle = {
+		'--card-cover-accent': statusMeta.accent,
+		'--card-cover-soft': statusMeta.soft,
+		'--card-cover-text': statusMeta.text,
+	} as CSSProperties;
+
+	return (
+		<div className={cn('workflow-trello-card-cover', !coverUrl && 'workflow-trello-card-cover-fallback')} style={coverStyle}>
+			<div className="workflow-trello-card-cover-art" aria-hidden="true">
+				<span />
+				<span />
+				<span />
+			</div>
+			<div className="workflow-trello-card-cover-status" aria-hidden="true">
+				{statusMeta.icon}
+				<span>{labelFor(task.status)}</span>
+			</div>
+			{coverUrl ? (
+				<Image
+					src={coverUrl}
+					alt={task.title}
+					width={420}
+					height={160}
+					unoptimized
+					loading="eager"
+					onError={() => setFailedCoverUrl(coverUrl)}
+				/>
+			) : null}
+		</div>
+	);
+};
+
 const TaskCardItem = ({
 	task,
 	compact = false,
@@ -1209,11 +1252,7 @@ const TaskCardItem = ({
 				data-status={task.status}
 				className={cn('workflow-trello-board-card', task.is_completed && 'is-complete', task.is_overdue && 'is-overdue')}
 			>
-				{task.cover_image_url ? (
-					<div className="workflow-trello-card-cover">
-						<Image src={resolveMediaUrl(task.cover_image_url)} alt={task.title} width={420} height={160} unoptimized loading="eager" />
-					</div>
-				) : null}
+				<BoardTaskCover task={task} labelFor={labelFor} />
 				<div className="workflow-trello-card-body">
 					{task.labels.length ? (
 						<div className="workflow-trello-card-labels">
