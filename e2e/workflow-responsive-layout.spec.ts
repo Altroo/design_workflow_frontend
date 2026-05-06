@@ -105,6 +105,40 @@ const expectMobileNotificationPreferences = async (page: Page) => {
 	}
 };
 
+const expectMobileNotificationActions = async (page: Page) => {
+	const viewport = page.viewportSize();
+	if (!viewport || viewport.width > 480) return;
+
+	const actionGroups = page.locator('.workflow-notifications-card .workflow-notifications-actions');
+	await expect.poll(async () => actionGroups.count(), { timeout: 10_000 }).toBeGreaterThanOrEqual(1);
+	const group = actionGroups.first();
+	await expect.poll(async () => group.locator('.workflow-notifications-action-button').count(), { timeout: 10_000 }).toBeGreaterThanOrEqual(4);
+	const layout = await group.evaluate((element) => {
+		const buttons = Array.from(element.querySelectorAll<HTMLElement>('.workflow-notifications-action-button'));
+		const box = element.getBoundingClientRect();
+		const rows = new Set(buttons.map((button) => Math.round(button.getBoundingClientRect().top)));
+		return {
+			buttons: buttons.map((button) => {
+				const buttonBox = button.getBoundingClientRect();
+				return {
+					height: buttonBox.height,
+					leftOverflow: buttonBox.left < box.left - 1,
+					rightOverflow: buttonBox.right > box.right + 1,
+					widthRatio: box.width ? buttonBox.width / box.width : 1,
+				};
+			}),
+			rowCount: rows.size,
+		};
+	});
+	expect(layout.rowCount).toBeLessThanOrEqual(3);
+	for (const button of layout.buttons) {
+		expect(button.height).toBeGreaterThanOrEqual(40);
+		expect(button.widthRatio).toBeLessThanOrEqual(1.01);
+		expect(button.leftOverflow).toBe(false);
+		expect(button.rightOverflow).toBe(false);
+	}
+};
+
 const openBoardFilters = async (page: Page) => {
 	const toolbar = page.locator('.workflow-kanban-toolbar');
 	if (await toolbar.isVisible()) return;
@@ -216,6 +250,7 @@ const waitForNotificationsReady = async (page: Page) => {
 	await expect(page.locator('.workflow-notifications-board')).toBeVisible();
 	await expect(page.locator('.workflow-notifications-list > *').first()).toBeVisible();
 	await expectMobileNotificationPreferences(page);
+	await expectMobileNotificationActions(page);
 	await expectSeededNotificationCards(page);
 	await expectContentCardInSnapshot(page, seeded ? '.workflow-notifications-card' : '.workflow-notifications-list > *', 'notification');
 };
