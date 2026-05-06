@@ -1669,7 +1669,11 @@ const DesignWorkflowShell = ({ title, variant, projectId, taskId }: Props) => {
 		if (metaEntries.length === 0) return labelFor(taskActivity.action_type);
 		return `${labelFor(taskActivity.action_type)} • ${metaEntries
 			.slice(0, 3)
-			.map(([key, value]) => `${labelFor(key)}: ${typeof value === 'string' ? labelFor(value) : String(value)}`)
+			.map(([key, value]) => {
+				const translatedKey = workflow.labels[`activityMeta_${key}`] ?? workflow.labels[key] ?? labelFor(key);
+				const translatedValue = typeof value === 'string' ? labelFor(value) : String(value);
+				return `${translatedKey}: ${translatedValue}`;
+			})
 			.join(' • ')}`;
 	};
 	const isSuperuser = Boolean((profile as { is_superuser?: boolean }).is_superuser);
@@ -5231,7 +5235,7 @@ const DesignWorkflowShell = ({ title, variant, projectId, taskId }: Props) => {
 		const chartRows = [...workload]
 			.sort((left, right) => right.estimated_minutes - left.estimated_minutes || right.open_tasks - left.open_tasks)
 			.slice(0, 8);
-		const teamChartHeight = Math.min(420, Math.max(240, chartRows.length * 52 + 130));
+		const teamChartHeight = Math.min(300, Math.max(200, chartRows.length * 38 + 86));
 		const teamBarData: ChartData<'bar', number[], string> = {
 			labels: chartRows.map((row) => `${row.user.first_name} ${row.user.last_name}`.trim() || row.user.email),
 			datasets: [
