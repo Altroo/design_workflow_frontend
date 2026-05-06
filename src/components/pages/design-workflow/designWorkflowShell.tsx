@@ -145,6 +145,7 @@ import { useAppSelector, useLanguage } from '@/utils/hooks';
 import { getAccessToken, getProfilState, getWSOnlineUserIdsState } from '@/store/selectors';
 import type { UserClass } from '@/models/classes';
 import type { TranslationDictionary } from '@/types/languageTypes';
+import { WorkflowMetricCard as MetricCard, WorkflowPageHero, WorkflowPanelPill, WorkflowSimpleMetric } from './workflowPrimitives';
 
 ChartJS.register(CategoryScale, LinearScale, BarElement, ArcElement, LineElement, PointElement, Filler, Tooltip, Legend);
 
@@ -917,26 +918,6 @@ const Surface = ({
 		) : null}
 		{children}
 	</section>
-);
-
-const MetricCard = ({
-	icon,
-	label,
-	value,
-	tone = 'indigo',
-}: {
-	icon: ReactNode;
-	label: string;
-	value: ReactNode;
-	tone?: 'indigo' | 'amber' | 'green' | 'rose';
-}) => (
-	<div className="workflow-overview-metric workflow-card-hover" data-tone={tone}>
-		<div className="workflow-overview-metric-pill">
-			<b>{label}</b>
-			<em>{icon}</em>
-		</div>
-		<p>{value}</p>
-	</div>
 );
 
 const FieldLabel = ({ htmlFor, children }: { htmlFor?: string; children: ReactNode }) => (
@@ -2464,17 +2445,19 @@ const DesignWorkflowShell = ({ title, variant, projectId, taskId }: Props) => {
 
 		return (
 			<div className="workflow-overview-page">
-				<section className="workflow-overview-header">
-					<div className="min-w-0">
-						<p className="text-xs font-bold uppercase text-(--ink-muted)">{workflow.labels.workflow}</p>
-						<h1 className="mt-1 text-[30px] font-extrabold leading-tight text-(--ink)">{workflow.pageTitles.overview}</h1>
-					</div>
-					<div className="workflow-overview-actions">
+				<WorkflowPageHero
+					className="workflow-overview-header"
+					eyebrow={workflow.labels.workflow}
+					title={workflow.pageTitles.overview}
+					actionsClassName="workflow-overview-actions"
+					actions={
+						<>
 						<span>{workflow.labels.active} {summary?.active_projects ?? 0}</span>
 						<span>{workflow.labels.blocked} {summary?.blocked_tasks ?? 0}</span>
 						<span>{workflow.labels.overdue} {summary?.overdue_tasks ?? 0}</span>
-					</div>
-				</section>
+						</>
+					}
+				/>
 
 				<section className="workflow-overview-metrics">
 					{metricCards.map((metric) => (
@@ -2484,10 +2467,7 @@ const DesignWorkflowShell = ({ title, variant, projectId, taskId }: Props) => {
 
 				<section className="workflow-overview-analytics">
 					<article className="workflow-overview-chart-card">
-						<div className="workflow-overview-panel-pill">
-							<b>{workflow.labels.projectLoad}</b>
-							<em>{projects.length}</em>
-						</div>
+						<WorkflowPanelPill label={workflow.labels.projectLoad} value={projects.length} />
 						<div className="workflow-overview-chart-body workflow-overview-chart-body-bar">
 							{projectLoadRows.length ? <Bar data={overviewBarData} options={overviewBarOptions} /> : <EmptyState {...workflow.emptyStates.noProjects} />}
 						</div>
@@ -2501,10 +2481,7 @@ const DesignWorkflowShell = ({ title, variant, projectId, taskId }: Props) => {
 						</div>
 					</article>
 					<article className="workflow-overview-chart-card workflow-overview-chart-card-compact">
-						<div className="workflow-overview-panel-pill">
-							<b>{workflow.labels.deliveryMix}</b>
-							<em>{totalTaskMix}</em>
-						</div>
+						<WorkflowPanelPill label={workflow.labels.deliveryMix} value={totalTaskMix} />
 						<div className="workflow-overview-chart-body workflow-overview-chart-body-doughnut">
 							{totalTaskMix ? (
 								<>
@@ -2523,10 +2500,7 @@ const DesignWorkflowShell = ({ title, variant, projectId, taskId }: Props) => {
 
 				<section className="workflow-overview-grid">
 					<div className={cn('workflow-overview-panel', tasks.length > 0 && 'workflow-overview-panel-wide')} data-tone="rose">
-						<div className="workflow-overview-panel-pill">
-							<b>{workflow.sections.overdueTasks.title}</b>
-							<em>{tasks.length}</em>
-						</div>
+						<WorkflowPanelPill label={workflow.sections.overdueTasks.title} value={tasks.length} />
 						<p className="workflow-overview-panel-copy">{workflow.sections.overdueTasks.description}</p>
 						<div className="workflow-overview-task-list">
 						{tasksBusy ? <EmptyState {...workflow.emptyStates.loadingCards} /> : null}
@@ -2538,10 +2512,7 @@ const DesignWorkflowShell = ({ title, variant, projectId, taskId }: Props) => {
 					</div>
 
 					<div className="workflow-overview-panel" data-tone="indigo">
-						<div className="workflow-overview-panel-pill">
-							<b>{workflow.sections.capacitySnapshot.title}</b>
-							<em>{busiestUsers.length}</em>
-						</div>
+						<WorkflowPanelPill label={workflow.sections.capacitySnapshot.title} value={busiestUsers.length} />
 						<p className="workflow-overview-panel-copy">{workflow.sections.capacitySnapshot.description}</p>
 						<div className="workflow-overview-people">
 						{busiestUsers.map((row) => (
@@ -2565,10 +2536,7 @@ const DesignWorkflowShell = ({ title, variant, projectId, taskId }: Props) => {
 					</div>
 
 					<div className="workflow-overview-panel" data-tone="green">
-						<div className="workflow-overview-panel-pill">
-							<b>{workflow.sections.projects.title}</b>
-							<em>{projectPreview.length}</em>
-						</div>
+						<WorkflowPanelPill label={workflow.sections.projects.title} value={projectPreview.length} />
 						<p className="workflow-overview-panel-copy">{workflow.sections.projects.description}</p>
 						<div className="workflow-overview-projects">
 							{projectsBusy ? <EmptyState {...workflow.emptyStates.loadingProjects} /> : null}
@@ -2785,18 +2753,20 @@ const DesignWorkflowShell = ({ title, variant, projectId, taskId }: Props) => {
 
 		return (
 			<div className="workflow-kanban-page">
-				<section className="workflow-kanban-header">
-					<div className="min-w-0">
-						<p className="text-xs font-bold uppercase text-(--ink-muted)">{workflow.labels.workflow}</p>
-						<h1 className="mt-1 text-[30px] font-extrabold leading-tight text-(--ink)">{variant === 'my-work' ? workflow.pageTitles['my-work'] : workflow.pageTitles.board}</h1>
-					</div>
-					<div className="workflow-kanban-header-metrics">
-						<span>{workflow.labels.visible} <strong>{filteredBoardTasks.length}</strong></span>
-						<span>{workflow.labels.overdue} <strong>{overdueBoardCount}</strong></span>
-						<span>{workflow.labels.blocked} <strong>{blockedBoardCount}</strong></span>
-						{isManager ? <span>{workflow.labels.estimated} <strong>{formatWorkDays(boardEffort, workflow.labels.daysUnit)}</strong></span> : null}
-					</div>
-					<div className="workflow-kanban-actions">
+				<WorkflowPageHero
+					className="workflow-kanban-header"
+					eyebrow={workflow.labels.workflow}
+					title={variant === 'my-work' ? workflow.pageTitles['my-work'] : workflow.pageTitles.board}
+					actionsWrapper={false}
+					actions={
+						<>
+							<div className="workflow-kanban-header-metrics">
+								<span>{workflow.labels.visible} <strong>{filteredBoardTasks.length}</strong></span>
+								<span>{workflow.labels.overdue} <strong>{overdueBoardCount}</strong></span>
+								<span>{workflow.labels.blocked} <strong>{blockedBoardCount}</strong></span>
+								{isManager ? <span>{workflow.labels.estimated} <strong>{formatWorkDays(boardEffort, workflow.labels.daysUnit)}</strong></span> : null}
+							</div>
+							<div className="workflow-kanban-actions">
 						<div className="workflow-board-segment">
 							<button
 								type="button"
@@ -2852,8 +2822,10 @@ const DesignWorkflowShell = ({ title, variant, projectId, taskId }: Props) => {
 								<span>{workflow.buttons.archive}</span>
 							</button>
 						</div>
-					</div>
-				</section>
+							</div>
+						</>
+					}
+				/>
 
 				<section className="workflow-kanban-toolbar" data-open={boardFiltersOpen}>
 					<div className="workflow-kanban-filter-grid">
@@ -3060,17 +3032,19 @@ const DesignWorkflowShell = ({ title, variant, projectId, taskId }: Props) => {
 
 		return (
 		<div className="workflow-projects-page">
-			<section className="workflow-projects-header">
-				<div className="min-w-0">
-					<p className="text-xs font-bold uppercase text-(--ink-muted)">{workflow.labels.workflow}</p>
-					<h1 className="mt-1 text-[30px] font-extrabold leading-tight text-(--ink)">{workflow.pageTitles.projects}</h1>
-				</div>
-				<div className="workflow-projects-actions">
-					<span>{workflow.labels.projects} {projects.length}</span>
-					<span>{workflow.labels.active} {activeProjectCount}</span>
-					<span>{workflow.labels.open} {totalProjectOpenTasks}</span>
-				</div>
-			</section>
+			<WorkflowPageHero
+				className="workflow-projects-header"
+				eyebrow={workflow.labels.workflow}
+				title={workflow.pageTitles.projects}
+				actionsClassName="workflow-projects-actions"
+				actions={
+					<>
+						<span>{workflow.labels.projects} {projects.length}</span>
+						<span>{workflow.labels.active} {activeProjectCount}</span>
+						<span>{workflow.labels.open} {totalProjectOpenTasks}</span>
+					</>
+				}
+			/>
 
 			<section className="workflow-projects-metrics">
 				<MetricCard icon={<FolderKanban size={16} />} label={workflow.labels.projects} value={projects.length} tone="indigo" />
@@ -3082,10 +3056,7 @@ const DesignWorkflowShell = ({ title, variant, projectId, taskId }: Props) => {
 			<div className={isManager ? 'workflow-projects-layout' : 'workflow-projects-layout workflow-projects-layout-single'}>
 			{isManager ? (
 				<section className="workflow-projects-create workflow-overview-panel" data-tone="indigo">
-					<div className="workflow-overview-panel-pill">
-						<b>{workflow.sections.createProject.title}</b>
-						<em>+</em>
-					</div>
+					<WorkflowPanelPill label={workflow.sections.createProject.title} value="+" />
 					<p className="workflow-overview-panel-copy">{workflow.sections.createProject.description}</p>
 					<div className="grid gap-4 md:grid-cols-2">
 						<div>
@@ -3162,10 +3133,7 @@ const DesignWorkflowShell = ({ title, variant, projectId, taskId }: Props) => {
 			) : null}
 
 			<section className="workflow-projects-list workflow-overview-panel" data-tone="green">
-				<div className="workflow-overview-panel-pill">
-					<b>{workflow.sections.projects.title}</b>
-					<em>{projects.length}</em>
-				</div>
+				<WorkflowPanelPill label={workflow.sections.projects.title} value={projects.length} />
 				<p className="workflow-overview-panel-copy">{workflow.sections.projects.description}</p>
 				{projectsBusy ? (
 					<EmptyState {...workflow.emptyStates.loadingProjects} />
@@ -3229,17 +3197,19 @@ const DesignWorkflowShell = ({ title, variant, projectId, taskId }: Props) => {
 
 		return (
 			<div className="workflow-project-detail-page">
-				<section className="workflow-project-detail-header">
-					<div className="min-w-0">
-						<p className="text-xs font-bold uppercase text-(--ink-muted)">{workflow.labels.workflow}</p>
-						<h1 className="mt-1 truncate text-[30px] font-extrabold leading-tight text-(--ink)">{project.name}</h1>
-					</div>
-					<div className="workflow-projects-actions">
-						<span>{labelFor(project.status)}</span>
-						<span>{project.open_tasks_count} {workflow.labels.openTasks}</span>
-						<span>{formatMinutes(project.total_logged_minutes)} {workflow.labels.loggedSuffix}</span>
-					</div>
-				</section>
+				<WorkflowPageHero
+					className="workflow-project-detail-header"
+					eyebrow={workflow.labels.workflow}
+					title={project.name}
+					actionsClassName="workflow-projects-actions"
+					actions={
+						<>
+							<span>{labelFor(project.status)}</span>
+							<span>{project.open_tasks_count} {workflow.labels.openTasks}</span>
+							<span>{formatMinutes(project.total_logged_minutes)} {workflow.labels.loggedSuffix}</span>
+						</>
+					}
+				/>
 
 				<div className="workflow-project-detail-grid">
 					<section className="workflow-project-detail-panel workflow-project-detail-panel-main" data-tone="indigo">
@@ -5318,17 +5288,19 @@ const DesignWorkflowShell = ({ title, variant, projectId, taskId }: Props) => {
 
 		return (
 			<div className="workflow-team-page">
-				<section className="workflow-team-header">
-					<div className="min-w-0">
-						<p>{workflow.labels.workflow}</p>
-						<h1>{workflow.pageTitles.team}</h1>
-					</div>
-					<div className="workflow-team-header-actions">
-						<span>{workflow.labels.contributors} {workload.length}</span>
-						<span>{workflow.labels.open} {totalOpenTasks}</span>
-						<span>{workflow.labels.overdue} {totalOverdueTasks}</span>
-					</div>
-				</section>
+				<WorkflowPageHero
+					className="workflow-team-header"
+					eyebrow={workflow.labels.workflow}
+					title={workflow.pageTitles.team}
+					actionsClassName="workflow-team-header-actions"
+					actions={
+						<>
+							<span>{workflow.labels.contributors} {workload.length}</span>
+							<span>{workflow.labels.open} {totalOpenTasks}</span>
+							<span>{workflow.labels.overdue} {totalOverdueTasks}</span>
+						</>
+					}
+				/>
 
 				<section className="workflow-team-metrics">
 					<MetricCard icon={<Users size={16} />} label={workflow.labels.teamMembers ?? 'Team members'} value={workload.length} tone="indigo" />
@@ -5340,10 +5312,7 @@ const DesignWorkflowShell = ({ title, variant, projectId, taskId }: Props) => {
 				<section className="workflow-team-grid">
 					{workload.length ? (
 						<section className="workflow-team-analytics">
-							<div className="workflow-team-panel-pill">
-								<span>{workflow.labels.teamLoadMap}</span>
-								<em>{formatMinutes(totalActualMinutes)} {workflow.labels.loggedSuffix}</em>
-							</div>
+							<WorkflowPanelPill baseClassName="workflow-team-panel-pill" label={workflow.labels.teamLoadMap} value={`${formatMinutes(totalActualMinutes)} ${workflow.labels.loggedSuffix}`} labelElement="span" />
 							<div className="workflow-team-chart-body" style={{ height: teamChartHeight }}>
 								<Bar data={teamBarData} options={teamBarOptions} />
 							</div>
@@ -5358,10 +5327,7 @@ const DesignWorkflowShell = ({ title, variant, projectId, taskId }: Props) => {
 						</section>
 					) : null}
 					<div className="workflow-team-board">
-						<div className="workflow-team-panel-pill">
-							<span>{workflow.sections.teamWorkload.title}</span>
-							<em>{formatMinutes(totalActualMinutes)} {workflow.labels.loggedSuffix}</em>
-						</div>
+						<WorkflowPanelPill baseClassName="workflow-team-panel-pill" label={workflow.sections.teamWorkload.title} value={`${formatMinutes(totalActualMinutes)} ${workflow.labels.loggedSuffix}`} labelElement="span" />
 						<div className="workflow-team-card-grid">
 							{workload.map((row: WorkloadRow) => {
 								const loadPercent = Math.min(100, Math.round((row.open_tasks / maxOpenTasks) * 100));
@@ -5413,10 +5379,7 @@ const DesignWorkflowShell = ({ title, variant, projectId, taskId }: Props) => {
 
 					<aside className="workflow-team-side">
 						<div className="workflow-team-spotlight">
-							<div className="workflow-team-panel-pill">
-								<span>{workflow.labels.teamFocus}</span>
-								<em>{leadUser ? `${leadUser.open_tasks} ${workflow.labels.openLower}` : '0'}</em>
-							</div>
+							<WorkflowPanelPill baseClassName="workflow-team-panel-pill" label={workflow.labels.teamFocus} value={leadUser ? `${leadUser.open_tasks} ${workflow.labels.openLower}` : '0'} labelElement="span" />
 							{leadUser ? (
 								<>
 									<div className="workflow-team-spotlight-body">
@@ -5436,10 +5399,7 @@ const DesignWorkflowShell = ({ title, variant, projectId, taskId }: Props) => {
 						</div>
 
 						<div className="workflow-team-lane">
-							<div className="workflow-team-panel-pill workflow-team-panel-pill-rose">
-								<span>{workflow.labels.attentionLane}</span>
-								<em>{pressureRows.length}</em>
-							</div>
+							<WorkflowPanelPill baseClassName="workflow-team-panel-pill" className="workflow-team-panel-pill-rose" label={workflow.labels.attentionLane} value={pressureRows.length} labelElement="span" />
 							{pressureRows.map((row) => (
 								<div key={row.user.id} className="workflow-team-mini-row">
 									<AvatarBadge user={row.user} size={30} />
@@ -5453,10 +5413,7 @@ const DesignWorkflowShell = ({ title, variant, projectId, taskId }: Props) => {
 						</div>
 
 						<div className="workflow-team-lane">
-							<div className="workflow-team-panel-pill workflow-team-panel-pill-green">
-								<span>{workflow.labels.availableLane}</span>
-								<em>{calmRows.length}</em>
-							</div>
+							<WorkflowPanelPill baseClassName="workflow-team-panel-pill" className="workflow-team-panel-pill-green" label={workflow.labels.availableLane} value={calmRows.length} labelElement="span" />
 							{calmRows.map((row) => (
 								<div key={row.user.id} className="workflow-team-mini-row">
 									<AvatarBadge user={row.user} size={30} />
@@ -5710,16 +5667,18 @@ const DesignWorkflowShell = ({ title, variant, projectId, taskId }: Props) => {
 
 		return (
 			<div className="workflow-report-shell">
-				<section className="workflow-report-hero">
-					<div>
-						<p>{workflow.labels.reportStudio}</p>
-						<h1>{workflow.pageTitles['report-time']}</h1>
-					</div>
-					<div className="workflow-report-window">
-						<CalendarDays size={18} />
-						<span>{dateWindow}</span>
-					</div>
-				</section>
+				<WorkflowPageHero
+					className="workflow-report-hero"
+					eyebrow={workflow.labels.reportStudio}
+					title={workflow.pageTitles['report-time']}
+					actionsWrapper={false}
+					actions={
+						<div className="workflow-report-window">
+							<CalendarDays size={18} />
+							<span>{dateWindow}</span>
+						</div>
+					}
+				/>
 
 				<section className="workflow-report-filterbar">
 					<div className="workflow-report-date-fields">
@@ -5753,26 +5712,10 @@ const DesignWorkflowShell = ({ title, variant, projectId, taskId }: Props) => {
 				</section>
 
 				<section className="workflow-report-metrics">
-					<div className="workflow-report-metric workflow-report-metric-dark">
-						<Clock3 size={18} />
-						<span>{workflow.labels.trackedTime}</span>
-						<strong>{formatMinutes(totalMinutes)}</strong>
-					</div>
-					<div className="workflow-report-metric workflow-report-metric-cyan">
-						<FolderKanban size={18} />
-						<span>{workflow.labels.activeReportProjects}</span>
-						<strong>{timeReport.length}</strong>
-					</div>
-					<div className="workflow-report-metric workflow-report-metric-green">
-						<BriefcaseBusiness size={18} />
-						<span>{workflow.labels.averagePerProject}</span>
-						<strong>{formatMinutes(averageMinutes)}</strong>
-					</div>
-					<div className="workflow-report-metric workflow-report-metric-rose">
-						<ShieldCheck size={18} />
-						<span>{workflow.labels.topProject}</span>
-						<strong>{topRow ? topRow.project.name : workflow.labels.noReportProject}</strong>
-					</div>
+					<WorkflowSimpleMetric className="workflow-report-metric workflow-report-metric-dark" icon={<Clock3 size={18} />} label={workflow.labels.trackedTime} value={formatMinutes(totalMinutes)} />
+					<WorkflowSimpleMetric className="workflow-report-metric workflow-report-metric-cyan" icon={<FolderKanban size={18} />} label={workflow.labels.activeReportProjects} value={timeReport.length} />
+					<WorkflowSimpleMetric className="workflow-report-metric workflow-report-metric-green" icon={<BriefcaseBusiness size={18} />} label={workflow.labels.averagePerProject} value={formatMinutes(averageMinutes)} />
+					<WorkflowSimpleMetric className="workflow-report-metric workflow-report-metric-rose" icon={<ShieldCheck size={18} />} label={workflow.labels.topProject} value={topRow ? topRow.project.name : workflow.labels.noReportProject} />
 				</section>
 
 				{workflowReport ? (
@@ -6009,53 +5952,39 @@ const DesignWorkflowShell = ({ title, variant, projectId, taskId }: Props) => {
 
 		return (
 			<div className="workflow-notifications-shell">
-				<section className="workflow-notifications-hero">
-					<div>
-						<p>{workflow.labels.notificationStudio}</p>
-						<h1>{workflow.pageTitles.notifications}</h1>
-					</div>
-					<div className="workflow-notifications-hero-actions">
-						<button
-							type="button"
-							className="workflow-notifications-toggle"
-							data-active={notificationsUnreadOnly}
-							onClick={() => setNotificationsUnreadOnly(!notificationsUnreadOnly)}
-						>
-							<span aria-hidden="true">
-								{notificationsUnreadOnly ? <CheckCircle2 size={14} /> : <Bell size={14} />}
-							</span>
-							{workflow.labels.unreadOnly}
-						</button>
-						{unreadCount ? (
-							<button type="button" className="workflow-notifications-mark-all" onClick={markAllNotificationsRead}>
-								<CheckCircle2 size={15} />
-								<span>{workflow.buttons.markAllAsRead}</span>
+				<WorkflowPageHero
+					className="workflow-notifications-hero"
+					eyebrow={workflow.labels.notificationStudio}
+					title={workflow.pageTitles.notifications}
+					actionsClassName="workflow-notifications-hero-actions"
+					actions={
+						<>
+							<button
+								type="button"
+								className="workflow-notifications-toggle"
+								data-active={notificationsUnreadOnly}
+								onClick={() => setNotificationsUnreadOnly(!notificationsUnreadOnly)}
+							>
+								<span aria-hidden="true">
+									{notificationsUnreadOnly ? <CheckCircle2 size={14} /> : <Bell size={14} />}
+								</span>
+								{workflow.labels.unreadOnly}
 							</button>
-						) : null}
-					</div>
-				</section>
+							{unreadCount ? (
+								<button type="button" className="workflow-notifications-mark-all" onClick={markAllNotificationsRead}>
+									<CheckCircle2 size={15} />
+									<span>{workflow.buttons.markAllAsRead}</span>
+								</button>
+							) : null}
+						</>
+					}
+				/>
 
 				<section className="workflow-notifications-metrics">
-					<div className="workflow-notifications-metric" data-tone="indigo">
-						<Bell size={18} />
-						<span>{workflow.labels.totalAlerts}</span>
-						<strong>{notifications.length}</strong>
-					</div>
-					<div className="workflow-notifications-metric" data-tone="rose">
-						<CircleAlert size={18} />
-						<span>{workflow.labels.unread}</span>
-						<strong>{unreadCount}</strong>
-					</div>
-					<div className="workflow-notifications-metric" data-tone="green">
-						<ListTodo size={18} />
-						<span>{workflow.labels.taskAlerts}</span>
-						<strong>{taskAlertCount}</strong>
-					</div>
-					<div className="workflow-notifications-metric" data-tone="cyan">
-						<MessagesSquare size={18} />
-						<span>{workflow.labels.chatAlerts}</span>
-						<strong>{chatAlertCount}</strong>
-					</div>
+					<WorkflowSimpleMetric className="workflow-notifications-metric" tone="indigo" icon={<Bell size={18} />} label={workflow.labels.totalAlerts} value={notifications.length} />
+					<WorkflowSimpleMetric className="workflow-notifications-metric" tone="rose" icon={<CircleAlert size={18} />} label={workflow.labels.unread} value={unreadCount} />
+					<WorkflowSimpleMetric className="workflow-notifications-metric" tone="green" icon={<ListTodo size={18} />} label={workflow.labels.taskAlerts} value={taskAlertCount} />
+					<WorkflowSimpleMetric className="workflow-notifications-metric" tone="cyan" icon={<MessagesSquare size={18} />} label={workflow.labels.chatAlerts} value={chatAlertCount} />
 				</section>
 
 				<section className="workflow-notification-preferences">
