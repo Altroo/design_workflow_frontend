@@ -567,8 +567,8 @@ textarea.app-input {
 }
 
 .workflow-avatar-presence[data-online='true'] .workflow-avatar-presence-dot {
-	background: #10b981;
-	box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.16);
+	background: #64748b;
+	box-shadow: 0 0 0 3px rgba(100, 116, 139, 0.14);
 }
 
 .workflow-language-flag {
@@ -5868,9 +5868,9 @@ button:focus-visible {
 .workflow-chat-thread-button.is-unread,
 .workflow-chat-context-button.is-unread,
 .workflow-chat-direct-button.is-unread {
-	border-color: rgba(18, 185, 129, 0.32);
+	border-color: rgba(71, 85, 105, 0.28);
 	background:
-		linear-gradient(90deg, rgba(18, 185, 129, 0.13), rgba(63, 60, 255, 0.06)),
+		linear-gradient(90deg, rgba(71, 85, 105, 0.13), rgba(15, 23, 42, 0.04)),
 		#fff;
 }
 
@@ -6513,7 +6513,7 @@ button:focus-visible {
 }
 
 .workflow-chat-presence-badge[data-online='true'] {
-	background: #10b981;
+	background: #64748b;
 }
 
 .workflow-chat-message-row {
@@ -6550,11 +6550,11 @@ button:focus-visible {
 	display: inline-flex;
 	align-items: center;
 	gap: 6px;
-	border: 1px solid rgba(16, 185, 129, 0.22);
+	border: 1px solid rgba(71, 85, 105, 0.2);
 	border-radius: 999px;
-	background: rgba(16, 185, 129, 0.1);
+	background: rgba(71, 85, 105, 0.1);
 	padding: 5px 8px;
-	color: #047857;
+	color: #334155;
 	font-size: 11px;
 	font-weight: 900;
 }
@@ -6766,22 +6766,22 @@ button:focus-visible {
 	place-items: center;
 	border: 0;
 	border-radius: 999px;
-	background: linear-gradient(135deg, #12b981, #14b8c8);
+	background: linear-gradient(135deg, #475569, #111827);
 	color: #ffffff;
-	box-shadow: 0 12px 20px -14px rgba(18, 185, 129, 0.9);
+	box-shadow: 0 12px 20px -14px rgba(15, 23, 42, 0.72);
 	transition:
 		transform 160ms ease,
 		box-shadow 160ms ease;
 }
 
 .workflow-chat-voice-player > button:hover {
-	box-shadow: 0 14px 22px -13px rgba(18, 185, 129, 0.95);
+	box-shadow: 0 14px 22px -13px rgba(15, 23, 42, 0.78);
 	transform: translateY(-1px);
 }
 
 .workflow-chat-voice-player[data-playing='true'] > button {
-	background: linear-gradient(135deg, #0f766e, #12b981);
-	box-shadow: 0 0 0 4px rgba(18, 185, 129, 0.12), 0 14px 22px -14px rgba(18, 185, 129, 0.95);
+	background: linear-gradient(135deg, #334155, #111827);
+	box-shadow: 0 0 0 4px rgba(71, 85, 105, 0.12), 0 14px 22px -14px rgba(15, 23, 42, 0.78);
 }
 
 .workflow-chat-voice-track {
@@ -6858,10 +6858,10 @@ button:focus-visible {
 .workflow-chat-voice-draft {
 	position: relative;
 	width: min(100%, 410px);
-	border: 1px solid rgba(18, 185, 129, 0.2);
+	border: 1px solid var(--line);
 	border-radius: 20px;
 	background:
-		linear-gradient(135deg, rgba(236, 253, 245, 0.76), rgba(255, 255, 255, 0.94)),
+		linear-gradient(135deg, rgba(241, 245, 249, 0.9), rgba(255, 255, 255, 0.94)),
 		#ffffff;
 	padding: 8px 42px 8px 8px;
 	box-shadow: 0 16px 28px -26px rgba(15, 23, 42, 0.5);
@@ -7227,8 +7227,8 @@ button.workflow-chat-ref-card {
 }
 
 .workflow-chat-ref-decision > span {
-	background: rgba(16, 185, 129, 0.12);
-	color: #047857;
+	background: rgba(71, 85, 105, 0.12);
+	color: #334155;
 }
 
 .workflow-chat-ref-media > span {
@@ -7705,9 +7705,9 @@ button.workflow-chat-ref-card {
 }
 
 .workflow-notifications-mark-all {
-	border-color: rgba(18, 185, 129, 0.22);
-	background: #ecfdf5;
-	color: #047857;
+	border-color: var(--line);
+	background: #ffffff;
+	color: #020617;
 }
 
 .workflow-notifications-mark-all span {
@@ -8146,11 +8146,11 @@ button.workflow-chat-ref-card {
 	align-items: center;
 	justify-content: center;
 	gap: 8px;
-	border: 1px solid rgba(18, 185, 129, 0.2);
+	border: 1px solid var(--line);
 	border-radius: 999px;
-	background: #ecfdf5;
+	background: #ffffff;
 	padding: 0 13px;
-	color: #047857;
+	color: #020617;
 	font-size: 12px;
 	font-weight: 900;
 	white-space: nowrap;
@@ -11980,9 +11980,8 @@ button.workflow-chat-ref-card {
 	color: #1e40af;
 }
 /* Workload template parity sweep.
-   This final layer restores the project-management-admin-dashboard-template visual system
-   after the earlier neutral pass: green primary, grey app canvas, Bootstrap-like cards,
-   a 20.5rem desktop sidebar, 7.5rem header rhythm, and 360px Kanban lanes. */
+   This layer keeps the template spacing and card rhythm, using neutral chrome tokens
+   instead of a separate brand accent. */
 :root {
 	--app-bg: #f8f8f8;
 	--surface: #ffffff;
@@ -11993,10 +11992,10 @@ button.workflow-chat-ref-card {
 	--ink-muted: #969ba0;
 	--line: #eeeeee;
 	--line-strong: #d8dde7;
-	--accent: #00a15d;
-	--accent-strong: #006e40;
-	--accent-soft: rgba(0, 161, 93, 0.1);
-	--accent-tint: rgba(0, 161, 93, 0.05);
+	--accent: #111827;
+	--accent-strong: #020617;
+	--accent-soft: rgba(15, 23, 42, 0.08);
+	--accent-tint: rgba(15, 23, 42, 0.04);
 	--shadow-sm: 0 0.9375rem 1.875rem rgba(0, 0, 0, 0.02);
 	--shadow-md: 0 1rem 2.5rem rgba(0, 0, 0, 0.05);
 	--shadow-lg: 0 1.5rem 4rem rgba(0, 0, 0, 0.08);
@@ -12058,7 +12057,7 @@ body {
 	height: 3.75rem !important;
 	border-radius: 1.875rem !important;
 	background:
-		linear-gradient(180deg, #23d58a 0%, #00a15d 100%) !important;
+		linear-gradient(180deg, #334155 0%, #111827 100%) !important;
 	box-shadow: none !important;
 	font-size: 1rem !important;
 	font-weight: 700 !important;
@@ -12066,7 +12065,7 @@ body {
 
 .workflow-topbar [class*='bg-(--accent)'] {
 	background:
-		linear-gradient(180deg, #23d58a 0%, #00a15d 100%) !important;
+		linear-gradient(180deg, #334155 0%, #111827 100%) !important;
 	color: #ffffff !important;
 	box-shadow: none !important;
 }
@@ -12111,19 +12110,19 @@ body {
 .workflow-nav-link:hover,
 .workflow-nav-link[aria-current='page'],
 .workflow-nav-link[class*='bg-(--accent-soft)'] {
-	background: rgba(0, 161, 93, 0.1) !important;
-	color: #00a15d !important;
+	background: rgba(15, 23, 42, 0.08) !important;
+	color: #111827 !important;
 }
 
 .workflow-nav-link:hover svg,
 .workflow-nav-link[aria-current='page'] svg,
 .workflow-nav-link[class*='bg-(--accent-soft)'] svg,
 .workflow-nav-link .text-\(\--accent-strong\) {
-	color: #00a15d !important;
+	color: #111827 !important;
 }
 
 .workflow-nav-badge {
-	background: #00a15d !important;
+	background: #111827 !important;
 	color: #ffffff !important;
 }
 
@@ -12174,9 +12173,9 @@ body {
 .workflow-topbar-control:hover,
 .workflow-topbar-profile:hover,
 .app-pill:hover {
-	border-color: rgba(0, 161, 93, 0.28) !important;
-	background: rgba(0, 161, 93, 0.08) !important;
-	color: #00a15d !important;
+	border-color: rgba(15, 23, 42, 0.18) !important;
+	background: rgba(15, 23, 42, 0.06) !important;
+	color: #111827 !important;
 }
 
 .workflow-topbar-avatar {
@@ -12307,8 +12306,8 @@ body {
 .workflow-team-panel-pill {
 	border: 0 !important;
 	border-radius: 3.125rem !important;
-	background: rgba(0, 161, 93, 0.1) !important;
-	color: #00a15d !important;
+	background: rgba(15, 23, 42, 0.08) !important;
+	color: #111827 !important;
 	box-shadow: none !important;
 }
 
@@ -12356,8 +12355,8 @@ body {
 .workflow-chat-composer .app-input:focus,
 .workflow-user-form-shell .app-input:focus,
 .workflow-user-form-shell textarea:focus {
-	border-color: #00a15d !important;
-	box-shadow: 0 0 0 0.25rem rgba(0, 161, 93, 0.12) !important;
+	border-color: #111827 !important;
+	box-shadow: 0 0 0 0.25rem rgba(15, 23, 42, 0.12) !important;
 }
 
 .workflow-board-segment,
@@ -12390,10 +12389,10 @@ body {
 .workflow-trello-modal-checklist-add button,
 .workflow-trello-modal-upload-row button,
 .workflow-trello-modal-comment-box button {
-	border-color: #00a15d !important;
-	background: #00a15d !important;
+	border-color: #111827 !important;
+	background: #111827 !important;
 	color: #ffffff !important;
-	box-shadow: 0 0.5rem 1.375rem rgba(0, 161, 93, 0.18) !important;
+	box-shadow: 0 0.5rem 1.375rem rgba(15, 23, 42, 0.18) !important;
 }
 
 .workflow-board-surface {
@@ -12453,8 +12452,8 @@ body {
 .workflow-column-count,
 .workflow-column-icon,
 .workflow-column-empty > span {
-	background: rgba(0, 161, 93, 0.1) !important;
-	color: #00a15d !important;
+	background: rgba(15, 23, 42, 0.08) !important;
+	color: #111827 !important;
 }
 
 .workflow-trello-board-card,
@@ -12475,7 +12474,7 @@ body {
 .workflow-trello-board-card:hover,
 .workflow-project-card-modern:hover,
 .workflow-team-card:hover {
-	border-color: rgba(0, 161, 93, 0.35) !important;
+	border-color: rgba(15, 23, 42, 0.35) !important;
 	box-shadow: 0 0.9375rem 1.875rem rgba(0, 0, 0, 0.05) !important;
 	transform: none !important;
 }
@@ -12531,7 +12530,7 @@ body {
 .workflow-team-estimate-track span,
 .workflow-trello-modal-progress span,
 .workflow-checklist-progress span {
-	background: #00a15d !important;
+	background: #111827 !important;
 }
 
 .workflow-projects-layout {
@@ -12667,14 +12666,14 @@ body {
 .workflow-chat-thread-button.is-unread,
 .workflow-chat-context-button.is-unread,
 .workflow-chat-direct-button.is-unread {
-	background: rgba(0, 161, 93, 0.08) !important;
-	box-shadow: inset 0.25rem 0 0 #00a15d !important;
+	background: rgba(15, 23, 42, 0.06) !important;
+	box-shadow: inset 0.25rem 0 0 #111827 !important;
 }
 
 .workflow-chat-context-icon,
 .workflow-chat-avatar,
 .workflow-chat-empty-state > span {
-	background: linear-gradient(209.58deg, #00a15d 4.57%, #c7e220 98.19%) !important;
+	background: linear-gradient(209.58deg, #111827 4.57%, #94a3b8 98.19%) !important;
 	color: #ffffff !important;
 }
 
@@ -12698,8 +12697,8 @@ body {
 }
 
 .workflow-chat-bubble-mine {
-	border-color: rgba(0, 161, 93, 0.25) !important;
-	background: rgba(0, 161, 93, 0.06) !important;
+	border-color: rgba(71, 85, 105, 0.25) !important;
+	background: rgba(15, 23, 42, 0.04) !important;
 }
 
 .workflow-chat-composer {
@@ -15543,7 +15542,7 @@ body {
 .workflow-chat-direct-button.is-unread {
 	border-color: transparent !important;
 	background: #f8fafc !important;
-	box-shadow: inset 0.25rem 0 0 #00a15d !important;
+	box-shadow: inset 0.25rem 0 0 #111827 !important;
 	transform: none !important;
 }
 
@@ -15561,7 +15560,7 @@ body {
 .workflow-chat-thread-button.is-unread .workflow-chat-thread-preview,
 .workflow-chat-context-button.is-unread .workflow-chat-thread-preview,
 .workflow-chat-direct-button.is-unread .workflow-chat-thread-preview {
-	color: #047857 !important;
+	color: #020617 !important;
 }
 
 .workflow-chat-context-icon {
@@ -15575,7 +15574,7 @@ body {
 .workflow-chat-context-button.is-active .workflow-chat-context-icon,
 .workflow-chat-direct-button.is-active .workflow-chat-context-icon {
 	background: linear-gradient(135deg, #dbf8ee 0%, #eef2ff 100%) !important;
-	color: #047857 !important;
+	color: #020617 !important;
 }
 
 .workflow-chat-room {
@@ -15673,7 +15672,7 @@ body {
 .workflow-chat-bubble.workflow-chat-bubble-mine {
 	border: 0 !important;
 	border-radius: 1rem 1rem 0.25rem 1rem !important;
-	background: #00a15d !important;
+	background: #111827 !important;
 	color: #ffffff !important;
 }
 
@@ -15727,8 +15726,8 @@ body {
 }
 
 .workflow-chat-composer .app-button:not(.app-button-ghost) {
-	border-color: #00a15d !important;
-	background: #00a15d !important;
+	border-color: #111827 !important;
+	background: #111827 !important;
 	color: #ffffff !important;
 }
 
@@ -16921,7 +16920,7 @@ body {
 	}
 }
 
-/* Final unified palette layer: neutral workspace with one green brand accent. */
+/* Final unified palette layer: neutral workspace with slate chrome accent. */
 :root {
 	--app-bg: #f8fafc;
 	--surface: #ffffff;
@@ -16932,8 +16931,8 @@ body {
 	--ink-muted: #64748b;
 	--line: #e5e7eb;
 	--line-strong: #cbd5e1;
-	--accent: #00a15d;
-	--accent-strong: #047857;
+	--accent: #111827;
+	--accent-strong: #020617;
 	--accent-soft: #f2fbf7;
 	--accent-tint: #f7fcfa;
 }
@@ -17108,7 +17107,7 @@ body {
 	border-color: var(--accent) !important;
 	background: var(--accent) !important;
 	color: #ffffff !important;
-	box-shadow: 0 1rem 1.875rem -1.5rem rgba(0, 161, 93, 0.62) !important;
+	box-shadow: 0 1rem 1.875rem -1.5rem rgba(15, 23, 42, 0.62) !important;
 }
 
 .workflow-projects-create .app-button:not(.app-button-ghost):hover,
@@ -17140,7 +17139,7 @@ body {
 .workflow-notifications-toggle:hover,
 .workflow-notifications-action-button:hover,
 .workflow-project-card-open:hover {
-	border-color: rgba(0, 161, 93, 0.28) !important;
+	border-color: rgba(15, 23, 42, 0.18) !important;
 	background: var(--accent-soft) !important;
 	color: var(--accent-strong) !important;
 	box-shadow: inset 0.1875rem 0 0 var(--accent) !important;
@@ -17204,11 +17203,11 @@ body {
 .workflow-users-hero,
 .workflow-user-form-hero {
 	background:
-		linear-gradient(90deg, rgba(0, 161, 93, 0.045), transparent 38%),
+		linear-gradient(90deg, rgba(15, 23, 42, 0.035), transparent 38%),
 		#ffffff !important;
 }
 
-/* Palette restraint layer: neutral by default, green only for active/primary states. */
+/* Palette restraint layer: neutral by default for generic active and primary states. */
 .workflow-nav-link {
 	border-color: transparent !important;
 	background: transparent !important;
@@ -17293,7 +17292,7 @@ body {
 .workflow-team-card::before,
 .workflow-report-metric::before,
 .workflow-users-metric::before {
-	background: linear-gradient(90deg, var(--accent), rgba(0, 161, 93, 0.08), transparent) !important;
+	background: linear-gradient(90deg, var(--accent), rgba(15, 23, 42, 0.06), transparent) !important;
 	opacity: 0.82 !important;
 }
 
@@ -17426,7 +17425,7 @@ body {
 	color: var(--ink-soft) !important;
 }
 
-/* Chat uses a quieter slate accent so conversations do not compete with Kanban colors. */
+/* Chat uses a quieter slate accent so conversations do not compete with semantic Kanban colors. */
 .workflow-chat-shell {
 	--chat-accent: #475569;
 	--chat-accent-strong: #334155;
@@ -17571,7 +17570,7 @@ body {
 	inset: 0 auto auto 0 !important;
 	width: 100% !important;
 	height: 0.25rem !important;
-	background: linear-gradient(90deg, var(--accent), rgba(0, 161, 93, 0.08), transparent) !important;
+	background: linear-gradient(90deg, var(--accent), rgba(15, 23, 42, 0.06), transparent) !important;
 	content: '' !important;
 	opacity: 0.82 !important;
 }
@@ -17627,7 +17626,7 @@ body {
 .workflow-notifications-card[data-unread='true'] {
 	border-color: color-mix(in srgb, var(--accent) 22%, var(--line)) !important;
 	background:
-		linear-gradient(90deg, rgba(0, 161, 93, 0.05), transparent 36%),
+		linear-gradient(90deg, rgba(15, 23, 42, 0.04), transparent 36%),
 		#ffffff !important;
 }
 
