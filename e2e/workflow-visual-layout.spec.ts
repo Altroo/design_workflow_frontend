@@ -1,6 +1,7 @@
 import { expect, type Locator, type Page, test } from '@playwright/test';
 import { existsSync, mkdirSync } from 'node:fs';
 import { join } from 'node:path';
+import { seedDesignWorkflowE2E } from './seed-design-workflow';
 
 const authStatePath = '.playwright/.auth/design-workflow-e2e.json';
 const screenshotDir = 'test-results/workflow-visual';
@@ -253,6 +254,7 @@ test.describe('workflow visual layout pass', () => {
 	test.use({ storageState: authStatePath, viewport: { width: 1920, height: 900 } });
 
 	test.beforeAll(() => {
+		seedDesignWorkflowE2E();
 		mkdirSync(screenshotDir, { recursive: true });
 	});
 

@@ -1,6 +1,7 @@
 import { expect, type Page, test } from '@playwright/test';
 import { existsSync, mkdirSync } from 'node:fs';
 import { join } from 'node:path';
+import { seedDesignWorkflowE2E } from './seed-design-workflow';
 
 const authStatePath = '.playwright/.auth/design-workflow-e2e.json';
 const screenshotDir = 'test-results/workflow-responsive';
@@ -139,6 +140,36 @@ const expectMobileNotificationActions = async (page: Page) => {
 	}
 };
 
+const expectMobileNotificationCommentRows = async (page: Page) => {
+	const viewport = page.viewportSize();
+	if (!viewport || viewport.width > 480) return;
+
+	const forms = page.locator('.workflow-notifications-card .workflow-notifications-comment-action');
+	await expect.poll(async () => forms.count(), { timeout: 10_000 }).toBeGreaterThanOrEqual(1);
+	const layout = await forms.first().evaluate((form) => {
+		const input = form.querySelector('input')?.getBoundingClientRect();
+		const button = form.querySelector('button')?.getBoundingClientRect();
+		const box = form.getBoundingClientRect();
+		return {
+			buttonHeight: button?.height ?? 0,
+			buttonWidth: button?.width ?? 0,
+			formHeight: box.height,
+			inputWidth: input?.width ?? 0,
+			leftOverflow: input ? input.left < box.left - 1 : true,
+			rightOverflow: button ? button.right > box.right + 1 : true,
+			sameRow: input && button ? Math.abs(input.top - button.top) < 2 : false,
+		};
+	});
+	expect(layout.formHeight).toBeLessThanOrEqual(48);
+	expect(layout.sameRow).toBe(true);
+	expect(layout.inputWidth).toBeGreaterThan(180);
+	expect(layout.buttonWidth).toBeGreaterThanOrEqual(40);
+	expect(layout.buttonWidth).toBeLessThanOrEqual(48);
+	expect(layout.buttonHeight).toBeGreaterThanOrEqual(40);
+	expect(layout.leftOverflow).toBe(false);
+	expect(layout.rightOverflow).toBe(false);
+};
+
 const openBoardFilters = async (page: Page) => {
 	const toolbar = page.locator('.workflow-kanban-toolbar');
 	if (await toolbar.isVisible()) return;
@@ -251,6 +282,7 @@ const waitForNotificationsReady = async (page: Page) => {
 	await expect(page.locator('.workflow-notifications-list > *').first()).toBeVisible();
 	await expectMobileNotificationPreferences(page);
 	await expectMobileNotificationActions(page);
+	await expectMobileNotificationCommentRows(page);
 	await expectSeededNotificationCards(page);
 	await expectContentCardInSnapshot(page, seeded ? '.workflow-notifications-card' : '.workflow-notifications-list > *', 'notification');
 };
@@ -301,6 +333,7 @@ test.describe('workflow responsive visual pass', () => {
 	test.use({ storageState: authStatePath });
 
 	test.beforeAll(() => {
+		seedDesignWorkflowE2E();
 		mkdirSync(screenshotDir, { recursive: true });
 	});
 
