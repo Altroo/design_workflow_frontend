@@ -302,7 +302,94 @@ const waitForReportReady = async (page: Page) => {
 	await expect(page.locator('.workflow-analytics-grid, .workflow-analytics-panel').first()).toBeVisible({ timeout: 30_000 });
 	await expect(page.locator('.workflow-forecast-board')).toBeVisible({ timeout: 30_000 });
 	await expect.poll(async () => page.locator('.workflow-report-card').count(), { timeout: 30_000 }).toBeGreaterThan(0);
+	await expectMobileReportAnalytics(page);
 	await expectContentCardInSnapshot(page, '.workflow-report-card', 'report');
+};
+
+const expectMobileReportAnalytics = async (page: Page) => {
+	const viewport = page.viewportSize();
+	if (!viewport || viewport.width > 480) return;
+
+	const metricValues = page.locator('.workflow-report-metrics .workflow-report-metric strong');
+	await expect.poll(async () => metricValues.count(), { timeout: 10_000 }).toBeGreaterThanOrEqual(4);
+	const clippedMetricCount = await metricValues.evaluateAll((values) =>
+		values.filter((value) => {
+			const style = getComputedStyle(value);
+			const box = value.getBoundingClientRect();
+			const card = value.closest('.workflow-report-metric')?.getBoundingClientRect();
+			return (
+				style.textOverflow === 'ellipsis' ||
+				style.whiteSpace === 'nowrap' ||
+				(card ? box.left < card.left - 1 || box.right > card.right + 1 || box.bottom > card.bottom + 1 : true)
+			);
+		}).length,
+	);
+	expect(clippedMetricCount).toBe(0);
+
+	const barBody = page.locator('.workflow-report-chart-body-bar').first();
+	await expect(barBody).toBeVisible({ timeout: 10_000 });
+	const barHeight = await barBody.evaluate((body) => body.getBoundingClientRect().height);
+	expect(barHeight).toBeLessThanOrEqual(260);
+
+	const doughnutCenter = await page.locator('.workflow-report-chart-body-doughnut').evaluate((body) => {
+		const center = body.querySelector<HTMLElement>('.workflow-report-doughnut-center');
+		const bodyBox = body.getBoundingClientRect();
+		const centerBox = center?.getBoundingClientRect();
+		return {
+			centerBottomRatio: centerBox ? (centerBox.bottom - bodyBox.top) / bodyBox.height : 1,
+			centerHeight: centerBox?.height ?? 0,
+			centerTopRatio: centerBox ? (centerBox.top - bodyBox.top) / bodyBox.height : 1,
+		};
+	});
+	expect(doughnutCenter.centerHeight).toBeGreaterThan(16);
+	expect(doughnutCenter.centerHeight).toBeLessThanOrEqual(38);
+	expect(doughnutCenter.centerTopRatio).toBeGreaterThan(0.22);
+	expect(doughnutCenter.centerBottomRatio).toBeLessThan(0.52);
+
+	const keyLayout = await page.locator('.workflow-report-chart-keys').first().evaluate((keys) => {
+		const box = keys.getBoundingClientRect();
+		const chips = Array.from(keys.querySelectorAll<HTMLElement>('span'));
+		return chips.map((chip) => {
+			const chipBox = chip.getBoundingClientRect();
+			return {
+				height: chipBox.height,
+				leftOverflow: chipBox.left < box.left - 1,
+				rightOverflow: chipBox.right > box.right + 1,
+			};
+		});
+	});
+	expect(keyLayout.length).toBeGreaterThanOrEqual(1);
+	for (const chip of keyLayout) {
+		expect(chip.height).toBeLessThanOrEqual(46);
+		expect(chip.leftOverflow).toBe(false);
+		expect(chip.rightOverflow).toBe(false);
+	}
+
+	const insightLayout = await page.locator('.workflow-report-insights').evaluate((insights) => {
+		const cards = Array.from(insights.querySelectorAll<HTMLElement>('.workflow-report-insight'));
+		const box = insights.getBoundingClientRect();
+		const rows = new Set(cards.map((card) => Math.round(card.getBoundingClientRect().top)));
+		return {
+			cards: cards.map((card) => {
+				const cardBox = card.getBoundingClientRect();
+				return {
+					height: cardBox.height,
+					leftOverflow: cardBox.left < box.left - 1,
+					rightOverflow: cardBox.right > box.right + 1,
+					widthRatio: box.width ? cardBox.width / box.width : 1,
+				};
+			}),
+			rowCount: rows.size,
+		};
+	});
+	expect(insightLayout.rowCount).toBe(1);
+	for (const card of insightLayout.cards) {
+		expect(card.height).toBeLessThanOrEqual(96);
+		expect(card.widthRatio).toBeGreaterThan(0.25);
+		expect(card.widthRatio).toBeLessThan(0.36);
+		expect(card.leftOverflow).toBe(false);
+		expect(card.rightOverflow).toBe(false);
+	}
 };
 
 const waitForChatReady = async (page: Page) => {

@@ -5277,11 +5277,11 @@ const DesignWorkflowShell = ({ title, variant, projectId, taskId }: Props) => {
 				legend: {
 					position: 'bottom',
 					labels: {
-						boxWidth: 8,
-						boxHeight: 8,
+						boxWidth: 7,
+						boxHeight: 7,
 						color: '#475569',
-						font: { weight: 'bold' },
-						padding: 14,
+						font: { size: 11, weight: 'bold' },
+						padding: 8,
 						usePointStyle: true,
 					},
 				},

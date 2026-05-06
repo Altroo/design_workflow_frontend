@@ -246,6 +246,117 @@
 		white-space: nowrap !important;
 	}
 
+	.workflow-report-metric {
+		min-height: 7.75rem !important;
+		padding: 1rem !important;
+	}
+
+	.workflow-report-metric strong {
+		display: block !important;
+		overflow: visible !important;
+		text-overflow: clip !important;
+		overflow-wrap: anywhere !important;
+		white-space: normal !important;
+		word-break: break-word !important;
+	}
+
+	.workflow-report-metric-rose strong {
+		display: block !important;
+		font-size: clamp(1.05rem, 4.7vw, 1.35rem) !important;
+		line-height: 1.08 !important;
+		-webkit-line-clamp: unset !important;
+	}
+
+	.workflow-report-chart-card {
+		padding: 0.875rem !important;
+	}
+
+	.workflow-report-chart-head {
+		margin: -0.875rem -0.875rem 0.875rem !important;
+		padding: 0.875rem !important;
+	}
+
+	.workflow-report-chart-head > span {
+		max-width: 100% !important;
+		overflow-wrap: anywhere !important;
+		white-space: normal !important;
+	}
+
+	.workflow-report-chart-body {
+		padding: 0.5rem !important;
+	}
+
+	.workflow-report-chart-body-bar {
+		height: 15rem !important;
+		padding: 0.25rem 0 0 !important;
+	}
+
+	.workflow-report-chart-body-doughnut,
+	.workflow-report-chart-body-line {
+		height: 13.75rem !important;
+	}
+
+	.workflow-report-doughnut-center {
+		top: 34% !important;
+	}
+
+	.workflow-report-doughnut-center span {
+		font-size: 0.5rem !important;
+		line-height: 1 !important;
+	}
+
+	.workflow-report-doughnut-center strong {
+		margin-top: 0.125rem !important;
+		font-size: 0.875rem !important;
+		line-height: 1 !important;
+	}
+
+	.workflow-report-chart-keys {
+		display: grid !important;
+		grid-template-columns: 1fr !important;
+		gap: 0.5rem !important;
+		padding: 0.75rem 0 0 !important;
+	}
+
+	.workflow-report-chart-keys span {
+		min-height: 2rem !important;
+		align-items: center !important;
+		border-radius: 0.875rem !important;
+		padding: 0.5rem 0.625rem !important;
+		font-size: 0.75rem !important;
+		line-height: 1.15 !important;
+		overflow-wrap: anywhere !important;
+		white-space: normal !important;
+	}
+
+	.workflow-report-chart-keys b {
+		flex: none !important;
+	}
+
+	.workflow-report-insights {
+		grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+		gap: 0.5rem !important;
+	}
+
+	.workflow-report-insight {
+		align-content: space-between !important;
+		min-height: 5.25rem !important;
+		border-radius: 1rem !important;
+		padding: 0.75rem 0.625rem !important;
+	}
+
+	.workflow-report-insight span {
+		font-size: 0.625rem !important;
+		line-height: 1.15 !important;
+		overflow-wrap: anywhere !important;
+	}
+
+	.workflow-report-insight strong {
+		font-size: clamp(0.95rem, 4.6vw, 1.25rem) !important;
+		line-height: 1 !important;
+		overflow-wrap: anywhere !important;
+	}
+
 	.workflow-notification-preferences {
 		grid-template-columns: 1fr !important;
 		align-items: stretch !important;
@@ -369,6 +480,7 @@
 
 @media (max-width: 360px) {
 	.workflow-team-metrics,
+	.workflow-report-insights,
 	.workflow-notifications-actions {
 		grid-template-columns: 1fr !important;
 	}
