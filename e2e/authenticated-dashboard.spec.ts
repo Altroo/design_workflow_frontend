@@ -22,7 +22,7 @@ const loginWithUi = async (page: Page) => {
 
 test.beforeAll(async ({ browser }) => {
 	if (!email || !password) return;
-	if (existsSync(authStatePath)) return;
+	if (existsSync(authStatePath) && !seeded) return;
 
 	mkdirSync(dirname(authStatePath), { recursive: true });
 	const page = await browser.newPage({ storageState: undefined });

@@ -4,6 +4,7 @@ import { join } from 'node:path';
 
 const authStatePath = '.playwright/.auth/design-workflow-e2e.json';
 const screenshotDir = 'test-results/workflow-visual';
+const seeded = process.env.DESIGN_WORKFLOW_E2E_SEEDED === '1';
 
 const readCssVariable = async (locator: Locator, name: string) =>
 	locator.evaluate((element, variableName) => getComputedStyle(element).getPropertyValue(variableName).trim(), name);
@@ -157,6 +158,18 @@ const expectSlateChatAccent = async (page: Page) => {
 const expectFrenchUiChrome = async (locator: Locator, expected: RegExp, forbiddenEnglish: RegExp) => {
 	await expect(locator).toContainText(expected, { timeout: 30_000 });
 	await expect(locator).not.toContainText(forbiddenEnglish);
+};
+
+const expectSeededNotificationCards = async (page: Page) => {
+	if (!seeded) return;
+
+	const reviewCard = page
+		.locator('.workflow-notifications-card')
+		.filter({ hasText: /E2E Review Approval Card|Demande de revue|Review requested/i })
+		.first();
+	await expect(reviewCard, 'seeded notification card should render in visual screenshots').toBeVisible({ timeout: 30_000 });
+	await expect(reviewCard.getByRole('button', { name: /Snooze 1h|Masquer/i })).toBeVisible();
+	await expect(reviewCard.getByRole('button', { name: /Accept|Move to progress|Accepter|progress/i }).first()).toBeVisible();
 };
 
 const boardEnglishChrome = /Saved views|View name|Private|All statuses|All priorities|All assignees|All reviews|Due date ascending|Manual order|Needs Review|Backlog/i;
@@ -368,6 +381,7 @@ test.describe('workflow visual layout pass', () => {
 		await expect(page.locator('.workflow-notification-preferences')).toBeVisible();
 		await expect(page.locator('.workflow-notifications-board')).toBeVisible();
 		await expect(page.locator('.workflow-notifications-list > *').first()).toBeVisible();
+		await expectSeededNotificationCards(page);
 		await expectSharedCardShell(page.locator('.workflow-notifications-metric').first());
 		await expectSharedCardShell(page.locator('.workflow-notification-preferences'));
 		await expectFrenchUiChrome(page.locator('.workflow-notification-preferences'), /Pr.f.rences notifications|Fr.quence du r.sum.|Demandes de revue|Quotidien/i, notificationEnglishChrome);

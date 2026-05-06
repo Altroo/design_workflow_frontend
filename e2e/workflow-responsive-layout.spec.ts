@@ -4,6 +4,7 @@ import { join } from 'node:path';
 
 const authStatePath = '.playwright/.auth/design-workflow-e2e.json';
 const screenshotDir = 'test-results/workflow-responsive';
+const seeded = process.env.DESIGN_WORKFLOW_E2E_SEEDED === '1';
 
 const forceFrench = async (page: Page) => {
 	await page.context().addCookies([{ name: 'app-language', value: 'fr', url: 'http://localhost:3004' }]);
@@ -49,6 +50,18 @@ const expectContentCardInSnapshot = async (page: Page, selector: string, label: 
 	expect(exposure.height, `${label} card height`).toBeGreaterThan(56);
 	expect(exposure.horizontalRatio, `${label} card horizontal exposure`).toBeGreaterThan(0.82);
 	expect(exposure.textLength, `${label} card text`).toBeGreaterThan(8);
+};
+
+const expectSeededNotificationCards = async (page: Page) => {
+	if (!seeded) return;
+
+	const reviewCard = page
+		.locator('.workflow-notifications-card')
+		.filter({ hasText: /E2E Review Approval Card|Demande de revue|Review requested/i })
+		.first();
+	await expect(reviewCard, 'seeded notification card should render before responsive capture').toBeVisible({ timeout: 30_000 });
+	await expect(reviewCard.getByRole('button', { name: /Snooze 1h|Masquer/i })).toBeVisible();
+	await expect(reviewCard.getByRole('button', { name: /Accept|Move to progress|Accepter|progress/i }).first()).toBeVisible();
 };
 
 const openBoardFilters = async (page: Page) => {
@@ -161,7 +174,8 @@ const waitForNotificationsReady = async (page: Page) => {
 	await expect(page.locator('.workflow-notification-preferences')).toBeVisible();
 	await expect(page.locator('.workflow-notifications-board')).toBeVisible();
 	await expect(page.locator('.workflow-notifications-list > *').first()).toBeVisible();
-	await expectContentCardInSnapshot(page, '.workflow-notifications-list > *', 'notification');
+	await expectSeededNotificationCards(page);
+	await expectContentCardInSnapshot(page, seeded ? '.workflow-notifications-card' : '.workflow-notifications-list > *', 'notification');
 };
 
 const waitForUsersReady = async (page: Page) => {
