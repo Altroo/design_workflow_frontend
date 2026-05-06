@@ -11,6 +11,49 @@ const readCssVariable = async (locator: Locator, name: string) =>
 const readCssProperty = async (locator: Locator, name: string) =>
 	locator.evaluate((element, propertyName) => getComputedStyle(element).getPropertyValue(propertyName), name);
 
+const readLocatorPaint = async (page: Page, locator: Locator) => {
+	const buffer = await locator.screenshot();
+	return page.evaluate(async (source) => {
+		const image = await new Promise<HTMLImageElement>((resolve, reject) => {
+			const nextImage = new Image();
+			nextImage.onload = () => resolve(nextImage);
+			nextImage.onerror = () => reject(new Error('Unable to decode locator screenshot.'));
+			nextImage.src = source;
+		});
+		const canvas = document.createElement('canvas');
+		canvas.width = image.naturalWidth;
+		canvas.height = image.naturalHeight;
+		const context = canvas.getContext('2d');
+		if (!context) throw new Error('Unable to read locator screenshot pixels.');
+		context.drawImage(image, 0, 0);
+		const pixels = context.getImageData(0, 0, canvas.width, canvas.height).data;
+		let opaque = 0;
+		let nonWhite = 0;
+		let colored = 0;
+		const colorBuckets = new Set<string>();
+
+		for (let index = 0; index < pixels.length; index += 4) {
+			const red = pixels[index] ?? 0;
+			const green = pixels[index + 1] ?? 0;
+			const blue = pixels[index + 2] ?? 0;
+			const alpha = pixels[index + 3] ?? 0;
+			if (alpha < 8) continue;
+			opaque += 1;
+			if (red < 245 || green < 245 || blue < 245) nonWhite += 1;
+			if (Math.max(red, green, blue) - Math.min(red, green, blue) > 12) colored += 1;
+			colorBuckets.add(`${Math.round(red / 16)}-${Math.round(green / 16)}-${Math.round(blue / 16)}`);
+		}
+
+		return {
+			colorBucketCount: colorBuckets.size,
+			coloredRatio: opaque ? colored / opaque : 0,
+			height: canvas.height,
+			nonWhiteRatio: opaque ? nonWhite / opaque : 0,
+			width: canvas.width,
+		};
+	}, `data:image/png;base64,${buffer.toString('base64')}`);
+};
+
 const expectSharedCardShell = async (locator: Locator) => {
 	await expect(locator).toBeVisible({ timeout: 30_000 });
 	await expect(await readCssProperty(locator, 'border-top-style')).toBe('solid');
@@ -47,6 +90,22 @@ const expectSemanticBoardColors = async (page: Page) => {
 	const reviewCard = page.locator('.workflow-trello-board-card[data-status="in_review"]').first();
 	await expect(reviewCard).toBeVisible({ timeout: 30_000 });
 	await expect(await readCssVariable(reviewCard, '--card-status-accent')).toBe(expectedStatusAccents.in_review);
+};
+
+const expectBoardCoverPaint = async (page: Page) => {
+	const cover = page.locator('.workflow-trello-board-card .workflow-trello-card-cover').first();
+	await expect(cover, 'board cards should render a painted cover area').toBeVisible({ timeout: 30_000 });
+	await expect(cover.locator('.workflow-trello-card-cover-art span')).toHaveCount(3);
+	await expect(cover.locator('.workflow-trello-card-cover-status')).toBeVisible();
+	const box = await cover.boundingBox();
+	expect(box?.width ?? 0).toBeGreaterThan(180);
+	expect(box?.height ?? 0).toBeGreaterThan(80);
+	const paint = await readLocatorPaint(page, cover);
+	expect(paint.width).toBeGreaterThan(180);
+	expect(paint.height).toBeGreaterThan(80);
+	expect(paint.nonWhiteRatio).toBeGreaterThan(0.12);
+	expect(paint.coloredRatio).toBeGreaterThan(0.03);
+	expect(paint.colorBucketCount).toBeGreaterThan(8);
 };
 
 const expectNeutralWorkspaceChrome = async (page: Page) => {
@@ -200,6 +259,7 @@ test.describe('workflow visual layout pass', () => {
 		await expect(page.locator('.workflow-board-surface')).not.toContainText(/Chargement tableau|Loading board/i);
 		await expect.poll(async () => page.locator('[data-testid^="board-task-"]').count()).toBeGreaterThan(0);
 		await expectSemanticBoardColors(page);
+		await expectBoardCoverPaint(page);
 		await page.screenshot({ path: join(screenshotDir, 'board.png'), fullPage: true });
 		await page.locator('[data-testid^="board-task-"]').first().click();
 		await expect(page.locator('.workflow-task-modal')).toBeVisible();
