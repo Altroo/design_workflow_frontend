@@ -16921,3 +16921,478 @@ body {
 		grid-template-columns: 1fr !important;
 	}
 }
+
+/* Final unified palette layer: neutral workspace with one green brand accent. */
+:root {
+	--app-bg: #f8fafc;
+	--surface: #ffffff;
+	--surface-muted: #f8fafc;
+	--surface-strong: #f1f5f9;
+	--ink: #020617;
+	--ink-soft: #475569;
+	--ink-muted: #64748b;
+	--line: #e5e7eb;
+	--line-strong: #cbd5e1;
+	--accent: #00a15d;
+	--accent-strong: #047857;
+	--accent-soft: #f2fbf7;
+	--accent-tint: #f7fcfa;
+}
+
+.workflow-kanban-page,
+.workflow-overview-page,
+.workflow-projects-page,
+.workflow-project-detail-page,
+.workflow-team-page,
+.workflow-report-shell,
+.workflow-chat-shell,
+.workflow-notifications-shell,
+.workflow-users-shell,
+.workflow-user-form-shell,
+.workflow-profile-shell,
+.workflow-password-shell {
+	color: var(--ink) !important;
+}
+
+.workflow-kanban-header,
+.workflow-kanban-toolbar,
+.workflow-saved-view-bar,
+.workflow-overview-header,
+.workflow-overview-metric,
+.workflow-overview-panel,
+.workflow-overview-chart-card,
+.workflow-projects-header,
+.workflow-projects-create,
+.workflow-projects-list,
+.workflow-project-card-modern,
+.workflow-project-detail-header,
+.workflow-project-detail-panel,
+.workflow-team-header,
+.workflow-team-metrics .workflow-overview-metric,
+.workflow-team-analytics,
+.workflow-team-board,
+.workflow-team-card,
+.workflow-team-spotlight,
+.workflow-team-lane,
+.workflow-report-hero,
+.workflow-report-filterbar,
+.workflow-report-metric,
+.workflow-report-chart-card,
+.workflow-report-board,
+.workflow-analytics-panel,
+.workflow-forecast-board,
+.workflow-chat-sidebar,
+.workflow-chat-room,
+.workflow-notifications-hero,
+.workflow-notification-preferences,
+.workflow-notifications-board,
+.workflow-notifications-metric,
+.workflow-notifications-card,
+.workflow-users-hero,
+.workflow-users-metric,
+.workflow-users-board,
+.workflow-users-mobile-card,
+.workflow-user-form-hero,
+.workflow-user-form-panel,
+.workflow-password-card,
+.workflow-password-visual {
+	border-color: var(--line) !important;
+	background: #ffffff !important;
+	color: var(--ink) !important;
+	box-shadow: 0 1.125rem 2.75rem -2.375rem rgba(15, 23, 42, 0.38) !important;
+}
+
+.workflow-overview-metric-pill,
+.workflow-overview-panel-pill,
+.workflow-project-card-pill em,
+.workflow-project-card-stats span,
+.workflow-projects-actions span,
+.workflow-project-detail-panel .workflow-overview-panel-pill em,
+.workflow-team-panel-pill,
+.workflow-team-panel-pill em,
+.workflow-team-status-chips .app-chip,
+.workflow-team-card-footer span,
+.workflow-report-window,
+.workflow-report-board-head > span,
+.workflow-report-chart-head > span,
+.workflow-notifications-toggle,
+.workflow-notifications-mark-all,
+.workflow-notification-preference-toggle,
+.workflow-notification-digest-select,
+.workflow-notifications-board-head > span,
+.workflow-notifications-type,
+.workflow-notifications-read-state,
+.workflow-notifications-meta span,
+.workflow-users-page-pill,
+.workflow-users-board-head > span,
+.workflow-user-form-panel-head,
+.workflow-user-form-panel-pill,
+.workflow-user-form-back,
+.workflow-user-form-toggle,
+.workflow-password-lock,
+.workflow-chip,
+.app-chip,
+.app-pill {
+	border-color: var(--line) !important;
+	background: var(--accent-soft) !important;
+	color: var(--accent-strong) !important;
+	box-shadow: none !important;
+}
+
+.workflow-overview-metric-pill em,
+.workflow-overview-panel-pill em,
+.workflow-projects-metrics .workflow-overview-metric-pill em,
+.workflow-team-metrics .workflow-overview-metric-pill em,
+.workflow-report-metric svg,
+.workflow-notifications-metric svg,
+.workflow-users-metric svg,
+.workflow-user-form-icon,
+.workflow-team-load-track span,
+.workflow-team-estimate-track span,
+.workflow-report-bar span,
+.workflow-forecast-track span,
+.workflow-checklist-progress span,
+.workflow-trello-modal-progress span,
+.workflow-password-dots span {
+	background: var(--accent) !important;
+	color: #ffffff !important;
+}
+
+.workflow-project-card-pill b,
+.workflow-project-card-main p,
+.workflow-team-person h3,
+.workflow-team-spotlight-body h3,
+.workflow-team-mini-row p,
+.workflow-report-chart-head h2,
+.workflow-report-board-head h2,
+.workflow-notifications-board-head h2,
+.workflow-users-board-head h2,
+.workflow-user-form-panel-head h2,
+.workflow-project-detail-feed-item p,
+.workflow-project-detail-meta-card p {
+	color: var(--ink) !important;
+}
+
+.workflow-projects-header p,
+.workflow-team-header p,
+.workflow-project-detail-header p,
+.workflow-report-hero p,
+.workflow-report-board-head p,
+.workflow-report-chart-head p,
+.workflow-notifications-hero p,
+.workflow-notifications-board-head p,
+.workflow-users-hero p,
+.workflow-users-board-head p,
+.workflow-user-form-hero p,
+.workflow-user-form-panel-head p,
+.workflow-overview-metric-pill span,
+.workflow-overview-panel-pill span,
+.workflow-team-panel-pill span,
+.workflow-project-card-main span,
+.workflow-project-card-stats b {
+	color: var(--ink-muted) !important;
+}
+
+.workflow-projects-create .app-button:not(.app-button-ghost),
+.workflow-chat-composer .app-button:not(.app-button-ghost),
+.workflow-task-modal .workflow-trello-modal-action-primary,
+.workflow-task-modal .workflow-trello-modal-save,
+.workflow-task-modal .workflow-trello-modal-checklist-add button,
+.workflow-task-modal .workflow-trello-modal-upload-row button,
+.workflow-task-modal .workflow-trello-modal-comment-box button,
+.workflow-user-form-submit button,
+.workflow-users-hero-actions .app-button,
+.workflow-notifications-action-primary,
+.workflow-notifications-mark-all,
+.workflow-saved-view-bar .app-button:last-child,
+.workflow-upload-submit,
+.workflow-project-detail-page .app-button:not(:disabled) {
+	border-color: var(--accent) !important;
+	background: var(--accent) !important;
+	color: #ffffff !important;
+	box-shadow: 0 1rem 1.875rem -1.5rem rgba(0, 161, 93, 0.62) !important;
+}
+
+.workflow-projects-create .app-button:not(.app-button-ghost):hover,
+.workflow-chat-composer .app-button:not(.app-button-ghost):hover,
+.workflow-user-form-submit button:hover,
+.workflow-users-hero-actions .app-button:hover,
+.workflow-notifications-action-primary:hover,
+.workflow-notifications-mark-all:hover,
+.workflow-saved-view-bar .app-button:last-child:hover,
+.workflow-upload-submit:hover,
+.workflow-project-detail-page .app-button:not(:disabled):hover {
+	border-color: var(--accent-strong) !important;
+	background: var(--accent-strong) !important;
+	color: #ffffff !important;
+}
+
+.workflow-users-status-icon[data-active='true'],
+.workflow-topbar [class*='bg-(--accent)'],
+.workflow-nav-badge,
+.workflow-trello-modal-check[data-checked='true'] {
+	border-color: var(--accent) !important;
+	background: var(--accent) !important;
+	color: #ffffff !important;
+}
+
+.workflow-nav-link:hover,
+.workflow-nav-link[aria-current='page'],
+.workflow-nav-link[class*='bg-(--accent-soft)'],
+.workflow-chat-thread-button:hover,
+.workflow-chat-context-button:hover,
+.workflow-chat-direct-button:hover,
+.workflow-chat-thread-button.is-active,
+.workflow-chat-context-button.is-active,
+.workflow-chat-direct-button.is-active,
+.workflow-chat-thread-button.is-unread,
+.workflow-chat-context-button.is-unread,
+.workflow-chat-direct-button.is-unread,
+.workflow-users-danger-outline:hover,
+.workflow-notifications-toggle:hover,
+.workflow-notifications-action-button:hover,
+.workflow-project-card-open:hover {
+	border-color: rgba(0, 161, 93, 0.28) !important;
+	background: var(--accent-soft) !important;
+	color: var(--accent-strong) !important;
+	box-shadow: inset 0.1875rem 0 0 var(--accent) !important;
+}
+
+.workflow-users-danger-outline {
+	border-color: var(--line) !important;
+	background: #ffffff !important;
+	color: var(--ink) !important;
+}
+
+.workflow-notifications-read-state[data-unread='true'],
+.workflow-notifications-toggle[data-active='true'],
+.workflow-notifications-toggle[data-active='true'] span {
+	border-color: var(--accent) !important;
+	background: var(--accent) !important;
+	color: #ffffff !important;
+}
+
+.workflow-project-card-modern[data-status],
+.workflow-project-card-modern[data-status='active'],
+.workflow-project-card-modern[data-status='planned'],
+.workflow-project-card-modern[data-status='on_hold'],
+.workflow-project-card-modern[data-status='completed'],
+.workflow-project-card-modern[data-status='archived'] {
+	--project-accent: var(--accent) !important;
+}
+
+.workflow-project-card-modern[data-status] .workflow-project-card-pill {
+	background: var(--accent-soft) !important;
+	color: var(--accent-strong) !important;
+}
+
+.workflow-column,
+.workflow-trello-board-card {
+	--status-accent: #111827;
+	--status-soft: #f8fafc;
+	--status-text: #111827;
+	--card-status-accent: #111827;
+	--card-status-soft: #f8fafc;
+	--card-status-text: #111827;
+}
+
+.workflow-column[data-status='in_progress'],
+.workflow-column[data-status='in_review'],
+.workflow-column[data-status='done'],
+.workflow-trello-board-card[data-status='in_progress'],
+.workflow-trello-board-card[data-status='in_review'],
+.workflow-trello-board-card[data-status='done'] {
+	--status-accent: var(--accent);
+	--status-soft: var(--accent-soft);
+	--status-text: var(--accent-strong);
+	--card-status-accent: var(--accent);
+	--card-status-soft: var(--accent-soft);
+	--card-status-text: var(--accent-strong);
+}
+
+.workflow-column[data-status='blocked'],
+.workflow-trello-board-card[data-status='blocked'] {
+	--status-accent: #e11d48;
+	--status-soft: #fff1f2;
+	--status-text: #9f1239;
+	--card-status-accent: #e11d48;
+	--card-status-soft: #fff1f2;
+	--card-status-text: #9f1239;
+}
+
+.workflow-team-load-track,
+.workflow-team-estimate-track,
+.workflow-report-bar,
+.workflow-forecast-track,
+.workflow-checklist-progress,
+.workflow-trello-modal-progress {
+	background: #e5e7eb !important;
+}
+
+.workflow-report-rank,
+.workflow-chat-voice-player > button {
+	background: var(--accent) !important;
+	color: #ffffff !important;
+}
+
+.workflow-report-analytics,
+.workflow-analytics-grid,
+.workflow-team-grid,
+.workflow-projects-layout {
+	color: var(--ink) !important;
+}
+
+.workflow-kanban-header,
+.workflow-projects-header,
+.workflow-project-detail-header,
+.workflow-team-header,
+.workflow-report-hero,
+.workflow-notifications-hero,
+.workflow-users-hero,
+.workflow-user-form-hero {
+	background:
+		linear-gradient(90deg, rgba(0, 161, 93, 0.045), transparent 38%),
+		#ffffff !important;
+}
+
+/* Palette restraint layer: neutral by default, green only for active/primary states. */
+.workflow-nav-link {
+	border-color: transparent !important;
+	background: transparent !important;
+	color: var(--ink-soft) !important;
+	box-shadow: none !important;
+}
+
+.workflow-nav-link > span:not(.workflow-nav-badge) {
+	color: inherit !important;
+}
+
+.workflow-nav-link:hover {
+	border-color: var(--line) !important;
+	background: var(--surface-muted) !important;
+	color: var(--ink) !important;
+	box-shadow: none !important;
+}
+
+.workflow-nav-link[class*='bg-(--accent-soft)'] {
+	border-color: var(--accent) !important;
+	background: var(--accent-soft) !important;
+	color: var(--accent-strong) !important;
+	box-shadow: inset 0.1875rem 0 0 var(--accent) !important;
+}
+
+.workflow-nav-link[class*='bg-(--accent-soft)'] > span:not(.workflow-nav-badge) {
+	color: var(--accent-strong) !important;
+}
+
+.app-pill:not(.workflow-nav-link):not(.workflow-nav-badge):not(.workflow-overview-metric-pill):not(.workflow-overview-panel-pill):not(.workflow-team-panel-pill),
+.workflow-project-card-stats span,
+.workflow-report-board-head > span,
+.workflow-report-chart-head > span,
+.workflow-notifications-board-head > span,
+.workflow-users-board-head > span,
+.workflow-user-form-panel-head,
+.workflow-user-form-panel-pill,
+.workflow-user-form-back,
+.workflow-user-form-toggle {
+	border-color: var(--line) !important;
+	background: var(--surface-muted) !important;
+	color: var(--ink) !important;
+	box-shadow: none !important;
+}
+
+.workflow-overview-metric-pill,
+.workflow-overview-panel-pill,
+.workflow-team-panel-pill,
+.workflow-report-window,
+.workflow-notifications-toggle,
+.workflow-notifications-mark-all,
+.workflow-notification-preference-toggle,
+.workflow-notification-digest-select,
+.workflow-notifications-type,
+.workflow-notifications-read-state,
+.workflow-users-page-pill,
+.workflow-chip,
+.app-chip {
+	border-color: var(--line) !important;
+	background: var(--surface-muted) !important;
+	color: var(--ink-soft) !important;
+	box-shadow: none !important;
+}
+
+.workflow-overview-metric-pill em,
+.workflow-overview-panel-pill em,
+.workflow-team-panel-pill em,
+.workflow-report-metric svg,
+.workflow-notifications-metric svg,
+.workflow-users-metric svg,
+.workflow-user-form-icon,
+.workflow-users-status-icon[data-active='true'],
+.workflow-nav-badge,
+.workflow-report-rank {
+	border-color: var(--accent) !important;
+	background: var(--accent) !important;
+	color: #ffffff !important;
+}
+
+.workflow-overview-metric::before,
+.workflow-project-card-modern::before,
+.workflow-team-card::before,
+.workflow-report-metric::before,
+.workflow-users-metric::before {
+	background: linear-gradient(90deg, var(--accent), rgba(0, 161, 93, 0.08), transparent) !important;
+	opacity: 0.82 !important;
+}
+
+.workflow-projects-create,
+.workflow-projects-list,
+.workflow-team-analytics,
+.workflow-team-board,
+.workflow-report-board,
+.workflow-report-chart-card,
+.workflow-notifications-board,
+.workflow-users-board {
+	background: #ffffff !important;
+}
+
+.workflow-projects-create > header,
+.workflow-projects-list > header,
+.workflow-team-analytics > header,
+.workflow-team-board > header,
+.workflow-report-board-head,
+.workflow-report-chart-head,
+.workflow-notifications-board-head,
+.workflow-users-board-head {
+	border-color: var(--line) !important;
+	background: var(--surface-muted) !important;
+	color: var(--ink) !important;
+}
+
+.workflow-column[data-status='todo'],
+.workflow-trello-board-card[data-status='todo'] {
+	--status-accent: #111827 !important;
+	--status-soft: #f8fafc !important;
+	--status-text: #111827 !important;
+	--card-status-accent: #111827 !important;
+	--card-status-soft: #f8fafc !important;
+	--card-status-text: #111827 !important;
+}
+
+.workflow-column[data-status] .workflow-column-icon,
+.workflow-column[data-status] .workflow-column-count,
+.workflow-column[data-status] .workflow-column-empty > span,
+.workflow-task-cover-mark,
+.workflow-task-cover-chip {
+	border-color: color-mix(in srgb, var(--status-accent, var(--ink)) 18%, #e5e7eb) !important;
+	background: color-mix(in srgb, var(--status-soft, #f8fafc) 74%, #ffffff) !important;
+	color: var(--status-accent, var(--ink)) !important;
+	box-shadow: none !important;
+}
+
+.workflow-trello-board-card[data-status] .workflow-chip[data-status],
+.workflow-project-card-modern .workflow-chip,
+.workflow-project-card-modern .app-chip {
+	border-color: var(--line) !important;
+	background: var(--surface-muted) !important;
+	color: var(--ink-soft) !important;
+}

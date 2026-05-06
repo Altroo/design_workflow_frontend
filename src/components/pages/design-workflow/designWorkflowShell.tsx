@@ -569,13 +569,15 @@ const getChecklistTemplates = (labels: WorkflowCopy['labels']): ChecklistTemplat
 	},
 ];
 
+const WORKFLOW_CHART_PALETTE = ['#00a15d', '#111827', '#475569', '#94a3b8', '#cbd5e1', '#e5e7eb'];
+
 const BOARD_STATUS_META: Record<TaskStatus, { accent: string; text: string; soft: string; icon: ReactNode }> = {
 	backlog: { accent: '#64748b', text: '#334155', soft: '#f8fafc', icon: <Archive size={14} /> },
-	todo: { accent: '#4f46e5', text: '#3730a3', soft: '#eef2ff', icon: <ListTodo size={14} /> },
-	in_progress: { accent: '#f59e0b', text: '#92400e', soft: '#fffbeb', icon: <Clock3 size={14} /> },
-	in_review: { accent: '#06b6d4', text: '#0e7490', soft: '#ecfeff', icon: <ShieldCheck size={14} /> },
-	blocked: { accent: '#f43f5e', text: '#9f1239', soft: '#fff1f2', icon: <CircleAlert size={14} /> },
-	done: { accent: '#22c55e', text: '#166534', soft: '#f0fdf4', icon: <CheckCircle2 size={14} /> },
+	todo: { accent: '#111827', text: '#111827', soft: '#f8fafc', icon: <ListTodo size={14} /> },
+	in_progress: { accent: '#00a15d', text: '#047857', soft: '#f2fbf7', icon: <Clock3 size={14} /> },
+	in_review: { accent: '#047857', text: '#065f46', soft: '#ecfdf5', icon: <ShieldCheck size={14} /> },
+	blocked: { accent: '#e11d48', text: '#9f1239', soft: '#fff1f2', icon: <CircleAlert size={14} /> },
+	done: { accent: '#00a15d', text: '#047857', soft: '#f0fdf4', icon: <CheckCircle2 size={14} /> },
 };
 
 const formatDate = (value?: string | null, emptyLabel = 'No date', locale?: string) => {
@@ -2386,7 +2388,7 @@ const DesignWorkflowShell = ({ title, variant, projectId, taskId }: Props) => {
 				{
 					label: workflow.labels.openTasksLabel,
 					data: projectLoadRows.map((item) => item.open_tasks_count),
-					backgroundColor: projectLoadRows.map((_, index) => ['#3f3cff', '#14b8c8', '#12b981', '#f59e0b', '#ef4444', '#7c3aed'][index % 6]),
+					backgroundColor: projectLoadRows.map((_, index) => WORKFLOW_CHART_PALETTE[index % WORKFLOW_CHART_PALETTE.length]),
 					borderRadius: 10,
 					borderSkipped: false,
 					barThickness: 16,
@@ -2428,7 +2430,7 @@ const DesignWorkflowShell = ({ title, variant, projectId, taskId }: Props) => {
 			datasets: [
 				{
 					data: taskMixValues,
-					backgroundColor: ['#f59e0b', '#3f3cff', '#14b8c8', '#ef4444', '#12b981'],
+					backgroundColor: taskMixValues.map((_, index) => WORKFLOW_CHART_PALETTE[index % WORKFLOW_CHART_PALETTE.length]),
 					borderColor: '#ffffff',
 					borderWidth: 4,
 					hoverOffset: 8,
@@ -5242,7 +5244,7 @@ const DesignWorkflowShell = ({ title, variant, projectId, taskId }: Props) => {
 				{
 					label: workflow.labels.estimatedLoad,
 					data: chartRows.map((row) => row.estimated_minutes),
-					backgroundColor: '#111827',
+					backgroundColor: '#00a15d',
 					borderRadius: 10,
 					borderSkipped: false,
 					barThickness: 14,
@@ -5250,7 +5252,7 @@ const DesignWorkflowShell = ({ title, variant, projectId, taskId }: Props) => {
 				{
 					label: workflow.labels.logged,
 					data: chartRows.map((row) => row.actual_minutes),
-					backgroundColor: '#9ca3af',
+					backgroundColor: '#94a3b8',
 					borderRadius: 10,
 					borderSkipped: false,
 					barThickness: 14,
@@ -5484,7 +5486,7 @@ const DesignWorkflowShell = ({ title, variant, projectId, taskId }: Props) => {
 		const topSharePercent = totalMinutes && topRow ? Math.round((topRow.minutes / totalMinutes) * 100) : 0;
 		const remainingProjectCount = Math.max(0, timeReport.length - topDistributionRows.length);
 		const reportBarHeight = Math.min(430, Math.max(260, chartRows.length * 44 + 150));
-		const reportPalette = ['#111827', '#374151', '#6b7280', '#9ca3af', '#cbd5e1', '#4b5563', '#0f172a', '#d1d5db'];
+		const reportPalette = WORKFLOW_CHART_PALETTE;
 		const reportBarData: ChartData<'bar', number[], string> = {
 			labels: chartRows.map((row) => row.project.name),
 			datasets: [
@@ -5584,8 +5586,8 @@ const DesignWorkflowShell = ({ title, variant, projectId, taskId }: Props) => {
 				{
 					label: workflow.labels.effortCurve,
 					data: chartRows.map((row) => row.minutes),
-					borderColor: '#111827',
-					backgroundColor: 'rgba(17, 24, 39, 0.08)',
+					borderColor: '#00a15d',
+					backgroundColor: 'rgba(0, 161, 93, 0.1)',
 					fill: true,
 					pointBackgroundColor: '#6b7280',
 					pointBorderColor: '#ffffff',
