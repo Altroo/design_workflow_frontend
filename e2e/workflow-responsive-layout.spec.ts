@@ -30,6 +30,27 @@ const capturePage = async (page: Page, name: string) => {
 	await page.screenshot({ path: join(screenshotDir, `${name}.png`), fullPage: true });
 };
 
+const expectContentCardInSnapshot = async (page: Page, selector: string, label: string) => {
+	const card = page.locator(selector).first();
+	await expect(card, `${label} content should be rendered before responsive capture`).toBeVisible({ timeout: 30_000 });
+	const exposure = await card.evaluate((element) => {
+		const box = element.getBoundingClientRect();
+		const viewportWidth = document.documentElement.clientWidth;
+		const horizontal = Math.max(0, Math.min(box.right, viewportWidth) - Math.max(box.left, 0));
+		const text = element.textContent?.replace(/\s+/g, ' ').trim() ?? '';
+		return {
+			height: box.height,
+			horizontalRatio: box.width ? horizontal / box.width : 0,
+			textLength: text.length,
+			width: box.width,
+		};
+	});
+	expect(exposure.width, `${label} card width`).toBeGreaterThan(140);
+	expect(exposure.height, `${label} card height`).toBeGreaterThan(56);
+	expect(exposure.horizontalRatio, `${label} card horizontal exposure`).toBeGreaterThan(0.82);
+	expect(exposure.textLength, `${label} card text`).toBeGreaterThan(8);
+};
+
 const openBoardFilters = async (page: Page) => {
 	const toolbar = page.locator('.workflow-kanban-toolbar');
 	if (await toolbar.isVisible()) return;
@@ -86,6 +107,7 @@ const waitForProjectsReady = async (page: Page) => {
 	await expect(page.locator('.workflow-projects-layout')).toBeVisible();
 	await expect.poll(async () => page.locator('.workflow-project-card-modern').count()).toBeGreaterThan(0);
 	await expect(page.locator('.workflow-project-card-modern').first()).toBeVisible();
+	await expectContentCardInSnapshot(page, '.workflow-project-card-modern', 'project');
 };
 
 const openFirstProjectDetail = async (page: Page) => {
@@ -112,6 +134,7 @@ const openFirstProjectDetail = async (page: Page) => {
 const waitForTeamReady = async (page: Page) => {
 	await expect(page.locator('.workflow-team-grid')).toBeVisible();
 	await expect.poll(async () => page.locator('.workflow-team-card').count()).toBeGreaterThan(0);
+	await expectContentCardInSnapshot(page, '.workflow-team-card', 'team');
 };
 
 const waitForReportReady = async (page: Page) => {
@@ -120,6 +143,7 @@ const waitForReportReady = async (page: Page) => {
 	await expect(page.locator('.workflow-analytics-grid, .workflow-analytics-panel').first()).toBeVisible({ timeout: 30_000 });
 	await expect(page.locator('.workflow-forecast-board')).toBeVisible({ timeout: 30_000 });
 	await expect.poll(async () => page.locator('.workflow-report-card').count(), { timeout: 30_000 }).toBeGreaterThan(0);
+	await expectContentCardInSnapshot(page, '.workflow-report-card', 'report');
 };
 
 const waitForChatReady = async (page: Page) => {
@@ -137,6 +161,7 @@ const waitForNotificationsReady = async (page: Page) => {
 	await expect(page.locator('.workflow-notification-preferences')).toBeVisible();
 	await expect(page.locator('.workflow-notifications-board')).toBeVisible();
 	await expect(page.locator('.workflow-notifications-list > *').first()).toBeVisible();
+	await expectContentCardInSnapshot(page, '.workflow-notifications-list > *', 'notification');
 };
 
 const waitForUsersReady = async (page: Page) => {
