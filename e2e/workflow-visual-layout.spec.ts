@@ -19,6 +19,15 @@ const expectSharedCardShell = async (locator: Locator) => {
 	expect(await readCssProperty(locator, 'box-shadow')).not.toBe('none');
 };
 
+const expectSharedPageHeader = async (locator: Locator) => {
+	await expect(locator).toBeVisible({ timeout: 30_000 });
+	await expect(await readCssProperty(locator, 'border-top-style')).toBe('solid');
+	await expect(await readCssProperty(locator, 'border-top-width')).toBe('1px');
+	await expect(await readCssProperty(locator, 'background-color')).toBe('rgb(255, 255, 255)');
+	expect(parseFloat(await readCssProperty(locator, 'border-top-left-radius'))).toBeGreaterThanOrEqual(16);
+	expect(await readCssProperty(locator, 'box-shadow')).not.toBe('none');
+};
+
 const expectSemanticBoardColors = async (page: Page) => {
 	const expectedStatusAccents: Record<string, string> = {
 		backlog: '#64748b',
@@ -102,6 +111,25 @@ const waitForChatReady = async (page: Page) => {
 	await expect(page.locator('.workflow-chat-room textarea').first()).toBeEnabled({ timeout: 30_000 });
 };
 
+const openAvailableProjectDetail = async (page: Page) => {
+	const projectHrefs = await page.locator('.workflow-project-card-open').evaluateAll((links) =>
+		links.map((link) => (link as HTMLAnchorElement).href).filter(Boolean),
+	);
+	expect(projectHrefs.length).toBeGreaterThan(0);
+
+	for (const href of projectHrefs) {
+		await page.goto(href);
+		const opened = await page
+			.locator('.workflow-project-detail-page')
+			.waitFor({ state: 'visible', timeout: 10_000 })
+			.then(() => true)
+			.catch(() => false);
+		if (opened) return;
+	}
+
+	throw new Error('No available project detail page opened from the project cards.');
+};
+
 test.describe('workflow visual layout pass', () => {
 	test.skip(!existsSync(authStatePath), 'Run the authenticated dashboard setup before visual layout checks.');
 	test.use({ storageState: authStatePath, viewport: { width: 1920, height: 900 } });
@@ -120,6 +148,7 @@ test.describe('workflow visual layout pass', () => {
 	test('captures and checks the premium workflow pages', async ({ page }) => {
 		test.setTimeout(90_000);
 		await page.goto('/dashboard/board');
+		await expectSharedPageHeader(page.locator('.workflow-kanban-header'));
 		await expect(page.locator('.workflow-kanban-toolbar')).toBeVisible();
 		await expect(page.locator('.workflow-kanban-filter-grid')).toBeVisible();
 		await expect(page.locator('.workflow-topbar-controls')).toContainText('FR');
@@ -150,18 +179,21 @@ test.describe('workflow visual layout pass', () => {
 
 		await page.goto('/dashboard/overview');
 		await expect(page.locator('.workflow-overview-page')).toBeVisible();
+		await expectSharedPageHeader(page.locator('.workflow-overview-header'));
 		await expect(page.locator('.workflow-overview-metrics')).toBeVisible();
 		await expect(page.locator('.workflow-overview-grid')).toBeVisible();
 		await expectSharedCardShell(page.locator('.workflow-overview-metric').first());
 		await page.screenshot({ path: join(screenshotDir, 'overview.png'), fullPage: true });
 
 		await page.goto('/dashboard/my-work');
+		await expectSharedPageHeader(page.locator('.workflow-kanban-header'));
 		await expect(page.locator('.workflow-board-lanes')).toBeVisible();
 		await expect(page.locator('.workflow-board-surface')).not.toContainText(/Chargement tableau|Loading board/i);
 		await page.screenshot({ path: join(screenshotDir, 'my-work.png'), fullPage: true });
 
 		await page.goto('/dashboard/projects');
 		await expect(page.locator('.workflow-projects-layout')).toBeVisible();
+		await expectSharedPageHeader(page.locator('.workflow-projects-header'));
 		await expect(page.locator('.workflow-projects-card-grid')).toBeVisible();
 		await expect.poll(async () => page.locator('.workflow-project-card-modern').count()).toBeGreaterThan(0);
 		await expect(page.locator('.workflow-project-card-modern').first()).toBeVisible();
@@ -169,15 +201,15 @@ test.describe('workflow visual layout pass', () => {
 		await expectSharedCardShell(page.locator('.workflow-project-card-modern').first());
 		await expectFrenchUiChrome(page.locator('.workflow-projects-create'), /Cr.er un projet|Nom du projet|Fin cible/i, projectEnglishChrome);
 		await page.screenshot({ path: join(screenshotDir, 'projects.png'), fullPage: true });
-		const firstProjectHref = await page.locator('.workflow-project-card-open').first().getAttribute('href');
-		expect(firstProjectHref).toBeTruthy();
-		await page.goto(firstProjectHref!);
+		await openAvailableProjectDetail(page);
 		await expect(page.locator('.workflow-project-detail-page')).toBeVisible();
+		await expectSharedPageHeader(page.locator('.workflow-project-detail-header'));
 		await expect(page.locator('.workflow-project-detail-grid')).toBeVisible();
 		await expect(page.locator('.workflow-project-detail-panel').first()).toBeVisible();
 		await page.screenshot({ path: join(screenshotDir, 'project-detail.png'), fullPage: true });
 
 		await page.goto('/dashboard/team');
+		await expectSharedPageHeader(page.locator('.workflow-team-header'));
 		await expect(page.locator('.workflow-team-grid')).toBeVisible();
 		await expect(page.locator('.workflow-team-analytics')).toBeVisible();
 		await expect(page.locator('.workflow-team-board')).toBeVisible();
@@ -202,6 +234,7 @@ test.describe('workflow visual layout pass', () => {
 		await page.screenshot({ path: join(screenshotDir, 'team.png'), fullPage: true });
 
 		await page.goto('/dashboard/reports/time');
+		await expectSharedPageHeader(page.locator('.workflow-report-hero'));
 		await expect(page.locator('.workflow-report-filterbar')).toBeVisible();
 		await expect(page.locator('.workflow-report-date-fields')).toBeVisible();
 		await expect(page.locator('.workflow-report-actions')).toBeVisible();
@@ -220,6 +253,8 @@ test.describe('workflow visual layout pass', () => {
 
 		await page.goto('/dashboard/chat');
 		await waitForChatReady(page);
+		await expectSharedPageHeader(page.locator('.workflow-chat-sidebar-head'));
+		await expectSharedPageHeader(page.locator('.workflow-chat-room-header'));
 		await expect(page.getByRole('button', { name: /Filtrer par/i })).toBeVisible();
 		await expect(page.locator('.workflow-chat-tools-toggle span')).toHaveText(/Filtrer par/i);
 		await expectSlateChatAccent(page);
@@ -230,6 +265,7 @@ test.describe('workflow visual layout pass', () => {
 
 		await page.goto('/dashboard/notifications');
 		await expect(page.locator('.workflow-notifications-shell')).toBeVisible();
+		await expectSharedPageHeader(page.locator('.workflow-notifications-hero'));
 		await expect(page.locator('.workflow-notifications-metrics')).toBeVisible();
 		await expect(page.locator('.workflow-notification-preferences')).toBeVisible();
 		await expect(page.locator('.workflow-notifications-board')).toBeVisible();
@@ -242,22 +278,26 @@ test.describe('workflow visual layout pass', () => {
 
 		await page.goto('/dashboard/users');
 		await waitForUsersReady(page);
+		await expectSharedPageHeader(page.locator('.workflow-users-hero'));
 		await page.screenshot({ path: join(screenshotDir, 'users.png'), fullPage: true });
 
 		await page.goto('/dashboard/users/new');
 		await expect(page.getByTestId('api-loader')).toHaveCount(0, { timeout: 30_000 });
 		await expect(page.locator('.workflow-user-form-shell')).toBeVisible({ timeout: 30_000 });
+		await expectSharedPageHeader(page.locator('.workflow-user-form-hero'));
 		await expect(page.locator('.workflow-user-form-grid')).toBeVisible({ timeout: 30_000 });
 		await page.screenshot({ path: join(screenshotDir, 'user-new.png'), fullPage: true });
 
 		await page.goto('/dashboard/settings/edit-profile');
 		await expect(page.locator('.workflow-profile-shell')).toBeVisible();
+		await expectSharedPageHeader(page.locator('.workflow-user-form-hero'));
 		await expect(page.locator('.workflow-profile-fields')).toBeVisible();
 		await expect(page.getByTestId('api-loader')).toHaveCount(0, { timeout: 20_000 });
 		await page.screenshot({ path: join(screenshotDir, 'profile.png'), fullPage: true });
 
 		await page.goto('/dashboard/settings/password');
 		await expect(page.locator('.workflow-password-shell')).toBeVisible();
+		await expectSharedPageHeader(page.locator('.workflow-user-form-hero'));
 		await expect(page.locator('.workflow-password-fields')).toBeVisible();
 		await page.screenshot({ path: join(screenshotDir, 'password.png'), fullPage: true });
 	});

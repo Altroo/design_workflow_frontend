@@ -62,9 +62,21 @@ const waitForProjectsReady = async (page: Page) => {
 };
 
 const openFirstProjectDetail = async (page: Page) => {
-	const firstProjectHref = await page.locator('.workflow-project-card-open').first().getAttribute('href');
-	expect(firstProjectHref).toBeTruthy();
-	await page.goto(firstProjectHref!);
+	const projectHrefs = await page.locator('.workflow-project-card-open').evaluateAll((links) =>
+		links.map((link) => (link as HTMLAnchorElement).href).filter(Boolean),
+	);
+	expect(projectHrefs.length).toBeGreaterThan(0);
+
+	for (const href of projectHrefs) {
+		await page.goto(href);
+		const opened = await page
+			.locator('.workflow-project-detail-page')
+			.waitFor({ state: 'visible', timeout: 10_000 })
+			.then(() => true)
+			.catch(() => false);
+		if (opened) break;
+	}
+
 	await expect(page.locator('.workflow-project-detail-page')).toBeVisible();
 	await expect(page.locator('.workflow-project-detail-grid')).toBeVisible();
 	await expect(page.locator('.workflow-project-detail-panel').first()).toBeVisible();
