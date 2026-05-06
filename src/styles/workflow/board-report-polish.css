@@ -1,0 +1,301 @@
+/* EOF board/report polish. Keep this after every broad template sweep. */
+.workflow-kanban-page .workflow-board-layout,
+.workflow-kanban-page .workflow-board-surface {
+	min-height: auto !important;
+}
+
+.workflow-kanban-page .workflow-board-surface {
+	padding: 1.625rem 1.75rem !important;
+	border-radius: 1.25rem !important;
+	background: #ffffff !important;
+	box-shadow: 0 1.5rem 3.75rem -3.25rem rgba(15, 23, 42, 0.45) !important;
+}
+
+.workflow-kanban-page .workflow-board-lanes {
+	align-items: flex-start !important;
+	gap: 1.75rem !important;
+	padding: 0.5rem 0 0.875rem !important;
+}
+
+.workflow-kanban-page .workflow-column {
+	align-self: flex-start !important;
+	width: 20.625rem !important;
+	min-width: 20.625rem !important;
+	min-height: auto !important;
+	height: auto !important;
+	padding: 0 !important;
+	border: 0 !important;
+	border-radius: 0 !important;
+	background: transparent !important;
+	box-shadow: none !important;
+	overflow: visible !important;
+}
+
+.workflow-kanban-page .workflow-column[data-status] .workflow-column-header {
+	min-height: 3.5rem !important;
+	margin: 0 0 1rem !important;
+	padding: 0.75rem 0.875rem !important;
+	border: 0 !important;
+	border-radius: 1rem !important;
+	background: var(--status-soft) !important;
+	color: var(--status-text) !important;
+	box-shadow: none !important;
+}
+
+.workflow-kanban-page .workflow-column-header h2 {
+	font-size: 1rem !important;
+	font-weight: 800 !important;
+	line-height: 1.15 !important;
+	letter-spacing: 0 !important;
+}
+
+.workflow-kanban-page .workflow-column-header p {
+	font-size: 0.6875rem !important;
+	line-height: 1.25 !important;
+}
+
+.workflow-kanban-page .workflow-column-icon,
+.workflow-kanban-page .workflow-column-count {
+	width: 2.25rem !important;
+	height: 2.25rem !important;
+	min-width: 2.25rem !important;
+	border-radius: 999px !important;
+}
+
+.workflow-kanban-page .workflow-column-stats {
+	gap: 0.45rem !important;
+	margin: 0 0 0.75rem !important;
+	padding: 0 !important;
+}
+
+.workflow-kanban-page .workflow-column-stats span {
+	min-height: 1.55rem !important;
+	padding: 0.25rem 0.55rem !important;
+	border-radius: 999px !important;
+	font-size: 0.6875rem !important;
+	line-height: 1 !important;
+}
+
+.workflow-kanban-page .workflow-column-cards {
+	min-height: 0 !important;
+	gap: 0.875rem !important;
+	flex: 0 0 auto !important;
+	overflow: visible !important;
+	padding: 0 !important;
+}
+
+.workflow-kanban-page .workflow-board-card-shell,
+.workflow-kanban-page .workflow-board-card-shell:has(.workflow-trello-board-card[data-status]) {
+	border: 0 !important;
+	background: transparent !important;
+	box-shadow: none !important;
+}
+
+.workflow-kanban-page .workflow-board-card-shell::before,
+.workflow-kanban-page .workflow-board-card-shell::after {
+	display: none !important;
+}
+
+.workflow-kanban-page .workflow-trello-board-card[data-status] {
+	padding: 1rem !important;
+	border-color: color-mix(in srgb, var(--card-status-accent) 28%, #e5e7eb) !important;
+	border-radius: 1rem !important;
+	background:
+		linear-gradient(180deg, var(--card-status-soft) 0 0.35rem, #ffffff 0.35rem),
+		#ffffff !important;
+	box-shadow: 0 1.125rem 2.25rem -2rem color-mix(in srgb, var(--card-status-accent) 42%, rgba(15, 23, 42, 0.42)) !important;
+}
+
+.workflow-kanban-page .workflow-trello-card-cover {
+	min-height: 6.25rem !important;
+	border-radius: 0.875rem !important;
+}
+
+.workflow-kanban-page .workflow-trello-card-title {
+	font-size: 1rem !important;
+	line-height: 1.2 !important;
+}
+
+.workflow-kanban-page .workflow-trello-card-description {
+	margin-top: 0.5rem !important;
+	font-size: 0.8125rem !important;
+	line-height: 1.45 !important;
+}
+
+.workflow-kanban-page .workflow-trello-card-badges span,
+.workflow-kanban-page .workflow-trello-card-review-row span,
+.workflow-kanban-page .workflow-trello-card-labels span {
+	min-height: 1.55rem !important;
+	padding: 0.25rem 0.5rem !important;
+	font-size: 0.6875rem !important;
+	line-height: 1 !important;
+}
+
+.workflow-kanban-page .workflow-column-empty {
+	min-height: 10.5rem !important;
+	padding: 1rem !important;
+	border-radius: 1rem !important;
+	background: #ffffff !important;
+	box-shadow: 0 1.125rem 2.5rem -2rem rgba(15, 23, 42, 0.38) !important;
+}
+
+.workflow-kanban-page .workflow-column-add-card {
+	justify-content: flex-start !important;
+	min-height: 2.5rem !important;
+	margin-top: 0.25rem !important;
+	padding: 0 0.35rem !important;
+	border: 0 !important;
+	background: transparent !important;
+	color: #64748b !important;
+	box-shadow: none !important;
+}
+
+@media (max-width: 47.9375rem) {
+	.workflow-kanban-page .workflow-board-surface {
+		padding: 1rem !important;
+		border-radius: 1rem !important;
+	}
+
+	.workflow-kanban-page .workflow-board-lanes {
+		gap: 1rem !important;
+		padding-bottom: 0.5rem !important;
+	}
+
+	.workflow-kanban-page .workflow-column {
+		width: min(19rem, calc(100vw - 3rem)) !important;
+		min-width: min(19rem, calc(100vw - 3rem)) !important;
+	}
+
+	.workflow-kanban-page .workflow-column[data-status] .workflow-column-header {
+		min-height: 3.25rem !important;
+		margin-bottom: 0.75rem !important;
+		padding: 0.6875rem 0.75rem !important;
+	}
+
+	.workflow-kanban-page .workflow-column-empty {
+		min-height: 8.75rem !important;
+	}
+
+	.workflow-kanban-page .workflow-trello-card-cover {
+		min-height: 5.5rem !important;
+	}
+}
+
+.workflow-column[data-status='backlog'],
+.workflow-trello-board-card[data-status='backlog'] {
+	--status-accent: #64748b;
+	--status-soft: #f8fafc;
+	--status-text: #334155;
+	--card-status-accent: #64748b;
+	--card-status-soft: #f8fafc;
+	--card-status-text: #334155;
+}
+
+.workflow-column[data-status='todo'],
+.workflow-trello-board-card[data-status='todo'] {
+	--status-accent: #4f46e5;
+	--status-soft: #eef2ff;
+	--status-text: #312e81;
+	--card-status-accent: #4f46e5;
+	--card-status-soft: #eef2ff;
+	--card-status-text: #312e81;
+}
+
+.workflow-column[data-status='in_progress'],
+.workflow-trello-board-card[data-status='in_progress'] {
+	--status-accent: #f59e0b;
+	--status-soft: #fffbeb;
+	--status-text: #92400e;
+	--card-status-accent: #f59e0b;
+	--card-status-soft: #fffbeb;
+	--card-status-text: #92400e;
+}
+
+.workflow-column[data-status='in_review'],
+.workflow-trello-board-card[data-status='in_review'] {
+	--status-accent: #06b6d4;
+	--status-soft: #ecfeff;
+	--status-text: #155e75;
+	--card-status-accent: #06b6d4;
+	--card-status-soft: #ecfeff;
+	--card-status-text: #155e75;
+}
+
+.workflow-column[data-status='blocked'],
+.workflow-trello-board-card[data-status='blocked'] {
+	--status-accent: #f43f5e;
+	--status-soft: #fff1f2;
+	--status-text: #9f1239;
+	--card-status-accent: #f43f5e;
+	--card-status-soft: #fff1f2;
+	--card-status-text: #9f1239;
+}
+
+.workflow-column[data-status='done'],
+.workflow-trello-board-card[data-status='done'] {
+	--status-accent: #22c55e;
+	--status-soft: #f0fdf4;
+	--status-text: #166534;
+	--card-status-accent: #22c55e;
+	--card-status-soft: #f0fdf4;
+	--card-status-text: #166534;
+}
+
+@media (max-width: 47.9375rem) {
+
+	.workflow-report-shell {
+		gap: 1rem !important;
+	}
+
+	.workflow-report-metrics {
+		grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+		gap: 0.875rem !important;
+	}
+
+	.workflow-report-metric {
+		min-height: 9rem !important;
+		overflow: hidden !important;
+		padding: 1rem !important;
+		border-radius: 1rem !important;
+	}
+
+	.workflow-report-metric svg {
+		width: 1.875rem !important;
+		height: 1.875rem !important;
+		padding: 0.45rem !important;
+	}
+
+	.workflow-report-metric span {
+		max-width: 100% !important;
+		font-size: 0.6875rem !important;
+		line-height: 1.2 !important;
+		overflow-wrap: anywhere !important;
+	}
+
+	.workflow-report-metric strong {
+		max-width: 100% !important;
+		font-size: clamp(1.35rem, 6.2vw, 1.75rem) !important;
+		line-height: 1.05 !important;
+		overflow-wrap: anywhere !important;
+	}
+
+	.workflow-report-metric-rose strong {
+		font-size: clamp(1.1rem, 5.2vw, 1.45rem) !important;
+	}
+
+	.workflow-analytics-panel-head h2,
+	.workflow-report-board-head h2,
+	.workflow-report-chart-head h2 {
+		font-size: clamp(1.35rem, 7vw, 1.85rem) !important;
+		line-height: 1.05 !important;
+	}
+
+	.workflow-analytics-kpis strong,
+	.workflow-analytics-stack b,
+	.workflow-report-insight strong,
+	.workflow-report-card h3 {
+		font-size: clamp(1rem, 5vw, 1.35rem) !important;
+		line-height: 1.08 !important;
+		overflow-wrap: anywhere !important;
+	}
+}

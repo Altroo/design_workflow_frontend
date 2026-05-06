@@ -1,6 +1,9 @@
 import React from 'react';
 import type { Metadata, Viewport } from 'next';
 import '@/styles/globals.css';
+import '@/styles/workflow/chat-workspace.css';
+import '@/styles/workflow/board-report-polish.css';
+import '@/styles/workflow/operational-density.css';
 import '@/styles/workflow/foundation.css';
 import '@/styles/workflow/cards.css';
 import '@/styles/workflow/page-heroes.css';
