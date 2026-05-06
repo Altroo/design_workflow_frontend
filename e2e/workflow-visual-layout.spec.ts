@@ -128,6 +128,22 @@ const expectNeutralWorkspaceChrome = async (page: Page) => {
 	}
 };
 
+const expectNoNextDevIndicator = async (page: Page) => {
+	await expect
+		.poll(
+			() =>
+				page.evaluate(() =>
+					Array.from(document.querySelectorAll('nextjs-portal')).some((portal) => {
+						const style = getComputedStyle(portal);
+						const box = portal.getBoundingClientRect();
+						return style.display !== 'none' && style.visibility !== 'hidden' && box.width > 0 && box.height > 0;
+					}),
+				),
+			{ timeout: 10_000 },
+		)
+		.toBe(false);
+};
+
 const expectSlateChatAccent = async (page: Page) => {
 	const chatShell = page.locator('.workflow-chat-shell');
 	await expect(await readCssVariable(chatShell, '--chat-accent')).toBe('#475569');
@@ -250,6 +266,7 @@ test.describe('workflow visual layout pass', () => {
 	test('captures and checks the premium workflow pages', async ({ page }) => {
 		test.setTimeout(90_000);
 		await page.goto('/dashboard/board');
+		await expectNoNextDevIndicator(page);
 		await expectSharedPageHeader(page.locator('.workflow-kanban-header'));
 		await expectNeutralWorkspaceChrome(page);
 		await expect(page.locator('.workflow-kanban-toolbar')).toBeVisible();

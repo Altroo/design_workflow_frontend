@@ -26,8 +26,25 @@ const expectNoPageOverflow = async (page: Page) => {
 	expect(overflow.width).toBeLessThanOrEqual(overflow.viewport + 4);
 };
 
+const expectNoNextDevIndicator = async (page: Page) => {
+	await expect
+		.poll(
+			() =>
+				page.evaluate(() =>
+					Array.from(document.querySelectorAll('nextjs-portal')).some((portal) => {
+						const style = getComputedStyle(portal);
+						const box = portal.getBoundingClientRect();
+						return style.display !== 'none' && style.visibility !== 'hidden' && box.width > 0 && box.height > 0;
+					}),
+				),
+			{ timeout: 10_000 },
+		)
+		.toBe(false);
+};
+
 const capturePage = async (page: Page, name: string) => {
 	await expectNoPageOverflow(page);
+	await expectNoNextDevIndicator(page);
 	await page.screenshot({ path: join(screenshotDir, `${name}.png`), fullPage: true });
 };
 

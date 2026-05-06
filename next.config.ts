@@ -45,6 +45,7 @@ const nextConfig: NextConfig = {
 	poweredByHeader: false,
 	compress: false,
 	typedRoutes: true,
+	devIndicators: false,
 	outputFileTracingRoot: __dirname,
 
 	experimental: {
