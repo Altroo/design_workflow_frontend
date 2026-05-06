@@ -1,6 +1,10 @@
 import React from 'react';
 import type { Metadata, Viewport } from 'next';
 import '@/styles/globals.css';
+import '@/styles/workflow/foundation.css';
+import '@/styles/workflow/cards.css';
+import '@/styles/workflow/page-heroes.css';
+import '@/styles/workflow/neutral-chrome.css';
 import SessionProvider from '@/providers/sessionProvider';
 import StoreProvider from '@/providers/storeProvider';
 import type { AppProps } from 'next/app';

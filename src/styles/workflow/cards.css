@@ -1,0 +1,214 @@
+/* Shared dashboard cards: Projects, Team, Reports, and Notifications match Accueil. */
+.workflow-projects-create,
+.workflow-projects-list,
+.workflow-project-card-modern,
+.workflow-team-analytics,
+.workflow-team-board,
+.workflow-team-card,
+.workflow-team-spotlight,
+.workflow-team-lane,
+.workflow-report-metric,
+.workflow-report-chart-card,
+.workflow-report-board,
+.workflow-report-card,
+.workflow-forecast-board,
+.workflow-analytics-panel,
+.workflow-notification-preferences,
+.workflow-notifications-board,
+.workflow-notifications-metric,
+.workflow-notifications-card {
+	position: relative !important;
+	overflow: hidden !important;
+	border: 1px solid var(--line) !important;
+	border-radius: 1.125rem !important;
+	background: #ffffff !important;
+	box-shadow: 0 1.125rem 2.75rem -2.375rem rgba(15, 23, 42, 0.38) !important;
+}
+
+.workflow-projects-create,
+.workflow-projects-list,
+.workflow-team-analytics,
+.workflow-team-board,
+.workflow-report-chart-card,
+.workflow-report-board,
+.workflow-forecast-board,
+.workflow-analytics-panel,
+.workflow-notification-preferences,
+.workflow-notifications-board {
+	margin: 0 !important;
+}
+
+.workflow-projects-create > header,
+.workflow-projects-list > header,
+.workflow-team-analytics > header,
+.workflow-team-board > header,
+.workflow-report-chart-head,
+.workflow-report-board-head,
+.workflow-notification-preferences > div:first-child,
+.workflow-notifications-board-head {
+	border-bottom: 1px solid var(--line) !important;
+	background: var(--surface-muted) !important;
+	padding: 1rem !important;
+}
+
+.workflow-project-card-modern,
+.workflow-team-card,
+.workflow-team-spotlight,
+.workflow-team-lane,
+.workflow-report-card,
+.workflow-notifications-card {
+	border-radius: 1rem !important;
+	box-shadow: 0 0.875rem 1.875rem -1.75rem rgba(15, 23, 42, 0.4) !important;
+}
+
+.workflow-report-metric,
+.workflow-notifications-metric {
+	display: grid !important;
+	min-height: 8.75rem !important;
+	align-content: space-between !important;
+	padding: 1.25rem !important;
+	background:
+		linear-gradient(180deg, var(--surface-muted) 0 3.5rem, #ffffff 3.5rem),
+		#ffffff !important;
+}
+
+.workflow-report-metric::before,
+.workflow-notifications-metric::before,
+.workflow-project-card-modern::before,
+.workflow-team-card::before {
+	position: absolute !important;
+	inset: 0 auto auto 0 !important;
+	width: 100% !important;
+	height: 0.25rem !important;
+	background: linear-gradient(90deg, var(--accent), rgba(15, 23, 42, 0.06), transparent) !important;
+	content: '' !important;
+	opacity: 0.82 !important;
+}
+
+.workflow-report-metric svg,
+.workflow-notifications-metric svg {
+	justify-self: end !important;
+	width: 2.25rem !important;
+	height: 2.25rem !important;
+	border: 1px solid var(--accent) !important;
+	border-radius: 999px !important;
+	background: var(--accent) !important;
+	padding: 0.5625rem !important;
+	color: #ffffff !important;
+}
+
+.workflow-report-metric span,
+.workflow-notifications-metric span {
+	color: var(--ink-muted) !important;
+	font-size: 0.75rem !important;
+	font-weight: 900 !important;
+	letter-spacing: 0.08em !important;
+	text-transform: uppercase !important;
+}
+
+.workflow-report-metric strong,
+.workflow-notifications-metric strong {
+	color: var(--ink) !important;
+	font-size: 2rem !important;
+	font-weight: 950 !important;
+	line-height: 1 !important;
+}
+
+.workflow-notifications-card {
+	grid-template-columns: 2.75rem minmax(0, 1fr) !important;
+	align-items: start !important;
+	padding: 1rem !important;
+}
+
+.workflow-notifications-card-rail {
+	display: none !important;
+}
+
+.workflow-notifications-card-icon {
+	width: 2.25rem !important;
+	height: 2.25rem !important;
+	border: 1px solid var(--line) !important;
+	border-radius: 999px !important;
+	background: var(--surface-muted) !important;
+	color: var(--ink) !important;
+}
+
+.workflow-notifications-card[data-unread='true'] {
+	border-color: color-mix(in srgb, var(--accent) 22%, var(--line)) !important;
+	background:
+		linear-gradient(90deg, rgba(15, 23, 42, 0.04), transparent 36%),
+		#ffffff !important;
+}
+
+.workflow-notifications-type,
+.workflow-notifications-read-state,
+.workflow-notifications-meta span,
+.workflow-report-board-head > span,
+.workflow-report-chart-head > span {
+	border-color: var(--line) !important;
+	background: #ffffff !important;
+	color: var(--ink-soft) !important;
+}
+
+.workflow-notifications-action-button,
+.workflow-notifications-comment-action button {
+	border-color: var(--line) !important;
+	background: #ffffff !important;
+	color: var(--ink) !important;
+	box-shadow: none !important;
+}
+
+.workflow-notifications-action-primary,
+.workflow-notifications-action-button:hover,
+.workflow-notifications-comment-action button:hover {
+	border-color: var(--ink) !important;
+	background: var(--ink) !important;
+	color: #ffffff !important;
+	box-shadow: none !important;
+}
+
+.workflow-notification-preferences {
+	display: grid !important;
+	grid-template-columns: minmax(16rem, 0.8fr) minmax(0, 1.2fr) !important;
+	align-items: center !important;
+	gap: 1rem !important;
+	padding: 1rem !important;
+}
+
+.workflow-notification-preferences > div:first-child {
+	border: 0 !important;
+	background: transparent !important;
+	padding: 0 !important;
+}
+
+.workflow-notification-preference-grid {
+	align-items: center !important;
+	justify-content: end !important;
+}
+
+@media (max-width: 720px) {
+	.workflow-notification-preferences {
+		grid-template-columns: 1fr !important;
+		align-items: stretch !important;
+		padding: 1rem !important;
+	}
+
+	.workflow-notification-preference-grid {
+		display: grid !important;
+		grid-template-columns: 1fr !important;
+		justify-content: stretch !important;
+		width: 100% !important;
+	}
+
+	.workflow-notification-preference-toggle,
+	.workflow-notification-digest-select {
+		width: 100% !important;
+		min-width: 0 !important;
+		justify-content: space-between !important;
+	}
+
+	.workflow-notification-digest-select select {
+		min-width: 0 !important;
+		max-width: 8.5rem !important;
+	}
+}
