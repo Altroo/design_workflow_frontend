@@ -218,9 +218,28 @@ const DEFAULT_NOTIFICATION_PREFERENCES: NotificationPreference = {
 };
 const EMPTY_SELECT_VALUE = '__empty__';
 const WORK_DAY_MINUTES = 9 * 60;
-const CALENDAR_WEEKDAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
-
 type WorkflowCopy = TranslationDictionary['workflow'];
+type PrintableReportCopy = {
+	title: string;
+	trackedTime: string;
+	leadTime: string;
+	cycleTime: string;
+	blockedTime: string;
+	projectTime: string;
+	project: string;
+	manager: string;
+	minutes: string;
+	hours: string;
+	designerForecast: string;
+	designer: string;
+	openTasks: string;
+	overdueTasks: string;
+	remainingMinutes: string;
+	loadPercent: string;
+	risk: string;
+	noProjectTimeWindow: string;
+	noForecastRows: string;
+};
 type ChecklistTemplate = {
 	key: string;
 	title: string;
@@ -380,11 +399,15 @@ const openPrintableReport = ({
 	totalMinutes,
 	timeReport,
 	workflowReport,
+	copy,
+	riskLabelFor,
 }: {
 	dateWindow: string;
 	totalMinutes: number;
 	timeReport: TimeReportRow[];
 	workflowReport?: WorkflowAnalyticsReport;
+	copy: PrintableReportCopy;
+	riskLabelFor: (risk: string) => string;
 }) => {
 	if (typeof window === 'undefined') return;
 	const printable = window.open('', '_blank', 'width=960,height=720');
@@ -411,14 +434,14 @@ const openPrintableReport = ({
 				<td>${escapeHtml(row.overdue_tasks)}</td>
 				<td>${escapeHtml(row.remaining_minutes)}</td>
 				<td>${escapeHtml(`${row.load_percent}%`)}</td>
-				<td>${escapeHtml(row.risk)}</td>
+				<td>${escapeHtml(riskLabelFor(row.risk))}</td>
 			</tr>
 		`)
 		.join('');
 	printable.document.write(`<!doctype html>
 		<html>
 			<head>
-				<title>Design Workflow Report</title>
+				<title>${escapeHtml(copy.title)}</title>
 				<style>
 					* { box-sizing: border-box; }
 					body { margin: 0; padding: 32px; color: #0f172a; font: 13px/1.45 Arial, sans-serif; }
@@ -437,24 +460,24 @@ const openPrintableReport = ({
 			</head>
 			<body>
 				<header>
-					<h1>Design Workflow Report</h1>
+					<h1>${escapeHtml(copy.title)}</h1>
 					<p>${escapeHtml(dateWindow)}</p>
 				</header>
 				<section class="kpis">
-					<div class="kpi"><span>Tracked time</span><strong>${escapeHtml(formatMinutes(totalMinutes))}</strong></div>
-					<div class="kpi"><span>Lead time</span><strong>${escapeHtml(workflowReport ? `${workflowReport.lead_time_days}d` : 'n/a')}</strong></div>
-					<div class="kpi"><span>Cycle time</span><strong>${escapeHtml(workflowReport ? `${workflowReport.cycle_time_days}d` : 'n/a')}</strong></div>
-					<div class="kpi"><span>Blocked time</span><strong>${escapeHtml(formatMinutes(workflowReport?.blocked_time_minutes ?? 0))}</strong></div>
+					<div class="kpi"><span>${escapeHtml(copy.trackedTime)}</span><strong>${escapeHtml(formatMinutes(totalMinutes))}</strong></div>
+					<div class="kpi"><span>${escapeHtml(copy.leadTime)}</span><strong>${escapeHtml(workflowReport ? `${workflowReport.lead_time_days}d` : 'n/a')}</strong></div>
+					<div class="kpi"><span>${escapeHtml(copy.cycleTime)}</span><strong>${escapeHtml(workflowReport ? `${workflowReport.cycle_time_days}d` : 'n/a')}</strong></div>
+					<div class="kpi"><span>${escapeHtml(copy.blockedTime)}</span><strong>${escapeHtml(formatMinutes(workflowReport?.blocked_time_minutes ?? 0))}</strong></div>
 				</section>
-				<h2>Project time</h2>
+				<h2>${escapeHtml(copy.projectTime)}</h2>
 				<table>
-					<thead><tr><th>Project</th><th>Manager</th><th>Minutes</th><th>Hours</th></tr></thead>
-					<tbody>${projectRows || '<tr><td colspan="4">No project time in this window.</td></tr>'}</tbody>
+					<thead><tr><th>${escapeHtml(copy.project)}</th><th>${escapeHtml(copy.manager)}</th><th>${escapeHtml(copy.minutes)}</th><th>${escapeHtml(copy.hours)}</th></tr></thead>
+					<tbody>${projectRows || `<tr><td colspan="4">${escapeHtml(copy.noProjectTimeWindow)}</td></tr>`}</tbody>
 				</table>
-				<h2>Designer forecast</h2>
+				<h2>${escapeHtml(copy.designerForecast)}</h2>
 				<table>
-					<thead><tr><th>Designer</th><th>Open</th><th>Overdue</th><th>Remaining minutes</th><th>Load</th><th>Risk</th></tr></thead>
-					<tbody>${forecastHtml || '<tr><td colspan="6">No forecast rows.</td></tr>'}</tbody>
+					<thead><tr><th>${escapeHtml(copy.designer)}</th><th>${escapeHtml(copy.openTasks)}</th><th>${escapeHtml(copy.overdueTasks)}</th><th>${escapeHtml(copy.remainingMinutes)}</th><th>${escapeHtml(copy.loadPercent)}</th><th>${escapeHtml(copy.risk)}</th></tr></thead>
+					<tbody>${forecastHtml || `<tr><td colspan="6">${escapeHtml(copy.noForecastRows)}</td></tr>`}</tbody>
 				</table>
 			</body>
 		</html>`);
@@ -555,14 +578,14 @@ const BOARD_STATUS_META: Record<TaskStatus, { accent: string; text: string; soft
 	done: { accent: '#22c55e', text: '#166534', soft: '#f0fdf4', icon: <CheckCircle2 size={14} /> },
 };
 
-const formatDate = (value?: string | null, emptyLabel = 'No date') => {
+const formatDate = (value?: string | null, emptyLabel = 'No date', locale?: string) => {
 	if (!value) return emptyLabel;
-	return new Date(value).toLocaleDateString();
+	return new Date(value).toLocaleDateString(locale);
 };
 
-const formatDateTime = (value?: string | null, emptyLabel = 'No date') => {
+const formatDateTime = (value?: string | null, emptyLabel = 'No date', locale?: string) => {
 	if (!value) return emptyLabel;
-	return new Date(value).toLocaleString([], { dateStyle: 'medium', timeStyle: 'short' });
+	return new Date(value).toLocaleString(locale, { dateStyle: 'medium', timeStyle: 'short' });
 };
 
 const parseLocalCalendarDate = (value?: string | null) => {
@@ -1603,11 +1626,19 @@ const DesignWorkflowShell = ({ title, variant, projectId, taskId }: Props) => {
 	const profile = useAppSelector(getProfilState);
 	const token = useAppSelector(getAccessToken);
 	const onlineUserIds = useAppSelector(getWSOnlineUserIdsState);
-	const { t } = useLanguage();
+	const { t, language } = useLanguage();
 	const workflow = t.workflow;
-	const labelFor = (value: string) => workflow.statuses[value] ?? workflow.priorities[value] ?? workflow.activities[value] ?? formatLabel(value);
-	const dateFor = (value?: string | null) => formatDate(value, workflow.labels.noDate);
-	const dateTimeFor = (value?: string | null) => formatDateTime(value, workflow.labels.noDate);
+	const locale = language === 'en' ? 'en-US' : 'fr-FR';
+	const labelFor = (value: string) => workflow.statuses[value] ?? workflow.priorities[value] ?? workflow.activities[value] ?? workflow.labels[value] ?? formatLabel(value);
+	const riskLabelFor = (value: string) => workflow.labels[`risk_${value}`] ?? workflow.labels[value] ?? workflow.priorities[value] ?? labelFor(value);
+	const dateFor = (value?: string | null) => formatDate(value, workflow.labels.noDate, locale);
+	const dateTimeFor = (value?: string | null) => formatDateTime(value, workflow.labels.noDate, locale);
+	const calendarWeekdays = useMemo(() => {
+		const baseSunday = new Date(Date.UTC(2026, 0, 4));
+		return Array.from({ length: 7 }, (_, index) =>
+			new Intl.DateTimeFormat(locale, { weekday: 'short', timeZone: 'UTC' }).format(new Date(baseSunday.getTime() + index * 86_400_000)),
+		);
+	}, [locale]);
 	const notificationTitle = (notification: NotificationItem) => {
 		return labelFor(notification.type);
 	};
@@ -2581,7 +2612,7 @@ const DesignWorkflowShell = ({ title, variant, projectId, taskId }: Props) => {
 						<span className="workflow-workspace-search-icon">{renderSearchResultIcon(result)}</span>
 						<span className="min-w-0">
 							<b>{result.title || (workflow.labels.untitled ?? 'Untitled')}</b>
-							<small>{formatLabel(result.type)} - {result.subtitle}</small>
+							<small>{labelFor(result.type)} - {result.subtitle}</small>
 						</span>
 					</Link>
 				))}
@@ -2674,7 +2705,7 @@ const DesignWorkflowShell = ({ title, variant, projectId, taskId }: Props) => {
 					</button>
 					<div>
 						<span><CalendarDays size={15} />{workflow.labels.calendar ?? 'Calendar'}</span>
-						<strong>{formatDateFns(calendarMonth, 'MMMM yyyy')}</strong>
+						<strong>{new Intl.DateTimeFormat(locale, { month: 'long', year: 'numeric' }).format(calendarMonth)}</strong>
 					</div>
 					<button
 						type="button"
@@ -2686,7 +2717,7 @@ const DesignWorkflowShell = ({ title, variant, projectId, taskId }: Props) => {
 					</button>
 				</div>
 				<div className="workflow-board-calendar-weekdays">
-					{CALENDAR_WEEKDAYS.map((day) => <span key={day}>{day}</span>)}
+					{calendarWeekdays.map((day) => <span key={day}>{day}</span>)}
 				</div>
 				<div className="workflow-board-calendar-grid">
 					{calendarDays.map((day) => {
@@ -5596,9 +5627,30 @@ const DesignWorkflowShell = ({ title, variant, projectId, taskId }: Props) => {
 			reportFilters.start_date || reportFilters.end_date
 				? `${reportFilters.start_date || workflow.labels.noDate} - ${reportFilters.end_date || workflow.labels.noDate}`
 				: workflow.labels.allTimeWindow;
+		const printableReportCopy: PrintableReportCopy = {
+			title: workflow.pageTitles['report-time'],
+			trackedTime: workflow.labels.trackedTime,
+			leadTime: workflow.labels.leadTime,
+			cycleTime: workflow.labels.cycleTime,
+			blockedTime: workflow.labels.blockedTime,
+			projectTime: workflow.labels.projectTime ?? workflow.labels.timeByProject,
+			project: workflow.labels.project,
+			manager: workflow.labels.manager,
+			minutes: workflow.labels.minutesUnit,
+			hours: workflow.labels.hoursUnit,
+			designerForecast: workflow.labels.designerForecast,
+			designer: workflow.statuses.designer ?? 'Designer',
+			openTasks: workflow.labels.openTasksLabel,
+			overdueTasks: workflow.labels.overdueTasksLabel,
+			remainingMinutes: workflow.labels.remainingMinutes,
+			loadPercent: workflow.labels.loadPercent,
+			risk: workflow.labels.risk,
+			noProjectTimeWindow: workflow.labels.noProjectTimeWindow,
+			noForecastRows: workflow.labels.noForecastRows,
+		};
 		const exportTimeReport = () => {
 			downloadCsv('design-workflow-time-report.csv', [
-				['Project', 'Manager', 'Status', 'Priority', 'Minutes', 'Hours'],
+				[workflow.labels.project, workflow.labels.manager, workflow.labels.status, workflow.labels.priority, workflow.labels.minutesUnit, workflow.labels.hoursUnit],
 				...sortedReport.map((row) => [
 					row.project.name,
 					`${row.project.manager.first_name} ${row.project.manager.last_name}`.trim() || row.project.manager.email,
@@ -5612,20 +5664,20 @@ const DesignWorkflowShell = ({ title, variant, projectId, taskId }: Props) => {
 		const exportWorkflowReport = (report?: WorkflowAnalyticsReport) => {
 			if (!report) return;
 			downloadCsv('design-workflow-analytics-report.csv', [
-				['Metric', 'Value'],
-				['Tasks sampled', report.tasks_sampled],
-				['Lead time days', report.lead_time_days],
-				['Cycle time days', report.cycle_time_days],
-				['Blocked tasks', report.blocked_tasks],
-				['Blocked time minutes', report.blocked_time_minutes],
-				['Needs review', report.review_bottlenecks.needs_review],
-				['Changes requested', report.review_bottlenecks.changes_requested],
-				['Pending review minutes', report.review_bottlenecks.pending_review_minutes],
-				['Estimated minutes', report.estimate_vs_actual.estimated_minutes],
-				['Actual minutes', report.estimate_vs_actual.actual_minutes],
-				['Variance minutes', report.estimate_vs_actual.variance_minutes],
+				[workflow.labels.metric, t.common.value],
+				[workflow.labels.tasksSampled, report.tasks_sampled],
+				[workflow.labels.leadTimeDays, report.lead_time_days],
+				[workflow.labels.cycleTimeDays, report.cycle_time_days],
+				[workflow.labels.blockedTasks, report.blocked_tasks],
+				[workflow.labels.blockedTimeMinutes, report.blocked_time_minutes],
+				[workflow.labels.needsReview, report.review_bottlenecks.needs_review],
+				[workflow.labels.changesRequested, report.review_bottlenecks.changes_requested],
+				[workflow.labels.pendingReviewMinutes, report.review_bottlenecks.pending_review_minutes],
+				[workflow.labels.estimatedMinutesMetric, report.estimate_vs_actual.estimated_minutes],
+				[workflow.labels.actualMinutes, report.estimate_vs_actual.actual_minutes],
+				[workflow.labels.varianceMinutes, report.estimate_vs_actual.variance_minutes],
 				[],
-				['Designer', 'Open tasks', 'Overdue tasks', 'Remaining minutes', 'Load percent', 'Forecast days', 'Risk'],
+				[workflow.statuses.designer ?? 'Designer', workflow.labels.openTasksLabel, workflow.labels.overdueTasksLabel, workflow.labels.remainingMinutes, workflow.labels.loadPercent, workflow.labels.forecastDays, workflow.labels.risk],
 				...report.designer_forecast.map((row) => [
 					`${row.user.first_name} ${row.user.last_name}`.trim() || row.user.email,
 					row.open_tasks,
@@ -5633,12 +5685,12 @@ const DesignWorkflowShell = ({ title, variant, projectId, taskId }: Props) => {
 					row.remaining_minutes,
 					row.load_percent,
 					row.forecast_days,
-					row.risk,
+					riskLabelFor(row.risk),
 				]),
 			]);
 		};
 		const exportPrintableReport = () => {
-			openPrintableReport({ dateWindow, totalMinutes, timeReport: sortedReport, workflowReport });
+			openPrintableReport({ dateWindow, totalMinutes, timeReport: sortedReport, workflowReport, copy: printableReportCopy, riskLabelFor });
 		};
 		const reviewBottlenecks = workflowReport?.review_bottlenecks;
 		const estimateVsActual = workflowReport?.estimate_vs_actual;
@@ -5799,7 +5851,7 @@ const DesignWorkflowShell = ({ title, variant, projectId, taskId }: Props) => {
 										<div className="workflow-forecast-card-foot">
 											<span>{formatMinutes(row.remaining_minutes)}</span>
 											<span>{row.forecast_days} {workflow.labels.daysUnit.toLowerCase()}</span>
-											<span>{workflow.labels[row.risk] ?? row.risk}</span>
+											<span>{riskLabelFor(row.risk)}</span>
 										</div>
 									</article>
 								))}

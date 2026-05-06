@@ -140,10 +140,17 @@ type ChatSearchFilters = {
 	date_to?: string;
 };
 
-const threadTitle = (thread: ChatThread, currentUserId?: number, publicLabel = 'Studio public', privateLabel = 'Private chat') => {
+const threadTitle = (
+	thread: ChatThread,
+	currentUserId?: number,
+	publicLabel = 'Studio public',
+	privateLabel = 'Private chat',
+	projectRoomLabel = 'Project room',
+	taskRoomLabel = 'Task room',
+) => {
 	if (thread.kind === 'public') return publicLabel;
-	if (thread.kind === 'project') return thread.project?.name ?? (thread.title || 'Project room');
-	if (thread.kind === 'task') return thread.task?.title ?? (thread.title || 'Task room');
+	if (thread.kind === 'project') return thread.project?.name ?? (thread.title || projectRoomLabel);
+	if (thread.kind === 'task') return thread.task?.title ?? (thread.title || taskRoomLabel);
 	const other = thread.participants.find((user) => user.id !== currentUserId);
 	return other ? userLabel(other) : thread.title || privateLabel;
 };
@@ -351,6 +358,7 @@ const DesignWorkflowChat = () => {
 	const { t, language } = useLanguage();
 	const searchParams = useSearchParams();
 	const locale = language === 'en' ? 'en-US' : 'fr-FR';
+	const statusLabelFor = (value?: string | null) => value ? (t.workflow.statuses[value] ?? value) : '';
 	const profile = useAppSelector(getProfilState);
 	const token = useAppSelector(getAccessToken);
 	const chatDataReady = Boolean(token && (typeof profile.id === 'number' || profile.email));
@@ -1027,6 +1035,8 @@ const DesignWorkflowChat = () => {
 											profile.id,
 											t.workflow.labels.publicStudio ?? 'Studio public',
 											t.workflow.labels.privateChat ?? 'Private chat',
+											t.workflow.labels.projectRoom ?? 'Project room',
+											t.workflow.labels.taskRoom ?? 'Task room',
 										)}
 									</b>
 									<small className="workflow-chat-thread-preview">
@@ -1126,6 +1136,8 @@ const DesignWorkflowChat = () => {
 											profile.id,
 											t.workflow.labels.publicStudio ?? 'Studio public',
 											t.workflow.labels.privateChat ?? 'Private chat',
+											t.workflow.labels.projectRoom ?? 'Project room',
+											t.workflow.labels.taskRoom ?? 'Task room',
 										)
 									: (t.workflow.labels.chatTitle ?? 'Chat')}
 								</p>
@@ -1301,7 +1313,7 @@ const DesignWorkflowChat = () => {
 						<div className="workflow-chat-empty-state">
 							<span><MessagesSquare size={22} /></span>
 							<h3>{t.workflow.labels.emptyConversation ?? t.workflow.labels.noMessageYet ?? 'No message yet'}</h3>
-							<p>{t.workflow.labels.emptyConversationHint ?? threadTitle(selectedThread, profile.id, t.workflow.labels.publicStudio ?? 'Public channel', t.workflow.labels.privateChat ?? 'Private chat')}</p>
+							<p>{t.workflow.labels.emptyConversationHint ?? threadTitle(selectedThread, profile.id, t.workflow.labels.publicStudio ?? 'Public channel', t.workflow.labels.privateChat ?? 'Private chat', t.workflow.labels.projectRoom ?? 'Project room', t.workflow.labels.taskRoom ?? 'Task room')}</p>
 						</div>
 					) : null}
 
@@ -1672,7 +1684,7 @@ const DesignWorkflowChat = () => {
 								className="workflow-chat-recording-stop"
 							>
 								<Square size={14} />
-								<span>{language === 'en' ? 'Finish' : 'Terminer'}</span>
+								<span>{t.workflow.buttons.finishRecording ?? 'Finish'}</span>
 							</button>
 						</div>
 					) : null}
@@ -1783,7 +1795,11 @@ const DesignWorkflowChat = () => {
 											<span>{reference.kind === 'task' ? <CheckSquare2 size={15} /> : <BriefcaseBusiness size={15} />}</span>
 											<span className="min-w-0 flex-1">
 												<b>{reference.title}</b>
-												<small>{reference.kind === 'task' ? (t.workflow.labels.task ?? 'Task') : t.workflow.labels.project} - {reference.meta}</small>
+												<small>
+													{reference.kind === 'task' ? (t.workflow.labels.task ?? 'Task') : t.workflow.labels.project}
+													{' - '}
+													{reference.kind === 'project' ? statusLabelFor(reference.meta) : reference.meta}
+												</small>
 											</span>
 										</button>
 									))}
@@ -1899,7 +1915,7 @@ const DesignWorkflowChat = () => {
 										<button key={`project-${project.id}`} type="button" onClick={() => setPreviewTarget({ kind: 'project', id: project.id })} className="workflow-chat-ref-card workflow-chat-ref-project">
 											<span><BriefcaseBusiness size={16} /></span>
 											<b>{project.name}</b>
-											<small>{project.status}</small>
+											<small>{statusLabelFor(project.status)}</small>
 										</button>
 									))}
 								</>
@@ -1942,7 +1958,7 @@ const DesignWorkflowChat = () => {
 								<span>{previewTask ? <CheckSquare2 size={18} /> : <BriefcaseBusiness size={18} />}</span>
 								<div>
 									<p>{previewTask ? previewTask.title : previewProject?.name}</p>
-									<small>{previewTask ? previewTask.project.name : previewProject?.status}</small>
+									<small>{previewTask ? previewTask.project.name : statusLabelFor(previewProject?.status)}</small>
 								</div>
 							</div>
 							<button type="button" onClick={() => setPreviewTarget(null)} aria-label={t.common.close ?? 'Close'}>
@@ -1976,7 +1992,7 @@ const DesignWorkflowChat = () => {
 							{chatThreads.map((thread) => (
 								<button key={thread.id} type="button" onClick={() => forwardToThread(thread)}>
 									<Users size={16} />
-									<span>{threadTitle(thread, profile.id, t.workflow.labels.publicStudio ?? 'Studio public', t.workflow.labels.privateChat ?? 'Private chat')}</span>
+									<span>{threadTitle(thread, profile.id, t.workflow.labels.publicStudio ?? 'Studio public', t.workflow.labels.privateChat ?? 'Private chat', t.workflow.labels.projectRoom ?? 'Project room', t.workflow.labels.taskRoom ?? 'Task room')}</span>
 								</button>
 							))}
 						</div>
@@ -2132,12 +2148,8 @@ const DesignWorkflowChat = () => {
 							<Trash2 size={20} />
 						</span>
 						<div>
-							<h3>{language === 'en' ? 'Delete message?' : 'Supprimer le message ?'}</h3>
-							<p>
-								{language === 'en'
-									? 'This message will be archived and hidden from the conversation.'
-									: 'Ce message sera archive et masque de la conversation.'}
-							</p>
+							<h3>{t.workflow.labels.deleteMessageTitle ?? 'Delete message?'}</h3>
+							<p>{t.workflow.labels.deleteMessageBody ?? 'This message will be archived and hidden from the conversation.'}</p>
 						</div>
 						<div className="workflow-chat-confirm-actions">
 							<button type="button" className="app-button app-button-ghost" onClick={() => setDeleteTargetMessage(null)}>
