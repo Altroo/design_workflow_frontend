@@ -15419,6 +15419,411 @@ body {
 	color: #1e40af;
 }
 
+/* EOF chat workspace polish. Keep this close to the Workload message template. */
+.workflow-chat-shell {
+	height: calc(100vh - 9.5rem) !important;
+	min-height: 40rem !important;
+	max-height: none !important;
+	overflow: visible !important;
+}
+
+.workflow-chat-content {
+	display: grid !important;
+	grid-template-columns: minmax(20rem, 22.25rem) minmax(0, 1fr) !important;
+	gap: 0 !important;
+	height: 100% !important;
+	min-height: 0 !important;
+	padding: 0 !important;
+	overflow: hidden !important;
+	border: 0.0625rem solid #e5e7eb !important;
+	border-radius: 1.25rem !important;
+	background: #ffffff !important;
+	box-shadow: 0 1.75rem 4rem -3.25rem rgba(15, 23, 42, 0.42) !important;
+}
+
+.workflow-chat-sidebar {
+	display: flex !important;
+	flex-direction: column !important;
+	gap: 0 !important;
+	min-height: 0 !important;
+	max-height: none !important;
+	overflow: auto !important;
+	border: 0 !important;
+	border-right: 0.0625rem solid #e5e7eb !important;
+	border-radius: 0 !important;
+	background: #ffffff !important;
+	padding: 0 !important;
+	box-shadow: none !important;
+}
+
+.workflow-chat-sidebar::before,
+.workflow-chat-room::before {
+	display: none !important;
+}
+
+.workflow-chat-sidebar-head {
+	min-height: 5.75rem !important;
+	border: 0 !important;
+	border-bottom: 0.0625rem solid #e5e7eb !important;
+	border-radius: 0 !important;
+	background: #ffffff !important;
+	padding: 1.25rem 1.5rem !important;
+}
+
+.workflow-chat-sidebar-head p,
+.workflow-chat-room-title span {
+	color: #64748b !important;
+	letter-spacing: 0.08em !important;
+}
+
+.workflow-chat-sidebar-head h2 {
+	color: #020617 !important;
+	font-size: 1.35rem !important;
+	line-height: 1.1 !important;
+}
+
+.workflow-chat-sidebar-head > span,
+.workflow-chat-room-title em {
+	border: 0.0625rem solid #e5e7eb !important;
+	background: #ffffff !important;
+	color: #020617 !important;
+	box-shadow: none !important;
+}
+
+.workflow-chat-thread-section,
+.workflow-chat-context-section,
+.workflow-chat-direct-section {
+	gap: 0.25rem !important;
+	padding: 1.125rem 1.375rem 0.75rem !important;
+	border-bottom: 0.0625rem solid #f1f5f9 !important;
+}
+
+.workflow-chat-direct-section {
+	border-bottom: 0 !important;
+}
+
+.workflow-chat-panel-pill {
+	margin-bottom: 0.625rem !important;
+	padding: 0 !important;
+	border: 0 !important;
+	background: transparent !important;
+	color: #64748b !important;
+	font-size: 0.75rem !important;
+	font-weight: 900 !important;
+	letter-spacing: 0.08em !important;
+}
+
+.workflow-chat-panel-pill em {
+	width: 1.6rem !important;
+	height: 1.6rem !important;
+	border: 0.0625rem solid #e5e7eb !important;
+	background: #ffffff !important;
+	color: #020617 !important;
+}
+
+.workflow-chat-thread-button,
+.workflow-chat-context-button,
+.workflow-chat-direct-button {
+	min-height: 4.25rem !important;
+	border: 0 !important;
+	border-radius: 0.875rem !important;
+	background: transparent !important;
+	padding: 0.75rem 0.625rem !important;
+	box-shadow: none !important;
+	transform: none !important;
+}
+
+.workflow-chat-thread-button:hover,
+.workflow-chat-context-button:hover,
+.workflow-chat-direct-button:hover,
+.workflow-chat-thread-button.is-active,
+.workflow-chat-context-button.is-active,
+.workflow-chat-direct-button.is-active,
+.workflow-chat-thread-button.is-unread,
+.workflow-chat-context-button.is-unread,
+.workflow-chat-direct-button.is-unread {
+	border-color: transparent !important;
+	background: #f8fafc !important;
+	box-shadow: inset 0.25rem 0 0 #00a15d !important;
+	transform: none !important;
+}
+
+.workflow-chat-context-button.is-active,
+.workflow-chat-direct-button.is-active,
+.workflow-chat-thread-button.is-active {
+	background: #f2fbf7 !important;
+}
+
+.workflow-chat-thread-preview {
+	color: #64748b !important;
+	font-weight: 700 !important;
+}
+
+.workflow-chat-thread-button.is-unread .workflow-chat-thread-preview,
+.workflow-chat-context-button.is-unread .workflow-chat-thread-preview,
+.workflow-chat-direct-button.is-unread .workflow-chat-thread-preview {
+	color: #047857 !important;
+}
+
+.workflow-chat-context-icon {
+	width: 2.75rem !important;
+	height: 2.75rem !important;
+	border-radius: 999rem !important;
+	background: #f1f5f9 !important;
+	color: #334155 !important;
+}
+
+.workflow-chat-context-button.is-active .workflow-chat-context-icon,
+.workflow-chat-direct-button.is-active .workflow-chat-context-icon {
+	background: linear-gradient(135deg, #dbf8ee 0%, #eef2ff 100%) !important;
+	color: #047857 !important;
+}
+
+.workflow-chat-room {
+	display: grid !important;
+	grid-template-rows: auto minmax(0, 1fr) auto !important;
+	min-height: 100% !important;
+	overflow: hidden !important;
+	border: 0 !important;
+	border-radius: 0 !important;
+	background: #ffffff !important;
+	box-shadow: none !important;
+}
+
+.workflow-chat-room-header {
+	min-height: 5.75rem !important;
+	border-bottom: 0.0625rem solid #e5e7eb !important;
+	background: #ffffff !important;
+	padding: 1.25rem 1.5rem !important;
+}
+
+.workflow-chat-room-title {
+	align-items: center !important;
+	gap: 1rem !important;
+}
+
+.workflow-chat-room-title p {
+	color: #020617 !important;
+	font-size: clamp(1.25rem, 1.8vw, 1.55rem) !important;
+	line-height: 1.08 !important;
+	font-weight: 900 !important;
+	letter-spacing: 0 !important;
+}
+
+.workflow-chat-room-title-actions {
+	gap: 0.625rem !important;
+}
+
+.workflow-chat-tools-toggle,
+.workflow-chat-search,
+.workflow-chat-filter-select,
+.workflow-chat-filter-date,
+.workflow-chat-mini-toggle,
+.workflow-chat-ref-toggle {
+	border-color: #e5e7eb !important;
+	background: #ffffff !important;
+	box-shadow: none !important;
+}
+
+.workflow-chat-tools-toggle:hover,
+.workflow-chat-tools-toggle.is-open,
+.workflow-chat-mini-toggle.is-active,
+.workflow-chat-ref-toggle:hover {
+	border-color: #9ca3af !important;
+	background: #f8fafc !important;
+	color: #020617 !important;
+}
+
+.workflow-chat-stream {
+	align-content: start !important;
+	min-height: 0 !important;
+	overflow: auto !important;
+	background: #ffffff !important;
+	padding: 1.5rem 1.75rem !important;
+}
+
+.workflow-chat-empty-state {
+	width: min(36rem, 100%) !important;
+	min-height: 17rem !important;
+	margin: auto !important;
+	border-color: #d1d5db !important;
+	background: #ffffff !important;
+	box-shadow: none !important;
+}
+
+.workflow-chat-empty-state > span {
+	background: #f1f5f9 !important;
+	color: #020617 !important;
+}
+
+.workflow-chat-day-chip {
+	border-color: #e5e7eb !important;
+	background: #ffffff !important;
+	color: #475569 !important;
+}
+
+.workflow-chat-bubble {
+	max-width: min(34rem, 82%) !important;
+	border: 0 !important;
+	border-radius: 1rem 1rem 1rem 0.25rem !important;
+	background: #f1f5f9 !important;
+	color: #0f172a !important;
+	box-shadow: none !important;
+}
+
+.workflow-chat-bubble.workflow-chat-bubble-mine {
+	border: 0 !important;
+	border-radius: 1rem 1rem 0.25rem 1rem !important;
+	background: #00a15d !important;
+	color: #ffffff !important;
+}
+
+.workflow-chat-bubble-mine .workflow-chat-sender-name,
+.workflow-chat-bubble-mine p,
+.workflow-chat-bubble-mine small,
+.workflow-chat-bubble-mine .workflow-chat-message-meta,
+.workflow-chat-bubble-mine .text-\(--ink-soft\) {
+	color: rgba(255, 255, 255, 0.86) !important;
+}
+
+.workflow-chat-bubble-mine .workflow-chat-sender-name {
+	color: #ffffff !important;
+}
+
+.workflow-chat-inline-tag,
+.workflow-chat-inline-tag-user,
+.workflow-chat-inline-tag-task,
+.workflow-chat-inline-tag-project,
+.workflow-chat-rich-task > span,
+.workflow-chat-rich-project > span,
+.workflow-chat-voice-player {
+	background: #f8fafc !important;
+	color: #020617 !important;
+}
+
+.workflow-chat-bubble-mine .workflow-chat-inline-tag,
+.workflow-chat-bubble-mine .workflow-chat-inline-tag-user,
+.workflow-chat-bubble-mine .workflow-chat-inline-tag-task,
+.workflow-chat-bubble-mine .workflow-chat-inline-tag-project,
+.workflow-chat-bubble-mine .workflow-chat-rich-task > span,
+.workflow-chat-bubble-mine .workflow-chat-rich-project > span,
+.workflow-chat-bubble-mine .workflow-chat-voice-player {
+	background: rgba(255, 255, 255, 0.16) !important;
+	color: #ffffff !important;
+}
+
+.workflow-chat-composer {
+	min-height: 6.25rem !important;
+	border-top: 0.0625rem solid #e5e7eb !important;
+	background: #ffffff !important;
+	padding: 1rem 1.25rem !important;
+}
+
+.workflow-chat-composer .app-pill,
+.workflow-chat-composer .app-input {
+	min-height: 3.25rem !important;
+	border-color: #e5e7eb !important;
+	background: #ffffff !important;
+	box-shadow: none !important;
+}
+
+.workflow-chat-composer .app-button:not(.app-button-ghost) {
+	border-color: #00a15d !important;
+	background: #00a15d !important;
+	color: #ffffff !important;
+}
+
+@media (max-width: 78rem) {
+	.workflow-chat-content {
+		grid-template-columns: minmax(18rem, 20rem) minmax(0, 1fr) !important;
+	}
+
+	.workflow-chat-sidebar-head,
+	.workflow-chat-room-header {
+		padding: 1rem 1.125rem !important;
+	}
+
+	.workflow-chat-thread-section,
+	.workflow-chat-context-section,
+	.workflow-chat-direct-section {
+		padding-right: 1rem !important;
+		padding-left: 1rem !important;
+	}
+}
+
+@media (max-width: 48rem) {
+	.workflow-chat-shell {
+		height: auto !important;
+		min-height: 0 !important;
+		max-height: none !important;
+	}
+
+	.workflow-chat-content {
+		grid-template-columns: 1fr !important;
+		gap: 1rem !important;
+		overflow: visible !important;
+		border: 0 !important;
+		border-radius: 0 !important;
+		background: transparent !important;
+		box-shadow: none !important;
+	}
+
+	.workflow-chat-sidebar,
+	.workflow-chat-room {
+		border: 0.0625rem solid #e5e7eb !important;
+		border-radius: 1.125rem !important;
+		background: #ffffff !important;
+		box-shadow: 0 1rem 2rem -1.75rem rgba(15, 23, 42, 0.4) !important;
+	}
+
+	.workflow-chat-sidebar {
+		max-height: 19rem !important;
+		border-right: 0.0625rem solid #e5e7eb !important;
+	}
+
+	.workflow-chat-room {
+		min-height: 38rem !important;
+	}
+
+	.workflow-chat-sidebar-head,
+	.workflow-chat-room-header {
+		min-height: auto !important;
+		border-radius: 1.125rem 1.125rem 0 0 !important;
+		padding: 1rem !important;
+	}
+
+	.workflow-chat-room-title {
+		align-items: flex-start !important;
+	}
+
+	.workflow-chat-room-title-actions {
+		width: 100% !important;
+		justify-content: space-between !important;
+	}
+
+	.workflow-chat-stream {
+		padding: 1rem !important;
+	}
+
+	.workflow-chat-empty-state {
+		min-height: 15rem !important;
+	}
+
+	.workflow-chat-composer {
+		min-height: auto !important;
+		padding: 0.875rem !important;
+	}
+
+	.workflow-chat-composer .app-pill,
+	.workflow-chat-composer .app-input {
+		min-height: 2.75rem !important;
+	}
+
+	.workflow-chat-bubble {
+		max-width: 88% !important;
+	}
+}
+
 /* EOF board/report polish. Keep this after every broad template sweep. */
 .workflow-kanban-page .workflow-board-layout,
 .workflow-kanban-page .workflow-board-surface {
