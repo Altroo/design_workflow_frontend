@@ -50,7 +50,7 @@ const CustomSquareImageUploading: React.FC<Props> = ({ image, croppedImage, onCh
 	const canRenderPreview = previewSrc && failedImageSrc !== previewSrc;
 
 	return (
-		<div className={cssClasse ?? ''}>
+		<div className={['workflow-square-image-uploader', cssClasse].filter(Boolean).join(' ')}>
 			<input
 				ref={fileInputRef}
 				type="file"
@@ -60,7 +60,7 @@ const CustomSquareImageUploading: React.FC<Props> = ({ image, croppedImage, onCh
 			/>
 			{canRenderPreview ? (
 				<div className="relative w-full max-w-[380px]">
-					<button type="button" onClick={() => fileInputRef.current?.click()} className="relative block h-[260px] w-full overflow-hidden rounded-[18px] border border-[color:var(--line-strong)] bg-white shadow-(--shadow-sm) transition hover:-translate-y-0.5 hover:shadow-(--shadow-md)">
+					<button type="button" onClick={() => fileInputRef.current?.click()} className="workflow-square-image-preview relative block h-[260px] w-full overflow-hidden rounded-[18px] border border-[color:var(--line-strong)] bg-white shadow-(--shadow-sm) transition hover:-translate-y-0.5 hover:shadow-(--shadow-md)">
 						<Image
 							src={previewSrc}
 							alt={t.common.croppedPreview}

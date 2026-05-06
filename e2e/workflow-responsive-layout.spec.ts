@@ -514,6 +514,7 @@ const waitForUsersReady = async (page: Page) => {
 
 		try {
 			await expect.poll(async () => rows.count(), { timeout: 30_000 }).toBeGreaterThan(0);
+			await expectMobileUsersControls(page);
 			return;
 		} catch (error) {
 			if (attempt === 0 && (await errorState.count()) > 0) {
@@ -529,17 +530,137 @@ const waitForUserFormReady = async (page: Page) => {
 	await expect(page.getByTestId('api-loader')).toHaveCount(0, { timeout: 30_000 });
 	await expect(page.locator('.workflow-user-form-shell')).toBeVisible({ timeout: 30_000 });
 	await expect(page.locator('.workflow-user-form-grid')).toBeVisible({ timeout: 30_000 });
+	await expectMobileUserFormShell(page);
 };
 
 const waitForProfileReady = async (page: Page) => {
 	await expect(page.locator('.workflow-profile-shell')).toBeVisible();
 	await expect(page.locator('.workflow-profile-fields')).toBeVisible();
 	await expect(page.getByTestId('api-loader')).toHaveCount(0, { timeout: 20_000 });
+	await expectMobileUserFormShell(page);
 };
 
 const waitForPasswordReady = async (page: Page) => {
 	await expect(page.locator('.workflow-password-shell')).toBeVisible();
 	await expect(page.locator('.workflow-password-fields')).toBeVisible();
+	await expectMobileUserFormShell(page);
+};
+
+const expectMobileUsersControls = async (page: Page) => {
+	const viewport = page.viewportSize();
+	if (!viewport || viewport.width > 480) return;
+
+	const controls = page.locator('.workflow-users-toolbar > div:last-child').first();
+	await expect(controls).toBeVisible({ timeout: 10_000 });
+	const controlLayout = await controls.evaluate((group) => {
+		const groupBox = group.getBoundingClientRect();
+		const items = Array.from(group.children)
+			.filter((child): child is HTMLElement => child instanceof HTMLElement && child.offsetParent !== null)
+			.map((child) => {
+				const box = child.getBoundingClientRect();
+				return {
+					height: box.height,
+					leftOverflow: box.left < groupBox.left - 1,
+					rightOverflow: box.right > groupBox.right + 1,
+					widthRatio: groupBox.width ? box.width / groupBox.width : 1,
+					top: Math.round(box.top),
+				};
+			});
+		return {
+			items,
+			rowCount: new Set(items.map((item) => item.top)).size,
+		};
+	});
+	expect(controlLayout.rowCount).toBeLessThanOrEqual(2);
+	for (const item of controlLayout.items) {
+		expect(item.height).toBeGreaterThanOrEqual(32);
+		expect(item.height).toBeLessThanOrEqual(58);
+		expect(item.widthRatio).toBeGreaterThan(0.42);
+		expect(item.widthRatio).toBeLessThan(0.56);
+		expect(item.leftOverflow).toBe(false);
+		expect(item.rightOverflow).toBe(false);
+	}
+
+	const meta = page.locator('.workflow-users-mobile-card .workflow-users-mobile-meta').first();
+	await expect(meta).toBeVisible({ timeout: 10_000 });
+	const metaLayout = await meta.evaluate((group) => {
+		const groupBox = group.getBoundingClientRect();
+		const items = Array.from(group.children)
+			.filter((child): child is HTMLElement => child instanceof HTMLElement && child.offsetParent !== null)
+			.map((child) => {
+				const box = child.getBoundingClientRect();
+				return {
+					height: box.height,
+					leftOverflow: box.left < groupBox.left - 1,
+					rightOverflow: box.right > groupBox.right + 1,
+					top: Math.round(box.top),
+				};
+			});
+		return {
+			items,
+			rowCount: new Set(items.map((item) => item.top)).size,
+		};
+	});
+	expect(metaLayout.rowCount).toBeLessThanOrEqual(2);
+	for (const item of metaLayout.items) {
+		expect(item.height).toBeLessThanOrEqual(86);
+		expect(item.leftOverflow).toBe(false);
+		expect(item.rightOverflow).toBe(false);
+	}
+};
+
+const expectMobileUserFormShell = async (page: Page) => {
+	const viewport = page.viewportSize();
+	if (!viewport || viewport.width > 480) return;
+
+	const checkbox = page.locator('.workflow-user-form-shell input[type="checkbox"]').first();
+	if (await checkbox.count()) {
+		const checkboxBox = await checkbox.boundingBox();
+		expect(checkboxBox?.width ?? 0).toBeLessThanOrEqual(24);
+		expect(checkboxBox?.height ?? 0).toBeLessThanOrEqual(24);
+	}
+
+	const upload = page.locator('.workflow-user-form-avatar .workflow-square-image-upload, .workflow-user-form-avatar .workflow-square-image-preview').first();
+	if (await upload.count()) {
+		const uploadBox = await upload.boundingBox();
+		expect(uploadBox?.height ?? 0).toBeGreaterThanOrEqual(168);
+		expect(uploadBox?.height ?? 0).toBeLessThanOrEqual(218);
+	}
+
+	const toggleGroups = page.locator('.workflow-user-form-toggle-stack, .workflow-user-form-permissions');
+	const toggleGroupCount = await toggleGroups.count();
+	for (let index = 0; index < toggleGroupCount; index += 1) {
+		const layout = await toggleGroups.nth(index).evaluate((group) => {
+			const groupBox = group.getBoundingClientRect();
+			const items = Array.from(group.querySelectorAll<HTMLElement>('.workflow-user-form-toggle')).map((item) => {
+				const box = item.getBoundingClientRect();
+				return {
+					height: box.height,
+					leftOverflow: box.left < groupBox.left - 1,
+					rightOverflow: box.right > groupBox.right + 1,
+					top: Math.round(box.top),
+				};
+			});
+			return {
+				itemCount: items.length,
+				items,
+				rowCount: new Set(items.map((item) => item.top)).size,
+			};
+		});
+		if (!layout.itemCount) continue;
+		expect(layout.rowCount).toBeLessThanOrEqual(Math.ceil(layout.itemCount / 2));
+		for (const item of layout.items) {
+			expect(item.height).toBeLessThanOrEqual(72);
+			expect(item.leftOverflow).toBe(false);
+			expect(item.rightOverflow).toBe(false);
+		}
+	}
+
+	const passwordVisual = page.locator('.workflow-password-visual').first();
+	if (await passwordVisual.count()) {
+		const visualBox = await passwordVisual.boundingBox();
+		expect(visualBox?.height ?? 0).toBeLessThanOrEqual(150);
+	}
 };
 
 test.describe('workflow responsive visual pass', () => {

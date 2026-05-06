@@ -15,7 +15,7 @@ const SquareImageInputFile: React.FC<Props> = ({ onImageUpload }) => {
 		<button
 			type="button"
 			onClick={onImageUpload}
-			className="group relative flex h-[260px] w-full max-w-[380px] overflow-hidden rounded-lg border border-dashed border-[color:var(--line-strong)] bg-white text-(--ink) shadow-(--shadow-sm) transition hover:-translate-y-0.5 hover:shadow-(--shadow-md)"
+			className="workflow-square-image-upload group relative flex h-[260px] w-full max-w-[380px] overflow-hidden rounded-lg border border-dashed border-[color:var(--line-strong)] bg-white text-(--ink) shadow-(--shadow-sm) transition hover:-translate-y-0.5 hover:shadow-(--shadow-md)"
 		>
 			<span className="absolute inset-x-5 top-5 h-16 rounded-lg border border-[color:var(--line)] bg-[linear-gradient(135deg,rgba(63,60,255,0.10),rgba(20,184,200,0.12))]" />
 			<span className="absolute left-1/2 top-12 grid h-20 w-20 -translate-x-1/2 place-items-center rounded-lg border border-[color:var(--line)] bg-white shadow-(--shadow-sm) transition group-hover:scale-105">
