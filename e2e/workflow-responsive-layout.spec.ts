@@ -49,6 +49,33 @@ const waitForBoardReady = async (page: Page) => {
 	await expect.poll(async () => page.locator('[data-testid^="board-task-"]').count()).toBeGreaterThan(0);
 };
 
+const centerBoardOnFirstTask = async (page: Page) => {
+	const firstCard = page.locator('[data-testid^="board-task-"]').first();
+	await expect(firstCard).toBeAttached();
+	await firstCard.evaluate((card) => {
+		const lanes = card.closest('.workflow-board-lanes');
+		if (!(lanes instanceof HTMLElement)) return;
+		const lanesBox = lanes.getBoundingClientRect();
+		const cardBox = card.getBoundingClientRect();
+		lanes.scrollLeft += cardBox.left - lanesBox.left - Math.max(16, (lanesBox.width - cardBox.width) / 2);
+	});
+	await page.waitForTimeout(120);
+	const exposure = await firstCard.evaluate((card) => {
+		const lanes = card.closest('.workflow-board-lanes');
+		if (!(lanes instanceof HTMLElement)) return { horizontalRatio: 0, verticalRatio: 0 };
+		const lanesBox = lanes.getBoundingClientRect();
+		const cardBox = card.getBoundingClientRect();
+		const horizontal = Math.max(0, Math.min(cardBox.right, lanesBox.right) - Math.max(cardBox.left, lanesBox.left));
+		const vertical = Math.max(0, Math.min(cardBox.bottom, lanesBox.bottom) - Math.max(cardBox.top, lanesBox.top));
+		return {
+			horizontalRatio: cardBox.width ? horizontal / cardBox.width : 0,
+			verticalRatio: cardBox.height ? vertical / cardBox.height : 0,
+		};
+	});
+	expect(exposure.horizontalRatio).toBeGreaterThan(0.75);
+	expect(exposure.verticalRatio).toBeGreaterThan(0.75);
+};
+
 const waitForOverviewReady = async (page: Page) => {
 	await expect(page.locator('.workflow-overview-page')).toBeVisible();
 	await expect(page.locator('.workflow-overview-metrics')).toBeVisible();
@@ -175,6 +202,7 @@ test.describe('workflow responsive visual pass', () => {
 		await expect(page.locator('.workflow-saved-view-bar')).toContainText(/Vues enregistr.es|Nom de la vue|Priv.e/i);
 		await expect(page.locator('.workflow-kanban-filter-grid')).not.toContainText(/Needs Review|Backlog/i);
 		await waitForBoardReady(page);
+		await centerBoardOnFirstTask(page);
 		await capturePage(page, 'tablet-board');
 
 		await page.goto('/dashboard/overview');
@@ -241,6 +269,7 @@ test.describe('workflow responsive visual pass', () => {
 		await waitForBoardReady(page);
 		const boardLanesOverflow = await page.locator('.workflow-board-lanes').evaluate((lanes) => lanes.scrollWidth > lanes.clientWidth);
 		expect(boardLanesOverflow).toBe(true);
+		await centerBoardOnFirstTask(page);
 		await capturePage(page, 'mobile-board');
 
 		const firstCard = page.locator('[data-testid^="board-task-"]').first();
