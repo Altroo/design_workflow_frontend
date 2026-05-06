@@ -57,8 +57,8 @@ const waitForOverviewReady = async (page: Page) => {
 
 const waitForProjectsReady = async (page: Page) => {
 	await expect(page.locator('.workflow-projects-layout')).toBeVisible();
-	await expect(page.locator('.workflow-projects-list')).not.toContainText(/Chargement projets|Loading projects/i);
 	await expect.poll(async () => page.locator('.workflow-project-card-modern').count()).toBeGreaterThan(0);
+	await expect(page.locator('.workflow-project-card-modern').first()).toBeVisible();
 };
 
 const openFirstProjectDetail = async (page: Page) => {

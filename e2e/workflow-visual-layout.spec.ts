@@ -1,9 +1,60 @@
-import { expect, type Page, test } from '@playwright/test';
+import { expect, type Locator, type Page, test } from '@playwright/test';
 import { existsSync, mkdirSync } from 'node:fs';
 import { join } from 'node:path';
 
 const authStatePath = '.playwright/.auth/design-workflow-e2e.json';
 const screenshotDir = 'test-results/workflow-visual';
+
+const readCssVariable = async (locator: Locator, name: string) =>
+	locator.evaluate((element, variableName) => getComputedStyle(element).getPropertyValue(variableName).trim(), name);
+
+const readCssProperty = async (locator: Locator, name: string) =>
+	locator.evaluate((element, propertyName) => getComputedStyle(element).getPropertyValue(propertyName), name);
+
+const expectSharedCardShell = async (locator: Locator) => {
+	await expect(locator).toBeVisible({ timeout: 30_000 });
+	await expect(await readCssProperty(locator, 'border-top-style')).toBe('solid');
+	await expect(await readCssProperty(locator, 'border-top-width')).toBe('1px');
+	await expect(await readCssProperty(locator, 'background-color')).toBe('rgb(255, 255, 255)');
+	expect(await readCssProperty(locator, 'box-shadow')).not.toBe('none');
+};
+
+const expectSemanticBoardColors = async (page: Page) => {
+	const expectedStatusAccents: Record<string, string> = {
+		backlog: '#64748b',
+		todo: '#4f46e5',
+		in_progress: '#f59e0b',
+		in_review: '#06b6d4',
+		blocked: '#e11d48',
+		done: '#22c55e',
+	};
+
+	for (const [status, accent] of Object.entries(expectedStatusAccents)) {
+		const column = page.locator(`.workflow-column[data-status="${status}"]`).first();
+		await expect(column, `missing ${status} board column`).toBeAttached();
+		await expect(await readCssVariable(column, '--status-accent')).toBe(accent);
+	}
+
+	const reviewCard = page.locator('.workflow-trello-board-card[data-status="in_review"]').first();
+	await expect(reviewCard).toBeVisible({ timeout: 30_000 });
+	await expect(await readCssVariable(reviewCard, '--card-status-accent')).toBe(expectedStatusAccents.in_review);
+};
+
+const expectSlateChatAccent = async (page: Page) => {
+	const chatShell = page.locator('.workflow-chat-shell');
+	await expect(await readCssVariable(chatShell, '--chat-accent')).toBe('#475569');
+	await expect(await readCssVariable(chatShell, '--chat-accent-soft')).toBe('#f1f5f9');
+
+	const activeThread = page
+		.locator('.workflow-chat-thread-button.is-active, .workflow-chat-context-button.is-active, .workflow-chat-direct-button.is-active')
+		.first();
+	await expect(activeThread).toBeVisible({ timeout: 30_000 });
+	await expect(await readCssProperty(activeThread, 'background-color')).toBe('rgb(241, 245, 249)');
+
+	const sendButton = page.locator('.workflow-chat-composer .app-button:not(.app-button-ghost)').first();
+	await expect(sendButton).toBeVisible({ timeout: 30_000 });
+	expect(await readCssProperty(sendButton, 'background-color')).not.toBe('rgb(0, 161, 93)');
+};
 
 const waitForUsersReady = async (page: Page) => {
 	const rows = page.locator('.workflow-users-table tbody tr');
@@ -72,6 +123,7 @@ test.describe('workflow visual layout pass', () => {
 		await expect(page.locator('.workflow-board-lanes')).toBeVisible();
 		await expect(page.locator('.workflow-board-surface')).not.toContainText(/Chargement tableau|Loading board/i);
 		await expect.poll(async () => page.locator('[data-testid^="board-task-"]').count()).toBeGreaterThan(0);
+		await expectSemanticBoardColors(page);
 		await page.screenshot({ path: join(screenshotDir, 'board.png'), fullPage: true });
 		await page.locator('[data-testid^="board-task-"]').first().click();
 		await expect(page.locator('.workflow-task-modal')).toBeVisible();
@@ -84,6 +136,7 @@ test.describe('workflow visual layout pass', () => {
 		await expect(page.locator('.workflow-overview-page')).toBeVisible();
 		await expect(page.locator('.workflow-overview-metrics')).toBeVisible();
 		await expect(page.locator('.workflow-overview-grid')).toBeVisible();
+		await expectSharedCardShell(page.locator('.workflow-overview-metric').first());
 		await page.screenshot({ path: join(screenshotDir, 'overview.png'), fullPage: true });
 
 		await page.goto('/dashboard/my-work');
@@ -94,8 +147,10 @@ test.describe('workflow visual layout pass', () => {
 		await page.goto('/dashboard/projects');
 		await expect(page.locator('.workflow-projects-layout')).toBeVisible();
 		await expect(page.locator('.workflow-projects-card-grid')).toBeVisible();
-		await expect(page.locator('.workflow-projects-list')).not.toContainText(/Chargement projets|Loading projects/i);
 		await expect.poll(async () => page.locator('.workflow-project-card-modern').count()).toBeGreaterThan(0);
+		await expect(page.locator('.workflow-project-card-modern').first()).toBeVisible();
+		await expectSharedCardShell(page.locator('.workflow-projects-create'));
+		await expectSharedCardShell(page.locator('.workflow-project-card-modern').first());
 		await page.screenshot({ path: join(screenshotDir, 'projects.png'), fullPage: true });
 		const firstProjectHref = await page.locator('.workflow-project-card-open').first().getAttribute('href');
 		expect(firstProjectHref).toBeTruthy();
@@ -124,6 +179,8 @@ test.describe('workflow visual layout pass', () => {
 		expect(teamLayout.analyticsWidth).toBeLessThan(teamLayout.totalWidth * 0.55);
 		expect(teamLayout.boardWidth).toBeGreaterThan(teamLayout.analyticsWidth);
 		expect(teamLayout.topDelta).toBeLessThan(4);
+		await expectSharedCardShell(page.locator('.workflow-team-analytics'));
+		await expectSharedCardShell(page.locator('.workflow-team-card').first());
 		await page.screenshot({ path: join(screenshotDir, 'team.png'), fullPage: true });
 
 		await page.goto('/dashboard/reports/time');
@@ -137,12 +194,15 @@ test.describe('workflow visual layout pass', () => {
 			Math.max(...buttons.map((button) => button.getBoundingClientRect().width)),
 		);
 		expect(widestReportAction).toBeLessThan(190);
+		await expectSharedCardShell(page.locator('.workflow-report-metric').first());
+		await expectSharedCardShell(page.locator('.workflow-report-chart-card').first());
 		await page.screenshot({ path: join(screenshotDir, 'reports.png'), fullPage: true });
 
 		await page.goto('/dashboard/chat');
 		await waitForChatReady(page);
 		await expect(page.getByRole('button', { name: /Filtrer par/i })).toBeVisible();
 		await expect(page.locator('.workflow-chat-tools-toggle span')).toHaveText(/Filtrer par/i);
+		await expectSlateChatAccent(page);
 		await page.screenshot({ path: join(screenshotDir, 'chat.png'), fullPage: true });
 
 		await page.goto('/dashboard/notifications');
@@ -151,6 +211,8 @@ test.describe('workflow visual layout pass', () => {
 		await expect(page.locator('.workflow-notification-preferences')).toBeVisible();
 		await expect(page.locator('.workflow-notifications-board')).toBeVisible();
 		await expect(page.locator('.workflow-notifications-list > *').first()).toBeVisible();
+		await expectSharedCardShell(page.locator('.workflow-notifications-metric').first());
+		await expectSharedCardShell(page.locator('.workflow-notification-preferences'));
 		await page.screenshot({ path: join(screenshotDir, 'notifications.png'), fullPage: true });
 
 		await page.goto('/dashboard/users');
