@@ -36,6 +36,7 @@ import {
 } from '@/store/services/account';
 import { useInitAccessToken } from '@/contexts/InitContext';
 import { Protected } from '@/components/layouts/protected/protected';
+import { WorkflowIconPill, WorkflowPageHero } from '@/components/shared/workflow/workflowPrimitives';
 
 interface UserFormValues {
 	first_name: string;
@@ -182,20 +183,23 @@ const FormikContent: React.FC<FormikContentProps> = ({ token, id }) => {
 
 	return (
 		<div className="workflow-user-form-shell">
-			<div className="workflow-user-form-hero">
-				<div>
-					<p>{t.users.userFormStudio}</p>
-					<h1>{isEditMode ? t.users.editUser : t.users.createUser}</h1>
-				</div>
-				<button
-					type="button"
-					onClick={() => router.push(USERS_LIST)}
-					className="workflow-user-form-back"
-				>
-					<ArrowLeft className="h-4 w-4" />
-					<span>{t.navigation.usersList}</span>
-				</button>
-			</div>
+			<WorkflowPageHero
+				element="div"
+				className="workflow-user-form-hero"
+				eyebrow={t.users.userFormStudio}
+				title={isEditMode ? t.users.editUser : t.users.createUser}
+				actionsWrapper={false}
+				actions={
+					<button
+						type="button"
+						onClick={() => router.push(USERS_LIST)}
+						className="workflow-user-form-back"
+					>
+						<ArrowLeft className="h-4 w-4" />
+						<span>{t.navigation.usersList}</span>
+					</button>
+				}
+			/>
 
 			{validationErrors.length > 0 ? (
 				<div className="workflow-user-form-alert">
@@ -243,10 +247,7 @@ const FormikContent: React.FC<FormikContentProps> = ({ token, id }) => {
 						</div>
 
 						<div className="workflow-user-form-panel">
-							<div className="workflow-user-form-panel-pill" data-tone="green">
-								<BadgeCheck className="h-4 w-4" />
-								<b>{t.users.accountSettings}</b>
-							</div>
+							<WorkflowIconPill tone="green" icon={<BadgeCheck className="h-4 w-4" />} label={t.users.accountSettings} />
 							<div className="workflow-user-form-toggle-stack">
 								<ToggleRow
 									label={t.users.activeAccount}
@@ -269,10 +270,7 @@ const FormikContent: React.FC<FormikContentProps> = ({ token, id }) => {
 
 					<section className="workflow-user-form-main">
 						<div className="workflow-user-form-panel">
-							<div className="workflow-user-form-panel-pill" data-tone="indigo">
-								<Mail className="h-4 w-4" />
-								<b>{t.users.personalInfo}</b>
-							</div>
+							<WorkflowIconPill tone="indigo" icon={<Mail className="h-4 w-4" />} label={t.users.personalInfo} />
 							<div className="workflow-user-form-fields">
 								<div className="md:col-span-2">
 									<CustomTextInput
@@ -348,10 +346,7 @@ const FormikContent: React.FC<FormikContentProps> = ({ token, id }) => {
 						</div>
 
 						<div className="workflow-user-form-panel">
-							<div className="workflow-user-form-panel-pill" data-tone="cyan">
-								<Shield className="h-4 w-4" />
-								<b>{t.users.permissions}</b>
-							</div>
+							<WorkflowIconPill tone="cyan" icon={<Shield className="h-4 w-4" />} label={t.users.permissions} />
 							<div className="workflow-user-form-permissions">
 								<ToggleRow label={t.users.canView} name="can_view" checked={formik.values.can_view} onChange={(checked) => formik.setFieldValue('can_view', checked)} />
 								<ToggleRow label={t.users.canCreate} name="can_create" checked={formik.values.can_create} onChange={(checked) => formik.setFieldValue('can_create', checked)} />

@@ -145,7 +145,7 @@ import { useAppSelector, useLanguage } from '@/utils/hooks';
 import { getAccessToken, getProfilState, getWSOnlineUserIdsState } from '@/store/selectors';
 import type { UserClass } from '@/models/classes';
 import type { TranslationDictionary } from '@/types/languageTypes';
-import { WorkflowMetricCard as MetricCard, WorkflowPageHero, WorkflowPanelPill, WorkflowSimpleMetric } from './workflowPrimitives';
+import { WorkflowMetricCard as MetricCard, WorkflowPageHero, WorkflowPanelPill, WorkflowSimpleMetric } from '@/components/shared/workflow/workflowPrimitives';
 
 ChartJS.register(CategoryScale, LinearScale, BarElement, ArcElement, LineElement, PointElement, Filler, Tooltip, Legend);
 

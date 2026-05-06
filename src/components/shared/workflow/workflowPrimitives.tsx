@@ -9,6 +9,9 @@ type WorkflowPageHeroProps = {
 	actions?: ReactNode;
 	actionsClassName?: string;
 	actionsWrapper?: boolean;
+	description?: ReactNode;
+	element?: 'div' | 'section';
+	titleElement?: 'h1' | 'h2';
 	titleClassName?: string;
 };
 
@@ -19,15 +22,19 @@ export const WorkflowPageHero = ({
 	actions,
 	actionsClassName,
 	actionsWrapper = true,
+	description,
+	element: Element = 'section',
+	titleElement: Title = 'h1',
 	titleClassName = 'min-w-0',
 }: WorkflowPageHeroProps) => (
-	<section className={className}>
+	<Element className={className}>
 		<div className={titleClassName}>
 			<p>{eyebrow}</p>
-			<h1>{title}</h1>
+			<Title>{title}</Title>
+			{description ? <span>{description}</span> : null}
 		</div>
 		{actions ? (actionsWrapper ? <div className={actionsClassName}>{actions}</div> : actions) : null}
-	</section>
+	</Element>
 );
 
 type WorkflowMetricCardProps = {
@@ -81,3 +88,17 @@ export const WorkflowPanelPill = ({ baseClassName = 'workflow-overview-panel-pil
 		</div>
 	);
 };
+
+type WorkflowIconPillProps = {
+	className?: string;
+	icon: ReactNode;
+	label: ReactNode;
+	tone?: string;
+};
+
+export const WorkflowIconPill = ({ className, icon, label, tone }: WorkflowIconPillProps) => (
+	<div className={cx('workflow-user-form-panel-pill', className)} data-tone={tone}>
+		{icon}
+		<b>{label}</b>
+	</div>
+);

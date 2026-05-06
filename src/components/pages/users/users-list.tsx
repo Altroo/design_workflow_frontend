@@ -16,6 +16,7 @@ import { Protected } from '@/components/layouts/protected/protected';
 import { useToast, useLanguage } from '@/utils/hooks';
 import ApiAlert from '@/components/formikElements/apiLoading/apiAlert/apiAlert';
 import ApiProgress from '@/components/formikElements/apiLoading/apiProgress/apiProgress';
+import { WorkflowPageHero, WorkflowSimpleMetric } from '@/components/shared/workflow/workflowPrimitives';
 
 const DANGER_COLOR = '#ef4444';
 
@@ -137,53 +138,40 @@ const UsersListClient: React.FC<SessionProps> = ({ session }) => {
 			<NavigationBar title={t.navigation.usersList}>
 				<Protected>
 					<div className="workflow-users-shell">
-						<div className="workflow-users-hero">
-							<div>
-								<p>{t.users.usersStudio}</p>
-								<h1>{t.navigation.usersList}</h1>
-								<span>{t.users.usersListDescription}</span>
-							</div>
-							<div className="workflow-users-hero-actions">
-								<button type="button" onClick={() => router.push(USERS_ADD)} className="app-button">
-									<Plus className="h-4 w-4" />
-									<span>{t.users.newUser}</span>
-								</button>
-								{selectedUserIds.length > 0 ? (
-									<button
-										type="button"
-										onClick={() => setShowBulkDeleteModal(true)}
-										className="workflow-users-danger-outline"
-									>
-										<Trash2 className="h-4 w-4" />
-										<span>
-											{t.common.delete} ({selectedUserIds.length})
-										</span>
+						<WorkflowPageHero
+							element="div"
+							className="workflow-users-hero"
+							eyebrow={t.users.usersStudio}
+							title={t.navigation.usersList}
+							description={t.users.usersListDescription}
+							actionsClassName="workflow-users-hero-actions"
+							actions={
+								<>
+									<button type="button" onClick={() => router.push(USERS_ADD)} className="app-button">
+										<Plus className="h-4 w-4" />
+										<span>{t.users.newUser}</span>
 									</button>
-								) : null}
-							</div>
-						</div>
+									{selectedUserIds.length > 0 ? (
+										<button
+											type="button"
+											onClick={() => setShowBulkDeleteModal(true)}
+											className="workflow-users-danger-outline"
+										>
+											<Trash2 className="h-4 w-4" />
+											<span>
+												{t.common.delete} ({selectedUserIds.length})
+											</span>
+										</button>
+									) : null}
+								</>
+							}
+						/>
 
 						<div className="workflow-users-metrics">
-							<div className="workflow-users-metric" data-tone="indigo">
-								<Users size={18} />
-								<span>{t.users.totalUsers}</span>
-								<strong>{totalUsers}</strong>
-							</div>
-							<div className="workflow-users-metric" data-tone="green">
-								<CheckCircle2 size={18} />
-								<span>{t.users.activeUsers}</span>
-								<strong>{activeUsers}</strong>
-							</div>
-							<div className="workflow-users-metric" data-tone="cyan">
-								<ShieldCheck size={18} />
-								<span>{t.users.adminUsers}</span>
-								<strong>{adminUsers}</strong>
-							</div>
-							<div className="workflow-users-metric" data-tone="rose">
-								<Trash2 size={18} />
-								<span>{t.users.selectedUsers}</span>
-								<strong>{selectedUserIds.length}</strong>
-							</div>
+							<WorkflowSimpleMetric className="workflow-users-metric" tone="indigo" icon={<Users size={18} />} label={t.users.totalUsers} value={totalUsers} />
+							<WorkflowSimpleMetric className="workflow-users-metric" tone="green" icon={<CheckCircle2 size={18} />} label={t.users.activeUsers} value={activeUsers} />
+							<WorkflowSimpleMetric className="workflow-users-metric" tone="cyan" icon={<ShieldCheck size={18} />} label={t.users.adminUsers} value={adminUsers} />
+							<WorkflowSimpleMetric className="workflow-users-metric" tone="rose" icon={<Trash2 size={18} />} label={t.users.selectedUsers} value={selectedUserIds.length} />
 						</div>
 
 						<div className="workflow-users-board">

@@ -18,6 +18,7 @@ import ApiProgress from '@/components/formikElements/apiLoading/apiProgress/apiP
 import NavigationBar from '@/components/layouts/navigationBar/navigationBar';
 import { accountEditProfilAction } from '@/store/actions/accountActions';
 import CustomSquareImageUploading from '@/components/formikElements/customSquareImageUploading/customSquareImageUploading';
+import { WorkflowIconPill, WorkflowPageHero } from '@/components/shared/workflow/workflowPrimitives';
 
 type FormikContentType = {
 	token: string | undefined;
@@ -67,12 +68,7 @@ const FormikContent: React.FC<FormikContentType> = ({ token }) => {
 	return (
 		<div className="workflow-user-form-shell workflow-profile-shell">
 			{(isEditLoading || isPending || isProfilLoading) && <ApiProgress backdropColor="#FFFFFF" circularColor="var(--accent)" />}
-			<div className="workflow-user-form-hero">
-				<div>
-					<p>{t.settings.profileStudio}</p>
-					<h1>{t.navigation.myProfile}</h1>
-				</div>
-			</div>
+			<WorkflowPageHero element="div" className="workflow-user-form-hero" eyebrow={t.settings.profileStudio} title={t.navigation.myProfile} />
 			<form className="workflow-user-form-grid workflow-profile-grid" onSubmit={formik.handleSubmit}>
 				<section className="workflow-user-form-side">
 					<div className="workflow-user-form-panel workflow-user-form-profile">
@@ -98,10 +94,7 @@ const FormikContent: React.FC<FormikContentType> = ({ token }) => {
 
 				<section className="workflow-user-form-main">
 					<div className="workflow-user-form-panel">
-						<div className="workflow-user-form-panel-pill" data-tone="indigo">
-							<UserRound className="h-4 w-4" />
-							<b>{t.settings.editProfile}</b>
-						</div>
+						<WorkflowIconPill tone="indigo" icon={<UserRound className="h-4 w-4" />} label={t.settings.editProfile} />
 						<div className="workflow-profile-fields">
 							<CustomTextInput
 								id="first_name"

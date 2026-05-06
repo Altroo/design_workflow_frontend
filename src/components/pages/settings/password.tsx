@@ -13,6 +13,7 @@ import ApiProgress from '@/components/formikElements/apiLoading/apiProgress/apiP
 import NavigationBar from '@/components/layouts/navigationBar/navigationBar';
 import { useToast, useAppSelector, useLanguage } from '@/utils/hooks';
 import { getProfilState } from '@/store/selectors';
+import { WorkflowIconPill, WorkflowPageHero } from '@/components/shared/workflow/workflowPrimitives';
 
 const FormikContent: React.FC = () => {
 	const { onSuccess, onError } = useToast();
@@ -54,12 +55,7 @@ const FormikContent: React.FC = () => {
 	return (
 		<div className="workflow-user-form-shell workflow-password-shell">
 			{(isChangePasswordLoading || isPending) && <ApiProgress backdropColor="#FFFFFF" circularColor="var(--accent)" />}
-			<div className="workflow-user-form-hero">
-				<div>
-					<p>{t.settings.passwordStudio}</p>
-					<h1>{t.settings.changePassword}</h1>
-				</div>
-			</div>
+			<WorkflowPageHero element="div" className="workflow-user-form-hero" eyebrow={t.settings.passwordStudio} title={t.settings.changePassword} />
 
 			<form className="workflow-user-form-grid workflow-password-grid" onSubmit={formik.handleSubmit}>
 				<section className="workflow-user-form-side">
@@ -96,10 +92,7 @@ const FormikContent: React.FC = () => {
 					) : null}
 
 					<div className="workflow-user-form-panel">
-						<div className="workflow-user-form-panel-pill" data-tone="indigo">
-							<LockKeyhole className="h-4 w-4" />
-							<b>{t.settings.credentials}</b>
-						</div>
+						<WorkflowIconPill tone="indigo" icon={<LockKeyhole className="h-4 w-4" />} label={t.settings.credentials} />
 						<div className="workflow-password-fields">
 							<CustomPasswordInput
 								id="old_password"

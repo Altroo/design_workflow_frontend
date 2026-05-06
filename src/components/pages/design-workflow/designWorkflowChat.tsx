@@ -27,6 +27,7 @@ import { getAccessToken, getProfilState } from '@/store/selectors';
 import { DASHBOARD_PROJECT_VIEW, DASHBOARD_TASK_VIEW } from '@/utils/routes';
 import type { ChatMessage, ChatThread, ProjectSummary, TaskCard, WorkflowUser } from '@/types/designWorkflowTypes';
 import type { UserClass } from '@/models/classes';
+import { WorkflowPageHero, WorkflowPanelPill } from '@/components/shared/workflow/workflowPrimitives';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL ?? '';
 const WS_URL = API_URL.replace(/^http/, 'ws');
@@ -990,24 +991,21 @@ const DesignWorkflowChat = () => {
 		<div className="workflow-chat-shell">
 			<div className="workflow-chat-content">
 				<aside className="workflow-chat-sidebar">
-				<div className="workflow-chat-sidebar-head">
-					<div>
-						<p>
-							{t.workflow.labels.workflow}
-						</p>
-						<h2>
-							{t.workflow.labels.chatTitle ?? 'Chat'}
-						</h2>
-					</div>
-					<span data-live={socketConnected}>
-						{socketConnected ? (t.workflow.labels.socketLive ?? 'Live') : (t.workflow.labels.socketOffline ?? 'Offline')}
-					</span>
-				</div>
+				<WorkflowPageHero
+					element="div"
+					className="workflow-chat-sidebar-head"
+					eyebrow={t.workflow.labels.workflow}
+					title={t.workflow.labels.chatTitle ?? 'Chat'}
+					titleElement="h2"
+					actionsWrapper={false}
+					actions={
+						<span data-live={socketConnected}>
+							{socketConnected ? (t.workflow.labels.socketLive ?? 'Live') : (t.workflow.labels.socketOffline ?? 'Offline')}
+						</span>
+					}
+				/>
 				<div className="workflow-chat-thread-section">
-					<div className="workflow-chat-panel-pill">
-						{t.workflow.labels.chatTitle ?? 'Studio chat'}
-						<em>{publicThreads.length}</em>
-					</div>
+					<WorkflowPanelPill baseClassName="workflow-chat-panel-pill" label={t.workflow.labels.chatTitle ?? 'Studio chat'} value={publicThreads.length} labelElement="span" />
 					{publicThreads.map((thread) => {
 						const peer = thread.participants.find((user) => user.id !== profile.id) ?? thread.participants[0];
 						const preview = threadPreview(thread, profile.id, threadPreviewLabels, tasks, projects);
@@ -1055,10 +1053,7 @@ const DesignWorkflowChat = () => {
 					})}
 				</div>
 				<div className="workflow-chat-context-section">
-					<div className="workflow-chat-panel-pill workflow-chat-panel-pill-amber">
-						{t.workflow.labels.projects ?? 'Projects'}
-						<em>{projects.length}</em>
-					</div>
+					<WorkflowPanelPill baseClassName="workflow-chat-panel-pill" className="workflow-chat-panel-pill-amber" label={t.workflow.labels.projects ?? 'Projects'} value={projects.length} labelElement="span" />
 					<div className="workflow-chat-context-list">
 						{projects.map((project) => {
 							const thread = projectThreadByProjectId.get(project.id);
@@ -1086,10 +1081,7 @@ const DesignWorkflowChat = () => {
 					</div>
 				</div>
 				<div className="workflow-chat-direct-section">
-					<div className="workflow-chat-panel-pill workflow-chat-panel-pill-green">
-						{t.workflow.labels.privateConversations ?? 'Private'}
-						<em>{users.length}</em>
-					</div>
+					<WorkflowPanelPill baseClassName="workflow-chat-panel-pill" className="workflow-chat-panel-pill-green" label={t.workflow.labels.privateConversations ?? 'Private'} value={users.length} labelElement="span" />
 					<div className="workflow-chat-direct-list">
 						{users.map((user) => {
 							const thread = privateThreadByUserId.get(user.id);
