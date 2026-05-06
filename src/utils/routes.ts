@@ -18,7 +18,7 @@ export const DASHBOARD_BOARD = `${SITE_ROOT}dashboard/board`;
 export const DASHBOARD_MY_WORK = `${SITE_ROOT}dashboard/my-work`;
 export const DASHBOARD_PROJECTS = `${SITE_ROOT}dashboard/projects`;
 export const DASHBOARD_PROJECT_VIEW = (id: number | string) => `${SITE_ROOT}dashboard/projects/${id}`;
-export const DASHBOARD_TASK_VIEW = (id: number | string) => `${SITE_ROOT}dashboard/board?task=${id}`;
+export const DASHBOARD_TASK_VIEW = (id: number | string) => `${SITE_ROOT}dashboard/tasks/${id}`;
 export const DASHBOARD_TEAM = `${SITE_ROOT}dashboard/team`;
 export const DASHBOARD_REPORTS_TIME = `${SITE_ROOT}dashboard/reports/time`;
 export const DASHBOARD_NOTIFICATIONS = `${SITE_ROOT}dashboard/notifications`;

@@ -195,6 +195,43 @@ const teamEnglishChrome = /Team members|Open tasks|Overdue tasks|Estimated load|
 const reportEnglishChrome = /Start date|End date|Clear filters|Lead and cycle time|Lead time|Cycle time|Blocked time|Review bottlenecks|Estimate vs actual|Designer forecast|Capacity forecast|Export analytics/i;
 const chatEnglishChrome = /Public channel|Private chat|Project room|Task room|Write a message|Filter by|No message|No messages|Select a conversation|Loading conversations|Direct messages|Channels|Live conversations|Search in chat|Media files/i;
 const notificationEnglishChrome = /Notification preferences|Digest frequency|Review requests|Due soon|Daily|Weekly|Unread only|Mark all read|Mark as read|Notification center|Alert feed|Task alerts|Chat alerts/i;
+const taskEnglishChrome = /Task snapshot|Edit task|Card actions|Time entries|Request changes|Request review|Add handoff checklist|Source chat message|Open source chat/i;
+
+const getFirstBoardTaskId = async (page: Page) => {
+	const firstCard = page.locator('[data-testid^="board-task-"]').first();
+	await expect(firstCard).toBeVisible({ timeout: 30_000 });
+	const testId = await firstCard.getAttribute('data-testid');
+	const taskId = Number(testId?.replace('board-task-', ''));
+	expect(Number.isInteger(taskId)).toBe(true);
+	return taskId;
+};
+
+const waitForTaskDetailReady = async (page: Page) => {
+	await expect(page.getByTestId('api-loader')).toHaveCount(0, { timeout: 30_000 });
+	await expect(page.locator('.workflow-task-detail-page')).toBeVisible({ timeout: 30_000 });
+	await expectSharedPageHeader(page.locator('.workflow-hero'));
+	await expectSharedCardShell(page.locator('.workflow-task-detail-snapshot'));
+	await expect(page.locator('.workflow-task-detail-tabs')).toBeVisible({ timeout: 30_000 });
+	await expect(page.locator('.workflow-task-detail-tabs button')).toHaveCount(5);
+	await expect.poll(async () => page.locator('.workflow-task-detail-panel').count(), { timeout: 30_000 }).toBeGreaterThanOrEqual(4);
+	await expect(page.locator('.workflow-task-detail-page')).not.toContainText(/Loading task|Chargement t.che/i);
+};
+
+const openFirstTaskDetailRoute = async (page: Page) => {
+	const taskId = await getFirstBoardTaskId(page);
+	await page.goto(`/dashboard/tasks/${taskId}`);
+	await waitForTaskDetailReady(page);
+};
+
+const openFirstBoardTaskModal = async (page: Page) => {
+	const firstCard = page.locator('[data-testid^="board-task-"]').first();
+	await expect(firstCard).toBeVisible({ timeout: 30_000 });
+	await firstCard.click();
+	await expect(page.locator('.workflow-task-modal')).toBeVisible({ timeout: 30_000 });
+	await expect(page.locator('.workflow-task-modal .workflow-trello-modal-detail')).toBeVisible({ timeout: 30_000 });
+	await expect(page.locator('.workflow-task-modal .workflow-trello-modal-actions')).toBeVisible({ timeout: 30_000 });
+	await expect(page.locator('.workflow-task-modal .workflow-task-comments-panel, .workflow-task-modal .workflow-trello-modal-activity')).toBeVisible({ timeout: 30_000 });
+};
 
 const waitForUsersReady = async (page: Page) => {
 	const rows = page.locator('.workflow-users-table tbody tr');
@@ -342,7 +379,16 @@ test.describe('workflow visual layout pass', () => {
 		await expectSharedPageHeader(page.locator('.workflow-kanban-header'));
 		await expect(page.locator('.workflow-board-lanes')).toBeVisible();
 		await expect(page.locator('.workflow-board-surface')).not.toContainText(/Chargement tableau|Loading board/i);
+		await expect.poll(async () => page.locator('[data-testid^="board-task-"]').count()).toBeGreaterThan(0);
 		await page.screenshot({ path: join(screenshotDir, 'my-work.png'), fullPage: true });
+		await openFirstBoardTaskModal(page);
+		await expect(page.locator('.workflow-task-modal')).toContainText(/Commentaires|Activit.|Fichiers|Revue|Temps saisi/i);
+		await page.screenshot({ path: join(screenshotDir, 'my-work-task-modal.png'), fullPage: true });
+		await page.keyboard.press('Escape');
+		await expect(page.locator('.workflow-task-modal')).toHaveCount(0);
+		await openFirstTaskDetailRoute(page);
+		await expectFrenchUiChrome(page.locator('.workflow-task-detail-page'), /Aper.u t.che|Actions carte|Commentaires|Temps saisi|Activit/i, taskEnglishChrome);
+		await page.screenshot({ path: join(screenshotDir, 'task-detail.png'), fullPage: true });
 
 		await page.goto('/dashboard/projects');
 		await expect(page.locator('.workflow-projects-layout')).toBeVisible();

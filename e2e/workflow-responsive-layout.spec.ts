@@ -189,6 +189,94 @@ const waitForBoardReady = async (page: Page) => {
 	await expect.poll(async () => page.locator('[data-testid^="board-task-"]').count()).toBeGreaterThan(0);
 };
 
+const getFirstBoardTaskId = async (page: Page) => {
+	const firstCard = page.locator('[data-testid^="board-task-"]').first();
+	await expect(firstCard).toBeVisible({ timeout: 30_000 });
+	const testId = await firstCard.getAttribute('data-testid');
+	const taskId = Number(testId?.replace('board-task-', ''));
+	expect(Number.isInteger(taskId)).toBe(true);
+	return taskId;
+};
+
+const expectMobileTaskDetail = async (page: Page) => {
+	const viewport = page.viewportSize();
+	if (!viewport || viewport.width > 480) return;
+
+	const tabs = page.locator('.workflow-task-detail-tabs');
+	await expect(tabs).toBeVisible({ timeout: 10_000 });
+	const tabMetrics = await tabs.evaluate((tabList) => {
+		const buttons = Array.from(tabList.querySelectorAll<HTMLElement>('button'));
+		const bounds = tabList.getBoundingClientRect();
+		return {
+			height: bounds.height,
+			buttons: buttons.map((button) => {
+				const box = button.getBoundingClientRect();
+				return {
+					height: box.height,
+					leftOverflow: box.left < bounds.left - 1,
+					rightOverflow: box.right > bounds.right + 1 && tabList.scrollWidth <= tabList.clientWidth,
+					width: box.width,
+				};
+			}),
+		};
+	});
+	expect(tabMetrics.height).toBeLessThanOrEqual(58);
+	for (const button of tabMetrics.buttons) {
+		expect(button.height).toBeGreaterThanOrEqual(38);
+		expect(button.height).toBeLessThanOrEqual(48);
+		expect(button.width).toBeGreaterThan(88);
+		expect(button.leftOverflow).toBe(false);
+		expect(button.rightOverflow).toBe(false);
+	}
+
+	const snapshotChildren = page.locator('.workflow-task-detail-snapshot > .grid > *');
+	await expect.poll(async () => snapshotChildren.count(), { timeout: 10_000 }).toBeGreaterThanOrEqual(2);
+	const snapshotLayout = await page.locator('.workflow-task-detail-snapshot').evaluate((snapshot) => {
+		const bounds = snapshot.getBoundingClientRect();
+		const children = Array.from(snapshot.querySelectorAll<HTMLElement>(':scope > .grid > *'));
+		return children.map((child) => {
+			const box = child.getBoundingClientRect();
+			return {
+				leftOverflow: box.left < bounds.left - 1,
+				rightOverflow: box.right > bounds.right + 1,
+				widthRatio: bounds.width ? box.width / bounds.width : 1,
+			};
+		});
+	});
+	for (const item of snapshotLayout) {
+		expect(item.widthRatio).toBeLessThanOrEqual(1.01);
+		expect(item.leftOverflow).toBe(false);
+		expect(item.rightOverflow).toBe(false);
+	}
+};
+
+const waitForTaskDetailReady = async (page: Page) => {
+	await expect(page.getByTestId('api-loader')).toHaveCount(0, { timeout: 30_000 });
+	await expect(page.locator('.workflow-task-detail-page')).toBeVisible({ timeout: 30_000 });
+	await expect(page.locator('.workflow-task-detail-snapshot')).toBeVisible({ timeout: 30_000 });
+	await expect(page.locator('.workflow-task-detail-tabs')).toBeVisible({ timeout: 30_000 });
+	await expect(page.locator('.workflow-task-detail-tabs button')).toHaveCount(5);
+	await expect.poll(async () => page.locator('.workflow-task-detail-panel').count(), { timeout: 30_000 }).toBeGreaterThanOrEqual(4);
+	await expect(page.locator('.workflow-task-detail-page')).not.toContainText(/Loading task|Chargement t.che/i);
+	await expectMobileTaskDetail(page);
+};
+
+const openFirstTaskDetailRoute = async (page: Page) => {
+	const taskId = await getFirstBoardTaskId(page);
+	await page.goto(`/dashboard/tasks/${taskId}`);
+	await waitForTaskDetailReady(page);
+};
+
+const openFirstBoardTaskModal = async (page: Page) => {
+	const firstCard = page.locator('[data-testid^="board-task-"]').first();
+	await expect(firstCard).toBeVisible({ timeout: 30_000 });
+	await firstCard.click();
+	await expect(page.locator('.workflow-task-modal')).toBeVisible({ timeout: 30_000 });
+	await expect(page.locator('.workflow-task-modal .workflow-trello-modal-detail')).toBeVisible({ timeout: 30_000 });
+	await expect(page.locator('.workflow-task-modal .workflow-trello-modal-actions')).toBeVisible({ timeout: 30_000 });
+	await expect(page.locator('.workflow-task-modal .workflow-task-comments-panel, .workflow-task-modal .workflow-trello-modal-activity')).toBeVisible({ timeout: 30_000 });
+};
+
 const centerBoardOnFirstTask = async (page: Page) => {
 	const firstCard = page.locator('[data-testid^="board-task-"]').first();
 	await expect(firstCard).toBeAttached();
@@ -757,6 +845,18 @@ test.describe('workflow responsive visual pass', () => {
 		await centerBoardOnFirstTask(page);
 		await capturePage(page, 'tablet-board');
 
+		await page.goto('/dashboard/my-work');
+		await openBoardFilters(page);
+		await waitForBoardReady(page);
+		await centerBoardOnFirstTask(page);
+		await capturePage(page, 'tablet-my-work');
+		await openFirstBoardTaskModal(page);
+		await capturePage(page, 'tablet-my-work-task-modal');
+		await page.keyboard.press('Escape');
+		await expect(page.locator('.workflow-task-modal')).toHaveCount(0);
+		await openFirstTaskDetailRoute(page);
+		await capturePage(page, 'tablet-task-detail');
+
 		await page.goto('/dashboard/overview');
 		await waitForOverviewReady(page);
 		await capturePage(page, 'tablet-overview');
@@ -837,6 +937,18 @@ test.describe('workflow responsive visual pass', () => {
 			await page.keyboard.press('Escape');
 			await expect(page.locator('.workflow-task-modal')).toHaveCount(0);
 		}
+
+		await page.goto('/dashboard/my-work');
+		await openBoardFilters(page);
+		await waitForBoardReady(page);
+		await centerBoardOnFirstTask(page);
+		await capturePage(page, 'mobile-my-work');
+		await openFirstBoardTaskModal(page);
+		await capturePage(page, 'mobile-my-work-task-modal');
+		await page.keyboard.press('Escape');
+		await expect(page.locator('.workflow-task-modal')).toHaveCount(0);
+		await openFirstTaskDetailRoute(page);
+		await capturePage(page, 'mobile-task-detail');
 
 		await page.goto('/dashboard/overview');
 		await waitForOverviewReady(page);
