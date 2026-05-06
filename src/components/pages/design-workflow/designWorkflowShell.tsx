@@ -573,11 +573,11 @@ const WORKFLOW_CHART_PALETTE = ['#00a15d', '#111827', '#475569', '#94a3b8', '#cb
 
 const BOARD_STATUS_META: Record<TaskStatus, { accent: string; text: string; soft: string; icon: ReactNode }> = {
 	backlog: { accent: '#64748b', text: '#334155', soft: '#f8fafc', icon: <Archive size={14} /> },
-	todo: { accent: '#111827', text: '#111827', soft: '#f8fafc', icon: <ListTodo size={14} /> },
-	in_progress: { accent: '#00a15d', text: '#047857', soft: '#f2fbf7', icon: <Clock3 size={14} /> },
-	in_review: { accent: '#047857', text: '#065f46', soft: '#ecfdf5', icon: <ShieldCheck size={14} /> },
+	todo: { accent: '#4f46e5', text: '#312e81', soft: '#eef2ff', icon: <ListTodo size={14} /> },
+	in_progress: { accent: '#f59e0b', text: '#92400e', soft: '#fffbeb', icon: <Clock3 size={14} /> },
+	in_review: { accent: '#06b6d4', text: '#155e75', soft: '#ecfeff', icon: <ShieldCheck size={14} /> },
 	blocked: { accent: '#e11d48', text: '#9f1239', soft: '#fff1f2', icon: <CircleAlert size={14} /> },
-	done: { accent: '#00a15d', text: '#047857', soft: '#f0fdf4', icon: <CheckCircle2 size={14} /> },
+	done: { accent: '#22c55e', text: '#166534', soft: '#f0fdf4', icon: <CheckCircle2 size={14} /> },
 };
 
 const formatDate = (value?: string | null, emptyLabel = 'No date', locale?: string) => {
