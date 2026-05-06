@@ -576,6 +576,49 @@ const waitForChatReady = async (page: Page) => {
 	await expect(page.locator('.workflow-chat-room textarea').first()).toBeEnabled({ timeout: 30_000 });
 };
 
+const expectMobileChatSwitcher = async (page: Page) => {
+	const viewport = page.viewportSize();
+	if (!viewport || viewport.width > 480) return;
+
+	await expect(page.locator('.workflow-chat-thread-section')).toBeVisible({ timeout: 10_000 });
+	await expect(page.locator('.workflow-chat-context-button').first()).toBeVisible({ timeout: 10_000 });
+	await expect(page.locator('.workflow-chat-direct-button').first()).toBeVisible({ timeout: 10_000 });
+
+	const layout = await page.locator('.workflow-chat-sidebar').evaluate((sidebar) => {
+		const box = sidebar.getBoundingClientRect();
+		const style = getComputedStyle(sidebar);
+		const sections = Array.from(
+			sidebar.querySelectorAll<HTMLElement>('.workflow-chat-thread-section, .workflow-chat-context-section, .workflow-chat-direct-section'),
+		).map((section) => {
+			const sectionBox = section.getBoundingClientRect();
+			return {
+				bottomOverflow: sectionBox.bottom > box.bottom + 1,
+				height: sectionBox.height,
+				leftOverflow: sectionBox.left < box.left - 1,
+				rightOverflow: sectionBox.right > box.right + 1,
+			};
+		});
+		return {
+			height: box.height,
+			maxHeight: style.maxHeight,
+			overflowY: style.overflowY,
+			sections,
+		};
+	});
+
+	expect(layout.height).toBeGreaterThan(300);
+	expect(layout.height).toBeLessThan(620);
+	expect(layout.maxHeight).toBe('none');
+	expect(layout.overflowY).toBe('visible');
+	expect(layout.sections.length).toBe(3);
+	for (const section of layout.sections) {
+		expect(section.height).toBeGreaterThan(42);
+		expect(section.bottomOverflow).toBe(false);
+		expect(section.leftOverflow).toBe(false);
+		expect(section.rightOverflow).toBe(false);
+	}
+};
+
 const waitForNotificationsReady = async (page: Page) => {
 	await expect(page.locator('.workflow-notifications-shell')).toBeVisible();
 	await expect(page.locator('.workflow-notifications-metrics')).toBeVisible();
@@ -973,6 +1016,7 @@ test.describe('workflow responsive visual pass', () => {
 		await waitForChatReady(page);
 		await expect(page.locator('.workflow-chat-thread-button, .workflow-chat-context-button, .workflow-chat-direct-button').first()).toBeVisible();
 		await expect(page.getByRole('button', { name: /Filtrer par/i })).toBeVisible();
+		await expectMobileChatSwitcher(page);
 		await capturePage(page, 'mobile-chat');
 
 		await page.goto('/dashboard/notifications');

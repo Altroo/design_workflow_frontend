@@ -356,7 +356,8 @@
 	}
 
 	.workflow-chat-sidebar {
-		max-height: 19rem !important;
+		max-height: none !important;
+		overflow: visible !important;
 		border-right: 0.0625rem solid #e5e7eb !important;
 	}
 
@@ -369,6 +370,62 @@
 		min-height: auto !important;
 		border-radius: 1.125rem 1.125rem 0 0 !important;
 		padding: 1rem !important;
+	}
+
+	.workflow-chat-thread-section,
+	.workflow-chat-context-section,
+	.workflow-chat-direct-section {
+		gap: 0.5rem !important;
+		padding: 0.75rem !important;
+	}
+
+	.workflow-chat-panel-pill {
+		margin-bottom: 0 !important;
+	}
+
+	.workflow-chat-context-list,
+	.workflow-chat-direct-list {
+		display: grid !important;
+		max-height: none !important;
+		grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+		gap: 0.5rem !important;
+		overflow: visible !important;
+		padding-right: 0 !important;
+	}
+
+	.workflow-chat-thread-button,
+	.workflow-chat-context-button,
+	.workflow-chat-direct-button {
+		min-height: 3.5rem !important;
+		border: 0.0625rem solid #e5e7eb !important;
+		border-radius: 0.875rem !important;
+		background: #ffffff !important;
+		padding: 0.625rem !important;
+	}
+
+	.workflow-chat-thread-button:hover,
+	.workflow-chat-context-button:hover,
+	.workflow-chat-direct-button:hover,
+	.workflow-chat-thread-button.is-active,
+	.workflow-chat-context-button.is-active,
+	.workflow-chat-direct-button.is-active,
+	.workflow-chat-thread-button.is-unread,
+	.workflow-chat-context-button.is-unread,
+	.workflow-chat-direct-button.is-unread {
+		border-color: #cbd5e1 !important;
+		background: #f1f5f9 !important;
+		box-shadow: inset 0.1875rem 0 0 #475569 !important;
+	}
+
+	.workflow-chat-context-icon {
+		width: 2.25rem !important;
+		height: 2.25rem !important;
+		flex-basis: 2.25rem !important;
+	}
+
+	.workflow-chat-thread-preview {
+		font-size: 0.6875rem !important;
+		line-height: 1.25 !important;
 	}
 
 	.workflow-chat-room-title {
