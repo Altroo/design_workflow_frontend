@@ -92,6 +92,27 @@ const expectUnifiedWorkflowTitleCard = async (locator: Locator) => {
 	expect(await readCssProperty(locator, 'background-image')).toContain('linear-gradient');
 };
 
+const expectUnifiedInnerHeader = async (locator: Locator) => {
+	await expect(locator).toBeVisible({ timeout: 30_000 });
+	const metrics = await locator.evaluate((element) => {
+		const style = getComputedStyle(element);
+		const rootFontSize = parseFloat(getComputedStyle(document.documentElement).fontSize);
+		return {
+			backgroundColor: style.backgroundColor,
+			borderStyle: style.borderTopStyle,
+			borderWidth: parseFloat(style.borderTopWidth),
+			minHeight: parseFloat(style.minHeight),
+			radius: parseFloat(style.borderTopLeftRadius),
+			rootFontSize,
+		};
+	});
+	expect(metrics.borderStyle).toBe('solid');
+	expect(metrics.borderWidth).toBe(1);
+	expect(metrics.backgroundColor).toBe('rgb(248, 250, 252)');
+	expect(metrics.radius).toBeCloseTo(metrics.rootFontSize * 0.875, 0);
+	expect(metrics.minHeight).toBeGreaterThanOrEqual(metrics.rootFontSize * 2.65);
+};
+
 const expectSemanticBoardColors = async (page: Page) => {
 	const expectedStatusAccents: Record<string, string> = {
 		backlog: '#64748b',
@@ -460,6 +481,8 @@ test.describe('workflow visual layout pass', () => {
 		await gotoDashboardPath(page, '/dashboard/overview');
 		await waitForOverviewReady(page);
 		await expectUnifiedWorkflowTitleCard(page.locator('.workflow-overview-header'));
+		await expectUnifiedInnerHeader(page.locator('.workflow-overview-metric-pill').first());
+		await expectUnifiedInnerHeader(page.locator('.workflow-overview-panel-pill').first());
 		await expectSharedCardShell(page.locator('.workflow-overview-metric').first());
 		await page.screenshot({ path: join(screenshotDir, 'overview.png'), fullPage: true });
 
@@ -573,6 +596,9 @@ test.describe('workflow visual layout pass', () => {
 			Math.max(...buttons.map((button) => button.getBoundingClientRect().width)),
 		);
 		expect(widestReportAction).toBeLessThan(190);
+		await expectUnifiedInnerHeader(page.locator('.workflow-report-metric span').first());
+		await expectUnifiedInnerHeader(page.locator('.workflow-report-chart-head').first());
+		await expectUnifiedInnerHeader(page.locator('.workflow-report-board-head').first());
 		await expectSharedCardShell(page.locator('.workflow-report-metric').first());
 		await expectSharedCardShell(page.locator('.workflow-report-chart-card').first());
 		expect(await readCssProperty(page.locator('.workflow-report-metric svg').first(), 'background-color')).not.toBe('rgb(0, 161, 93)');
@@ -584,6 +610,7 @@ test.describe('workflow visual layout pass', () => {
 		await waitForChatReady(page);
 		await expectUnifiedWorkflowTitleCard(page.locator('.workflow-chat-sidebar-head'));
 		await expectUnifiedWorkflowTitleCard(page.locator('.workflow-chat-room-header'));
+		await expectUnifiedInnerHeader(page.locator('.workflow-chat-panel-pill').first());
 		await expect(page.getByRole('button', { name: /Filtrer par/i })).toBeVisible();
 		await expect(page.locator('.workflow-chat-tools-toggle span')).toHaveText(/Filtrer par/i);
 		await expectSlateChatAccent(page);

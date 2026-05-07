@@ -1219,3 +1219,220 @@
 		justify-content: flex-start !important;
 	}
 }
+
+/* Shared inner card headers: overview, reports, projects/team panels, and chat lists. */
+.workflow-overview-metric-pill,
+.workflow-overview-panel-pill,
+.workflow-team-panel-pill,
+.workflow-project-card-pill,
+.workflow-chat-panel-pill,
+.workflow-report-chart-head,
+.workflow-report-board-head {
+	display: flex !important;
+	min-height: 2.75rem !important;
+	align-items: center !important;
+	justify-content: space-between !important;
+	gap: 0.75rem !important;
+	border: 1px solid #e5e7eb !important;
+	border-radius: 0.875rem !important;
+	background: #f8fafc !important;
+	padding: 0.5rem 0.75rem !important;
+	color: #111827 !important;
+	box-shadow: none !important;
+}
+
+.workflow-report-chart-head,
+.workflow-report-board-head {
+	margin: 0.875rem 0.875rem 0 !important;
+	border-bottom: 1px solid #e5e7eb !important;
+}
+
+.workflow-overview-metric-pill b,
+.workflow-overview-panel-pill b,
+.workflow-team-panel-pill b,
+.workflow-team-panel-pill span,
+.workflow-project-card-pill b,
+.workflow-chat-panel-pill span,
+.workflow-report-chart-head p,
+.workflow-report-board-head p,
+.workflow-report-metric span,
+.workflow-report-insight span {
+	min-width: 0 !important;
+	overflow: hidden !important;
+	color: #526174 !important;
+	font-size: 0.75rem !important;
+	font-weight: 800 !important;
+	letter-spacing: 0.08em !important;
+	line-height: 1.2 !important;
+	text-overflow: ellipsis !important;
+	text-transform: uppercase !important;
+	white-space: nowrap !important;
+}
+
+.workflow-report-chart-head h2,
+.workflow-report-board-head h2 {
+	margin-top: 0.125rem !important;
+	color: #000000 !important;
+	font-size: 1.375rem !important;
+	font-weight: 700 !important;
+	letter-spacing: 0 !important;
+	line-height: 1.15 !important;
+}
+
+.workflow-overview-metric-pill em {
+	display: grid !important;
+	width: 2rem !important;
+	min-width: 2rem !important;
+	height: 2rem !important;
+	min-height: 2rem !important;
+	place-items: center !important;
+	border: 1px solid #111827 !important;
+	border-radius: 999px !important;
+	background: #030712 !important;
+	padding: 0 !important;
+	color: #ffffff !important;
+	box-shadow: none !important;
+	font-size: 0.75rem !important;
+	font-style: normal !important;
+	font-weight: 800 !important;
+	line-height: 1 !important;
+}
+
+.workflow-overview-panel-pill em,
+.workflow-team-panel-pill em,
+.workflow-project-card-pill em,
+.workflow-chat-panel-pill em {
+	display: inline-flex !important;
+	width: auto !important;
+	min-width: 2rem !important;
+	height: 2rem !important;
+	min-height: 2rem !important;
+	align-items: center !important;
+	justify-content: center !important;
+	border: 1px solid #111827 !important;
+	border-radius: 999px !important;
+	background: #030712 !important;
+	padding: 0 0.75rem !important;
+	color: #ffffff !important;
+	box-shadow: none !important;
+	font-size: 0.75rem !important;
+	font-style: normal !important;
+	font-weight: 800 !important;
+	line-height: 1 !important;
+	white-space: nowrap !important;
+}
+
+.workflow-report-chart-head > span,
+.workflow-report-board-head > span {
+	display: inline-flex !important;
+	min-height: 2rem !important;
+	align-items: center !important;
+	justify-content: center !important;
+	border: 1px solid #e5e7eb !important;
+	border-radius: 999px !important;
+	background: #ffffff !important;
+	padding: 0 0.75rem !important;
+	color: #111827 !important;
+	box-shadow: none !important;
+	font-size: 0.75rem !important;
+	font-weight: 800 !important;
+	line-height: 1 !important;
+	white-space: nowrap !important;
+}
+
+.workflow-report-metric {
+	display: grid !important;
+	grid-template-columns: minmax(0, 1fr) auto !important;
+	gap: 0.875rem !important;
+	align-items: center !important;
+}
+
+.workflow-report-metric > span {
+	grid-column: 1 / -1 !important;
+	grid-row: 1 !important;
+	display: flex !important;
+	min-height: 2.75rem !important;
+	align-items: center !important;
+	border: 1px solid #e5e7eb !important;
+	border-radius: 0.875rem !important;
+	background: #f8fafc !important;
+	padding: 0.5rem 3rem 0.5rem 0.75rem !important;
+}
+
+.workflow-report-metric > svg {
+	z-index: 1 !important;
+	grid-column: 2 !important;
+	grid-row: 1 !important;
+	justify-self: end !important;
+	width: 2rem !important;
+	height: 2rem !important;
+	margin-right: 0.375rem !important;
+	border: 1px solid #111827 !important;
+	border-radius: 999px !important;
+	background: #030712 !important;
+	padding: 0.5rem !important;
+	color: #ffffff !important;
+}
+
+.workflow-report-metric > strong {
+	grid-column: 1 / -1 !important;
+	margin-top: 0 !important;
+}
+
+.workflow-report-insight {
+	gap: 0.75rem !important;
+	background: #ffffff !important;
+}
+
+.workflow-report-insight > span {
+	display: flex !important;
+	min-height: 2.5rem !important;
+	align-items: center !important;
+	border: 1px solid #e5e7eb !important;
+	border-radius: 0.875rem !important;
+	background: #f8fafc !important;
+	padding: 0.5rem 0.75rem !important;
+}
+
+.workflow-chat-panel-pill {
+	width: 100% !important;
+	margin: 0 !important;
+}
+
+.workflow-chat-thread-section,
+.workflow-chat-context-section,
+.workflow-chat-direct-section {
+	gap: 0.625rem !important;
+}
+
+@media (max-width: 47.9375rem) {
+	.workflow-report-chart-head,
+	.workflow-report-board-head {
+		align-items: flex-start !important;
+		flex-direction: column !important;
+	}
+
+	.workflow-report-chart-head > span,
+	.workflow-report-board-head > span {
+		width: fit-content !important;
+	}
+
+	.workflow-chat-panel-pill {
+		min-height: 2.35rem !important;
+		border-radius: 0.75rem !important;
+		padding: 0.375rem 0.625rem !important;
+	}
+
+	.workflow-chat-panel-pill em {
+		min-width: 1.75rem !important;
+		height: 1.75rem !important;
+		min-height: 1.75rem !important;
+		padding: 0 0.55rem !important;
+	}
+
+	.workflow-chat-thread-section,
+	.workflow-chat-context-section,
+	.workflow-chat-direct-section {
+		gap: 0.45rem !important;
+	}
+}
