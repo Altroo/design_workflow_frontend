@@ -1324,7 +1324,7 @@ const TaskCardItem = ({
 	>
 		{task.cover_image_url ? (
 			<div className="workflow-task-cover">
-				<Image src={resolveMediaUrl(task.cover_image_url)} alt={task.title} width={640} height={260} unoptimized className="h-full w-full object-cover" />
+				<Image src={resolveMediaUrl(task.cover_image_url)} alt={task.title} width={640} height={260} unoptimized loading="eager" className="h-full w-full object-cover" />
 				<div className="workflow-task-cover-shade" />
 				<div className="workflow-task-cover-chip" style={{ color: BOARD_STATUS_META[task.status].text, backgroundColor: BOARD_STATUS_META[task.status].soft }}>
 					{BOARD_STATUS_META[task.status].icon}
@@ -4269,7 +4269,7 @@ const DesignWorkflowShell = ({ title, variant, projectId, taskId }: Props) => {
 					<div className="grid gap-4 xl:grid-cols-[340px_minmax(0,1fr)_300px]">
 						<div className="workflow-task-detail-media" style={{ '--status-accent': BOARD_STATUS_META[task.status].accent } as CSSProperties}>
 							{task.cover_image_url ? (
-								<Image src={resolveMediaUrl(task.cover_image_url)} alt={task.title} width={640} height={360} unoptimized className="h-full w-full object-cover" />
+								<Image src={resolveMediaUrl(task.cover_image_url)} alt={task.title} width={640} height={360} unoptimized loading="eager" className="h-full w-full object-cover" />
 							) : (
 								<div className="workflow-task-detail-media-empty">
 									{BOARD_STATUS_META[task.status].icon}
@@ -4844,7 +4844,7 @@ const DesignWorkflowShell = ({ title, variant, projectId, taskId }: Props) => {
 								<div className="workflow-cover-control">
 									<div className="workflow-cover-preview">
 										{task.cover_image_url ? (
-											<Image src={resolveMediaUrl(task.cover_image_url)} alt={task.title} width={520} height={180} unoptimized className="h-full w-full object-cover" />
+											<Image src={resolveMediaUrl(task.cover_image_url)} alt={task.title} width={520} height={180} unoptimized loading="eager" className="h-full w-full object-cover" />
 										) : (
 											<div>
 												<ImagePlus size={20} />
