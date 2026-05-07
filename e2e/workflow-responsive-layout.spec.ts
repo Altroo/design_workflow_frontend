@@ -887,7 +887,7 @@ const expectMobileUserFormShell = async (page: Page) => {
 			};
 		});
 		if (!layout.itemCount) continue;
-		expect(layout.rowCount).toBeLessThanOrEqual(Math.ceil(layout.itemCount / 2));
+		expect(layout.rowCount).toBe(layout.itemCount);
 		for (const item of layout.items) {
 			expect(item.height).toBeLessThanOrEqual(72);
 			expect(item.leftOverflow).toBe(false);

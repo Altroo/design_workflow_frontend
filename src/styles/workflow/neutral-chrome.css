@@ -1674,3 +1674,306 @@
 		width: 100% !important;
 	}
 }
+
+/* Shared form and modal controls: users, profile, password, and task modal action rows. */
+.workflow-user-form-panel,
+.workflow-task-modal .workflow-trello-modal-floating-panel {
+	border: 1px solid #e5e7eb !important;
+	border-radius: 1.25rem !important;
+	background: #ffffff !important;
+	box-shadow: 0 0.9375rem 1.875rem rgba(0, 0, 0, 0.02) !important;
+}
+
+.workflow-user-form-panel {
+	padding: 1rem !important;
+}
+
+.workflow-user-form-panel-head,
+.workflow-user-form-panel-pill {
+	display: flex !important;
+	min-height: 3.25rem !important;
+	align-items: center !important;
+	gap: 0.75rem !important;
+	border: 1px solid #e5e7eb !important;
+	border-radius: 0.875rem !important;
+	background: #f8fafc !important;
+	padding: 0.625rem 0.75rem !important;
+	color: #111827 !important;
+	box-shadow: none !important;
+}
+
+.workflow-user-form-panel-head p,
+.workflow-user-form-panel-pill span,
+.workflow-user-form-panel-pill p {
+	margin: 0 !important;
+	color: #526174 !important;
+	font-size: 0.75rem !important;
+	font-weight: 800 !important;
+	letter-spacing: 0.08em !important;
+	line-height: 1.2 !important;
+	text-transform: uppercase !important;
+}
+
+.workflow-user-form-panel-head h2 {
+	margin: 0.125rem 0 0 !important;
+	color: #030712 !important;
+	font-size: 0.9375rem !important;
+	font-weight: 800 !important;
+	letter-spacing: 0 !important;
+	line-height: 1.15 !important;
+}
+
+.workflow-user-form-icon {
+	width: 2.25rem !important;
+	min-width: 2.25rem !important;
+	height: 2.25rem !important;
+	min-height: 2.25rem !important;
+	border: 1px solid #111827 !important;
+	border-radius: 999px !important;
+	background: #030712 !important;
+	color: #ffffff !important;
+	box-shadow: none !important;
+}
+
+.workflow-user-form-fields,
+.workflow-profile-fields,
+.workflow-password-fields,
+.workflow-user-form-permissions,
+.workflow-user-form-toggle-stack {
+	gap: 0.875rem !important;
+	margin-top: 0.875rem !important;
+}
+
+.workflow-user-form-shell label:not(.workflow-user-form-toggle),
+.workflow-task-modal label:not(.workflow-trello-modal-file-button):not(.workflow-upload-picker) {
+	color: #526174 !important;
+	font-size: 0.8125rem !important;
+	font-weight: 700 !important;
+	line-height: 1.2 !important;
+}
+
+.workflow-user-form-shell .app-input,
+.workflow-user-form-shell .app-select-trigger,
+.workflow-user-form-shell input:not([type='checkbox']):not([type='radio']):not([type='file']),
+.workflow-user-form-shell textarea,
+.workflow-task-modal .app-input,
+.workflow-task-modal .app-select-trigger,
+.workflow-task-modal .app-date-trigger {
+	min-height: 3.25rem !important;
+	border: 1px solid #e5e7eb !important;
+	border-radius: 0.875rem !important;
+	background: #ffffff !important;
+	color: #111827 !important;
+	box-shadow: none !important;
+	font-size: 0.875rem !important;
+	font-weight: 700 !important;
+	line-height: 1.2 !important;
+}
+
+.workflow-user-form-shell textarea,
+.workflow-task-modal textarea.app-input {
+	min-height: 7rem !important;
+	padding-top: 0.875rem !important;
+	line-height: 1.45 !important;
+}
+
+.workflow-user-form-shell .app-input:focus,
+.workflow-user-form-shell .app-select-trigger:focus-visible,
+.workflow-user-form-shell textarea:focus,
+.workflow-task-modal .app-input:focus,
+.workflow-task-modal .app-select-trigger:focus-visible,
+.workflow-task-modal .app-date-trigger:focus-visible {
+	border-color: #cbd5e1 !important;
+	box-shadow: 0 0 0 3px rgba(15, 23, 42, 0.08) !important;
+	outline: none !important;
+}
+
+.workflow-user-form-toggle {
+	display: flex !important;
+	min-height: 3.25rem !important;
+	align-items: center !important;
+	justify-content: space-between !important;
+	gap: 0.75rem !important;
+	border: 1px solid #e5e7eb !important;
+	border-radius: 0.875rem !important;
+	background: #ffffff !important;
+	padding: 0.75rem 0.875rem !important;
+	color: #111827 !important;
+	box-shadow: none !important;
+	font-size: 0.875rem !important;
+	font-weight: 800 !important;
+}
+
+.workflow-user-form-shell input[type='checkbox'] {
+	width: 1.125rem !important;
+	min-width: 1.125rem !important;
+	height: 1.125rem !important;
+	min-height: 1.125rem !important;
+	border-radius: 999px !important;
+}
+
+.workflow-square-image-upload,
+.workflow-square-image-preview,
+.workflow-password-visual {
+	border: 1px dashed #d1d5db !important;
+	border-radius: 1rem !important;
+	background: #f8fafc !important;
+	box-shadow: none !important;
+}
+
+.workflow-square-image-upload > span:first-child,
+.workflow-square-image-preview > span:first-child {
+	border-color: #d1d5db !important;
+	background: #ffffff !important;
+}
+
+.workflow-square-image-upload > span:nth-child(2),
+.workflow-square-image-preview > span:nth-child(2),
+.workflow-password-lock {
+	border: 1px solid #e5e7eb !important;
+	background: #ffffff !important;
+	color: #111827 !important;
+	box-shadow: 0 0.75rem 1.5rem -1.35rem rgba(15, 23, 42, 0.22) !important;
+}
+
+.workflow-user-form-submit {
+	display: flex !important;
+	justify-content: flex-end !important;
+	margin-top: 1rem !important;
+}
+
+.workflow-user-form-submit button {
+	min-height: 3.25rem !important;
+	border-radius: 0.875rem !important;
+	padding: 0 1.25rem !important;
+}
+
+.workflow-task-modal .workflow-trello-modal-actions {
+	width: fit-content !important;
+	max-width: 100% !important;
+	gap: 0.625rem !important;
+	border: 1px solid #e5e7eb !important;
+	border-radius: 1rem !important;
+	background: #f8fafc !important;
+	padding: 0.625rem !important;
+	box-shadow: none !important;
+}
+
+.workflow-task-modal .workflow-trello-modal-action,
+.workflow-task-modal .workflow-trello-modal-action-primary,
+.workflow-task-modal .workflow-trello-modal-save,
+.workflow-task-modal .workflow-trello-modal-secondary-action,
+.workflow-task-modal .workflow-trello-modal-cancel,
+.workflow-task-modal .workflow-trello-modal-checklist-add button,
+.workflow-task-modal .workflow-trello-modal-upload-row button,
+.workflow-task-modal .workflow-trello-modal-comment-box button,
+.workflow-task-modal .workflow-trello-modal-file-button,
+.workflow-task-modal .workflow-trello-modal-upload-row label {
+	display: inline-flex !important;
+	min-height: 2.75rem !important;
+	align-items: center !important;
+	justify-content: center !important;
+	gap: 0.5rem !important;
+	border: 1px solid #e5e7eb !important;
+	border-radius: 0.75rem !important;
+	background: #ffffff !important;
+	padding: 0 0.875rem !important;
+	color: #111827 !important;
+	box-shadow: none !important;
+	font-size: 0.875rem !important;
+	font-weight: 800 !important;
+	line-height: 1 !important;
+	white-space: nowrap !important;
+}
+
+.workflow-task-modal .workflow-trello-modal-action-primary,
+.workflow-task-modal .workflow-trello-modal-save,
+.workflow-task-modal .workflow-trello-modal-checklist-add button,
+.workflow-task-modal .workflow-trello-modal-upload-row button,
+.workflow-task-modal .workflow-trello-modal-comment-box button {
+	border-color: #111827 !important;
+	background: #030712 !important;
+	color: #ffffff !important;
+	box-shadow: 0 0.875rem 1.5rem -1.35rem rgba(15, 23, 42, 0.45) !important;
+}
+
+.workflow-task-modal .workflow-trello-modal-action:hover:not(:disabled),
+.workflow-task-modal .workflow-trello-modal-secondary-action:hover:not(:disabled),
+.workflow-task-modal .workflow-trello-modal-cancel:hover:not(:disabled),
+.workflow-task-modal .workflow-trello-modal-file-button:hover,
+.workflow-task-modal .workflow-trello-modal-upload-row label:hover {
+	border-color: #cbd5e1 !important;
+	background: #f8fafc !important;
+	color: #030712 !important;
+}
+
+.workflow-task-modal .workflow-trello-modal-action-primary:hover:not(:disabled),
+.workflow-task-modal .workflow-trello-modal-save:hover:not(:disabled),
+.workflow-task-modal .workflow-trello-modal-checklist-add button:hover:not(:disabled),
+.workflow-task-modal .workflow-trello-modal-upload-row button:hover:not(:disabled),
+.workflow-task-modal .workflow-trello-modal-comment-box button:hover:not(:disabled) {
+	border-color: #030712 !important;
+	background: #030712 !important;
+	color: #ffffff !important;
+}
+
+.workflow-task-modal .workflow-trello-modal-action:disabled,
+.workflow-task-modal .workflow-trello-modal-action-primary:disabled,
+.workflow-task-modal .workflow-trello-modal-save:disabled,
+.workflow-task-modal .workflow-trello-modal-checklist-add button:disabled,
+.workflow-task-modal .workflow-trello-modal-upload-row button:disabled,
+.workflow-task-modal .workflow-trello-modal-comment-box button:disabled {
+	cursor: not-allowed !important;
+	opacity: 0.52 !important;
+}
+
+.workflow-task-modal .workflow-trello-modal-comment-box {
+	border-bottom: 1px solid #e5e7eb !important;
+}
+
+.workflow-trello-modal-add-menu,
+.workflow-task-modal .workflow-trello-add-menu {
+	border-color: #e5e7eb !important;
+	background: #ffffff !important;
+	color: #111827 !important;
+	box-shadow: 0 1.5rem 3.5rem -2.75rem rgba(15, 23, 42, 0.5) !important;
+}
+
+.workflow-trello-modal-add-menu .workflow-trello-add-menu-head button,
+.workflow-task-modal .workflow-trello-add-menu-head button,
+.workflow-task-modal .workflow-trello-add-options button > span:first-child {
+	border-color: #e5e7eb !important;
+	background: #f8fafc !important;
+	color: #111827 !important;
+}
+
+.workflow-task-modal .workflow-trello-add-options button {
+	color: #111827 !important;
+}
+
+.workflow-task-modal .workflow-trello-add-options button:hover {
+	background: #f8fafc !important;
+}
+
+.workflow-task-modal .workflow-trello-add-options small {
+	color: #526174 !important;
+}
+
+@media (max-width: 47.9375rem) {
+	.workflow-user-form-submit {
+		justify-content: stretch !important;
+	}
+
+	.workflow-user-form-toggle-stack,
+	.workflow-user-form-permissions {
+		grid-template-columns: minmax(0, 1fr) !important;
+	}
+
+	.workflow-user-form-submit button {
+		width: 100% !important;
+	}
+
+	.workflow-task-modal .workflow-trello-modal-actions {
+		width: 100% !important;
+	}
+}

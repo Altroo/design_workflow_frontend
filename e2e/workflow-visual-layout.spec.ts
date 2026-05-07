@@ -113,6 +113,8 @@ const expectUnifiedInnerHeader = async (locator: Locator) => {
 	expect(metrics.minHeight).toBeGreaterThanOrEqual(metrics.rootFontSize * 2.65);
 };
 
+const primaryControlBackgrounds = ['rgb(2, 6, 23)', 'rgb(3, 7, 18)', 'rgb(17, 24, 39)'];
+
 const expectUnifiedWorkflowControl = async (locator: Locator, expectedBackgrounds = ['rgb(255, 255, 255)']) => {
 	await expect(locator).toBeVisible({ timeout: 30_000 });
 	const metrics = await locator.evaluate((element) => {
@@ -132,6 +134,27 @@ const expectUnifiedWorkflowControl = async (locator: Locator, expectedBackground
 	expect(expectedBackgrounds).toContain(metrics.backgroundColor);
 	expect(metrics.radius).toBeCloseTo(metrics.rootFontSize * 0.875, 0);
 	expect(metrics.height).toBeGreaterThanOrEqual(metrics.rootFontSize * 3.1);
+};
+
+const expectCompactWorkflowControl = async (locator: Locator, expectedBackgrounds = ['rgb(255, 255, 255)']) => {
+	await expect(locator).toBeVisible({ timeout: 30_000 });
+	const metrics = await locator.evaluate((element) => {
+		const style = getComputedStyle(element);
+		const rootFontSize = parseFloat(getComputedStyle(document.documentElement).fontSize);
+		return {
+			backgroundColor: style.backgroundColor,
+			borderStyle: style.borderTopStyle,
+			borderWidth: parseFloat(style.borderTopWidth),
+			height: element.getBoundingClientRect().height,
+			radius: parseFloat(style.borderTopLeftRadius),
+			rootFontSize,
+		};
+	});
+	expect(metrics.borderStyle).toBe('solid');
+	expect(metrics.borderWidth).toBe(1);
+	expect(expectedBackgrounds).toContain(metrics.backgroundColor);
+	expect(metrics.radius).toBeCloseTo(metrics.rootFontSize * 0.75, 0);
+	expect(metrics.height).toBeGreaterThanOrEqual(metrics.rootFontSize * 2.6);
 };
 
 const expectSemanticBoardColors = async (page: Page) => {
@@ -454,7 +477,7 @@ test.describe('workflow visual layout pass', () => {
 		await expectUnifiedWorkflowControl(page.locator('.workflow-kanban-search'));
 		await expectUnifiedWorkflowControl(page.locator('.workflow-kanban-filter-grid .app-input').first());
 		await expectUnifiedWorkflowControl(page.locator('.workflow-saved-view-bar .app-input').nth(1));
-		await expectUnifiedWorkflowControl(page.locator('.workflow-saved-view-bar .app-button').first(), ['rgb(17, 24, 39)', 'rgb(3, 7, 18)']);
+		await expectUnifiedWorkflowControl(page.locator('.workflow-saved-view-bar .app-button').first(), primaryControlBackgrounds);
 		const activeBoardSegment = page.locator('.workflow-board-segment button.is-active').first();
 		await expect(activeBoardSegment).toBeVisible();
 		expect(await readCssProperty(activeBoardSegment, 'background-color')).not.toBe('rgb(0, 161, 93)');
@@ -496,6 +519,10 @@ test.describe('workflow visual layout pass', () => {
 		await page.locator('[data-testid^="board-task-"]').first().click();
 		await expect(page.locator('.workflow-task-modal')).toBeVisible();
 		await expect(page.locator('.workflow-task-modal')).toContainText(/Demander modifications|Approuver|Pi.ces jointes|Commentaires/i);
+		await expectCompactWorkflowControl(page.locator('.workflow-task-modal .workflow-trello-modal-action').first());
+		await expectCompactWorkflowControl(page.locator('.workflow-task-modal .workflow-trello-modal-action-primary').first(), primaryControlBackgrounds);
+		await expectCompactWorkflowControl(page.locator('.workflow-task-modal .workflow-trello-modal-comment-box button').first(), primaryControlBackgrounds);
+		await expectUnifiedWorkflowControl(page.locator('.workflow-task-modal .workflow-trello-modal-comment-box .app-input').first());
 		const taskModalActions = (await page.locator('.workflow-task-modal .workflow-trello-modal-action').allTextContents()).join(' ');
 		expect(taskModalActions).toMatch(/Demander modifications|Approuver|Liste|Membres|Archiver/i);
 		expect(taskModalActions).not.toMatch(/Request changes|\bApprove\b|Checklist|\bMembers\b|\bArchive\b/i);
@@ -694,6 +721,10 @@ test.describe('workflow visual layout pass', () => {
 		await expect(page.locator('.workflow-user-form-shell')).toBeVisible({ timeout: 30_000 });
 		await expectSharedPageHeader(page.locator('.workflow-user-form-hero'));
 		await expect(page.locator('.workflow-user-form-grid')).toBeVisible({ timeout: 30_000 });
+		await expectUnifiedWorkflowControl(page.locator('.workflow-user-form-fields .app-input').first());
+		await expectUnifiedWorkflowControl(page.locator('.workflow-user-form-fields .app-select-trigger').first());
+		await expectUnifiedWorkflowControl(page.locator('.workflow-user-form-toggle').first());
+		await expectUnifiedWorkflowControl(page.locator('.workflow-user-form-submit button').first(), primaryControlBackgrounds);
 		await page.screenshot({ path: join(screenshotDir, 'user-new.png'), fullPage: true });
 
 		await gotoDashboardPath(page, '/dashboard/settings/edit-profile');
@@ -701,12 +732,17 @@ test.describe('workflow visual layout pass', () => {
 		await expectSharedPageHeader(page.locator('.workflow-user-form-hero'));
 		await expect(page.locator('.workflow-profile-fields')).toBeVisible();
 		await expect(page.getByTestId('api-loader')).toHaveCount(0, { timeout: 20_000 });
+		await expectUnifiedWorkflowControl(page.locator('.workflow-profile-fields .app-input').first());
+		await expectUnifiedWorkflowControl(page.locator('.workflow-profile-fields .app-select-trigger').first());
+		await expectUnifiedWorkflowControl(page.locator('.workflow-user-form-submit button').first(), primaryControlBackgrounds);
 		await page.screenshot({ path: join(screenshotDir, 'profile.png'), fullPage: true });
 
 		await gotoDashboardPath(page, '/dashboard/settings/password');
 		await expect(page.locator('.workflow-password-shell')).toBeVisible();
 		await expectSharedPageHeader(page.locator('.workflow-user-form-hero'));
 		await expect(page.locator('.workflow-password-fields')).toBeVisible();
+		await expectUnifiedWorkflowControl(page.locator('.workflow-password-fields .app-input').first());
+		await expectUnifiedWorkflowControl(page.locator('.workflow-user-form-submit button').first(), primaryControlBackgrounds);
 		await page.screenshot({ path: join(screenshotDir, 'password.png'), fullPage: true });
 	});
 
