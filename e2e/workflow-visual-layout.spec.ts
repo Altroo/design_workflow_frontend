@@ -163,7 +163,13 @@ const expectSlateChatAccent = async (page: Page) => {
 
 	const ownBubble = page.locator('.workflow-chat-bubble-mine').first();
 	if ((await ownBubble.count()) > 0) {
-		expect(await readCssProperty(ownBubble, 'background-color')).toBe('rgb(71, 85, 105)');
+		expect(await readCssProperty(ownBubble, 'background-color')).toBe('rgb(238, 243, 248)');
+		expect(await readCssProperty(ownBubble, 'color')).toBe('rgb(15, 23, 42)');
+	}
+	const ownRichCard = page.locator('.workflow-chat-bubble-mine .workflow-chat-rich-card, .workflow-chat-bubble-mine .workflow-chat-voice-player').last();
+	if ((await ownRichCard.count()) > 0) {
+		expect(await readCssProperty(ownRichCard, 'background-color')).toBe('rgb(248, 250, 252)');
+		expect(await readCssProperty(ownRichCard, 'color')).not.toBe('rgb(255, 255, 255)');
 	}
 
 	const chatAvatar = page.locator('.workflow-chat-direct-button .workflow-chat-avatar').first();
@@ -511,6 +517,8 @@ test.describe('workflow visual layout pass', () => {
 		await expectFrenchUiChrome(page.locator('.workflow-chat-sidebar'), /Canal public|Projets|Messages directs/i, chatEnglishChrome);
 		await expect(page.locator('.workflow-chat-room textarea').first()).toHaveAttribute('placeholder', /crire un message/i);
 		await expect(page.locator('.workflow-chat-room')).not.toContainText(chatEnglishChrome);
+		await page.locator('.workflow-chat-message-row').last().scrollIntoViewIfNeeded();
+		await page.waitForTimeout(120);
 		await page.screenshot({ path: join(screenshotDir, 'chat.png'), fullPage: true });
 
 		await gotoDashboardPath(page, '/dashboard/notifications');

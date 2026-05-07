@@ -213,7 +213,62 @@
 	opacity: 1 !important;
 }
 
-.workflow-chat-bubble.workflow-chat-bubble-mine,
+.workflow-chat-bubble.workflow-chat-bubble-mine {
+	border: 1px solid #cbd5e1 !important;
+	background: #eef3f8 !important;
+	color: #0f172a !important;
+	box-shadow: 0 0.875rem 1.875rem -1.65rem rgba(15, 23, 42, 0.28) !important;
+}
+
+.workflow-chat-bubble-mine .workflow-chat-sender-name,
+.workflow-chat-bubble-mine p,
+.workflow-chat-bubble-mine small,
+.workflow-chat-bubble-mine .workflow-chat-message-meta,
+.workflow-chat-bubble-mine .text-\(--ink-soft\),
+.workflow-chat-bubble-mine .text-\(--ink-muted\) {
+	color: #334155 !important;
+}
+
+.workflow-chat-bubble-mine .workflow-chat-sender-name,
+.workflow-chat-bubble-mine .whitespace-pre-wrap,
+.workflow-chat-bubble-mine .workflow-chat-rich-card button {
+	color: #0f172a !important;
+}
+
+.workflow-chat-bubble-mine .workflow-chat-inline-tag,
+.workflow-chat-bubble-mine .workflow-chat-inline-tag-user,
+.workflow-chat-bubble-mine .workflow-chat-inline-tag-task,
+.workflow-chat-bubble-mine .workflow-chat-inline-tag-project,
+.workflow-chat-bubble-mine .workflow-chat-rich-task > span,
+.workflow-chat-bubble-mine .workflow-chat-rich-project > span,
+.workflow-chat-bubble-mine .workflow-chat-voice-player {
+	border: 1px solid #dbe3ef !important;
+	background: #ffffff !important;
+	color: #334155 !important;
+}
+
+.workflow-chat-bubble-mine .workflow-chat-rich-card,
+.workflow-chat-bubble-mine .workflow-chat-voice-player {
+	border-color: #dbe3ef !important;
+	background: #f8fafc !important;
+}
+
+.workflow-chat-bubble-mine .workflow-chat-voice-player > button {
+	background: #64748b !important;
+	color: #ffffff !important;
+	box-shadow: none !important;
+}
+
+.workflow-chat-bubble-mine .workflow-chat-voice-waveform span,
+.workflow-chat-bubble-mine .workflow-chat-voice-player[data-playing='true'] .workflow-chat-voice-waveform span {
+	background: #cbd5e1 !important;
+}
+
+.workflow-chat-bubble-mine .workflow-chat-voice-waveform span[data-active='true'],
+.workflow-chat-bubble-mine .workflow-chat-voice-player[data-playing='true'] .workflow-chat-voice-waveform span[data-active='true'] {
+	background: #64748b !important;
+}
+
 .workflow-chat-composer .app-button:not(.app-button-ghost) {
 	border-color: #475569 !important;
 	background: #475569 !important;
