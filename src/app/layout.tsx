@@ -111,8 +111,8 @@ const RootLayout: React.FC<EntryPointProps> = async (props) => {
 	const cookieStore = await cookies();
 	const lang = cookieStore.get('app-language')?.value === 'en' ? 'en' : 'fr';
 	return (
-		<html lang={lang} data-scroll-behavior="smooth">
-			<body className={poppins.variable}>
+		<html lang={lang} data-scroll-behavior="smooth" suppressHydrationWarning>
+			<body className={poppins.variable} suppressHydrationWarning>
 				<a href="#main-content" className="skip-to-content">
 					{t.common.skipToContent}
 				</a>
