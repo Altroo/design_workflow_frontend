@@ -175,6 +175,29 @@ const expectSecondaryNeutralSurface = async (locator: Locator) => {
 	expect(metrics.beforeBackgroundImage).not.toContain('gradient');
 };
 
+const expectNeutralTransientSurface = async (locator: Locator) => {
+	await expect(locator).toBeVisible({ timeout: 30_000 });
+	const metrics = await locator.evaluate((element) => {
+		const style = getComputedStyle(element);
+		const rootFontSize = parseFloat(getComputedStyle(document.documentElement).fontSize);
+		return {
+			backgroundColor: style.backgroundColor,
+			backgroundImage: style.backgroundImage,
+			borderStyle: style.borderTopStyle,
+			borderWidth: parseFloat(style.borderTopWidth),
+			boxShadow: style.boxShadow,
+			radius: parseFloat(style.borderTopLeftRadius),
+			rootFontSize,
+		};
+	});
+	expect(metrics.borderStyle).toBe('solid');
+	expect(metrics.borderWidth).toBe(1);
+	expect(metrics.backgroundColor).toBe('rgb(255, 255, 255)');
+	expect(metrics.backgroundImage).not.toContain('gradient');
+	expect(metrics.boxShadow).not.toBe('none');
+	expect(metrics.radius).toBeGreaterThanOrEqual(metrics.rootFontSize * 0.875);
+};
+
 const expectNeutralInsetSurface = async (locator: Locator) => {
 	await expect(locator).toBeVisible({ timeout: 30_000 });
 	const metrics = await locator.evaluate((element) => {
@@ -188,7 +211,7 @@ const expectNeutralInsetSurface = async (locator: Locator) => {
 			rootFontSize,
 		};
 	});
-	expect(metrics.borderStyle).toBe('solid');
+	expect(['solid', 'dashed']).toContain(metrics.borderStyle);
 	expect(metrics.borderWidth).toBe(1);
 	expect(['rgb(248, 250, 252)', 'rgb(255, 255, 255)']).toContain(metrics.backgroundColor);
 	expect(metrics.radius).toBeGreaterThanOrEqual(metrics.rootFontSize * 0.75);
@@ -511,7 +534,7 @@ const openAvailableProjectDetail = async (page: Page) => {
 
 test.describe('workflow visual layout pass', () => {
 	test.skip(!email || !password, 'Set DESIGN_WORKFLOW_E2E_EMAIL and DESIGN_WORKFLOW_E2E_PASSWORD before visual layout checks.');
-	test.setTimeout(120_000);
+	test.setTimeout(180_000);
 	test.use({ storageState: { cookies: [], origins: [] }, viewport: { width: 1920, height: 900 } });
 
 	test.beforeAll(() => {
@@ -525,7 +548,7 @@ test.describe('workflow visual layout pass', () => {
 	});
 
 	test('captures and checks the premium workflow pages', async ({ page }) => {
-		test.setTimeout(120_000);
+		test.setTimeout(180_000);
 		await gotoDashboardPath(page, '/dashboard/board');
 		await expectNoNextDevIndicator(page);
 		await expectUnifiedWorkflowTitleCard(page.locator('.workflow-kanban-header'));
@@ -536,6 +559,13 @@ test.describe('workflow visual layout pass', () => {
 		await expectUnifiedWorkflowControl(page.locator('.workflow-kanban-filter-grid .app-input').first());
 		await expectUnifiedWorkflowControl(page.locator('.workflow-saved-view-bar .app-input').nth(1));
 		await expectUnifiedWorkflowControl(page.locator('.workflow-saved-view-bar .app-button').first(), primaryControlBackgrounds);
+		await page.locator('.workflow-kanban-filter-grid .app-select-trigger').nth(1).click();
+		const selectPopover = page.locator('.app-select-content').first();
+		await expectNeutralTransientSurface(selectPopover);
+		await selectPopover.screenshot({ path: join(screenshotDir, 'select-popover-crop.png') });
+		await page.screenshot({ path: join(screenshotDir, 'select-popover.png'), fullPage: true });
+		await page.keyboard.press('Escape');
+		await expect(page.locator('.app-select-content')).toHaveCount(0);
 		const activeBoardSegment = page.locator('.workflow-board-segment button.is-active').first();
 		await expect(activeBoardSegment).toBeVisible();
 		expect(await readCssProperty(activeBoardSegment, 'background-color')).not.toBe('rgb(0, 161, 93)');
@@ -581,6 +611,22 @@ test.describe('workflow visual layout pass', () => {
 		await expectCompactWorkflowControl(page.locator('.workflow-task-modal .workflow-trello-modal-action-primary').first(), primaryControlBackgrounds);
 		await expectCompactWorkflowControl(page.locator('.workflow-task-modal .workflow-trello-modal-comment-box button').first(), primaryControlBackgrounds);
 		await expectUnifiedWorkflowControl(page.locator('.workflow-task-modal .workflow-trello-modal-comment-box .app-input').first());
+		await page.locator('.workflow-task-modal .workflow-trello-modal-action-primary').first().click();
+		const addMenu = page.locator('.workflow-trello-add-menu').first();
+		await expectNeutralTransientSurface(addMenu);
+		await expectNeutralInsetSurface(addMenu.locator('.workflow-trello-add-menu-head'));
+		await expectNeutralActionControl(addMenu.locator('.workflow-trello-add-options button').first());
+		await addMenu.screenshot({ path: join(screenshotDir, 'task-modal-add-menu-crop.png') });
+		await page.screenshot({ path: join(screenshotDir, 'task-modal-add-menu.png'), fullPage: true });
+		await addMenu.locator('.workflow-trello-add-options button').nth(1).click();
+		const floatingPanel = page.locator('.workflow-trello-modal-floating-panel').first();
+		await expectNeutralTransientSurface(floatingPanel);
+		await expectNeutralInsetSurface(floatingPanel.locator('.workflow-trello-modal-floating-head'));
+		await expectNeutralActionControl(floatingPanel.locator('.workflow-trello-modal-save').first(), primaryControlBackgrounds);
+		await floatingPanel.screenshot({ path: join(screenshotDir, 'task-modal-floating-panel-crop.png') });
+		await page.screenshot({ path: join(screenshotDir, 'task-modal-floating-panel.png'), fullPage: true });
+		await floatingPanel.locator('.workflow-trello-modal-floating-head button').click();
+		await expect(page.locator('.workflow-trello-modal-floating-panel')).toHaveCount(0);
 		const taskModalActions = (await page.locator('.workflow-task-modal .workflow-trello-modal-action').allTextContents()).join(' ');
 		expect(taskModalActions).toMatch(/Demander modifications|Approuver|Liste|Membres|Archiver/i);
 		expect(taskModalActions).not.toMatch(/Request changes|\bApprove\b|Checklist|\bMembers\b|\bArchive\b/i);
@@ -664,6 +710,10 @@ test.describe('workflow visual layout pass', () => {
 		if ((await projectFeedItem.count()) > 0) {
 			await expectNeutralInsetSurface(projectFeedItem);
 		}
+		const projectEmptyState = page.locator('.workflow-project-detail-page .workflow-empty-state').first();
+		if ((await projectEmptyState.count()) > 0) {
+			await expectNeutralInsetSurface(projectEmptyState);
+		}
 		await page.screenshot({ path: join(screenshotDir, 'project-detail.png'), fullPage: true });
 
 		await gotoDashboardPath(page, '/dashboard/team');
@@ -712,6 +762,13 @@ test.describe('workflow visual layout pass', () => {
 		await expectUnifiedWorkflowControl(page.locator('.workflow-report-filterbar .app-input').first());
 		await expectUnifiedWorkflowControl(page.locator('.workflow-report-clear').first());
 		await expectUnifiedWorkflowControl(page.locator('.workflow-report-export').first());
+		await page.locator('.workflow-report-date-fields .app-date-trigger').first().click();
+		const datePopover = page.locator('.app-day-picker-popover').first();
+		await expectNeutralTransientSurface(datePopover);
+		await datePopover.screenshot({ path: join(screenshotDir, 'date-popover-crop.png') });
+		await page.screenshot({ path: join(screenshotDir, 'date-popover.png'), fullPage: true });
+		await page.keyboard.press('Escape');
+		await expect(page.locator('.app-day-picker-popover')).toHaveCount(0);
 		await expect(page.locator('.workflow-report-filterbar')).toContainText(/Effacer les filtres|Exporter CSV|Exporter PDF/i);
 		await expect(page.locator('.workflow-analytics-grid')).toBeVisible();
 		await expect(page.locator('.workflow-forecast-board')).toBeVisible();

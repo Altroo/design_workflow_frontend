@@ -36,7 +36,7 @@ const ApiAlert: React.FC<Props> = (props: Props) => {
 	}
 
 	return (
-		<div className="ui-alert rounded-[14px] border border-[color:var(--accent)] bg-(--accent-soft) px-4 py-3 text-sm font-semibold text-(--accent-strong)" style={props.cssStyle}>
+		<div role="alert" className="ui-alert rounded-[14px] border border-[color:var(--accent)] bg-(--accent-soft) px-4 py-3 text-sm font-semibold text-(--accent-strong)" style={props.cssStyle}>
 			{errorMessage.length > 0
 				? errorMessage.map((error) => {
 						return Object.keys(error).map((k) => {

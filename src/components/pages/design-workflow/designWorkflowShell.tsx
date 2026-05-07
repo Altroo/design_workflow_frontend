@@ -1142,7 +1142,7 @@ const ToggleField = ({
 );
 
 const EmptyState = ({ title, description }: { title: string; description: string }) => (
-	<div className="rounded-2xl border border-dashed border-[color:var(--line-strong)] bg-white px-5 py-6 text-center">
+	<div className="workflow-empty-state rounded-2xl border border-dashed border-[color:var(--line-strong)] bg-white px-5 py-6 text-center">
 		<p className="text-base font-semibold text-(--ink)">{title}</p>
 		<p className="mt-2 text-sm leading-6 text-(--ink-soft)">{description}</p>
 	</div>

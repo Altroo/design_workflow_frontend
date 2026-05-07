@@ -641,11 +641,12 @@ const expectMobileReportAnalytics = async (page: Page) => {
 			rowCount: rows.size,
 		};
 	});
-	expect(insightLayout.rowCount).toBe(1);
+	expect(insightLayout.cards).toHaveLength(3);
+	expect(insightLayout.rowCount).toBe(3);
 	for (const card of insightLayout.cards) {
 		expect(card.height).toBeLessThanOrEqual(96);
-		expect(card.widthRatio).toBeGreaterThan(0.25);
-		expect(card.widthRatio).toBeLessThan(0.36);
+		expect(card.widthRatio).toBeGreaterThan(0.92);
+		expect(card.widthRatio).toBeLessThanOrEqual(1);
 		expect(card.leftOverflow).toBe(false);
 		expect(card.rightOverflow).toBe(false);
 	}

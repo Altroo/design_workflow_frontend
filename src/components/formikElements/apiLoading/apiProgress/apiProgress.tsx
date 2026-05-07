@@ -18,11 +18,11 @@ const ApiProgress: React.FC<Props> = (props: Props) => {
 	return (
 		<div
 			style={{ backgroundColor: props.backdropColor, ...(props.cssStyle ?? {}) }}
-			className="fixed inset-0 z-[100] flex items-center justify-center"
+			className="api-progress-overlay fixed inset-0 z-[100] flex items-center justify-center"
 		>
 			<div
 				data-testid="api-loader"
-				className="h-12 w-12 animate-spin rounded-full border-4 border-[color:var(--line)] border-t-[color:var(--accent)]"
+				className="api-progress-spinner h-12 w-12 animate-spin rounded-full border-4 border-[color:var(--line)] border-t-[color:var(--accent)]"
 				style={{ borderTopColor: props.circularColor }}
 			/>
 		</div>
