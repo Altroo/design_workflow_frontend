@@ -245,11 +245,17 @@ const expectMobileTaskDetail = async (page: Page) => {
 	const tabMetrics = await tabs.evaluate((tabList) => {
 		const buttons = Array.from(tabList.querySelectorAll<HTMLElement>('button'));
 		const bounds = tabList.getBoundingClientRect();
+		const style = getComputedStyle(tabList);
 		return {
+			display: style.display,
 			height: bounds.height,
+			clientWidth: tabList.clientWidth,
+			overflowX: style.overflowX,
+			scrollWidth: tabList.scrollWidth,
 			buttons: buttons.map((button) => {
 				const box = button.getBoundingClientRect();
 				return {
+					flexShrink: getComputedStyle(button).flexShrink,
 					height: box.height,
 					leftOverflow: box.left < bounds.left - 1,
 					rightOverflow: box.right > bounds.right + 1 && tabList.scrollWidth <= tabList.clientWidth,
@@ -258,8 +264,17 @@ const expectMobileTaskDetail = async (page: Page) => {
 			}),
 		};
 	});
-	expect(tabMetrics.height).toBeLessThanOrEqual(58);
+	const wrappedTabs = tabMetrics.display.includes('grid');
+	expect(tabMetrics.height).toBeLessThanOrEqual(wrappedTabs ? 160 : 58);
+	if (wrappedTabs) {
+		expect(tabMetrics.overflowX).toMatch(/visible|clip/i);
+		expect(tabMetrics.scrollWidth).toBeLessThanOrEqual(tabMetrics.clientWidth + 4);
+	} else {
+		expect(tabMetrics.overflowX).toMatch(/auto|scroll/i);
+		expect(tabMetrics.scrollWidth).toBeGreaterThanOrEqual(tabMetrics.clientWidth);
+	}
 	for (const button of tabMetrics.buttons) {
+		if (!wrappedTabs) expect(button.flexShrink).toBe('0');
 		expect(button.height).toBeGreaterThanOrEqual(38);
 		expect(button.height).toBeLessThanOrEqual(48);
 		expect(button.width).toBeGreaterThan(88);
@@ -288,6 +303,36 @@ const expectMobileTaskDetail = async (page: Page) => {
 	}
 };
 
+const expectTaskModalChrome = async (page: Page) => {
+	const modal = page.locator('.workflow-task-modal');
+	await expect(modal).toBeVisible({ timeout: 30_000 });
+	const metrics = await modal.evaluate((modalElement) => {
+		const body = modalElement.querySelector<HTMLElement>('.workflow-task-modal-body');
+		const description = modalElement.querySelector<HTMLElement>('.workflow-trello-modal-description-button, .workflow-trello-modal-description-text');
+		const actions = modalElement.querySelector<HTMLElement>('.workflow-trello-modal-actions');
+		const box = modalElement.getBoundingClientRect();
+		const modalStyle = getComputedStyle(modalElement);
+		const bodyStyle = body ? getComputedStyle(body) : null;
+		const descriptionBox = description?.getBoundingClientRect();
+		const actionRows = actions
+			? new Set(Array.from(actions.querySelectorAll<HTMLElement>('button')).map((button) => Math.round(button.getBoundingClientRect().top))).size
+			: 0;
+		return {
+			actionRows,
+			backgroundColor: modalStyle.backgroundColor,
+			bodyFlexGrow: bodyStyle?.flexGrow ?? '',
+			descriptionHeight: descriptionBox?.height ?? 0,
+			heightRatio: box.height / document.documentElement.clientHeight,
+		};
+	});
+	expect(metrics.backgroundColor).toBe('rgb(255, 255, 255)');
+	expect(metrics.bodyFlexGrow).toBe('0');
+	expect(metrics.descriptionHeight).toBeLessThanOrEqual(120);
+	expect(metrics.heightRatio).toBeLessThanOrEqual(0.98);
+	const viewport = page.viewportSize();
+	expect(metrics.actionRows).toBeLessThanOrEqual(viewport && viewport.width <= 480 ? 4 : 3);
+};
+
 const waitForTaskDetailReady = async (page: Page) => {
 	await expect(page.getByTestId('api-loader')).toHaveCount(0, { timeout: 30_000 });
 	await expect(page.locator('.workflow-task-detail-page')).toBeVisible({ timeout: 30_000 });
@@ -313,6 +358,7 @@ const openFirstBoardTaskModal = async (page: Page) => {
 	await expect(page.locator('.workflow-task-modal .workflow-trello-modal-detail')).toBeVisible({ timeout: 30_000 });
 	await expect(page.locator('.workflow-task-modal .workflow-trello-modal-actions')).toBeVisible({ timeout: 30_000 });
 	await expect(page.locator('.workflow-task-modal .workflow-task-comments-panel, .workflow-task-modal .workflow-trello-modal-activity')).toBeVisible({ timeout: 30_000 });
+	await expectTaskModalChrome(page);
 };
 
 const centerBoardOnFirstTask = async (page: Page) => {

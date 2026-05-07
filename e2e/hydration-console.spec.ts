@@ -45,6 +45,11 @@ test.describe('hydration console guard', () => {
 		for (const path of ['/dashboard/overview', '/dashboard/board', '/dashboard/projects', '/dashboard/team', '/dashboard/reports/time', '/dashboard/chat', '/dashboard/notifications']) {
 			await page.goto(path, { waitUntil: 'domcontentloaded' });
 			await page.locator('body').waitFor({ state: 'visible', timeout: 30_000 });
+			if (path === '/dashboard/reports/time') {
+				await expect(page.locator('.workflow-report-shell')).toBeVisible({ timeout: 30_000 });
+				await expect(page.locator('.workflow-report-chart-body canvas').first()).toBeVisible({ timeout: 30_000 });
+			}
+			await page.waitForTimeout(250);
 		}
 
 		expect(hydrationMessages).toEqual([]);

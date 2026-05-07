@@ -1732,6 +1732,7 @@ const DesignWorkflowShell = ({ title, variant, projectId, taskId }: Props) => {
 	const [taskCoverFile, setTaskCoverFile] = useState<File | null>(null);
 	const [mediaDeleteTarget, setMediaDeleteTarget] = useState<MediaDeleteTarget | null>(null);
 	const [attachmentPreview, setAttachmentPreview] = useState<AttachmentPreviewTarget | null>(null);
+	const [reportChartsMounted, setReportChartsMounted] = useState(false);
 	const [boardDraft, setBoardDraft] = useState<TaskCard[]>([]);
 	const [draggedTaskId, setDraggedTaskId] = useState<number | null>(null);
 	const [quickAddColumn, setQuickAddColumn] = useState<TaskStatus | null>(null);
@@ -1919,6 +1920,10 @@ const DesignWorkflowShell = ({ title, variant, projectId, taskId }: Props) => {
 	const [snoozeNotification] = useSnoozeNotificationMutation();
 	const [runNotificationAction] = useRunNotificationActionMutation();
 	const [updateNotificationPreferences] = useUpdateNotificationPreferencesMutation();
+
+	useEffect(() => {
+		setReportChartsMounted(true);
+	}, []);
 
 	useEffect(() => {
 		if (profile.id && !projectForm.manager_id) {
@@ -5703,6 +5708,7 @@ const DesignWorkflowShell = ({ title, variant, projectId, taskId }: Props) => {
 					count: workflowReport.status_counts[statusValue] ?? 0,
 				}))
 			: [];
+		const renderChartPlaceholder = () => <div className="workflow-report-chart-placeholder" aria-hidden="true" />;
 
 		return (
 			<div className="workflow-report-shell">
@@ -5868,7 +5874,7 @@ const DesignWorkflowShell = ({ title, variant, projectId, taskId }: Props) => {
 								<span>{workflow.labels.topFiveProjects}</span>
 							</div>
 							<div className="workflow-report-chart-body workflow-report-chart-body-bar" style={{ height: reportBarHeight }}>
-								<Bar data={reportBarData} options={reportBarOptions} />
+								{reportChartsMounted ? <Bar data={reportBarData} options={reportBarOptions} /> : renderChartPlaceholder()}
 							</div>
 							<div className="workflow-report-chart-keys">
 								{chartRows.map((row, index) => (
@@ -5888,7 +5894,7 @@ const DesignWorkflowShell = ({ title, variant, projectId, taskId }: Props) => {
 								</div>
 							</div>
 							<div className="workflow-report-chart-body workflow-report-chart-body-doughnut">
-								<Doughnut data={reportDoughnutData} options={reportDoughnutOptions} />
+								{reportChartsMounted ? <Doughnut data={reportDoughnutData} options={reportDoughnutOptions} /> : renderChartPlaceholder()}
 								<div className="workflow-report-doughnut-center" aria-hidden="true">
 									<span>{workflow.labels.chartTotal}</span>
 									<strong>{formatMinutes(totalMinutes)}</strong>
@@ -5904,7 +5910,7 @@ const DesignWorkflowShell = ({ title, variant, projectId, taskId }: Props) => {
 								</div>
 							</div>
 							<div className="workflow-report-chart-body workflow-report-chart-body-line">
-								<Line data={reportCurveData} options={reportCurveOptions} />
+								{reportChartsMounted ? <Line data={reportCurveData} options={reportCurveOptions} /> : renderChartPlaceholder()}
 							</div>
 						</article>
 
