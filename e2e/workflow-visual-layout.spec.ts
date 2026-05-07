@@ -415,6 +415,19 @@ test.describe('workflow visual layout pass', () => {
 		expect(await readCssProperty(addCardButton, 'border-top-style')).toBe('solid');
 		expect(await readCssProperty(addCardButton, 'background-color')).toBe('rgb(255, 255, 255)');
 		expect(await addCardButton.evaluate((button) => button.getBoundingClientRect().height)).toBeGreaterThanOrEqual(44);
+		const boardLaneFit = await page.locator('.workflow-board-surface').evaluate((surface) => {
+			const surfaceRect = surface.getBoundingClientRect();
+			const columns = Array.from(surface.querySelectorAll('.workflow-column[data-status]')).map((column) => column.getBoundingClientRect());
+			return {
+				columnCount: columns.length,
+				maxColumnWidth: Math.max(...columns.map((rect) => rect.width)),
+				lastColumnRight: columns.at(-1)?.right ?? surfaceRect.right,
+				surfaceRight: surfaceRect.right,
+			};
+		});
+		expect(boardLaneFit.columnCount).toBeGreaterThanOrEqual(6);
+		expect(boardLaneFit.maxColumnWidth).toBeLessThanOrEqual(260);
+		expect(boardLaneFit.lastColumnRight).toBeLessThanOrEqual(boardLaneFit.surfaceRight - 8);
 		await page.screenshot({ path: join(screenshotDir, 'board.png'), fullPage: true });
 		await page.locator('[data-testid^="board-task-"]').first().click();
 		await expect(page.locator('.workflow-task-modal')).toBeVisible();
