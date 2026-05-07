@@ -20,6 +20,16 @@ const loginWithUi = async (page: Page) => {
 	await expect(page).toHaveURL(/\/dashboard\/(overview|my-work|board)/, { timeout: 30_000 });
 };
 
+const hasDevChunkLoadError = async (page: Page) =>
+	page.getByText(/This page couldn.t load|Runtime ChunkLoadError|Loading chunk app\/layout failed/i).first().isVisible({ timeout: 1500 }).catch(() => false);
+
+const gotoDashboardPath = async (page: Page, path: string) => {
+	await page.goto(path);
+	for (let attempt = 0; attempt < 2 && await hasDevChunkLoadError(page); attempt += 1) {
+		await page.reload({ waitUntil: 'domcontentloaded' });
+	}
+};
+
 test.beforeAll(async ({ browser }) => {
 	if (!email || !password) return;
 	if (existsSync(authStatePath) && !seeded) return;
@@ -35,14 +45,14 @@ test.describe('authenticated dashboard', () => {
 	test.skip(!email || !password, 'Set DESIGN_WORKFLOW_E2E_EMAIL and DESIGN_WORKFLOW_E2E_PASSWORD to run login tests.');
 
 	test('opens the dashboard shell with an authenticated session', async ({ page }) => {
-		await page.goto('/dashboard/overview');
+		await gotoDashboardPath(page, '/dashboard/overview');
 
 		await expect(page).toHaveURL(/\/dashboard\/(overview|my-work|board)/, { timeout: 30_000 });
 		await expect(page.locator('body')).toContainText(/Design Workflow|Tableau|Dashboard|Task board/i);
 	});
 
 	test('opens premium board search, saved views, table mode, and calendar mode', async ({ page }) => {
-		await page.goto('/dashboard/board');
+		await gotoDashboardPath(page, '/dashboard/board');
 
 		await expect(page).toHaveURL(/\/dashboard\/board/);
 		await expect(page.locator('body')).toContainText(/Task board|Tableau de t.ches|Tableau de taches/i, { timeout: 30_000 });
@@ -62,7 +72,7 @@ test.describe('authenticated dashboard', () => {
 	});
 
 	test('opens workflow reports and export controls', async ({ page }) => {
-		await page.goto('/dashboard/reports/time');
+		await gotoDashboardPath(page, '/dashboard/reports/time');
 
 		await expect(page).toHaveURL(/\/dashboard\/reports\/time/);
 		await expect(page.locator('body')).toContainText(/Reports|Rapports|Analytics|Temps/i, { timeout: 30_000 });
@@ -75,7 +85,7 @@ test.describe('authenticated dashboard', () => {
 	});
 
 	test('opens notification center actions and preferences', async ({ page }) => {
-		await page.goto('/dashboard/notifications');
+		await gotoDashboardPath(page, '/dashboard/notifications');
 
 		await expect(page).toHaveURL(/\/dashboard\/notifications/);
 		await expect(page.locator('body')).toContainText(/Notifications|Centre notifications|Alertes/i, { timeout: 30_000 });
@@ -86,7 +96,7 @@ test.describe('authenticated dashboard', () => {
 
 	test('keeps the board usable on mobile viewports', async ({ page }) => {
 		await page.setViewportSize({ width: 390, height: 844 });
-		await page.goto('/dashboard/my-work');
+		await gotoDashboardPath(page, '/dashboard/my-work');
 
 		await expect(page).toHaveURL(/\/dashboard\/my-work/);
 		await expect(page.locator('body')).toContainText(/My task board|Mon tableau|Mon travail/i, { timeout: 30_000 });
@@ -110,7 +120,7 @@ test.describe('seeded premium workflow coverage', () => {
 	test.skip(!email || !password || !seeded, 'Run seed_design_workflow_e2e and set DESIGN_WORKFLOW_E2E_SEEDED=1 with matching credentials.');
 
 	test('opens seeded review card and exposes artifact annotations', async ({ page }) => {
-		await page.goto('/dashboard/board');
+		await gotoDashboardPath(page, '/dashboard/board');
 
 		await expect(page.locator('.workflow-kanban-toolbar')).toBeVisible();
 		await page.getByPlaceholder(/Task, project, description|T.che, projet, description|Tache, projet, description/i).fill('E2E Review Approval Card');
@@ -123,7 +133,7 @@ test.describe('seeded premium workflow coverage', () => {
 	});
 
 	test('opens seeded chat-source task back link', async ({ page }) => {
-		await page.goto('/dashboard/board');
+		await gotoDashboardPath(page, '/dashboard/board');
 
 		await expect(page.locator('.workflow-kanban-toolbar')).toBeVisible();
 		await page.getByRole('button', { name: /Reset filters|R.initialiser/i }).click();
@@ -132,14 +142,32 @@ test.describe('seeded premium workflow coverage', () => {
 		const sourceTaskResult = page.locator('.workflow-workspace-search-results a').filter({ hasText: 'E2E Task From Chat Source' }).first();
 		await expect(sourceTaskResult).toBeVisible({ timeout: 30_000 });
 		await sourceTaskResult.click();
-		await expect(page).toHaveURL(/\/dashboard\/board\?task=\d+/);
+		await expect(page).toHaveURL(/\/dashboard\/tasks\/\d+/);
+		const taskId = Number(page.url().match(/\/dashboard\/tasks\/(\d+)/)?.[1] ?? 0);
+		expect(taskId).toBeGreaterThan(0);
 
 		await expect(page.getByText(/Source chat message|Message chat source/i)).toBeVisible();
-		await expect(page.getByRole('link', { name: /Open source chat|Ouvrir le chat source/i })).toHaveAttribute('href', /\/dashboard\/chat\?thread=\d+&message=\d+/);
+		const sourceChatLink = page.getByRole('link', { name: /Open source chat|Ouvrir le chat source/i });
+		await expect(sourceChatLink).toHaveAttribute('href', /\/dashboard\/chat\?thread=\d+&message=\d+/);
+		const sourceChatHref = await sourceChatLink.getAttribute('href');
+		const sourceMessageId = Number(new URL(sourceChatHref ?? '', 'http://localhost:3004').searchParams.get('message'));
+		expect(sourceMessageId).toBeGreaterThan(0);
+
+		await sourceChatLink.click();
+		await expect(page).toHaveURL(/\/dashboard\/chat\?thread=\d+&message=\d+/);
+		const sourceMessage = page.getByTestId(`workflow-chat-message-${sourceMessageId}`);
+		await expect(sourceMessage).toBeVisible({ timeout: 30_000 });
+
+		const chatTaskLink = page.getByTestId(`workflow-chat-task-link-${taskId}`);
+		await expect(chatTaskLink).toBeVisible({ timeout: 30_000 });
+		await expect(chatTaskLink).toHaveAttribute('href', new RegExp(`/dashboard/tasks/${taskId}$`));
+		await chatTaskLink.click();
+		await expect(page).toHaveURL(new RegExp(`/dashboard/tasks/${taskId}$`));
+		await expect(page.getByText(/Source chat message|Message chat source/i)).toBeVisible({ timeout: 30_000 });
 	});
 
 	test('opens seeded notification actions', async ({ page }) => {
-		await page.goto('/dashboard/notifications');
+		await gotoDashboardPath(page, '/dashboard/notifications');
 
 		await expect(page.locator('body')).toContainText(/Review requested|Demande de revue|E2E Review Approval Card/i, { timeout: 30_000 });
 		await expect(page.getByRole('button', { name: /Snooze 1h|Masquer/i }).first()).toBeVisible();

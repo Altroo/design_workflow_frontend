@@ -3,7 +3,7 @@
 import Image from 'next/image';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { AlarmClock, AlertTriangle, ArrowDown, BriefcaseBusiness, CalendarDays, CheckCheck, CheckSquare2, Edit3, Eye, FileText, Forward, ImageIcon, Images, MessagesSquare, Mic, MoreHorizontal, Paperclip, Pause, Play, Reply, Search, Send, SlidersHorizontal, SmilePlus, Square, ThumbsUp, Trash2, Users, X } from 'lucide-react';
 import {
 	useAddChatReminderMutation,
@@ -329,7 +329,7 @@ const renderLinkedMessageBody = (
 		const task = taskByToken.get(lower);
 		if (task) {
 			return (
-				<Link key={key} href={DASHBOARD_TASK_VIEW(task.id)} className="workflow-chat-inline-tag workflow-chat-inline-tag-task">
+				<Link key={key} href={DASHBOARD_TASK_VIEW(task.id)} className="workflow-chat-inline-tag workflow-chat-inline-tag-task" data-testid={`workflow-chat-task-link-${task.id}`}>
 					#{task.title}
 				</Link>
 			);
@@ -358,6 +358,9 @@ const dedupeMessages = (messages: ChatMessage[]) => {
 const DesignWorkflowChat = () => {
 	const { t, language } = useLanguage();
 	const searchParams = useSearchParams();
+	const requestedThreadId = Number(searchParams.get('thread') ?? 0) || null;
+	const requestedMessageId = Number(searchParams.get('message') ?? 0) || null;
+	const requestedMessageKey = requestedThreadId && requestedMessageId ? `${requestedThreadId}:${requestedMessageId}` : '';
 	const locale = language === 'en' ? 'en-US' : 'fr-FR';
 	const statusLabelFor = (value?: string | null) => value ? (t.workflow.statuses[value] ?? value) : '';
 	const profile = useAppSelector(getProfilState);
@@ -406,9 +409,14 @@ const DesignWorkflowChat = () => {
 	const recordedChunksRef = useRef<BlobPart[]>([]);
 	const discardRecordingRef = useRef(false);
 	const autoStartedProjectThreadRef = useRef(false);
+	const highlightedMessageKeyRef = useRef<string | null>(null);
 
 	const { data: threads = [], isLoading: threadsLoading, isFetching: threadsFetching, refetch: refetchThreads } = useGetChatThreadsQuery(undefined, { skip: !chatDataReady });
 	const chatThreads = useMemo(() => threads.filter((thread) => thread.kind !== 'task'), [threads]);
+	const requestedThreadAvailable = useMemo(
+		() => Boolean(requestedThreadId && chatThreads.some((thread) => thread.id === requestedThreadId)),
+		[chatThreads, requestedThreadId],
+	);
 	const preferredThread = useMemo(
 		() =>
 			chatThreads.find((thread) => thread.kind === 'public') ??
@@ -476,6 +484,7 @@ const DesignWorkflowChat = () => {
 	}, [activeTasks, archivedTasks]);
 
 	useEffect(() => {
+		if (requestedThreadId && (threadsLoading || threadsFetching || requestedThreadAvailable)) return;
 		if (selectedThread || selectedThreadId || chatInitialLoading || projects.length === 0 || autoStartedProjectThreadRef.current) return;
 		const firstProject = projects[0];
 		if (!firstProject) return;
@@ -489,7 +498,7 @@ const DesignWorkflowChat = () => {
 			.catch(() => {
 				autoStartedProjectThreadRef.current = false;
 			});
-	}, [chatInitialLoading, createThread, projects, selectedThread, selectedThreadId]);
+	}, [chatInitialLoading, createThread, projects, requestedThreadAvailable, requestedThreadId, selectedThread, selectedThreadId, threadsFetching, threadsLoading]);
 
 	useEffect(() => {
 		if (!optimisticSelectedThread) return;
@@ -499,12 +508,11 @@ const DesignWorkflowChat = () => {
 	}, [chatThreads, optimisticSelectedThread]);
 
 	useEffect(() => {
-		const requestedThreadId = Number(searchParams.get('thread') ?? 0);
-		if (!requestedThreadId || selectedThreadId) return;
+		if (!requestedThreadId || selectedThreadId === requestedThreadId) return;
 		if (chatThreads.some((thread) => thread.id === requestedThreadId)) {
 			setSelectedThreadId(requestedThreadId);
 		}
-	}, [chatThreads, searchParams, selectedThreadId]);
+	}, [chatThreads, requestedThreadId, selectedThreadId]);
 
 	const usersResponse = useGetUsersListQuery({ with_pagination: false }, { skip: !chatDataReady });
 	const usersRaw = (usersResponse.data ?? []) as Array<Partial<UserClass>> | { results?: Array<Partial<UserClass>>; data?: Array<Partial<UserClass>> };
@@ -531,10 +539,11 @@ const DesignWorkflowChat = () => {
 	}), [profile.avatar, profile.email, profile.first_name, profile.id, profile.last_name, profile.role]);
 
 	useEffect(() => {
-		if (!selectedThreadId && preferredThread) {
+		const pendingRequestedThread = requestedThreadId && (threadsLoading || threadsFetching || requestedThreadAvailable);
+		if (!selectedThreadId && !pendingRequestedThread && preferredThread) {
 			setSelectedThreadId(preferredThread.id);
 		}
-	}, [preferredThread, selectedThreadId]);
+	}, [preferredThread, requestedThreadAvailable, requestedThreadId, selectedThreadId, threadsFetching, threadsLoading]);
 
 	useEffect(() => {
 		setOlderMessages([]);
@@ -855,13 +864,28 @@ const DesignWorkflowChat = () => {
 		setForwardMessage(null);
 	};
 
-	const scrollToMessage = (id: number) => {
+	const scrollToMessage = useCallback((id: number) => {
 		const element = document.getElementById(`chat-message-${id}`);
 		if (!element) return;
 		element.scrollIntoView({ behavior: 'smooth', block: 'center' });
 		element.classList.add('is-highlighted');
 		window.setTimeout(() => element.classList.remove('is-highlighted'), 1500);
-	};
+	}, []);
+
+	useEffect(() => {
+		highlightedMessageKeyRef.current = null;
+	}, [requestedMessageKey]);
+
+	useEffect(() => {
+		if (!requestedMessageId || !requestedMessageKey || highlightedMessageKeyRef.current === requestedMessageKey) return;
+		if (requestedThreadId && selectedThread?.id !== requestedThreadId) return;
+		if (!messageList.some((message) => message.id === requestedMessageId)) return;
+		const timeout = window.setTimeout(() => {
+			scrollToMessage(requestedMessageId);
+			highlightedMessageKeyRef.current = requestedMessageKey;
+		}, 120);
+		return () => window.clearTimeout(timeout);
+	}, [messageList, requestedMessageId, requestedMessageKey, requestedThreadId, scrollToMessage, selectedThread?.id]);
 
 	const openReminder = (message: ChatMessage) => {
 		const refs = linkedReferencesForBody(message.body, tasks, projects);
@@ -1329,7 +1353,7 @@ const DesignWorkflowChat = () => {
 									? 'border-[color:var(--accent)] bg-(--accent-soft)'
 									: OTHER_BUBBLE_COLORS[message.sender.id % OTHER_BUBBLE_COLORS.length];
 								return (
-									<div key={message.id} id={`chat-message-${message.id}`} className="workflow-chat-message-row">
+									<div key={message.id} id={`chat-message-${message.id}`} data-testid={`workflow-chat-message-${message.id}`} data-message-id={message.id} className="workflow-chat-message-row">
 										{firstUnreadMessageId === message.id ? (
 											<div className="workflow-chat-unread-separator">
 												<span>{t.workflow.labels.unreadMessages ?? 'Unread messages'}</span>
