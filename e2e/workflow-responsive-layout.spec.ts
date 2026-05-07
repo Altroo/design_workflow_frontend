@@ -1,17 +1,27 @@
 import { expect, type Page, test } from '@playwright/test';
 import { existsSync, mkdirSync } from 'node:fs';
-import { join } from 'node:path';
+import { dirname, join } from 'node:path';
 import { seedDesignWorkflowE2E } from './seed-design-workflow';
 
 const authStatePath = '.playwright/.auth/design-workflow-e2e.json';
 const screenshotDir = 'test-results/workflow-responsive';
 const seeded = process.env.DESIGN_WORKFLOW_E2E_SEEDED === '1';
+const email = process.env.DESIGN_WORKFLOW_E2E_EMAIL;
+const password = process.env.DESIGN_WORKFLOW_E2E_PASSWORD;
 
 const forceFrench = async (page: Page) => {
 	await page.context().addCookies([{ name: 'app-language', value: 'fr', url: 'http://localhost:3004' }]);
 	await page.addInitScript(() => {
 		window.localStorage.setItem('app-language', 'fr');
 	});
+};
+
+const loginWithUi = async (page: Page) => {
+	await page.goto('/login');
+	await page.locator('input[name="email"]').fill(email ?? '');
+	await page.locator('input[name="password"]').fill(password ?? '');
+	await page.locator('button[type="submit"]').click();
+	await expect(page).toHaveURL(/\/dashboard\/(overview|my-work|board)/, { timeout: 30_000 });
 };
 
 const expectNoPageOverflow = async (page: Page) => {
@@ -863,12 +873,19 @@ const expectMobileUserDetail = async (page: Page) => {
 };
 
 test.describe('workflow responsive visual pass', () => {
-	test.skip(!existsSync(authStatePath), 'Run the authenticated dashboard setup before responsive checks.');
+	test.skip(!existsSync(authStatePath) && (!email || !password), 'Run the authenticated dashboard setup before responsive checks.');
 	test.use({ storageState: authStatePath });
 
-	test.beforeAll(() => {
+	test.beforeAll(async ({ browser }) => {
 		seedDesignWorkflowE2E();
 		mkdirSync(screenshotDir, { recursive: true });
+		if (!email || !password) return;
+
+		mkdirSync(dirname(authStatePath), { recursive: true });
+		const page = await browser.newPage({ storageState: undefined });
+		await loginWithUi(page);
+		await page.context().storageState({ path: authStatePath });
+		await page.close();
 	});
 
 	test.beforeEach(async ({ page }) => {
