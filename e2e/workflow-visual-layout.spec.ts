@@ -157,6 +157,64 @@ const expectCompactWorkflowControl = async (locator: Locator, expectedBackground
 	expect(metrics.height).toBeGreaterThanOrEqual(metrics.rootFontSize * 2.6);
 };
 
+const expectSecondaryNeutralSurface = async (locator: Locator) => {
+	await expectSharedCardShell(locator);
+	const metrics = await locator.evaluate((element) => {
+		const style = getComputedStyle(element);
+		const before = getComputedStyle(element, '::before');
+		const rootFontSize = parseFloat(getComputedStyle(document.documentElement).fontSize);
+		return {
+			backgroundImage: style.backgroundImage,
+			beforeBackgroundImage: before.backgroundImage,
+			radius: parseFloat(style.borderTopLeftRadius),
+			rootFontSize,
+		};
+	});
+	expect(metrics.radius).toBeGreaterThanOrEqual(metrics.rootFontSize);
+	expect(metrics.backgroundImage).not.toContain('gradient');
+	expect(metrics.beforeBackgroundImage).not.toContain('gradient');
+};
+
+const expectNeutralInsetSurface = async (locator: Locator) => {
+	await expect(locator).toBeVisible({ timeout: 30_000 });
+	const metrics = await locator.evaluate((element) => {
+		const style = getComputedStyle(element);
+		const rootFontSize = parseFloat(getComputedStyle(document.documentElement).fontSize);
+		return {
+			backgroundColor: style.backgroundColor,
+			borderStyle: style.borderTopStyle,
+			borderWidth: parseFloat(style.borderTopWidth),
+			radius: parseFloat(style.borderTopLeftRadius),
+			rootFontSize,
+		};
+	});
+	expect(metrics.borderStyle).toBe('solid');
+	expect(metrics.borderWidth).toBe(1);
+	expect(['rgb(248, 250, 252)', 'rgb(255, 255, 255)']).toContain(metrics.backgroundColor);
+	expect(metrics.radius).toBeGreaterThanOrEqual(metrics.rootFontSize * 0.75);
+};
+
+const expectNeutralActionControl = async (locator: Locator, expectedBackgrounds = ['rgb(255, 255, 255)']) => {
+	await expect(locator).toBeVisible({ timeout: 30_000 });
+	const metrics = await locator.evaluate((element) => {
+		const style = getComputedStyle(element);
+		const rootFontSize = parseFloat(getComputedStyle(document.documentElement).fontSize);
+		return {
+			backgroundColor: style.backgroundColor,
+			borderStyle: style.borderTopStyle,
+			borderWidth: parseFloat(style.borderTopWidth),
+			height: element.getBoundingClientRect().height,
+			radius: parseFloat(style.borderTopLeftRadius),
+			rootFontSize,
+		};
+	});
+	expect(metrics.borderStyle).toBe('solid');
+	expect(metrics.borderWidth).toBe(1);
+	expect(expectedBackgrounds).toContain(metrics.backgroundColor);
+	expect(metrics.radius).toBeGreaterThanOrEqual(metrics.rootFontSize * 0.75);
+	expect(metrics.height).toBeGreaterThanOrEqual(metrics.rootFontSize * 2.6);
+};
+
 const expectSemanticBoardColors = async (page: Page) => {
 	const expectedStatusAccents: Record<string, string> = {
 		backlog: '#64748b',
@@ -596,6 +654,16 @@ test.describe('workflow visual layout pass', () => {
 		await expectSharedPageHeader(page.locator('.workflow-project-detail-header'));
 		await expect(page.locator('.workflow-project-detail-grid')).toBeVisible();
 		await expect(page.locator('.workflow-project-detail-panel').first()).toBeVisible();
+		await expectSecondaryNeutralSurface(page.locator('.workflow-project-detail-panel').first());
+		await expectUnifiedInnerHeader(page.locator('.workflow-project-detail-panel .workflow-overview-panel-pill').first());
+		await expectNeutralInsetSurface(page.locator('.workflow-project-detail-description').first());
+		await expectNeutralInsetSurface(page.locator('.workflow-project-detail-meta-card').first());
+		await expectNeutralActionControl(page.locator('.workflow-project-detail-page .app-input').first());
+		await expectNeutralActionControl(page.locator('.workflow-project-detail-create .app-button').first(), primaryControlBackgrounds);
+		const projectFeedItem = page.locator('.workflow-project-detail-feed-item').first();
+		if ((await projectFeedItem.count()) > 0) {
+			await expectNeutralInsetSurface(projectFeedItem);
+		}
 		await page.screenshot({ path: join(screenshotDir, 'project-detail.png'), fullPage: true });
 
 		await gotoDashboardPath(page, '/dashboard/team');
@@ -703,6 +771,15 @@ test.describe('workflow visual layout pass', () => {
 		await expectSeededNotificationCards(page);
 		await expectSharedCardShell(page.locator('.workflow-notifications-metric').first());
 		await expectSharedCardShell(page.locator('.workflow-notification-preferences'));
+		await expectSecondaryNeutralSurface(firstNotification);
+		await expectNeutralInsetSurface(page.locator('.workflow-notifications-board-head'));
+		await expectNeutralActionControl(page.locator('.workflow-notifications-action-button').first(), [...primaryControlBackgrounds, 'rgb(255, 255, 255)']);
+		const commentAction = page.locator('.workflow-notifications-comment-action').first();
+		if ((await commentAction.count()) > 0) {
+			await expectNeutralInsetSurface(commentAction);
+			await expectNeutralActionControl(commentAction.locator('input').first());
+			await expectNeutralActionControl(commentAction.locator('button').first(), primaryControlBackgrounds);
+		}
 		await expectFrenchUiChrome(page.locator('.workflow-notification-preferences'), /Pr.f.rences notifications|Fr.quence du r.sum.|Demandes de revue|Quotidien/i, notificationEnglishChrome);
 		await expectFrenchUiChrome(page.locator('.workflow-notifications-board'), /Centre notifications|Flux alertes/i, notificationEnglishChrome);
 		await page.screenshot({ path: join(screenshotDir, 'notifications.png'), fullPage: true });
@@ -710,8 +787,19 @@ test.describe('workflow visual layout pass', () => {
 		await gotoDashboardPath(page, '/dashboard/users');
 		await waitForUsersReady(page);
 		await expectSharedPageHeader(page.locator('.workflow-users-hero'));
+		await expectSecondaryNeutralSurface(page.locator('.workflow-users-board'));
+		await expectNeutralInsetSurface(page.locator('.workflow-users-board-head'));
+		await expectNeutralInsetSurface(page.locator('.workflow-users-toolbar'));
+		await expectNeutralActionControl(page.locator('.workflow-users-toolbar .app-input').first());
+		await expectNeutralInsetSurface(page.locator('.workflow-users-table-wrap'));
+		await expectNeutralActionControl(page.locator('.workflow-users-table .workflow-users-row-actions button').first());
 		await page.screenshot({ path: join(screenshotDir, 'users.png'), fullPage: true });
 		await openFirstUserDetail(page);
+		await expectSecondaryNeutralSurface(page.locator('.workflow-user-detail-profile-card'));
+		await expectSecondaryNeutralSurface(page.locator('.workflow-user-detail-panel').first());
+		await expectNeutralInsetSurface(page.locator('.workflow-user-detail-info-row').first());
+		await expectNeutralActionControl(page.locator('.workflow-user-detail-back').first());
+		await expectNeutralActionControl(page.locator('.workflow-user-detail-edit').first(), primaryControlBackgrounds);
 		await page.screenshot({ path: join(screenshotDir, 'user-detail.png'), fullPage: true });
 		await openCurrentUserEdit(page);
 		await page.screenshot({ path: join(screenshotDir, 'user-edit.png'), fullPage: true });
