@@ -12,7 +12,7 @@ services:
     extra_hosts:
       - "design-workflow-api.elbouazzatiholding.ma:host-gateway"
     ports:
-      - '3004:3004'
+      - '3005:3004'
     networks:
       - webnet
     healthcheck:
