@@ -13,8 +13,14 @@ test.use({ storageState: authStatePath });
 const loginWithUi = async (page: Page) => {
 	for (let attempt = 0; attempt < 4; attempt += 1) {
 		await page.goto('/login', { waitUntil: 'domcontentloaded' });
-		await expect(page.locator('input[name="email"]')).toBeVisible({ timeout: 30_000 });
-		await page.locator('input[name="email"]').fill(email ?? '');
+		const emailField = page.locator('input[name="email"]');
+		const destination = await Promise.race([
+			page.waitForURL(/\/dashboard\/(overview|my-work|board)/, { timeout: 30_000 }).then(() => 'dashboard').catch(() => 'timeout'),
+			emailField.waitFor({ state: 'visible', timeout: 30_000 }).then(() => 'form').catch(() => 'timeout'),
+		]);
+		if (destination === 'dashboard') break;
+		await expect(emailField).toBeVisible({ timeout: 1_000 });
+		await emailField.fill(email ?? '');
 		await page.locator('input[name="password"]').fill(password ?? '');
 		const submit = page.locator('button[type="submit"]');
 		await expect(submit).toBeEnabled({ timeout: 30_000 });

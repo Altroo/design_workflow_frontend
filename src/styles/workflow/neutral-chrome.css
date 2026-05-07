@@ -198,6 +198,21 @@
 	color: #334155 !important;
 }
 
+.workflow-shell-expanded .workflow-projects-layout {
+	grid-template-columns: 1fr !important;
+}
+
+.workflow-notifications-card,
+.workflow-notifications-card[data-unread='true'] {
+	background: #ffffff !important;
+}
+
+.workflow-notifications-card::before,
+.workflow-notifications-card[data-unread='true']::before {
+	background: #e5e7eb !important;
+	opacity: 1 !important;
+}
+
 .workflow-chat-bubble.workflow-chat-bubble-mine,
 .workflow-chat-composer .app-button:not(.app-button-ghost) {
 	border-color: #475569 !important;

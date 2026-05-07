@@ -193,8 +193,14 @@ const expectSeededNotificationCards = async (page: Page) => {
 const loginWithUi = async (page: Page) => {
 	for (let attempt = 0; attempt < 4; attempt += 1) {
 		await page.goto('/login', { waitUntil: 'domcontentloaded' });
-		await expect(page.locator('input[name="email"]')).toBeVisible({ timeout: 30_000 });
-		await page.locator('input[name="email"]').fill(email ?? '');
+		const emailField = page.locator('input[name="email"]');
+		const destination = await Promise.race([
+			page.waitForURL(/\/dashboard\/(overview|my-work|board)/, { timeout: 30_000 }).then(() => 'dashboard').catch(() => 'timeout'),
+			emailField.waitFor({ state: 'visible', timeout: 30_000 }).then(() => 'form').catch(() => 'timeout'),
+		]);
+		if (destination === 'dashboard') break;
+		await expect(emailField).toBeVisible({ timeout: 1_000 });
+		await emailField.fill(email ?? '');
 		await page.locator('input[name="password"]').fill(password ?? '');
 		const submit = page.locator('button[type="submit"]');
 		await expect(submit).toBeEnabled({ timeout: 30_000 });
@@ -431,6 +437,8 @@ test.describe('workflow visual layout pass', () => {
 
 		await gotoDashboardPath(page, '/dashboard/projects');
 		await expect(page.locator('.workflow-projects-layout')).toBeVisible();
+		const projectLayoutColumns = await page.locator('.workflow-projects-layout').evaluate((layout) => getComputedStyle(layout).gridTemplateColumns.trim().split(/\s+/).length);
+		expect(projectLayoutColumns).toBe(1);
 		await expectSharedPageHeader(page.locator('.workflow-projects-header'));
 		await expect(page.locator('.workflow-projects-card-grid')).toBeVisible();
 		await expect.poll(async () => page.locator('.workflow-project-card-modern').count()).toBeGreaterThan(0);
@@ -511,7 +519,18 @@ test.describe('workflow visual layout pass', () => {
 		await expect(page.locator('.workflow-notifications-metrics')).toBeVisible();
 		await expect(page.locator('.workflow-notification-preferences')).toBeVisible();
 		await expect(page.locator('.workflow-notifications-board')).toBeVisible();
-		await expect(page.locator('.workflow-notifications-list > *').first()).toBeVisible();
+		const firstNotification = page.locator('.workflow-notifications-list > *').first();
+		await expect(firstNotification).toBeVisible();
+		const notificationPaint = await firstNotification.evaluate((card) => {
+			const styles = getComputedStyle(card);
+			const beforeStyles = getComputedStyle(card, '::before');
+			return {
+				backgroundImage: styles.backgroundImage,
+				beforeBackgroundImage: beforeStyles.backgroundImage,
+			};
+		});
+		expect(notificationPaint.backgroundImage).not.toContain('gradient');
+		expect(notificationPaint.beforeBackgroundImage).not.toContain('gradient');
 		await expectSeededNotificationCards(page);
 		await expectSharedCardShell(page.locator('.workflow-notifications-metric').first());
 		await expectSharedCardShell(page.locator('.workflow-notification-preferences'));
