@@ -517,6 +517,12 @@ test.describe('workflow visual layout pass', () => {
 		await expectFrenchUiChrome(page.locator('.workflow-chat-sidebar'), /Canal public|Projets|Messages directs/i, chatEnglishChrome);
 		await expect(page.locator('.workflow-chat-room textarea').first()).toHaveAttribute('placeholder', /crire un message/i);
 		await expect(page.locator('.workflow-chat-room')).not.toContainText(chatEnglishChrome);
+		const seededProjectThread = page.locator('.workflow-chat-context-button').filter({ hasText: /E2E Premium Review Studio/i });
+		await expect(seededProjectThread).toHaveCount(1);
+		await seededProjectThread.click();
+		await expect(page.locator('.workflow-chat-room-header')).toContainText(/E2E Premium Review Studio/i);
+		await expect(page.locator('.workflow-chat-bubble-mine')).toBeVisible();
+		await expect(page.locator('.workflow-chat-bubble-mine .workflow-chat-rich-card').first()).toBeVisible();
 		await page.locator('.workflow-chat-message-row').last().scrollIntoViewIfNeeded();
 		await page.waitForTimeout(120);
 		await page.screenshot({ path: join(screenshotDir, 'chat.png'), fullPage: true });
