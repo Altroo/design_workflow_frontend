@@ -700,3 +700,293 @@
 	flex: none !important;
 	accent-color: #111827;
 }
+
+/* Task detail page: denser workspace rhythm without changing semantic card tones. */
+.workflow-task-detail-page {
+	display: grid !important;
+	grid-template-columns: minmax(0, 1fr) minmax(20rem, 0.42fr) !important;
+	gap: 1rem !important;
+	align-items: start !important;
+}
+
+.workflow-task-detail-snapshot,
+.workflow-task-detail-tabs,
+.workflow-task-tools-panel,
+.workflow-review-panel,
+.workflow-files-panel,
+.workflow-task-activity-panel {
+	grid-column: 1 / -1 !important;
+}
+
+.workflow-task-detail-panel {
+	min-width: 0 !important;
+	border-radius: 1rem !important;
+	padding: 1rem !important;
+	box-shadow: 0 1rem 2.25rem -2rem rgba(15, 23, 42, 0.45) !important;
+}
+
+.workflow-task-detail-panel > div:first-child {
+	min-height: 2rem !important;
+	margin-bottom: 0.875rem !important;
+	border: 1px solid var(--line) !important;
+	border-radius: 0.75rem !important;
+	background: #f8fafc !important;
+	padding: 0.375rem 0.625rem !important;
+	color: var(--ink-muted) !important;
+	box-shadow: none !important;
+}
+
+.workflow-task-detail-panel > div:first-child h2 {
+	color: var(--ink-muted) !important;
+	font-size: 0.75rem !important;
+	line-height: 1.2 !important;
+	letter-spacing: 0.08em !important;
+}
+
+.workflow-task-detail-panel > div:first-child > div:last-child {
+	border-color: var(--line) !important;
+	background: #ffffff !important;
+	color: var(--ink) !important;
+	padding: 0.25rem 0.55rem !important;
+}
+
+.workflow-task-detail-snapshot {
+	padding: 1rem !important;
+}
+
+.workflow-task-detail-snapshot > .grid {
+	grid-template-columns: minmax(13rem, 0.34fr) minmax(0, 1fr) minmax(12.5rem, 0.28fr) !important;
+	gap: 1rem !important;
+	align-items: stretch !important;
+}
+
+.workflow-task-detail-snapshot > .grid:not(:has(.workflow-task-stats)) {
+	grid-template-columns: minmax(13rem, 0.34fr) minmax(0, 1fr) !important;
+}
+
+.workflow-task-detail-media {
+	min-height: 9.5rem !important;
+	border-radius: 0.875rem !important;
+}
+
+.workflow-task-detail-snapshot h2 {
+	margin-top: 0.375rem !important;
+	font-size: clamp(1.35rem, 0.8vw + 1rem, 1.9rem) !important;
+	line-height: 1.15 !important;
+}
+
+.workflow-task-detail-snapshot p {
+	line-height: 1.55 !important;
+}
+
+.workflow-task-stats {
+	gap: 0.75rem !important;
+	border: 1px solid var(--line) !important;
+	border-radius: 0.875rem !important;
+	background: #f8fafc !important;
+	padding: 0.875rem !important;
+}
+
+.workflow-task-detail-tabs {
+	margin-top: -0.125rem !important;
+	padding: 0 0 0.25rem !important;
+}
+
+.workflow-task-detail-tabs button {
+	min-height: 2.25rem !important;
+	height: 2.25rem !important;
+	border-radius: 0.625rem !important;
+	padding-inline: 0.75rem !important;
+	box-shadow: none !important;
+}
+
+.workflow-task-detail-tabs button:hover,
+.workflow-task-detail-tabs button[data-active='true'] {
+	border-color: var(--line-strong) !important;
+	background: #f1f5f9 !important;
+	color: var(--ink) !important;
+}
+
+.workflow-task-tools-panel {
+	padding: 0.875rem !important;
+}
+
+.workflow-task-tools-panel > div:first-child {
+	margin-bottom: 0.625rem !important;
+}
+
+.workflow-task-tools-panel .workflow-trello-action-row {
+	display: flex !important;
+	flex-wrap: wrap !important;
+	gap: 0.5rem !important;
+	margin-bottom: 0.75rem !important;
+}
+
+.workflow-task-tools-panel .workflow-trello-action-button {
+	min-height: 2.25rem !important;
+	border-radius: 0.625rem !important;
+	padding-inline: 0.75rem !important;
+	box-shadow: none !important;
+}
+
+.workflow-task-tools-panel .workflow-task-tools-board {
+	display: grid !important;
+	grid-template-columns: minmax(0, 1fr) minmax(19rem, 0.42fr) !important;
+	gap: 0.875rem !important;
+	align-items: start !important;
+}
+
+.workflow-task-tools-panel .workflow-task-tools-side {
+	display: grid !important;
+	gap: 0.875rem !important;
+	min-width: 0 !important;
+}
+
+.workflow-task-tools-panel .workflow-task-tools-board > .app-card-muted,
+.workflow-task-tools-panel .workflow-task-tools-side > .app-card-muted,
+.workflow-task-detail-panel .app-card-muted {
+	border-color: var(--line) !important;
+	border-radius: 0.875rem !important;
+	background: #ffffff !important;
+	padding: 0.875rem !important;
+	box-shadow: none !important;
+}
+
+.workflow-task-tools-panel .workflow-task-tools-board > .app-card-muted::before,
+.workflow-task-tools-panel .workflow-task-tools-side > .app-card-muted::before {
+	height: 2px !important;
+}
+
+.workflow-task-tools-panel .workflow-checklist-list,
+.workflow-task-tools-panel .workflow-attachment-list {
+	max-height: 16rem !important;
+	overflow: auto !important;
+	padding-right: 0.25rem !important;
+}
+
+.workflow-task-tools-panel .workflow-checklist-row-modern,
+.workflow-task-tools-panel .workflow-attachment-item {
+	border-radius: 0.75rem !important;
+	padding: 0.5rem !important;
+}
+
+.workflow-task-tools-panel .workflow-cover-preview {
+	height: 7.5rem !important;
+	min-height: 7.5rem !important;
+	border-radius: 0.875rem !important;
+}
+
+.workflow-task-tools-panel > .mt-4 {
+	margin-top: 0.75rem !important;
+}
+
+.workflow-task-edit-panel {
+	grid-column: 1 !important;
+}
+
+.workflow-task-reassign-panel,
+.workflow-task-permissions-panel {
+	grid-column: 2 !important;
+}
+
+.workflow-task-edit-panel .grid.gap-4,
+.workflow-task-reassign-panel .grid.gap-4 {
+	gap: 0.875rem !important;
+}
+
+.workflow-task-edit-panel textarea {
+	min-height: 7rem !important;
+}
+
+.workflow-task-edit-panel .mt-5 {
+	margin-top: 0.875rem !important;
+}
+
+.workflow-task-history-grid {
+	grid-column: 1 / -1 !important;
+	display: grid !important;
+	grid-template-columns: minmax(0, 1fr) minmax(20rem, 0.42fr) !important;
+	gap: 1rem !important;
+	align-items: start !important;
+}
+
+.workflow-task-comments-panel,
+.workflow-task-time-panel {
+	min-height: 0 !important;
+}
+
+.workflow-task-comments-panel .mt-4,
+.workflow-task-time-panel .mt-4 {
+	margin-top: 0.875rem !important;
+}
+
+.workflow-task-activity-list {
+	display: grid !important;
+	grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+	gap: 0.75rem !important;
+}
+
+.workflow-task-activity-list > .mt-4 {
+	grid-column: 1 / -1 !important;
+}
+
+@media (max-width: 80rem) {
+	.workflow-task-detail-page,
+	.workflow-task-history-grid {
+		grid-template-columns: minmax(0, 1fr) !important;
+	}
+
+	.workflow-task-edit-panel,
+	.workflow-task-reassign-panel,
+	.workflow-task-permissions-panel,
+	.workflow-task-comments-panel,
+	.workflow-task-time-panel {
+		grid-column: 1 / -1 !important;
+	}
+
+	.workflow-task-tools-panel .workflow-task-tools-board,
+	.workflow-task-detail-snapshot > .grid {
+		grid-template-columns: minmax(0, 1fr) !important;
+	}
+
+	.workflow-task-activity-list {
+		grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+	}
+}
+
+@media (max-width: 47.9375rem) {
+	.workflow-task-detail-page,
+	.workflow-task-history-grid {
+		gap: 0.75rem !important;
+	}
+
+	.workflow-task-detail-panel,
+	.workflow-task-detail-snapshot,
+	.workflow-task-tools-panel {
+		padding: 0.875rem !important;
+		border-radius: 0.875rem !important;
+	}
+
+	.workflow-task-detail-media {
+		min-height: 10rem !important;
+	}
+
+	.workflow-task-detail-tabs button {
+		height: 40px !important;
+		min-height: 40px !important;
+	}
+
+	.workflow-task-tools-panel .workflow-trello-action-row {
+		display: grid !important;
+		grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+	}
+
+	.workflow-task-tools-panel .workflow-trello-action-button {
+		width: 100% !important;
+		min-width: 0 !important;
+	}
+
+	.workflow-task-activity-list {
+		grid-template-columns: minmax(0, 1fr) !important;
+	}
+}

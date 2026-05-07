@@ -457,6 +457,29 @@ test.describe('workflow visual layout pass', () => {
 		await expect(page.locator('.workflow-task-modal')).toHaveCount(0);
 		await openFirstTaskDetailRoute(page);
 		await expectFrenchUiChrome(page.locator('.workflow-task-detail-page'), /Aper.u t.che|Actions carte|Commentaires|Temps saisi|Activit/i, taskEnglishChrome);
+		const taskDetailLayout = await page.locator('.workflow-task-detail-page').evaluate((pageEl) => {
+			const columns = getComputedStyle(pageEl).gridTemplateColumns.trim().split(/\s+/).filter(Boolean).length;
+			const hero = pageEl.querySelector('.workflow-task-detail-snapshot');
+			const heroGrid = hero?.querySelector('.grid');
+			const toolsGrid = pageEl.querySelector('.workflow-task-tools-panel .workflow-task-tools-board');
+			const historyGrid = pageEl.querySelector('.workflow-task-history-grid');
+			const edit = pageEl.querySelector('.workflow-task-edit-panel')?.getBoundingClientRect();
+			const reassign = pageEl.querySelector('.workflow-task-reassign-panel')?.getBoundingClientRect();
+			return {
+				columns,
+				heroColumns: heroGrid ? getComputedStyle(heroGrid).gridTemplateColumns.trim().split(/\s+/).filter(Boolean).length : 0,
+				heroHeight: hero?.getBoundingClientRect().height ?? 0,
+				toolsColumns: toolsGrid ? getComputedStyle(toolsGrid).gridTemplateColumns.trim().split(/\s+/).filter(Boolean).length : 0,
+				historyColumns: historyGrid ? getComputedStyle(historyGrid).gridTemplateColumns.trim().split(/\s+/).filter(Boolean).length : 0,
+				editReassignSameRow: edit && reassign ? Math.abs(edit.top - reassign.top) < 8 : false,
+			};
+		});
+		expect(taskDetailLayout.columns).toBe(2);
+		expect(taskDetailLayout.heroColumns).toBeGreaterThanOrEqual(2);
+		expect(taskDetailLayout.heroHeight).toBeLessThan(290);
+		expect(taskDetailLayout.toolsColumns).toBe(2);
+		expect(taskDetailLayout.historyColumns).toBe(2);
+		expect(taskDetailLayout.editReassignSameRow).toBe(true);
 		await page.screenshot({ path: join(screenshotDir, 'task-detail.png'), fullPage: true });
 
 		await gotoDashboardPath(page, '/dashboard/projects');
