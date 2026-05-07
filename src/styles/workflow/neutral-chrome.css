@@ -1436,3 +1436,241 @@
 		gap: 0.45rem !important;
 	}
 }
+
+/* Shared filter and action controls for board and reports. */
+.workflow-kanban-toolbar,
+.workflow-report-filterbar {
+	display: grid !important;
+	gap: 0.875rem !important;
+	border: 1px solid #e5e7eb !important;
+	border-radius: 1.25rem !important;
+	background: #ffffff !important;
+	padding: 1rem !important;
+	box-shadow: 0 0.9375rem 1.875rem rgba(0, 0, 0, 0.02) !important;
+}
+
+.workflow-kanban-filter-grid {
+	display: grid !important;
+	grid-template-columns: repeat(4, minmax(12rem, 1fr)) !important;
+	gap: 0.75rem !important;
+	align-items: center !important;
+}
+
+.workflow-saved-view-bar {
+	display: grid !important;
+	grid-template-columns: minmax(12rem, 0.9fr) minmax(12rem, 1fr) minmax(9rem, 0.55fr) auto auto auto !important;
+	gap: 0.75rem !important;
+	align-items: center !important;
+	border: 1px solid #e5e7eb !important;
+	border-radius: 1rem !important;
+	background: #f8fafc !important;
+	padding: 0.75rem !important;
+	box-shadow: none !important;
+}
+
+.workflow-kanban-toggles,
+.workflow-report-actions {
+	display: flex !important;
+	min-width: 0 !important;
+	align-items: center !important;
+	flex-wrap: wrap !important;
+	gap: 0.75rem !important;
+}
+
+.workflow-report-filterbar {
+	grid-template-columns: minmax(0, 1fr) auto !important;
+	align-items: end !important;
+}
+
+.workflow-report-date-fields {
+	display: grid !important;
+	grid-template-columns: repeat(2, minmax(12rem, 1fr)) !important;
+	gap: 0.75rem !important;
+	align-items: end !important;
+}
+
+.workflow-report-actions {
+	justify-content: flex-end !important;
+}
+
+.workflow-kanban-search,
+.workflow-kanban-filter-grid .app-input,
+.workflow-kanban-filter-grid .app-select-trigger,
+.workflow-saved-view-bar .app-input,
+.workflow-saved-view-bar .app-select-trigger,
+.workflow-report-filterbar .app-input,
+.workflow-report-filterbar .app-date-trigger,
+.workflow-report-clear,
+.workflow-board-segment,
+.workflow-board-segment button,
+.workflow-board-filter-toggle,
+.workflow-kanban-actions .app-pill {
+	min-height: 3.25rem !important;
+	border: 1px solid #e5e7eb !important;
+	border-radius: 0.875rem !important;
+	background: #ffffff !important;
+	color: #111827 !important;
+	box-shadow: none !important;
+	font-size: 0.875rem !important;
+	font-weight: 700 !important;
+	line-height: 1.2 !important;
+}
+
+.workflow-kanban-search,
+.workflow-kanban-filter-grid .app-input,
+.workflow-saved-view-bar .app-input,
+.workflow-report-filterbar .app-input {
+	width: 100% !important;
+}
+
+.workflow-kanban-search {
+	display: flex !important;
+	align-items: center !important;
+	gap: 0.625rem !important;
+	padding: 0 1rem !important;
+}
+
+.workflow-kanban-search input {
+	min-width: 0 !important;
+	flex: 1 !important;
+	font-weight: 700 !important;
+}
+
+.workflow-board-segment {
+	display: inline-flex !important;
+	align-items: center !important;
+	gap: 0.25rem !important;
+	padding: 0.25rem !important;
+}
+
+.workflow-board-segment button {
+	min-height: 2.75rem !important;
+	border: 0 !important;
+	border-radius: 0.6875rem !important;
+	padding: 0 0.875rem !important;
+	background: transparent !important;
+	color: #526174 !important;
+	box-shadow: none !important;
+}
+
+.workflow-board-segment button.is-active,
+.workflow-board-filter-toggle[aria-expanded='true'],
+.workflow-kanban-actions .app-pill[aria-pressed='true'] {
+	background: #f1f5f9 !important;
+	color: #030712 !important;
+	box-shadow: inset 0 0 0 1px #dbe3ef !important;
+}
+
+.workflow-board-filter-toggle,
+.workflow-kanban-actions .app-pill {
+	display: inline-flex !important;
+	align-items: center !important;
+	justify-content: center !important;
+	gap: 0.5rem !important;
+	padding: 0 0.875rem !important;
+}
+
+.workflow-saved-view-bar .app-button,
+.workflow-saved-view-bar button,
+.workflow-report-clear {
+	display: inline-flex !important;
+	min-height: 3.25rem !important;
+	align-items: center !important;
+	justify-content: center !important;
+	gap: 0.5rem !important;
+	border: 1px solid #e5e7eb !important;
+	border-radius: 0.875rem !important;
+	background: #ffffff !important;
+	padding: 0 1rem !important;
+	color: #111827 !important;
+	box-shadow: none !important;
+	font-size: 0.875rem !important;
+	font-weight: 800 !important;
+	line-height: 1 !important;
+	white-space: nowrap !important;
+}
+
+.workflow-saved-view-bar .app-button:not(.app-button-secondary):not(.app-button-ghost) {
+	border-color: #111827 !important;
+	background: #111827 !important;
+	color: #ffffff !important;
+	box-shadow: 0 0.875rem 1.5rem -1.35rem rgba(15, 23, 42, 0.45) !important;
+}
+
+.workflow-saved-view-bar .app-button.app-button-secondary,
+.workflow-saved-view-bar .app-button.app-button-ghost,
+.workflow-saved-view-bar .app-button:last-child {
+	border-color: #e5e7eb !important;
+	background: #ffffff !important;
+	color: #111827 !important;
+	box-shadow: none !important;
+}
+
+.workflow-saved-view-bar .app-button:hover:not(:disabled),
+.workflow-saved-view-bar button:hover:not(:disabled),
+.workflow-report-clear:hover:not(:disabled),
+.workflow-board-filter-toggle:hover,
+.workflow-kanban-actions .app-pill:hover {
+	border-color: #cbd5e1 !important;
+	background: #f8fafc !important;
+	color: #030712 !important;
+}
+
+.workflow-saved-view-bar .app-button:not(.app-button-secondary):not(.app-button-ghost):hover:not(:disabled) {
+	border-color: #030712 !important;
+	background: #030712 !important;
+	color: #ffffff !important;
+}
+
+.workflow-report-clear:disabled,
+.workflow-saved-view-bar .app-button:disabled,
+.workflow-saved-view-bar button:disabled {
+	cursor: not-allowed !important;
+	opacity: 0.52 !important;
+}
+
+@media (max-width: 90rem) {
+	.workflow-kanban-filter-grid {
+		grid-template-columns: repeat(3, minmax(12rem, 1fr)) !important;
+	}
+
+	.workflow-saved-view-bar {
+		grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+	}
+}
+
+@media (max-width: 80rem) {
+	.workflow-report-filterbar {
+		grid-template-columns: minmax(0, 1fr) !important;
+	}
+
+	.workflow-report-actions {
+		justify-content: flex-start !important;
+	}
+}
+
+@media (max-width: 47.9375rem) {
+	.workflow-kanban-toolbar,
+	.workflow-report-filterbar {
+		gap: 0.75rem !important;
+		border-radius: 1rem !important;
+		padding: 0.875rem !important;
+	}
+
+	.workflow-kanban-filter-grid,
+	.workflow-saved-view-bar,
+	.workflow-report-date-fields,
+	.workflow-report-actions {
+		grid-template-columns: minmax(0, 1fr) !important;
+	}
+
+	.workflow-report-actions {
+		display: grid !important;
+	}
+
+	.workflow-saved-view-bar .app-button,
+	.workflow-saved-view-bar button,
+	.workflow-report-clear {
+		width: 100% !important;
+	}
+}

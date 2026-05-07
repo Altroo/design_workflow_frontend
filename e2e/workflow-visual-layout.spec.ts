@@ -113,6 +113,27 @@ const expectUnifiedInnerHeader = async (locator: Locator) => {
 	expect(metrics.minHeight).toBeGreaterThanOrEqual(metrics.rootFontSize * 2.65);
 };
 
+const expectUnifiedWorkflowControl = async (locator: Locator, expectedBackgrounds = ['rgb(255, 255, 255)']) => {
+	await expect(locator).toBeVisible({ timeout: 30_000 });
+	const metrics = await locator.evaluate((element) => {
+		const style = getComputedStyle(element);
+		const rootFontSize = parseFloat(getComputedStyle(document.documentElement).fontSize);
+		return {
+			backgroundColor: style.backgroundColor,
+			borderStyle: style.borderTopStyle,
+			borderWidth: parseFloat(style.borderTopWidth),
+			height: element.getBoundingClientRect().height,
+			radius: parseFloat(style.borderTopLeftRadius),
+			rootFontSize,
+		};
+	});
+	expect(metrics.borderStyle).toBe('solid');
+	expect(metrics.borderWidth).toBe(1);
+	expect(expectedBackgrounds).toContain(metrics.backgroundColor);
+	expect(metrics.radius).toBeCloseTo(metrics.rootFontSize * 0.875, 0);
+	expect(metrics.height).toBeGreaterThanOrEqual(metrics.rootFontSize * 3.1);
+};
+
 const expectSemanticBoardColors = async (page: Page) => {
 	const expectedStatusAccents: Record<string, string> = {
 		backlog: '#64748b',
@@ -430,6 +451,10 @@ test.describe('workflow visual layout pass', () => {
 		await expectNeutralWorkspaceChrome(page);
 		await expect(page.locator('.workflow-kanban-toolbar')).toBeVisible();
 		await expect(page.locator('.workflow-kanban-filter-grid')).toBeVisible();
+		await expectUnifiedWorkflowControl(page.locator('.workflow-kanban-search'));
+		await expectUnifiedWorkflowControl(page.locator('.workflow-kanban-filter-grid .app-input').first());
+		await expectUnifiedWorkflowControl(page.locator('.workflow-saved-view-bar .app-input').nth(1));
+		await expectUnifiedWorkflowControl(page.locator('.workflow-saved-view-bar .app-button').first(), ['rgb(17, 24, 39)', 'rgb(3, 7, 18)']);
 		const activeBoardSegment = page.locator('.workflow-board-segment button.is-active').first();
 		await expect(activeBoardSegment).toBeVisible();
 		expect(await readCssProperty(activeBoardSegment, 'background-color')).not.toBe('rgb(0, 161, 93)');
@@ -589,6 +614,9 @@ test.describe('workflow visual layout pass', () => {
 		await expect(page.locator('.workflow-report-filterbar')).toBeVisible();
 		await expect(page.locator('.workflow-report-date-fields')).toBeVisible();
 		await expect(page.locator('.workflow-report-actions')).toBeVisible();
+		await expectUnifiedWorkflowControl(page.locator('.workflow-report-filterbar .app-input').first());
+		await expectUnifiedWorkflowControl(page.locator('.workflow-report-clear').first());
+		await expectUnifiedWorkflowControl(page.locator('.workflow-report-export').first());
 		await expect(page.locator('.workflow-report-filterbar')).toContainText(/Effacer les filtres|Exporter CSV|Exporter PDF/i);
 		await expect(page.locator('.workflow-analytics-grid')).toBeVisible();
 		await expect(page.locator('.workflow-forecast-board')).toBeVisible();
