@@ -1,11 +1,13 @@
 import { expect, type Locator, type Page, test } from '@playwright/test';
 import { existsSync, mkdirSync } from 'node:fs';
-import { join } from 'node:path';
+import { dirname, join } from 'node:path';
 import { seedDesignWorkflowE2E } from './seed-design-workflow';
 
 const authStatePath = '.playwright/.auth/design-workflow-e2e.json';
 const screenshotDir = 'test-results/workflow-visual';
 const seeded = process.env.DESIGN_WORKFLOW_E2E_SEEDED === '1';
+const email = process.env.DESIGN_WORKFLOW_E2E_EMAIL;
+const password = process.env.DESIGN_WORKFLOW_E2E_PASSWORD;
 
 const readCssVariable = async (locator: Locator, name: string) =>
 	locator.evaluate((element, variableName) => getComputedStyle(element).getPropertyValue(variableName).trim(), name);
@@ -189,6 +191,14 @@ const expectSeededNotificationCards = async (page: Page) => {
 	await expect(reviewCard.getByRole('button', { name: /Accept|Move to progress|Accepter|progress/i }).first()).toBeVisible();
 };
 
+const loginWithUi = async (page: Page) => {
+	await page.goto('/login');
+	await page.locator('input[name="email"]').fill(email ?? '');
+	await page.locator('input[name="password"]').fill(password ?? '');
+	await page.locator('button[type="submit"]').click();
+	await expect(page).toHaveURL(/\/dashboard\/(overview|my-work|board)/, { timeout: 30_000 });
+};
+
 const boardEnglishChrome = /Saved views|View name|Private|All statuses|All priorities|All assignees|All reviews|Due date ascending|Manual order|Needs Review|Backlog/i;
 const projectEnglishChrome = /Create project|Project name|Short project context|Target end|Start date|Loading projects/i;
 const teamEnglishChrome = /Team members|Open tasks|Overdue tasks|Estimated load|Team load map|Attention lane|Available lane|No delivery pressure|No clear availability/i;
@@ -294,6 +304,17 @@ const waitForChatReady = async (page: Page) => {
 	await expect(page.locator('.workflow-chat-room textarea').first()).toBeEnabled({ timeout: 30_000 });
 };
 
+const waitForOverviewReady = async (page: Page) => {
+	await expect(page.getByTestId('api-loader')).toHaveCount(0, { timeout: 30_000 });
+	await expect(page.locator('.workflow-overview-page')).toBeVisible({ timeout: 30_000 });
+	await expectSharedPageHeader(page.locator('.workflow-overview-header'));
+	await expect(page.locator('.workflow-overview-metrics')).toBeVisible({ timeout: 30_000 });
+	await expect(page.locator('.workflow-overview-analytics')).toBeVisible({ timeout: 30_000 });
+	await expect(page.locator('.workflow-overview-grid')).toBeVisible({ timeout: 30_000 });
+	await expect(page.locator('.workflow-overview-page')).not.toContainText(/Chargement projets|Chargement des cartes|Liste projets r.cup.r.e depuis API|Loading projects|Loading cards/i, { timeout: 30_000 });
+	await expect.poll(async () => page.locator('.workflow-overview-project').count(), { timeout: 30_000 }).toBeGreaterThan(0);
+};
+
 const openAvailableProjectDetail = async (page: Page) => {
 	const projectHrefs = await page.locator('.workflow-project-card-open').evaluateAll((links) =>
 		links.map((link) => (link as HTMLAnchorElement).href).filter(Boolean),
@@ -314,19 +335,23 @@ const openAvailableProjectDetail = async (page: Page) => {
 };
 
 test.describe('workflow visual layout pass', () => {
-	test.skip(!existsSync(authStatePath), 'Run the authenticated dashboard setup before visual layout checks.');
+	test.skip(!existsSync(authStatePath) && (!email || !password), 'Run the authenticated dashboard setup before visual layout checks.');
 	test.use({ storageState: authStatePath, viewport: { width: 1920, height: 900 } });
 
-	test.beforeAll(() => {
+	test.beforeAll(async ({ browser }) => {
 		seedDesignWorkflowE2E();
 		mkdirSync(screenshotDir, { recursive: true });
+		if (!email || !password) return;
+
+		mkdirSync(dirname(authStatePath), { recursive: true });
+		const page = await browser.newPage({ storageState: undefined });
+		await loginWithUi(page);
+		await page.context().storageState({ path: authStatePath });
+		await page.close();
 	});
 
-	test.beforeEach(async ({ context, page }) => {
+	test.beforeEach(async ({ context }) => {
 		await context.addCookies([{ name: 'app-language', value: 'fr', url: 'http://localhost:3004' }]);
-		await page.addInitScript(() => {
-			window.localStorage.setItem('app-language', 'fr');
-		});
 	});
 
 	test('captures and checks the premium workflow pages', async ({ page }) => {
@@ -368,10 +393,7 @@ test.describe('workflow visual layout pass', () => {
 		await expect(page.locator('.workflow-task-modal')).toHaveCount(0);
 
 		await page.goto('/dashboard/overview');
-		await expect(page.locator('.workflow-overview-page')).toBeVisible();
-		await expectSharedPageHeader(page.locator('.workflow-overview-header'));
-		await expect(page.locator('.workflow-overview-metrics')).toBeVisible();
-		await expect(page.locator('.workflow-overview-grid')).toBeVisible();
+		await waitForOverviewReady(page);
 		await expectSharedCardShell(page.locator('.workflow-overview-metric').first());
 		await page.screenshot({ path: join(screenshotDir, 'overview.png'), fullPage: true });
 
@@ -508,5 +530,62 @@ test.describe('workflow visual layout pass', () => {
 		await expectSharedPageHeader(page.locator('.workflow-user-form-hero'));
 		await expect(page.locator('.workflow-password-fields')).toBeVisible();
 		await page.screenshot({ path: join(screenshotDir, 'password.png'), fullPage: true });
+	});
+
+	test('captures the primary workflow pages in English', async ({ page }) => {
+		test.setTimeout(90_000);
+		await page.goto('/dashboard/overview');
+		const languageToggle = page.locator('.workflow-language-toggle').first();
+		await expect(languageToggle).toBeVisible({ timeout: 30_000 });
+		await expect(languageToggle).toContainText('FR');
+		await languageToggle.click();
+		await expect(page.locator('.workflow-topbar-controls')).toContainText('EN');
+		await waitForOverviewReady(page);
+		await expect(page.locator('.workflow-topbar-controls')).toContainText('EN');
+		await expectFrenchUiChrome(page.locator('.workflow-overview-page'), /Overview|Active projects|Project load|Delivery mix/i, /Accueil|Charge projets|Mix livraison/i);
+		await page.screenshot({ path: join(screenshotDir, 'en-overview.png'), fullPage: true });
+
+		await page.goto('/dashboard/projects');
+		await expect(page.locator('.workflow-projects-layout')).toBeVisible({ timeout: 30_000 });
+		await expect(page.getByTestId('api-loader')).toHaveCount(0, { timeout: 30_000 });
+		await expect(page.locator('.workflow-projects-card-grid')).toBeVisible({ timeout: 30_000 });
+		await expect.poll(async () => page.locator('.workflow-project-card-modern').count(), { timeout: 30_000 }).toBeGreaterThan(0);
+		await expect(page.locator('.workflow-topbar-profile')).toContainText(/E2E Manager/i, { timeout: 30_000 });
+		await expectFrenchUiChrome(page.locator('.workflow-projects-layout'), /Projects|Create project|Project name|Target end/i, /Projets actifs|Cr.er un projet|Nom du projet|Fin cible/i);
+		await page.screenshot({ path: join(screenshotDir, 'en-projects.png'), fullPage: true });
+
+		await page.goto('/dashboard/team');
+		await expect(page.locator('.workflow-team-page')).toBeVisible({ timeout: 30_000 });
+		await expect(page.getByTestId('api-loader')).toHaveCount(0, { timeout: 30_000 });
+		await expect(page.locator('.workflow-team-grid')).toBeVisible({ timeout: 30_000 });
+		await expect(page.locator('.workflow-team-board')).toBeVisible({ timeout: 30_000 });
+		await expect.poll(async () => page.locator('.workflow-team-card').count(), { timeout: 30_000 }).toBeGreaterThan(0);
+		await expect(page.locator('.workflow-topbar-profile')).toContainText(/E2E Manager/i, { timeout: 30_000 });
+		await expectFrenchUiChrome(page.locator('.workflow-team-page'), /Team|Team members|Open tasks|Estimated load|Team load map/i, /Équipe|Membres .quipe|T.ches ouvertes|Charge estim.e|Carte charge .quipe/i);
+		await page.screenshot({ path: join(screenshotDir, 'en-team.png'), fullPage: true });
+
+		await page.goto('/dashboard/reports/time');
+		await expect(page.locator('.workflow-report-shell')).toBeVisible({ timeout: 30_000 });
+		await expect(page.getByTestId('api-loader')).toHaveCount(0, { timeout: 30_000 });
+		await expect(page.locator('.workflow-analytics-grid')).toBeVisible({ timeout: 30_000 });
+		await expect(page.locator('.workflow-forecast-board')).toBeVisible({ timeout: 30_000 });
+		await expect(page.locator('.workflow-report-shell')).not.toContainText(/No report data|No project/i, { timeout: 30_000 });
+		await expect(page.locator('.workflow-topbar-profile')).toContainText(/E2E Manager/i, { timeout: 30_000 });
+		await expectFrenchUiChrome(page.locator('.workflow-report-shell'), /Reports|Start date|End date|Export CSV|Lead and cycle time|Review bottlenecks/i, /Rapports|Date de d.but|Date de fin|Exporter CSV|D.lai et temps de cycle|Goulots de revue/i);
+		await page.screenshot({ path: join(screenshotDir, 'en-reports.png'), fullPage: true });
+
+		await page.goto('/dashboard/chat');
+		await waitForChatReady(page);
+		await expectFrenchUiChrome(page.locator('.workflow-chat-shell'), /Chat|Public channel|Projects|Direct messages|Write a message|Filter by/i, /Canal public|Messages directs|.crire un message|Filtrer par/i);
+		await page.screenshot({ path: join(screenshotDir, 'en-chat.png'), fullPage: true });
+
+		await page.goto('/dashboard/notifications');
+		await expect(page.locator('.workflow-notifications-shell')).toBeVisible({ timeout: 30_000 });
+		await expect(page.getByTestId('api-loader')).toHaveCount(0, { timeout: 30_000 });
+		await expect(page.locator('.workflow-notifications-list > *').first()).toBeVisible({ timeout: 30_000 });
+		await expectSeededNotificationCards(page);
+		await expect(page.locator('.workflow-topbar-profile')).toContainText(/E2E Manager/i, { timeout: 30_000 });
+		await expectFrenchUiChrome(page.locator('.workflow-notifications-shell'), /Notifications|Notification preferences|Digest frequency|Unread only|Notification center/i, /Pr.f.rences notifications|Fr.quence du r.sum.|Non lues seulement|Centre notifications/i);
+		await page.screenshot({ path: join(screenshotDir, 'en-notifications.png'), fullPage: true });
 	});
 });
