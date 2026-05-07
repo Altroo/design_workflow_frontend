@@ -1,9 +1,8 @@
 import { expect, type Locator, type Page, test } from '@playwright/test';
-import { existsSync, mkdirSync } from 'node:fs';
-import { dirname, join } from 'node:path';
+import { mkdirSync } from 'node:fs';
+import { join } from 'node:path';
 import { seedDesignWorkflowE2E } from './seed-design-workflow';
 
-const authStatePath = '.playwright/.auth/design-workflow-e2e.json';
 const screenshotDir = 'test-results/workflow-visual';
 const seeded = process.env.DESIGN_WORKFLOW_E2E_SEEDED === '1';
 const email = process.env.DESIGN_WORKFLOW_E2E_EMAIL;
@@ -192,11 +191,34 @@ const expectSeededNotificationCards = async (page: Page) => {
 };
 
 const loginWithUi = async (page: Page) => {
-	await page.goto('/login');
-	await page.locator('input[name="email"]').fill(email ?? '');
-	await page.locator('input[name="password"]').fill(password ?? '');
-	await page.locator('button[type="submit"]').click();
-	await expect(page).toHaveURL(/\/dashboard\/(overview|my-work|board)/, { timeout: 30_000 });
+	for (let attempt = 0; attempt < 4; attempt += 1) {
+		await page.goto('/login', { waitUntil: 'domcontentloaded' });
+		await expect(page.locator('input[name="email"]')).toBeVisible({ timeout: 30_000 });
+		await page.locator('input[name="email"]').fill(email ?? '');
+		await page.locator('input[name="password"]').fill(password ?? '');
+		const submit = page.locator('button[type="submit"]');
+		await expect(submit).toBeEnabled({ timeout: 30_000 });
+		await submit.click();
+		const didLogin = await page.waitForURL(/\/dashboard\/(overview|my-work|board)/, { timeout: 15_000 }).then(() => true).catch(() => false);
+		if (didLogin) break;
+		const throttleMessage = await page.getByText(/Request throttled\. Retry in \d+ seconds\./i).textContent({ timeout: 1_000 }).catch(() => '');
+		const retrySeconds = Number(throttleMessage?.match(/(\d+)\s+seconds/i)?.[1] ?? 0);
+		if (retrySeconds > 0) {
+			await page.waitForTimeout((retrySeconds + 1) * 1_000);
+		}
+		if (attempt === 3) await expect(page).toHaveURL(/\/dashboard\/(overview|my-work|board)/, { timeout: 1_000 });
+	}
+	await expect(page.locator('.workflow-topbar-profile')).toContainText(/E2E Manager/i, { timeout: 30_000 });
+};
+
+const hasDevChunkLoadError = async (page: Page) =>
+	page.getByText(/This page couldn.t load|Runtime ChunkLoadError|Loading chunk app\/layout failed/i).first().isVisible({ timeout: 1_500 }).catch(() => false);
+
+const gotoDashboardPath = async (page: Page, path: string) => {
+	await page.goto(path);
+	for (let attempt = 0; attempt < 2 && await hasDevChunkLoadError(page); attempt += 1) {
+		await page.reload({ waitUntil: 'domcontentloaded' });
+	}
 };
 
 const boardEnglishChrome = /Saved views|View name|Private|All statuses|All priorities|All assignees|All reviews|Due date ascending|Manual order|Needs Review|Backlog/i;
@@ -335,28 +357,23 @@ const openAvailableProjectDetail = async (page: Page) => {
 };
 
 test.describe('workflow visual layout pass', () => {
-	test.skip(!existsSync(authStatePath) && (!email || !password), 'Run the authenticated dashboard setup before visual layout checks.');
-	test.use({ storageState: authStatePath, viewport: { width: 1920, height: 900 } });
+	test.skip(!email || !password, 'Set DESIGN_WORKFLOW_E2E_EMAIL and DESIGN_WORKFLOW_E2E_PASSWORD before visual layout checks.');
+	test.setTimeout(120_000);
+	test.use({ storageState: { cookies: [], origins: [] }, viewport: { width: 1920, height: 900 } });
 
-	test.beforeAll(async ({ browser }) => {
+	test.beforeAll(() => {
 		seedDesignWorkflowE2E();
 		mkdirSync(screenshotDir, { recursive: true });
-		if (!email || !password) return;
-
-		mkdirSync(dirname(authStatePath), { recursive: true });
-		const page = await browser.newPage({ storageState: undefined });
-		await loginWithUi(page);
-		await page.context().storageState({ path: authStatePath });
-		await page.close();
 	});
 
-	test.beforeEach(async ({ context }) => {
+	test.beforeEach(async ({ context, page }) => {
+		await loginWithUi(page);
 		await context.addCookies([{ name: 'app-language', value: 'fr', url: 'http://localhost:3004' }]);
 	});
 
 	test('captures and checks the premium workflow pages', async ({ page }) => {
 		test.setTimeout(120_000);
-		await page.goto('/dashboard/board');
+		await gotoDashboardPath(page, '/dashboard/board');
 		await expectNoNextDevIndicator(page);
 		await expectSharedPageHeader(page.locator('.workflow-kanban-header'));
 		await expectNeutralWorkspaceChrome(page);
@@ -392,12 +409,12 @@ test.describe('workflow visual layout pass', () => {
 		await page.keyboard.press('Escape');
 		await expect(page.locator('.workflow-task-modal')).toHaveCount(0);
 
-		await page.goto('/dashboard/overview');
+		await gotoDashboardPath(page, '/dashboard/overview');
 		await waitForOverviewReady(page);
 		await expectSharedCardShell(page.locator('.workflow-overview-metric').first());
 		await page.screenshot({ path: join(screenshotDir, 'overview.png'), fullPage: true });
 
-		await page.goto('/dashboard/my-work');
+		await gotoDashboardPath(page, '/dashboard/my-work');
 		await expectSharedPageHeader(page.locator('.workflow-kanban-header'));
 		await expect(page.locator('.workflow-board-lanes')).toBeVisible();
 		await expect(page.locator('.workflow-board-surface')).not.toContainText(/Chargement tableau|Loading board/i);
@@ -412,7 +429,7 @@ test.describe('workflow visual layout pass', () => {
 		await expectFrenchUiChrome(page.locator('.workflow-task-detail-page'), /Aper.u t.che|Actions carte|Commentaires|Temps saisi|Activit/i, taskEnglishChrome);
 		await page.screenshot({ path: join(screenshotDir, 'task-detail.png'), fullPage: true });
 
-		await page.goto('/dashboard/projects');
+		await gotoDashboardPath(page, '/dashboard/projects');
 		await expect(page.locator('.workflow-projects-layout')).toBeVisible();
 		await expectSharedPageHeader(page.locator('.workflow-projects-header'));
 		await expect(page.locator('.workflow-projects-card-grid')).toBeVisible();
@@ -432,7 +449,7 @@ test.describe('workflow visual layout pass', () => {
 		await expect(page.locator('.workflow-project-detail-panel').first()).toBeVisible();
 		await page.screenshot({ path: join(screenshotDir, 'project-detail.png'), fullPage: true });
 
-		await page.goto('/dashboard/team');
+		await gotoDashboardPath(page, '/dashboard/team');
 		await expectSharedPageHeader(page.locator('.workflow-team-header'));
 		await expect(page.locator('.workflow-team-grid')).toBeVisible();
 		await expect(page.locator('.workflow-team-analytics')).toBeVisible();
@@ -457,7 +474,7 @@ test.describe('workflow visual layout pass', () => {
 		await expectFrenchUiChrome(page.locator('.workflow-team-page'), /Membres .quipe|T.ches ouvertes|Charge estim.e|Carte charge .quipe/i, teamEnglishChrome);
 		await page.screenshot({ path: join(screenshotDir, 'team.png'), fullPage: true });
 
-		await page.goto('/dashboard/reports/time');
+		await gotoDashboardPath(page, '/dashboard/reports/time');
 		await expectSharedPageHeader(page.locator('.workflow-report-hero'));
 		await expect(page.locator('.workflow-report-filterbar')).toBeVisible();
 		await expect(page.locator('.workflow-report-date-fields')).toBeVisible();
@@ -476,7 +493,7 @@ test.describe('workflow visual layout pass', () => {
 		await expectFrenchUiChrome(page.locator('.workflow-analytics-grid'), /D.lai et temps de cycle|Goulots de revue|Estim. vs r.el|Pr.vision designer/i, reportEnglishChrome);
 		await page.screenshot({ path: join(screenshotDir, 'reports.png'), fullPage: true });
 
-		await page.goto('/dashboard/chat');
+		await gotoDashboardPath(page, '/dashboard/chat');
 		await waitForChatReady(page);
 		await expectSharedPageHeader(page.locator('.workflow-chat-sidebar-head'));
 		await expectSharedPageHeader(page.locator('.workflow-chat-room-header'));
@@ -488,7 +505,7 @@ test.describe('workflow visual layout pass', () => {
 		await expect(page.locator('.workflow-chat-room')).not.toContainText(chatEnglishChrome);
 		await page.screenshot({ path: join(screenshotDir, 'chat.png'), fullPage: true });
 
-		await page.goto('/dashboard/notifications');
+		await gotoDashboardPath(page, '/dashboard/notifications');
 		await expect(page.locator('.workflow-notifications-shell')).toBeVisible();
 		await expectSharedPageHeader(page.locator('.workflow-notifications-hero'));
 		await expect(page.locator('.workflow-notifications-metrics')).toBeVisible();
@@ -502,7 +519,7 @@ test.describe('workflow visual layout pass', () => {
 		await expectFrenchUiChrome(page.locator('.workflow-notifications-board'), /Centre notifications|Flux alertes/i, notificationEnglishChrome);
 		await page.screenshot({ path: join(screenshotDir, 'notifications.png'), fullPage: true });
 
-		await page.goto('/dashboard/users');
+		await gotoDashboardPath(page, '/dashboard/users');
 		await waitForUsersReady(page);
 		await expectSharedPageHeader(page.locator('.workflow-users-hero'));
 		await page.screenshot({ path: join(screenshotDir, 'users.png'), fullPage: true });
@@ -511,21 +528,21 @@ test.describe('workflow visual layout pass', () => {
 		await openCurrentUserEdit(page);
 		await page.screenshot({ path: join(screenshotDir, 'user-edit.png'), fullPage: true });
 
-		await page.goto('/dashboard/users/new');
+		await gotoDashboardPath(page, '/dashboard/users/new');
 		await expect(page.getByTestId('api-loader')).toHaveCount(0, { timeout: 30_000 });
 		await expect(page.locator('.workflow-user-form-shell')).toBeVisible({ timeout: 30_000 });
 		await expectSharedPageHeader(page.locator('.workflow-user-form-hero'));
 		await expect(page.locator('.workflow-user-form-grid')).toBeVisible({ timeout: 30_000 });
 		await page.screenshot({ path: join(screenshotDir, 'user-new.png'), fullPage: true });
 
-		await page.goto('/dashboard/settings/edit-profile');
+		await gotoDashboardPath(page, '/dashboard/settings/edit-profile');
 		await expect(page.locator('.workflow-profile-shell')).toBeVisible();
 		await expectSharedPageHeader(page.locator('.workflow-user-form-hero'));
 		await expect(page.locator('.workflow-profile-fields')).toBeVisible();
 		await expect(page.getByTestId('api-loader')).toHaveCount(0, { timeout: 20_000 });
 		await page.screenshot({ path: join(screenshotDir, 'profile.png'), fullPage: true });
 
-		await page.goto('/dashboard/settings/password');
+		await gotoDashboardPath(page, '/dashboard/settings/password');
 		await expect(page.locator('.workflow-password-shell')).toBeVisible();
 		await expectSharedPageHeader(page.locator('.workflow-user-form-hero'));
 		await expect(page.locator('.workflow-password-fields')).toBeVisible();
@@ -534,7 +551,7 @@ test.describe('workflow visual layout pass', () => {
 
 	test('captures the primary workflow pages in English', async ({ page }) => {
 		test.setTimeout(90_000);
-		await page.goto('/dashboard/overview');
+		await gotoDashboardPath(page, '/dashboard/overview');
 		const languageToggle = page.locator('.workflow-language-toggle').first();
 		await expect(languageToggle).toBeVisible({ timeout: 30_000 });
 		await expect(languageToggle).toContainText('FR');
@@ -545,7 +562,7 @@ test.describe('workflow visual layout pass', () => {
 		await expectFrenchUiChrome(page.locator('.workflow-overview-page'), /Overview|Active projects|Project load|Delivery mix/i, /Accueil|Charge projets|Mix livraison/i);
 		await page.screenshot({ path: join(screenshotDir, 'en-overview.png'), fullPage: true });
 
-		await page.goto('/dashboard/projects');
+		await gotoDashboardPath(page, '/dashboard/projects');
 		await expect(page.locator('.workflow-projects-layout')).toBeVisible({ timeout: 30_000 });
 		await expect(page.getByTestId('api-loader')).toHaveCount(0, { timeout: 30_000 });
 		await expect(page.locator('.workflow-projects-card-grid')).toBeVisible({ timeout: 30_000 });
@@ -554,7 +571,7 @@ test.describe('workflow visual layout pass', () => {
 		await expectFrenchUiChrome(page.locator('.workflow-projects-layout'), /Projects|Create project|Project name|Target end/i, /Projets actifs|Cr.er un projet|Nom du projet|Fin cible/i);
 		await page.screenshot({ path: join(screenshotDir, 'en-projects.png'), fullPage: true });
 
-		await page.goto('/dashboard/team');
+		await gotoDashboardPath(page, '/dashboard/team');
 		await expect(page.locator('.workflow-team-page')).toBeVisible({ timeout: 30_000 });
 		await expect(page.getByTestId('api-loader')).toHaveCount(0, { timeout: 30_000 });
 		await expect(page.locator('.workflow-team-grid')).toBeVisible({ timeout: 30_000 });
@@ -564,7 +581,7 @@ test.describe('workflow visual layout pass', () => {
 		await expectFrenchUiChrome(page.locator('.workflow-team-page'), /Team|Team members|Open tasks|Estimated load|Team load map/i, /Équipe|Membres .quipe|T.ches ouvertes|Charge estim.e|Carte charge .quipe/i);
 		await page.screenshot({ path: join(screenshotDir, 'en-team.png'), fullPage: true });
 
-		await page.goto('/dashboard/reports/time');
+		await gotoDashboardPath(page, '/dashboard/reports/time');
 		await expect(page.locator('.workflow-report-shell')).toBeVisible({ timeout: 30_000 });
 		await expect(page.getByTestId('api-loader')).toHaveCount(0, { timeout: 30_000 });
 		await expect(page.locator('.workflow-analytics-grid')).toBeVisible({ timeout: 30_000 });
@@ -574,12 +591,12 @@ test.describe('workflow visual layout pass', () => {
 		await expectFrenchUiChrome(page.locator('.workflow-report-shell'), /Reports|Start date|End date|Export CSV|Lead and cycle time|Review bottlenecks/i, /Rapports|Date de d.but|Date de fin|Exporter CSV|D.lai et temps de cycle|Goulots de revue/i);
 		await page.screenshot({ path: join(screenshotDir, 'en-reports.png'), fullPage: true });
 
-		await page.goto('/dashboard/chat');
+		await gotoDashboardPath(page, '/dashboard/chat');
 		await waitForChatReady(page);
 		await expectFrenchUiChrome(page.locator('.workflow-chat-shell'), /Chat|Public channel|Projects|Direct messages|Write a message|Filter by/i, /Canal public|Messages directs|.crire un message|Filtrer par/i);
 		await page.screenshot({ path: join(screenshotDir, 'en-chat.png'), fullPage: true });
 
-		await page.goto('/dashboard/notifications');
+		await gotoDashboardPath(page, '/dashboard/notifications');
 		await expect(page.locator('.workflow-notifications-shell')).toBeVisible({ timeout: 30_000 });
 		await expect(page.getByTestId('api-loader')).toHaveCount(0, { timeout: 30_000 });
 		await expect(page.locator('.workflow-notifications-list > *').first()).toBeVisible({ timeout: 30_000 });

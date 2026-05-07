@@ -11,13 +11,24 @@ test.describe.configure({ mode: 'serial' });
 test.use({ storageState: authStatePath });
 
 const loginWithUi = async (page: Page) => {
-	await page.goto('/login');
-
-	await page.locator('input[name="email"]').fill(email ?? '');
-	await page.locator('input[name="password"]').fill(password ?? '');
-	await page.locator('button[type="submit"]').click();
-
-	await expect(page).toHaveURL(/\/dashboard\/(overview|my-work|board)/, { timeout: 30_000 });
+	for (let attempt = 0; attempt < 4; attempt += 1) {
+		await page.goto('/login', { waitUntil: 'domcontentloaded' });
+		await expect(page.locator('input[name="email"]')).toBeVisible({ timeout: 30_000 });
+		await page.locator('input[name="email"]').fill(email ?? '');
+		await page.locator('input[name="password"]').fill(password ?? '');
+		const submit = page.locator('button[type="submit"]');
+		await expect(submit).toBeEnabled({ timeout: 30_000 });
+		await submit.click();
+		const didLogin = await page.waitForURL(/\/dashboard\/(overview|my-work|board)/, { timeout: 15_000 }).then(() => true).catch(() => false);
+		if (didLogin) break;
+		const throttleMessage = await page.getByText(/Request throttled\. Retry in \d+ seconds\./i).textContent({ timeout: 1_000 }).catch(() => '');
+		const retrySeconds = Number(throttleMessage?.match(/(\d+)\s+seconds/i)?.[1] ?? 0);
+		if (retrySeconds > 0) {
+			await page.waitForTimeout((retrySeconds + 1) * 1_000);
+		}
+		if (attempt === 3) await expect(page).toHaveURL(/\/dashboard\/(overview|my-work|board)/, { timeout: 1_000 });
+	}
+	await expect(page.locator('.workflow-topbar-profile')).toContainText(/E2E Manager/i, { timeout: 30_000 });
 };
 
 const hasDevChunkLoadError = async (page: Page) =>
@@ -35,7 +46,7 @@ test.beforeAll(async ({ browser }) => {
 	if (existsSync(authStatePath) && !seeded) return;
 
 	mkdirSync(dirname(authStatePath), { recursive: true });
-	const page = await browser.newPage({ storageState: undefined });
+	const page = await browser.newPage({ storageState: { cookies: [], origins: [] } });
 	await loginWithUi(page);
 	await page.context().storageState({ path: authStatePath });
 	await page.close();

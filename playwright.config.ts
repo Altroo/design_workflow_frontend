@@ -3,6 +3,11 @@ import { defineConfig, devices } from '@playwright/test';
 const baseURL = process.env.PLAYWRIGHT_BASE_URL ?? 'http://localhost:3004';
 const shouldStartServer = process.env.PLAYWRIGHT_SKIP_WEB_SERVER !== '1';
 const configuredWorkers = Number(process.env.PLAYWRIGHT_WORKERS ?? '1');
+const webServerEnv = Object.fromEntries(Object.entries(process.env).filter((entry): entry is [string, string] => typeof entry[1] === 'string'));
+
+if (process.platform === 'win32') {
+	webServerEnv.WATCHPACK_POLLING = webServerEnv.WATCHPACK_POLLING ?? 'true';
+}
 
 export default defineConfig({
 	testDir: './e2e',
@@ -29,6 +34,7 @@ export default defineConfig({
 		? {
 				webServer: {
 					command: 'bun run dev',
+					env: webServerEnv,
 					url: baseURL,
 					reuseExistingServer: true,
 					timeout: 120_000,

@@ -1,9 +1,8 @@
 import { expect, type Page, test } from '@playwright/test';
-import { existsSync, mkdirSync } from 'node:fs';
-import { dirname, join } from 'node:path';
+import { mkdirSync } from 'node:fs';
+import { join } from 'node:path';
 import { seedDesignWorkflowE2E } from './seed-design-workflow';
 
-const authStatePath = '.playwright/.auth/design-workflow-e2e.json';
 const screenshotDir = 'test-results/workflow-responsive';
 const seeded = process.env.DESIGN_WORKFLOW_E2E_SEEDED === '1';
 const email = process.env.DESIGN_WORKFLOW_E2E_EMAIL;
@@ -17,11 +16,34 @@ const forceFrench = async (page: Page) => {
 };
 
 const loginWithUi = async (page: Page) => {
-	await page.goto('/login');
-	await page.locator('input[name="email"]').fill(email ?? '');
-	await page.locator('input[name="password"]').fill(password ?? '');
-	await page.locator('button[type="submit"]').click();
-	await expect(page).toHaveURL(/\/dashboard\/(overview|my-work|board)/, { timeout: 30_000 });
+	for (let attempt = 0; attempt < 4; attempt += 1) {
+		await page.goto('/login', { waitUntil: 'domcontentloaded' });
+		await expect(page.locator('input[name="email"]')).toBeVisible({ timeout: 30_000 });
+		await page.locator('input[name="email"]').fill(email ?? '');
+		await page.locator('input[name="password"]').fill(password ?? '');
+		const submit = page.locator('button[type="submit"]');
+		await expect(submit).toBeEnabled({ timeout: 30_000 });
+		await submit.click();
+		const didLogin = await page.waitForURL(/\/dashboard\/(overview|my-work|board)/, { timeout: 15_000 }).then(() => true).catch(() => false);
+		if (didLogin) break;
+		const throttleMessage = await page.getByText(/Request throttled\. Retry in \d+ seconds\./i).textContent({ timeout: 1_000 }).catch(() => '');
+		const retrySeconds = Number(throttleMessage?.match(/(\d+)\s+seconds/i)?.[1] ?? 0);
+		if (retrySeconds > 0) {
+			await page.waitForTimeout((retrySeconds + 1) * 1_000);
+		}
+		if (attempt === 3) await expect(page).toHaveURL(/\/dashboard\/(overview|my-work|board)/, { timeout: 1_000 });
+	}
+	await expect(page.locator('.workflow-topbar-profile')).toContainText(/E2E Manager/i, { timeout: 30_000 });
+};
+
+const hasDevChunkLoadError = async (page: Page) =>
+	page.getByText(/This page couldn.t load|Runtime ChunkLoadError|Loading chunk app\/layout failed/i).first().isVisible({ timeout: 1_500 }).catch(() => false);
+
+const gotoDashboardPath = async (page: Page, path: string) => {
+	await page.goto(path);
+	for (let attempt = 0; attempt < 2 && await hasDevChunkLoadError(page); attempt += 1) {
+		await page.reload({ waitUntil: 'domcontentloaded' });
+	}
 };
 
 const expectNoPageOverflow = async (page: Page) => {
@@ -873,22 +895,17 @@ const expectMobileUserDetail = async (page: Page) => {
 };
 
 test.describe('workflow responsive visual pass', () => {
-	test.skip(!existsSync(authStatePath) && (!email || !password), 'Run the authenticated dashboard setup before responsive checks.');
-	test.use({ storageState: authStatePath });
+	test.skip(!email || !password, 'Set DESIGN_WORKFLOW_E2E_EMAIL and DESIGN_WORKFLOW_E2E_PASSWORD before responsive checks.');
+	test.setTimeout(120_000);
+	test.use({ storageState: { cookies: [], origins: [] } });
 
-	test.beforeAll(async ({ browser }) => {
+	test.beforeAll(() => {
 		seedDesignWorkflowE2E();
 		mkdirSync(screenshotDir, { recursive: true });
-		if (!email || !password) return;
-
-		mkdirSync(dirname(authStatePath), { recursive: true });
-		const page = await browser.newPage({ storageState: undefined });
-		await loginWithUi(page);
-		await page.context().storageState({ path: authStatePath });
-		await page.close();
 	});
 
 	test.beforeEach(async ({ page }) => {
+		await loginWithUi(page);
 		await forceFrench(page);
 	});
 
@@ -896,7 +913,7 @@ test.describe('workflow responsive visual pass', () => {
 		test.setTimeout(120_000);
 		await page.setViewportSize({ width: 820, height: 1180 });
 
-		await page.goto('/dashboard/board');
+		await gotoDashboardPath(page, '/dashboard/board');
 		await openBoardFilters(page);
 		await expect(page.locator('.workflow-topbar-controls')).toContainText('FR');
 		await expect(page.locator('.workflow-saved-view-bar')).toContainText(/Vues enregistr.es|Nom de la vue|Priv.e/i);
@@ -905,7 +922,7 @@ test.describe('workflow responsive visual pass', () => {
 		await centerBoardOnFirstTask(page);
 		await capturePage(page, 'tablet-board');
 
-		await page.goto('/dashboard/my-work');
+		await gotoDashboardPath(page, '/dashboard/my-work');
 		await openBoardFilters(page);
 		await waitForBoardReady(page);
 		await centerBoardOnFirstTask(page);
@@ -917,36 +934,36 @@ test.describe('workflow responsive visual pass', () => {
 		await openFirstTaskDetailRoute(page);
 		await capturePage(page, 'tablet-task-detail');
 
-		await page.goto('/dashboard/overview');
+		await gotoDashboardPath(page, '/dashboard/overview');
 		await waitForOverviewReady(page);
 		await capturePage(page, 'tablet-overview');
 
-		await page.goto('/dashboard/projects');
+		await gotoDashboardPath(page, '/dashboard/projects');
 		await waitForProjectsReady(page);
 		await capturePage(page, 'tablet-projects');
 		await openFirstProjectDetail(page);
 		await capturePage(page, 'tablet-project-detail');
 
-		await page.goto('/dashboard/team');
+		await gotoDashboardPath(page, '/dashboard/team');
 		await waitForTeamReady(page);
 		await capturePage(page, 'tablet-team');
 
-		await page.goto('/dashboard/reports/time');
+		await gotoDashboardPath(page, '/dashboard/reports/time');
 		await expect(page.locator('.workflow-report-actions')).toBeVisible();
 		await waitForReportReady(page);
 		await capturePage(page, 'tablet-reports');
 
-		await page.goto('/dashboard/chat');
+		await gotoDashboardPath(page, '/dashboard/chat');
 		await expect(page.locator('.workflow-chat-task-room-section')).toHaveCount(0);
 		await waitForChatReady(page);
 		await expect(page.locator('.workflow-chat-thread-button, .workflow-chat-context-button, .workflow-chat-direct-button').first()).toBeVisible();
 		await capturePage(page, 'tablet-chat');
 
-		await page.goto('/dashboard/notifications');
+		await gotoDashboardPath(page, '/dashboard/notifications');
 		await waitForNotificationsReady(page);
 		await capturePage(page, 'tablet-notifications');
 
-		await page.goto('/dashboard/users');
+		await gotoDashboardPath(page, '/dashboard/users');
 		await waitForUsersReady(page);
 		await capturePage(page, 'tablet-users');
 		await openFirstUserDetail(page);
@@ -954,15 +971,15 @@ test.describe('workflow responsive visual pass', () => {
 		await openCurrentUserEdit(page);
 		await capturePage(page, 'tablet-user-edit');
 
-		await page.goto('/dashboard/users/new');
+		await gotoDashboardPath(page, '/dashboard/users/new');
 		await waitForUserFormReady(page);
 		await capturePage(page, 'tablet-user-new');
 
-		await page.goto('/dashboard/settings/edit-profile');
+		await gotoDashboardPath(page, '/dashboard/settings/edit-profile');
 		await waitForProfileReady(page);
 		await capturePage(page, 'tablet-profile');
 
-		await page.goto('/dashboard/settings/password');
+		await gotoDashboardPath(page, '/dashboard/settings/password');
 		await waitForPasswordReady(page);
 		await capturePage(page, 'tablet-password');
 	});
@@ -971,7 +988,7 @@ test.describe('workflow responsive visual pass', () => {
 		test.setTimeout(120_000);
 		await page.setViewportSize({ width: 390, height: 844 });
 
-		await page.goto('/dashboard/board');
+		await gotoDashboardPath(page, '/dashboard/board');
 		await openBoardFilters(page);
 		await expect(page.getByRole('button', { name: /Passer en anglais/i })).toBeVisible();
 		await expect(page.locator('.workflow-topbar-controls')).toContainText('FR');
@@ -998,7 +1015,7 @@ test.describe('workflow responsive visual pass', () => {
 			await expect(page.locator('.workflow-task-modal')).toHaveCount(0);
 		}
 
-		await page.goto('/dashboard/my-work');
+		await gotoDashboardPath(page, '/dashboard/my-work');
 		await openBoardFilters(page);
 		await waitForBoardReady(page);
 		await centerBoardOnFirstTask(page);
@@ -1010,25 +1027,25 @@ test.describe('workflow responsive visual pass', () => {
 		await openFirstTaskDetailRoute(page);
 		await capturePage(page, 'mobile-task-detail');
 
-		await page.goto('/dashboard/overview');
+		await gotoDashboardPath(page, '/dashboard/overview');
 		await waitForOverviewReady(page);
 		await capturePage(page, 'mobile-overview');
 
-		await page.goto('/dashboard/projects');
+		await gotoDashboardPath(page, '/dashboard/projects');
 		await waitForProjectsReady(page);
 		await capturePage(page, 'mobile-projects');
 		await openFirstProjectDetail(page);
 		await capturePage(page, 'mobile-project-detail');
 
-		await page.goto('/dashboard/team');
+		await gotoDashboardPath(page, '/dashboard/team');
 		await waitForTeamReady(page);
 		await capturePage(page, 'mobile-team');
 
-		await page.goto('/dashboard/reports/time');
+		await gotoDashboardPath(page, '/dashboard/reports/time');
 		await waitForReportReady(page);
 		await capturePage(page, 'mobile-reports');
 
-		await page.goto('/dashboard/chat');
+		await gotoDashboardPath(page, '/dashboard/chat');
 		await expect(page.locator('.workflow-chat-task-room-section')).toHaveCount(0);
 		await waitForChatReady(page);
 		await expect(page.locator('.workflow-chat-thread-button, .workflow-chat-context-button, .workflow-chat-direct-button').first()).toBeVisible();
@@ -1036,11 +1053,11 @@ test.describe('workflow responsive visual pass', () => {
 		await expectMobileChatSwitcher(page);
 		await capturePage(page, 'mobile-chat');
 
-		await page.goto('/dashboard/notifications');
+		await gotoDashboardPath(page, '/dashboard/notifications');
 		await waitForNotificationsReady(page);
 		await capturePage(page, 'mobile-notifications');
 
-		await page.goto('/dashboard/users');
+		await gotoDashboardPath(page, '/dashboard/users');
 		await waitForUsersReady(page);
 		await capturePage(page, 'mobile-users');
 		await openFirstUserDetail(page);
@@ -1048,15 +1065,15 @@ test.describe('workflow responsive visual pass', () => {
 		await openCurrentUserEdit(page);
 		await capturePage(page, 'mobile-user-edit');
 
-		await page.goto('/dashboard/users/new');
+		await gotoDashboardPath(page, '/dashboard/users/new');
 		await waitForUserFormReady(page);
 		await capturePage(page, 'mobile-user-new');
 
-		await page.goto('/dashboard/settings/edit-profile');
+		await gotoDashboardPath(page, '/dashboard/settings/edit-profile');
 		await waitForProfileReady(page);
 		await capturePage(page, 'mobile-profile');
 
-		await page.goto('/dashboard/settings/password');
+		await gotoDashboardPath(page, '/dashboard/settings/password');
 		await waitForPasswordReady(page);
 		await capturePage(page, 'mobile-password');
 	});
