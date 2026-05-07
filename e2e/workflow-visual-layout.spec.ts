@@ -410,6 +410,11 @@ test.describe('workflow visual layout pass', () => {
 		await expect.poll(async () => page.locator('[data-testid^="board-task-"]').count()).toBeGreaterThan(0);
 		await expectSemanticBoardColors(page);
 		await expectBoardCoverPaint(page);
+		const addCardButton = page.locator('.workflow-column-add-card').first();
+		await expect(addCardButton).toBeVisible();
+		expect(await readCssProperty(addCardButton, 'border-top-style')).toBe('solid');
+		expect(await readCssProperty(addCardButton, 'background-color')).toBe('rgb(255, 255, 255)');
+		expect(await addCardButton.evaluate((button) => button.getBoundingClientRect().height)).toBeGreaterThanOrEqual(44);
 		await page.screenshot({ path: join(screenshotDir, 'board.png'), fullPage: true });
 		await page.locator('[data-testid^="board-task-"]').first().click();
 		await expect(page.locator('.workflow-task-modal')).toBeVisible();
@@ -483,6 +488,19 @@ test.describe('workflow visual layout pass', () => {
 		expect(teamLayout.analyticsWidth).toBeLessThan(teamLayout.totalWidth * 0.55);
 		expect(teamLayout.boardWidth).toBeGreaterThan(teamLayout.analyticsWidth);
 		expect(teamLayout.topDelta).toBeLessThan(4);
+		const teamSideSizing = await page.locator('.workflow-team-side').evaluate((side) => {
+			const spotlight = side.querySelector('.workflow-team-spotlight')?.getBoundingClientRect();
+			const lanes = Array.from(side.querySelectorAll('.workflow-team-lane')).map((lane) => lane.getBoundingClientRect());
+			return {
+				spotlightHeight: spotlight?.height ?? 0,
+				spotlightWidth: spotlight?.width ?? 0,
+				attentionHeight: lanes[0]?.height ?? 0,
+				attentionWidth: lanes[0]?.width ?? 0,
+			};
+		});
+		expect(teamSideSizing.attentionHeight).toBeGreaterThan(0);
+		expect(teamSideSizing.attentionHeight).toBeLessThan(teamSideSizing.spotlightHeight);
+		expect(teamSideSizing.attentionWidth).toBeLessThan(teamSideSizing.spotlightWidth);
 		await expectSharedCardShell(page.locator('.workflow-team-analytics'));
 		await expectSharedCardShell(page.locator('.workflow-team-card').first());
 		await expectFrenchUiChrome(page.locator('.workflow-team-page'), /Membres .quipe|T.ches ouvertes|Charge estim.e|Carte charge .quipe/i, teamEnglishChrome);
