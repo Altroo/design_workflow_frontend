@@ -74,6 +74,24 @@ const expectSharedPageHeader = async (locator: Locator) => {
 	expect(await readCssProperty(locator, 'box-shadow')).not.toBe('none');
 };
 
+const expectUnifiedWorkflowTitleCard = async (locator: Locator) => {
+	await expectSharedPageHeader(locator);
+	const metrics = await locator.evaluate((element) => {
+		const style = getComputedStyle(element);
+		const rootFontSize = parseFloat(getComputedStyle(document.documentElement).fontSize);
+		return {
+			minHeight: parseFloat(style.minHeight),
+			paddingTop: parseFloat(style.paddingTop),
+			radius: parseFloat(style.borderTopLeftRadius),
+			rootFontSize,
+		};
+	});
+	expect(metrics.radius).toBeCloseTo(metrics.rootFontSize * 1.25, 0);
+	expect(metrics.paddingTop).toBeCloseTo(metrics.rootFontSize * 2, 0);
+	expect(metrics.minHeight).toBeGreaterThanOrEqual(metrics.rootFontSize * 7.5);
+	expect(await readCssProperty(locator, 'background-image')).toContain('linear-gradient');
+};
+
 const expectSemanticBoardColors = async (page: Page) => {
 	const expectedStatusAccents: Record<string, string> = {
 		backlog: '#64748b',
@@ -387,7 +405,7 @@ test.describe('workflow visual layout pass', () => {
 		test.setTimeout(120_000);
 		await gotoDashboardPath(page, '/dashboard/board');
 		await expectNoNextDevIndicator(page);
-		await expectSharedPageHeader(page.locator('.workflow-kanban-header'));
+		await expectUnifiedWorkflowTitleCard(page.locator('.workflow-kanban-header'));
 		await expectNeutralWorkspaceChrome(page);
 		await expect(page.locator('.workflow-kanban-toolbar')).toBeVisible();
 		await expect(page.locator('.workflow-kanban-filter-grid')).toBeVisible();
@@ -397,9 +415,9 @@ test.describe('workflow visual layout pass', () => {
 		await expect(page.locator('.workflow-topbar-controls')).toContainText('FR');
 		await expect(page.locator('.workflow-rail-title')).toContainText(/Flux Design/i);
 		await expect(page.locator('.workflow-saved-view-bar')).toContainText(/Vues enregistr.es|Nom de la vue|Priv.e/i);
-		await expect(page.locator('.workflow-kanban-filter-grid')).toContainText(/Toutes les revues|Ordre manuel/i);
+		await expect(page.locator('.workflow-kanban-filter-grid')).toContainText(/Toutes les revues|. revoir|Ordre manuel|Date cible croissante/i);
 		await expectFrenchUiChrome(page.locator('.workflow-saved-view-bar'), /Vues enregistr.es|Nom de la vue|Priv.e/i, boardEnglishChrome);
-		await expectFrenchUiChrome(page.locator('.workflow-kanban-filter-grid'), /Tous les statuts|Toutes les priorit.s|Tous les assign.s|Toutes les revues|Ordre manuel/i, boardEnglishChrome);
+		await expectFrenchUiChrome(page.locator('.workflow-kanban-filter-grid'), /Tous les statuts|Toutes les priorit.s|Tous les assign.s|Toutes les revues|. revoir|Ordre manuel|Date cible croissante/i, boardEnglishChrome);
 		const filterRowCount = await page.locator('.workflow-kanban-filter-grid').evaluate((grid) => {
 			const tops = Array.from(grid.children).map((child) => Math.round(child.getBoundingClientRect().top));
 			return new Set(tops).size;
@@ -441,11 +459,12 @@ test.describe('workflow visual layout pass', () => {
 
 		await gotoDashboardPath(page, '/dashboard/overview');
 		await waitForOverviewReady(page);
+		await expectUnifiedWorkflowTitleCard(page.locator('.workflow-overview-header'));
 		await expectSharedCardShell(page.locator('.workflow-overview-metric').first());
 		await page.screenshot({ path: join(screenshotDir, 'overview.png'), fullPage: true });
 
 		await gotoDashboardPath(page, '/dashboard/my-work');
-		await expectSharedPageHeader(page.locator('.workflow-kanban-header'));
+		await expectUnifiedWorkflowTitleCard(page.locator('.workflow-kanban-header'));
 		await expect(page.locator('.workflow-board-lanes')).toBeVisible();
 		await expect(page.locator('.workflow-board-surface')).not.toContainText(/Chargement tableau|Loading board/i);
 		await expect.poll(async () => page.locator('[data-testid^="board-task-"]').count()).toBeGreaterThan(0);
@@ -505,7 +524,7 @@ test.describe('workflow visual layout pass', () => {
 		await page.screenshot({ path: join(screenshotDir, 'project-detail.png'), fullPage: true });
 
 		await gotoDashboardPath(page, '/dashboard/team');
-		await expectSharedPageHeader(page.locator('.workflow-team-header'));
+		await expectUnifiedWorkflowTitleCard(page.locator('.workflow-team-header'));
 		await expect(page.locator('.workflow-team-grid')).toBeVisible();
 		await expect(page.locator('.workflow-team-analytics')).toBeVisible();
 		await expect(page.locator('.workflow-team-board')).toBeVisible();
@@ -543,7 +562,7 @@ test.describe('workflow visual layout pass', () => {
 		await page.screenshot({ path: join(screenshotDir, 'team.png'), fullPage: true });
 
 		await gotoDashboardPath(page, '/dashboard/reports/time');
-		await expectSharedPageHeader(page.locator('.workflow-report-hero'));
+		await expectUnifiedWorkflowTitleCard(page.locator('.workflow-report-hero'));
 		await expect(page.locator('.workflow-report-filterbar')).toBeVisible();
 		await expect(page.locator('.workflow-report-date-fields')).toBeVisible();
 		await expect(page.locator('.workflow-report-actions')).toBeVisible();
@@ -563,8 +582,8 @@ test.describe('workflow visual layout pass', () => {
 
 		await gotoDashboardPath(page, '/dashboard/chat');
 		await waitForChatReady(page);
-		await expectSharedPageHeader(page.locator('.workflow-chat-sidebar-head'));
-		await expectSharedPageHeader(page.locator('.workflow-chat-room-header'));
+		await expectUnifiedWorkflowTitleCard(page.locator('.workflow-chat-sidebar-head'));
+		await expectUnifiedWorkflowTitleCard(page.locator('.workflow-chat-room-header'));
 		await expect(page.getByRole('button', { name: /Filtrer par/i })).toBeVisible();
 		await expect(page.locator('.workflow-chat-tools-toggle span')).toHaveText(/Filtrer par/i);
 		await expectSlateChatAccent(page);
