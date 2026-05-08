@@ -69,7 +69,8 @@
 
 .workflow-kanban-header {
 	display: flex !important;
-	min-height: 8.75rem !important;
+	height: 10rem !important;
+	min-height: 10rem !important;
 	align-items: center !important;
 	justify-content: space-between !important;
 	flex-wrap: wrap !important;
@@ -558,7 +559,12 @@
 }
 
 .workflow-board-onboarding {
+	min-height: 0 !important;
 	padding: 1rem !important;
+}
+
+.workflow-board-onboarding .workflow-empty-state {
+	min-height: 5rem !important;
 }
 
 @media (max-width: 87.5rem) {
@@ -588,6 +594,7 @@
 	.workflow-kanban-header,
 	.workflow-chat-sidebar-head,
 	.workflow-chat-room-header {
+		height: auto !important;
 		min-height: auto !important;
 		align-items: flex-start !important;
 		padding: 1rem !important;
