@@ -423,6 +423,43 @@
 	gap: 1rem !important;
 }
 
+.workflow-overview-panel,
+.workflow-overview-chart-card,
+.workflow-team-analytics,
+.workflow-team-board,
+.workflow-team-spotlight,
+.workflow-team-lane,
+.workflow-report-chart-card,
+.workflow-analytics-panel,
+.workflow-forecast-board,
+.workflow-report-board {
+	display: grid !important;
+	gap: 1rem !important;
+	align-content: start !important;
+}
+
+.workflow-overview-chart-body,
+.workflow-overview-chart-keys,
+.workflow-overview-task-list,
+.workflow-overview-people,
+.workflow-overview-projects,
+.workflow-team-chart-body,
+.workflow-team-chart-keys,
+.workflow-team-card-grid,
+.workflow-team-spotlight-stats,
+.workflow-report-grid,
+.workflow-forecast-list {
+	margin-top: 0 !important;
+}
+
+.workflow-team-spotlight-body {
+	padding: 0 !important;
+}
+
+.workflow-overview-panel-copy {
+	margin: 0 0.25rem !important;
+}
+
 .workflow-team-grid,
 .workflow-team-side {
 	align-items: stretch !important;
