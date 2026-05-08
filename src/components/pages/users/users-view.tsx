@@ -22,6 +22,7 @@ import ActionModals from '@/components/htmlElements/modals/actionModal/actionMod
 import { Protected } from '@/components/layouts/protected/protected';
 import ApiAlert from '@/components/formikElements/apiLoading/apiAlert/apiAlert';
 import { WorkflowIconPill, WorkflowPageHero } from '@/components/shared/workflow/workflowPrimitives';
+import { WorkflowAvatar } from '@/components/shared/workflow/workflowAvatar';
 
 interface InfoRowProps {
 	label: string;
@@ -70,8 +71,6 @@ const UsersViewClient: React.FC<Props> = ({ session, id }) => {
 			setShowDeleteModal(false);
 		}
 	};
-
-	const initials = `${userData?.first_name?.[0] ?? ''}${userData?.last_name?.[0] ?? ''}`.trim() || 'U';
 
 	return (
 		<div className="min-h-screen">
@@ -131,9 +130,17 @@ const UsersViewClient: React.FC<Props> = ({ session, id }) => {
 							<div className="workflow-user-detail-content">
 								<section className="workflow-user-detail-profile-card">
 									<div className="workflow-user-detail-profile">
-										<div className="workflow-user-detail-avatar">
-											{initials}
-										</div>
+										<WorkflowAvatar
+											user={{
+												first_name: userData.first_name,
+												last_name: userData.last_name,
+												email: userData.email,
+												avatar: typeof (userData.avatar_cropped || userData.avatar) === 'string' ? (userData.avatar_cropped || userData.avatar) as string : null,
+											}}
+											size={80}
+											avatarClassName="workflow-user-detail-avatar"
+											label={[userData.first_name, userData.last_name].filter(Boolean).join(' ') || userData.email}
+										/>
 										<div className="workflow-user-detail-profile-copy">
 											<p>{t.users.userDetails}</p>
 											<h2>

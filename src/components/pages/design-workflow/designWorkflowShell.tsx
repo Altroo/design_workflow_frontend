@@ -146,8 +146,11 @@ import { getAccessToken, getProfilState, getWSOnlineUserIdsState } from '@/store
 import type { UserClass } from '@/models/classes';
 import type { TranslationDictionary } from '@/types/languageTypes';
 import { WorkflowMetricCard as MetricCard, WorkflowPageHero, WorkflowPanelPill, WorkflowSimpleMetric } from '@/components/shared/workflow/workflowPrimitives';
+import { WorkflowAvatar, WORKFLOW_AVATAR_SIZES } from '@/components/shared/workflow/workflowAvatar';
 
 ChartJS.register(CategoryScale, LinearScale, BarElement, ArcElement, LineElement, PointElement, Filler, Tooltip, Legend);
+
+const TEAM_PERSON_AVATAR_SIZE = WORKFLOW_AVATAR_SIZES.team;
 
 type Variant =
 	| 'overview'
@@ -660,39 +663,21 @@ const formatFileSize = (size: number) => {
 
 const AvatarBadge = ({
 	user,
-	size = 32,
+	size = WORKFLOW_AVATAR_SIZES.default,
 }: {
 	user?: WorkflowUser | null;
 	size?: number;
 }) => {
 	const onlineUserIds = useAppSelector(getWSOnlineUserIdsState);
-	const label = user ? `${user.first_name} ${user.last_name}`.trim() || user.email : 'System';
-	const avatarUrl = resolveMediaUrl(user?.avatar);
 	const online = !!user && onlineUserIds.includes(user.id);
-	const initials = user
-		? `${user.first_name?.[0] ?? ''}${user.last_name?.[0] ?? user.email?.[0] ?? ''}`.trim().toUpperCase() || 'U'
-		: 'S';
 	return (
-		<span
-			className="workflow-avatar-presence"
-			data-online={online}
-			aria-label={`${label} ${online ? 'online' : 'offline'}`}
-			style={{ width: size, height: size }}
-		>
-			{avatarUrl ? (
-				<span className="relative block overflow-hidden rounded-full" style={{ width: size, height: size }}>
-					<Image src={avatarUrl} alt={label} fill sizes={`${size}px`} unoptimized className="object-cover" />
-				</span>
-			) : (
-				<span
-					className="workflow-avatar-initials inline-flex items-center justify-center rounded-full bg-(--surface-strong) text-center text-xs font-bold leading-none text-(--ink)"
-					style={{ width: size, height: size }}
-				>
-					{initials}
-				</span>
-			)}
-			{user ? <span className="workflow-avatar-presence-dot" aria-hidden="true" /> : null}
-		</span>
+		<WorkflowAvatar
+			user={user}
+			size={size}
+			online={online}
+			showPresence={!!user}
+			fallbackInitials="S"
+		/>
 	);
 };
 
@@ -5431,7 +5416,7 @@ const DesignWorkflowShell = ({ title, variant, projectId, taskId }: Props) => {
 									>
 										<div className="workflow-team-card-head">
 											<div className="workflow-team-person">
-												<AvatarBadge user={row.user} size={42} />
+												<AvatarBadge user={row.user} size={TEAM_PERSON_AVATAR_SIZE} />
 												<div className="min-w-0">
 													<h3>{row.user.first_name} {row.user.last_name}</h3>
 													<p>{labelFor(row.user.role)}</p>
@@ -5471,7 +5456,7 @@ const DesignWorkflowShell = ({ title, variant, projectId, taskId }: Props) => {
 							{leadUser ? (
 								<>
 									<div className="workflow-team-spotlight-body">
-										<AvatarBadge user={leadUser.user} size={54} />
+										<AvatarBadge user={leadUser.user} size={TEAM_PERSON_AVATAR_SIZE} />
 										<div className="min-w-0">
 											<h3>{leadUser.user.first_name} {leadUser.user.last_name}</h3>
 											<p>{labelFor(leadUser.user.role)}</p>
@@ -5490,7 +5475,7 @@ const DesignWorkflowShell = ({ title, variant, projectId, taskId }: Props) => {
 							<WorkflowPanelPill baseClassName="workflow-team-panel-pill" className="workflow-team-panel-pill-rose" label={workflow.labels.attentionLane} value={pressureRows.length} labelElement="span" />
 							{pressureRows.map((row) => (
 								<div key={row.user.id} className="workflow-team-mini-row">
-									<AvatarBadge user={row.user} size={30} />
+									<AvatarBadge user={row.user} size={TEAM_PERSON_AVATAR_SIZE} />
 									<div>
 										<p>{row.user.first_name} {row.user.last_name}</p>
 										<span>{row.open_tasks} {workflow.labels.openLower} - {row.overdue_tasks} {workflow.labels.overdueLower}</span>
@@ -5504,7 +5489,7 @@ const DesignWorkflowShell = ({ title, variant, projectId, taskId }: Props) => {
 							<WorkflowPanelPill baseClassName="workflow-team-panel-pill" className="workflow-team-panel-pill-green" label={workflow.labels.availableLane} value={calmRows.length} labelElement="span" />
 							{calmRows.map((row) => (
 								<div key={row.user.id} className="workflow-team-mini-row">
-									<AvatarBadge user={row.user} size={30} />
+									<AvatarBadge user={row.user} size={TEAM_PERSON_AVATAR_SIZE} />
 									<div>
 										<p>{row.user.first_name} {row.user.last_name}</p>
 										<span>{row.open_tasks} {workflow.labels.openLower} - {formatWorkDays(row.estimated_minutes, workflow.labels.daysUnit)}</span>

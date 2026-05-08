@@ -1,7 +1,6 @@
 'use client';
 
 import React, { useMemo, useState } from 'react';
-import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import { ArrowLeft, CheckCircle2, Eye, PencilLine, Plus, Search, ShieldCheck, Trash2, Users, XCircle } from 'lucide-react';
 import { useInitAccessToken } from '@/contexts/InitContext';
@@ -17,15 +16,9 @@ import { useToast, useLanguage } from '@/utils/hooks';
 import ApiAlert from '@/components/formikElements/apiLoading/apiAlert/apiAlert';
 import ApiProgress from '@/components/formikElements/apiLoading/apiProgress/apiProgress';
 import { WorkflowPageHero, WorkflowSimpleMetric } from '@/components/shared/workflow/workflowPrimitives';
+import { WorkflowAvatar, WORKFLOW_AVATAR_SIZES } from '@/components/shared/workflow/workflowAvatar';
 
 const DANGER_COLOR = '#ef4444';
-
-const resolveMediaUrl = (value?: string | ArrayBuffer | null) => {
-	if (typeof value !== 'string' || !value) return null;
-	if (value.startsWith('data:') || value.startsWith('blob:') || /^https?:\/\//.test(value)) return value;
-	const apiUrl = process.env.NEXT_PUBLIC_API_URL ?? '';
-	return `${apiUrl}${value.startsWith('/') ? value : `/${value}`}`;
-};
 
 const UsersListClient: React.FC<SessionProps> = ({ session }) => {
 	const router = useRouter();
@@ -109,21 +102,17 @@ const UsersListClient: React.FC<SessionProps> = ({ session }) => {
 		});
 	};
 
-	const initialsFor = (user: UserClass) =>
-		(`${user.first_name?.[0] ?? ''}${user.last_name?.[0] ?? ''}`.trim() || user.email?.[0] || 'U').toUpperCase();
-
 	const fullNameFor = (user: UserClass) => [user.first_name, user.last_name].filter(Boolean).join(' ') || user.email;
 
 	const userAvatar = (user: UserClass) => {
-		const avatarUrl = resolveMediaUrl(user.avatar_cropped || user.avatar);
+		const avatar = typeof (user.avatar_cropped || user.avatar) === 'string' ? (user.avatar_cropped || user.avatar) as string : null;
 		return (
-			<div className="workflow-users-avatar">
-				{avatarUrl ? (
-					<Image src={avatarUrl} alt={fullNameFor(user)} fill sizes="42px" unoptimized className="object-cover" />
-				) : (
-					<span>{initialsFor(user)}</span>
-				)}
-			</div>
+			<WorkflowAvatar
+				user={{ first_name: user.first_name, last_name: user.last_name, email: user.email, avatar }}
+				size={WORKFLOW_AVATAR_SIZES.team}
+				avatarClassName="workflow-users-avatar"
+				label={fullNameFor(user)}
+			/>
 		);
 	};
 

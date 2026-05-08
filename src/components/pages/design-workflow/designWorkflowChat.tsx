@@ -28,6 +28,7 @@ import { DASHBOARD_PROJECT_VIEW, DASHBOARD_TASK_VIEW } from '@/utils/routes';
 import type { ChatMessage, ChatThread, ProjectSummary, TaskCard, WorkflowUser } from '@/types/designWorkflowTypes';
 import type { UserClass } from '@/models/classes';
 import { WorkflowPageHero, WorkflowPanelPill } from '@/components/shared/workflow/workflowPrimitives';
+import { WorkflowAvatar } from '@/components/shared/workflow/workflowAvatar';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL ?? '';
 const WS_URL = API_URL.replace(/^http/, 'ws');
@@ -187,26 +188,6 @@ const formatDayLabel = (value: string, todayLabel: string, yesterdayLabel: strin
 	if (date.toDateString() === today.toDateString()) return todayLabel;
 	if (date.toDateString() === yesterday.toDateString()) return yesterdayLabel;
 	return new Intl.DateTimeFormat(locale, { weekday: 'long', day: 'numeric', month: 'long' }).format(date);
-};
-
-const Avatar = ({ user, size = 32 }: { user: WorkflowUser; size?: number }) => {
-	const avatarUrl = resolveMediaUrl(user.avatar);
-	const initials = `${user.first_name?.[0] ?? ''}${user.last_name?.[0] ?? user.email?.[0] ?? ''}`.trim().toUpperCase() || 'U';
-	if (avatarUrl) {
-		return (
-			<span className="workflow-chat-avatar relative block overflow-hidden rounded-full" style={{ width: size, height: size }}>
-				<Image src={avatarUrl} alt={userLabel(user)} fill sizes={`${size}px`} unoptimized className="object-cover" />
-			</span>
-		);
-	}
-	return (
-		<span
-			className="workflow-chat-avatar grid place-items-center rounded-full bg-(--surface-strong) text-xs font-black leading-none text-(--ink)"
-			style={{ width: size, height: size }}
-		>
-			{initials}
-		</span>
-	);
 };
 
 const VoiceMessagePlayer = ({ src, label, seed, compact = false }: { src: string; label: string; seed: string; compact?: boolean }) => {
@@ -1045,10 +1026,15 @@ const DesignWorkflowChat = () => {
 								].join(' ')}
 							>
 								{peer ? (
-									<span className="workflow-chat-presence-wrap">
-										<Avatar user={peer} size={30} />
-										<span className="workflow-chat-presence-badge" data-online={onlineUserIds.includes(peer.id)} />
-									</span>
+									<WorkflowAvatar
+										user={peer}
+										size={30}
+										online={onlineUserIds.includes(peer.id)}
+										showPresence
+										avatarClassName="workflow-chat-avatar"
+										presenceClassName="workflow-chat-presence-wrap"
+										presenceDotClassName="workflow-chat-presence-badge"
+									/>
 								) : <Users size={16} />}
 								<span>
 									<b>
@@ -1121,10 +1107,15 @@ const DesignWorkflowChat = () => {
 									}}
 									className={['workflow-chat-direct-button', thread?.unread_count ? 'is-unread' : '', selectedThread?.id === thread?.id ? 'is-active' : ''].join(' ')}
 								>
-									<span className="workflow-chat-presence-wrap">
-										<Avatar user={user} size={30} />
-										<span className="workflow-chat-presence-badge" data-online={onlineUserIds.includes(user.id)} />
-									</span>
+									<WorkflowAvatar
+										user={user}
+										size={30}
+										online={onlineUserIds.includes(user.id)}
+										showPresence
+										avatarClassName="workflow-chat-avatar"
+										presenceClassName="workflow-chat-presence-wrap"
+										presenceDotClassName="workflow-chat-presence-badge"
+									/>
 									<span className="workflow-chat-direct-copy">
 										<b>{userLabel(user)}</b>
 										<small className="workflow-chat-thread-preview">
@@ -1367,7 +1358,7 @@ const DesignWorkflowChat = () => {
 												className="workflow-chat-avatar-button"
 												aria-label={userLabel(message.sender)}
 											>
-												<Avatar user={message.sender} size={34} />
+												<WorkflowAvatar user={message.sender} size={34} avatarClassName="workflow-chat-avatar" />
 											</button>
 										) : null}
 										<div className={['workflow-chat-bubble max-w-[82%] rounded-2xl border px-4 py-3 shadow-(--shadow-sm)', mine ? 'workflow-chat-bubble-mine' : '', bubbleTone].join(' ')}>
@@ -1637,12 +1628,13 @@ const DesignWorkflowChat = () => {
 											</p>
 										</div>
 											{mine ? (
-											<Avatar
+											<WorkflowAvatar
 												user={{
 													...message.sender,
 													avatar: typeof profile.avatar === 'string' ? profile.avatar : message.sender.avatar,
 												}}
 												size={34}
+												avatarClassName="workflow-chat-avatar"
 											/>
 											) : null}
 										</div>
@@ -1793,7 +1785,7 @@ const DesignWorkflowChat = () => {
 											onClick={() => insertMention(user)}
 											className={['workflow-chat-mention-option', index === mentionActiveIndex ? 'is-active' : ''].join(' ')}
 										>
-											<Avatar user={user} size={30} />
+											<WorkflowAvatar user={user} size={30} avatarClassName="workflow-chat-avatar" />
 											<span className="truncate">{userLabel(user)}</span>
 										</button>
 									))}
