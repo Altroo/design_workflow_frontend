@@ -326,8 +326,8 @@ const UsersListClient: React.FC<SessionProps> = ({ session }) => {
 												);
 											})}
 											{rows.length === 0 ? (
-												<tr>
-													<td colSpan={8} className="px-4 py-12 text-center text-sm text-(--ink-soft)">
+												<tr className="workflow-users-empty-row">
+													<td colSpan={8} className="workflow-users-empty-cell px-4 py-12 text-center text-sm text-(--ink-soft)">
 														{t.users.noUsersFound}
 													</td>
 												</tr>

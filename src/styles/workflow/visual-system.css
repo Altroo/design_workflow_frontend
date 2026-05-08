@@ -249,9 +249,29 @@
 
 .workflow-overview-chart-body:has(.workflow-empty-state) {
 	display: grid !important;
-	height: auto !important;
-	min-height: 7rem !important;
-	place-items: center !important;
+	height: 100% !important;
+	min-height: 12rem !important;
+	align-items: stretch !important;
+	justify-items: stretch !important;
+	padding: 0 !important;
+}
+
+.workflow-overview-chart-card:has(.workflow-empty-state) {
+	display: grid !important;
+	grid-template-rows: auto minmax(12rem, 1fr) auto !important;
+	align-content: stretch !important;
+}
+
+.workflow-overview-chart-body > .workflow-empty-state {
+	width: 100% !important;
+	height: 100% !important;
+	min-height: 100% !important;
+	align-self: stretch !important;
+	justify-self: stretch !important;
+}
+
+.workflow-overview-chart-keys:empty {
+	display: none !important;
 }
 
 .workflow-overview-metric,
@@ -376,6 +396,8 @@
 .workflow-team-lane,
 .workflow-report-filterbar,
 .workflow-analytics-panel,
+.workflow-report-board,
+.workflow-forecast-board,
 .workflow-notification-preferences,
 .workflow-notifications-board {
 	position: relative !important;
@@ -428,6 +450,56 @@
 .workflow-notifications-board-head {
 	margin: 0 !important;
 	border-bottom: 1px solid var(--workflow-card-border) !important;
+}
+
+.workflow-report-board,
+.workflow-forecast-board {
+	display: grid !important;
+	gap: 1rem !important;
+	align-content: start !important;
+}
+
+.workflow-report-grid,
+.workflow-forecast-layout {
+	gap: 1rem !important;
+	padding: 0 !important;
+}
+
+.workflow-forecast-layout {
+	min-height: 20rem !important;
+	align-items: stretch !important;
+}
+
+.workflow-forecast-list,
+.workflow-report-grid {
+	align-items: stretch !important;
+}
+
+.workflow-forecast-list:has(> .workflow-empty-state),
+.workflow-report-grid:has(> .workflow-empty-state) {
+	display: grid !important;
+	min-height: 17rem !important;
+	align-items: stretch !important;
+}
+
+.workflow-report-grid:has(> .workflow-empty-state) {
+	grid-template-columns: minmax(0, 1fr) !important;
+}
+
+.workflow-forecast-list > .workflow-empty-state,
+.workflow-report-grid > .workflow-empty-state {
+	grid-template-columns: auto auto !important;
+	width: 100% !important;
+	height: 100% !important;
+	min-height: 100% !important;
+	align-self: stretch !important;
+	justify-self: stretch !important;
+	align-content: center !important;
+	justify-content: center !important;
+}
+
+.workflow-forecast-list > .workflow-empty-state {
+	text-align: left !important;
 }
 
 .workflow-overview-panel-pill b,
@@ -555,6 +627,21 @@
 	box-shadow: none !important;
 }
 
+.workflow-users-empty-row,
+.workflow-users-empty-row:hover,
+.workflow-users-empty-cell {
+	border: 0 !important;
+	background: transparent !important;
+	box-shadow: none !important;
+}
+
+.workflow-users-table tbody .workflow-users-empty-row td {
+	border: 0 !important;
+	border-radius: 0 !important;
+	color: #020617 !important;
+	font-weight: 500 !important;
+}
+
 .workflow-chat-content {
 	gap: 0 !important;
 	border: 1px solid var(--workflow-card-border) !important;
@@ -565,6 +652,7 @@
 
 .workflow-chat-sidebar,
 .workflow-chat-room {
+	min-height: 0 !important;
 	border: 0 !important;
 	border-radius: 0 !important;
 	background: #ffffff !important;
@@ -607,6 +695,32 @@
 	border-color: #cbd5e1 !important;
 	background: #f1f5f9 !important;
 	box-shadow: inset 4px 0 0 #475569 !important;
+}
+
+.workflow-chat-stream {
+	display: grid !important;
+	min-height: 0 !important;
+	align-items: stretch !important;
+}
+
+.workflow-chat-stream:has(> .workflow-chat-empty-state) {
+	grid-template-rows: minmax(0, 1fr) !important;
+}
+
+.workflow-chat-stream > .workflow-chat-empty-state {
+	width: 100% !important;
+	max-width: none !important;
+	height: 100% !important;
+	min-height: 100% !important;
+	align-self: stretch !important;
+	justify-self: stretch !important;
+	margin: 0 !important;
+	align-content: center !important;
+}
+
+.workflow-board-filter-toggle {
+	cursor: pointer !important;
+	pointer-events: auto !important;
 }
 
 .workflow-board-onboarding,

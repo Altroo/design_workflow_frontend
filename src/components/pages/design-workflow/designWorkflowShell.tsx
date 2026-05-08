@@ -2810,7 +2810,7 @@ const DesignWorkflowShell = ({ title, variant, projectId, taskId }: Props) => {
 			boardFilters.overdueOnly ||
 			boardFilters.blockedOnly ||
 			boardFilters.archivedOnly;
-		const showBoardTools = hasBoardSetup || hasActiveFilters;
+		const showBoardTools = hasBoardSetup || hasActiveFilters || boardFiltersOpen;
 
 		return (
 			<div className="workflow-kanban-page">
