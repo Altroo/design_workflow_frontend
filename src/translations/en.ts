@@ -525,6 +525,7 @@ export const en: TranslationDictionary = {
       requestReview: 'Request review',
       requestChanges: 'Request changes',
       approve: 'Approve',
+      reopenReview: 'Reopen review',
       addVersion: 'Add version',
       addHandoffChecklist: 'Add handoff checklist',
       addAnnotation: 'Add annotation',

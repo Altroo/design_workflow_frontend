@@ -1730,6 +1730,7 @@ const DesignWorkflowShell = ({ title, variant, projectId, taskId }: Props) => {
 	const dragPointerYRef = useRef<number | null>(null);
 	const taskAddPanelRef = useRef<HTMLDivElement | null>(null);
 	const taskAddActionsRef = useRef<HTMLDivElement | null>(null);
+	const pendingReviewMutationRef = useRef<number | null>(null);
 	const [selectedTaskId, setSelectedTaskId] = useState<number | null>(null);
 	const [taskDetailTab, setTaskDetailTab] = useState<TaskDetailTab>('overview');
 	const [reviewNotes, setReviewNotes] = useState('');
@@ -3649,14 +3650,23 @@ const DesignWorkflowShell = ({ title, variant, projectId, taskId }: Props) => {
 				</section>
 			);
 		};
-		const submitReviewUpdate = async (reviewState: TaskDetail['review_state']) => {
-			await updateTaskReview({
-				id: task.id,
-				review_state: reviewState,
-				notes: reviewNotes.trim() || undefined,
-			}).unwrap();
-			setReviewNotes('');
+		const submitReviewUpdate = async (reviewState: TaskDetail['review_state'], options: { notes?: string; resetNotes?: boolean } = {}) => {
+			if (task.review_state === reviewState || pendingReviewMutationRef.current === task.id) return;
+			pendingReviewMutationRef.current = task.id;
+			try {
+				await updateTaskReview({
+					id: task.id,
+					review_state: reviewState,
+					notes: options.notes ?? (reviewNotes.trim() || undefined),
+				}).unwrap();
+				if (options.resetNotes ?? true) setReviewNotes('');
+			} finally {
+				if (pendingReviewMutationRef.current === task.id) pendingReviewMutationRef.current = null;
+			}
 		};
+		const approved = task.review_state === 'approved';
+		const pendingReviewAction = updateTaskReviewState.isLoading || pendingReviewMutationRef.current === task.id;
+		const nextApprovalReviewState: TaskDetail['review_state'] = approved ? 'needs_review' : 'approved';
 		const submitArtifactVersion = async () => {
 			await createTaskVersion({
 				id: task.id,
@@ -3734,7 +3744,7 @@ const DesignWorkflowShell = ({ title, variant, projectId, taskId }: Props) => {
 											<span>{labelFor(task.review_state)}</span>
 										</span>
 									</Chip>
-									<span>{task.project.name}</span>
+									<span className="workflow-trello-modal-project-chip">{task.project.name}</span>
 								</div>
 								<h2>{task.title}</h2>
 							</div>
@@ -3745,8 +3755,8 @@ const DesignWorkflowShell = ({ title, variant, projectId, taskId }: Props) => {
 						<div className="workflow-trello-modal-actions" ref={taskAddActionsRef}>
 							<button
 								type="button"
-								disabled={updateTaskReviewState.isLoading}
-								onClick={() => void updateTaskReview({ id: task.id, review_state: task.review_state === 'needs_review' ? 'changes_requested' : 'needs_review' })}
+								disabled={pendingReviewAction}
+								onClick={() => void submitReviewUpdate(task.review_state === 'needs_review' ? 'changes_requested' : 'needs_review', { resetNotes: false })}
 								className="workflow-trello-modal-action"
 							>
 								<ShieldCheck size={17} />
@@ -3755,12 +3765,13 @@ const DesignWorkflowShell = ({ title, variant, projectId, taskId }: Props) => {
 							{isManager ? (
 								<button
 									type="button"
-									disabled={updateTaskReviewState.isLoading}
-									onClick={() => void updateTaskReview({ id: task.id, review_state: 'approved' })}
+									disabled={pendingReviewAction}
+									onClick={() => void submitReviewUpdate(nextApprovalReviewState, { resetNotes: false })}
 									className="workflow-trello-modal-action"
+									data-active={approved}
 								>
 									<CheckCircle2 size={17} />
-									<span>{workflow.buttons.approve ?? 'Approve'}</span>
+									<span>{approved ? (workflow.buttons.reopenReview ?? 'Reopen review') : (workflow.buttons.approve ?? 'Approve')}</span>
 								</button>
 							) : null}
 							<Popover.Root>
@@ -4397,7 +4408,7 @@ const DesignWorkflowShell = ({ title, variant, projectId, taskId }: Props) => {
 											<button
 												type="button"
 												className="app-button"
-												disabled={updateTaskReviewState.isLoading}
+												disabled={pendingReviewAction || task.review_state === 'needs_review'}
 												onClick={() => submitReviewUpdate('needs_review')}
 											>
 												<ShieldCheck size={16} />
@@ -4406,7 +4417,7 @@ const DesignWorkflowShell = ({ title, variant, projectId, taskId }: Props) => {
 											<button
 												type="button"
 												className="app-button app-button-secondary"
-												disabled={updateTaskReviewState.isLoading}
+												disabled={pendingReviewAction || task.review_state === 'changes_requested'}
 												onClick={() => submitReviewUpdate('changes_requested')}
 											>
 												<CircleAlert size={16} />
@@ -4416,11 +4427,11 @@ const DesignWorkflowShell = ({ title, variant, projectId, taskId }: Props) => {
 												<button
 													type="button"
 													className="app-button app-button-secondary"
-													disabled={updateTaskReviewState.isLoading}
-													onClick={() => submitReviewUpdate('approved')}
+													disabled={pendingReviewAction}
+													onClick={() => submitReviewUpdate(nextApprovalReviewState)}
 												>
 													<CheckCircle2 size={16} />
-													<span>{workflow.buttons.approve ?? 'Approve'}</span>
+													<span>{approved ? (workflow.buttons.reopenReview ?? 'Reopen review') : (workflow.buttons.approve ?? 'Approve')}</span>
 												</button>
 											) : null}
 										</div>

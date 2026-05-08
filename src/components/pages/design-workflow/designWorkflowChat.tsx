@@ -4,7 +4,7 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { AlarmClock, AlertTriangle, ArrowDown, BriefcaseBusiness, CalendarDays, CheckCheck, CheckSquare2, Edit3, Eye, FileText, Forward, ImageIcon, Images, MessagesSquare, Mic, MoreHorizontal, Paperclip, Pause, Play, Reply, Search, Send, SlidersHorizontal, SmilePlus, Square, ThumbsUp, Trash2, Users, X } from 'lucide-react';
+import { AlarmClock, AlertTriangle, ArrowDown, BriefcaseBusiness, CalendarDays, CheckCheck, CheckSquare2, ChevronDown, Edit3, Eye, FileText, Forward, ImageIcon, Images, MessagesSquare, Mic, MoreHorizontal, Paperclip, Pause, Play, Reply, Search, Send, SlidersHorizontal, SmilePlus, Square, ThumbsUp, Trash2, Users, X } from 'lucide-react';
 import {
 	useAddChatReminderMutation,
 	useCreateChatThreadMutation,
@@ -27,7 +27,7 @@ import { getAccessToken, getProfilState } from '@/store/selectors';
 import { DASHBOARD_PROJECT_VIEW, DASHBOARD_TASK_VIEW } from '@/utils/routes';
 import type { ChatMessage, ChatThread, ProjectSummary, TaskCard, WorkflowUser } from '@/types/designWorkflowTypes';
 import type { UserClass } from '@/models/classes';
-import { WorkflowPageHero, WorkflowPanelPill } from '@/components/shared/workflow/workflowPrimitives';
+import { WorkflowPageHero } from '@/components/shared/workflow/workflowPrimitives';
 import { WorkflowAvatar } from '@/components/shared/workflow/workflowAvatar';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL ?? '';
@@ -133,6 +133,7 @@ const linkedReferencesForBody = (body: string, tasks: TaskCard[], projects: Proj
 };
 
 type ChatDrawerMode = 'references' | 'decisions' | 'media';
+type ChatSidebarSection = 'studio' | 'projects' | 'direct';
 type ChatSearchFilters = {
 	has_files?: boolean;
 	has_images?: boolean;
@@ -155,6 +156,12 @@ const threadTitle = (
 	if (thread.kind === 'task') return thread.task?.title ?? (thread.title || taskRoomLabel);
 	const other = thread.participants.find((user) => user.id !== currentUserId);
 	return other ? userLabel(other) : thread.title || privateLabel;
+};
+
+const sectionForThread = (thread?: ChatThread | null): ChatSidebarSection => {
+	if (thread?.kind === 'project') return 'projects';
+	if (thread?.kind === 'private') return 'direct';
+	return 'studio';
 };
 
 const threadPreview = (thread: ChatThread, currentUserId: number, labels: {
@@ -356,6 +363,7 @@ const DesignWorkflowChat = () => {
 	const [referencesOpen, setReferencesOpen] = useState(false);
 	const [drawerMode, setDrawerMode] = useState<ChatDrawerMode>('references');
 	const [chatToolsOpen, setChatToolsOpen] = useState(false);
+	const [openSidebarSection, setOpenSidebarSection] = useState<ChatSidebarSection>('projects');
 	const [searchTerm, setSearchTerm] = useState('');
 	const [searchFilters, setSearchFilters] = useState<ChatSearchFilters>({});
 	const [olderMessages, setOlderMessages] = useState<ChatMessage[]>([]);
@@ -413,6 +421,10 @@ const DesignWorkflowChat = () => {
 			preferredThread,
 		[chatThreads, optimisticSelectedThread, preferredThread, selectedThreadId],
 	);
+	useEffect(() => {
+		if (!selectedThread) return;
+		setOpenSidebarSection(sectionForThread(selectedThread));
+	}, [selectedThread]);
 	const chatInitialLoading = chatDataReady && chatThreads.length === 0 && (threadsLoading || threadsFetching);
 	const threadPreviewLabels = useMemo(() => ({
 		deleted: t.workflow.labels.messageDeleted ?? 'Message deleted',
@@ -441,9 +453,13 @@ const DesignWorkflowChat = () => {
 			});
 		return byProjectId;
 	}, [chatThreads]);
-	const { data: currentMessages = [], refetch: refetchMessages } = useGetChatMessagesQuery(
+	const { data: cachedMessages = [], currentData: currentThreadMessages, isLoading: messagesLoading, isFetching: messagesFetching, refetch: refetchMessages } = useGetChatMessagesQuery(
 		{ threadId: selectedThread?.id ?? 0, limit: PAGE_SIZE, q: searchTerm || undefined, ...searchFilters },
 		{ skip: !chatDataReady || !selectedThread?.id },
+	);
+	const currentMessages = useMemo(
+		() => currentThreadMessages ?? ((messagesLoading || messagesFetching) ? [] : cachedMessages),
+		[cachedMessages, currentThreadMessages, messagesFetching, messagesLoading],
 	);
 	const [loadOlderMessages] = useLazyGetChatMessagesQuery();
 	const [createThread] = useCreateChatThreadMutation();
@@ -530,6 +546,7 @@ const DesignWorkflowChat = () => {
 		setOlderMessages([]);
 		setHasOlder(false);
 		setTypingUsers({});
+		setReactionPickerMessageId(null);
 		markedReadIdsRef.current.clear();
 	}, [selectedThread?.id, searchTerm, searchFilters]);
 
@@ -617,6 +634,7 @@ const DesignWorkflowChat = () => {
 		() => dedupeMessages([...olderMessages, ...currentMessages]),
 		[olderMessages, currentMessages],
 	);
+	const messagesBusy = Boolean(selectedThread?.id && (messagesLoading || messagesFetching) && messageList.length === 0);
 	const threadPreviewFor = useCallback((thread: ChatThread) => {
 		const latestSelectedMessage = selectedThread?.id === thread.id ? (messageList[messageList.length - 1] ?? null) : null;
 		return threadPreview(
@@ -878,6 +896,31 @@ const DesignWorkflowChat = () => {
 		return () => window.clearTimeout(timeout);
 	}, [messageList, requestedMessageId, requestedMessageKey, requestedThreadId, scrollToMessage, selectedThread?.id]);
 
+	useEffect(() => {
+		if (reactionPickerMessageId === null) return;
+		const closeReactionPicker = (event: PointerEvent) => {
+			const target = event.target;
+			if (target instanceof Element && target.closest('.workflow-chat-reaction-menu')) return;
+			setReactionPickerMessageId(null);
+		};
+		const closeReactionPickerOnFocus = (event: FocusEvent) => {
+			const target = event.target;
+			if (target instanceof Element && target.closest('.workflow-chat-reaction-menu')) return;
+			setReactionPickerMessageId(null);
+		};
+		const closeReactionPickerOnEscape = (event: KeyboardEvent) => {
+			if (event.key === 'Escape') setReactionPickerMessageId(null);
+		};
+		document.addEventListener('pointerdown', closeReactionPicker, true);
+		document.addEventListener('focusin', closeReactionPickerOnFocus, true);
+		document.addEventListener('keydown', closeReactionPickerOnEscape, true);
+		return () => {
+			document.removeEventListener('pointerdown', closeReactionPicker, true);
+			document.removeEventListener('focusin', closeReactionPickerOnFocus, true);
+			document.removeEventListener('keydown', closeReactionPickerOnEscape, true);
+		};
+	}, [reactionPickerMessageId]);
+
 	const openReminder = (message: ChatMessage) => {
 		const refs = linkedReferencesForBody(message.body, tasks, projects);
 		const task = refs.tasks[0];
@@ -1019,8 +1062,22 @@ const DesignWorkflowChat = () => {
 						</span>
 					}
 				/>
-				<div className="workflow-chat-thread-section">
-					<WorkflowPanelPill baseClassName="workflow-chat-panel-pill" label={t.workflow.labels.chatTitle ?? 'Studio chat'} value={publicThreads.length} labelElement="span" />
+				<div className="workflow-chat-thread-section" data-open={openSidebarSection === 'studio'}>
+					<button
+						type="button"
+						className="workflow-chat-panel-toggle"
+						data-open={openSidebarSection === 'studio'}
+						aria-expanded={openSidebarSection === 'studio'}
+						aria-controls="workflow-chat-studio-list"
+						onClick={() => setOpenSidebarSection('studio')}
+					>
+						<span className="workflow-chat-panel-pill">
+							<span>{t.workflow.labels.chatTitle ?? 'Studio chat'}</span>
+							<em>{publicThreads.length}</em>
+						</span>
+						<ChevronDown size={16} />
+					</button>
+					<div id="workflow-chat-studio-list" className="workflow-chat-section-body" data-open={openSidebarSection === 'studio'}>
 					{publicThreads.map((thread) => {
 						const peer = thread.participants.find((user) => user.id !== profile.id) ?? thread.participants[0];
 						const preview = threadPreviewFor(thread);
@@ -1028,7 +1085,10 @@ const DesignWorkflowChat = () => {
 							<button
 								key={thread.id}
 								type="button"
-								onClick={() => setSelectedThreadId(thread.id)}
+								onClick={() => {
+									setOpenSidebarSection('studio');
+									setSelectedThreadId(thread.id);
+								}}
 								className={[
 									'workflow-chat-thread-button',
 									selectedThread?.id === thread.id ? 'is-active' : '',
@@ -1071,9 +1131,24 @@ const DesignWorkflowChat = () => {
 							</button>
 						);
 					})}
+					</div>
 				</div>
-				<div className="workflow-chat-context-section">
-					<WorkflowPanelPill baseClassName="workflow-chat-panel-pill" className="workflow-chat-panel-pill-amber" label={t.workflow.labels.projects ?? 'Projects'} value={projects.length} labelElement="span" />
+				<div className="workflow-chat-context-section" data-open={openSidebarSection === 'projects'}>
+					<button
+						type="button"
+						className="workflow-chat-panel-toggle"
+						data-open={openSidebarSection === 'projects'}
+						aria-expanded={openSidebarSection === 'projects'}
+						aria-controls="workflow-chat-project-list"
+						onClick={() => setOpenSidebarSection('projects')}
+					>
+						<span className="workflow-chat-panel-pill workflow-chat-panel-pill-amber">
+							<span>{t.workflow.labels.projects ?? 'Projects'}</span>
+							<em>{projects.length}</em>
+						</span>
+						<ChevronDown size={16} />
+					</button>
+					<div id="workflow-chat-project-list" className="workflow-chat-section-body" data-open={openSidebarSection === 'projects'}>
 					<div className="workflow-chat-context-list">
 						{projects.map((project) => {
 							const thread = projectThreadByProjectId.get(project.id);
@@ -1082,7 +1157,10 @@ const DesignWorkflowChat = () => {
 								<button
 									key={project.id}
 									type="button"
-									onClick={() => void startProjectThread(project)}
+									onClick={() => {
+										setOpenSidebarSection('projects');
+										void startProjectThread(project);
+									}}
 									className={['workflow-chat-context-button', thread?.unread_count ? 'is-unread' : '', selectedThread?.id === thread?.id ? 'is-active' : ''].join(' ')}
 								>
 									<span className="workflow-chat-context-icon"><BriefcaseBusiness size={15} /></span>
@@ -1099,9 +1177,24 @@ const DesignWorkflowChat = () => {
 							);
 						})}
 					</div>
+					</div>
 				</div>
-				<div className="workflow-chat-direct-section">
-					<WorkflowPanelPill baseClassName="workflow-chat-panel-pill" className="workflow-chat-panel-pill-green" label={t.workflow.labels.privateConversations ?? 'Private'} value={users.length} labelElement="span" />
+				<div className="workflow-chat-direct-section" data-open={openSidebarSection === 'direct'}>
+					<button
+						type="button"
+						className="workflow-chat-panel-toggle"
+						data-open={openSidebarSection === 'direct'}
+						aria-expanded={openSidebarSection === 'direct'}
+						aria-controls="workflow-chat-direct-list"
+						onClick={() => setOpenSidebarSection('direct')}
+					>
+						<span className="workflow-chat-panel-pill workflow-chat-panel-pill-green">
+							<span>{t.workflow.labels.privateConversations ?? 'Private'}</span>
+							<em>{users.length}</em>
+						</span>
+						<ChevronDown size={16} />
+					</button>
+					<div id="workflow-chat-direct-list" className="workflow-chat-section-body" data-open={openSidebarSection === 'direct'}>
 					<div className="workflow-chat-direct-list">
 						{users.map((user) => {
 							const thread = privateThreadByUserId.get(user.id);
@@ -1111,6 +1204,7 @@ const DesignWorkflowChat = () => {
 									key={user.id}
 									type="button"
 									onClick={async () => {
+										setOpenSidebarSection('direct');
 										const nextThread = thread ?? (await createThread({ kind: 'private', recipient_id: user.id }).unwrap());
 										if (!thread) setOptimisticSelectedThread(nextThread);
 										setSelectedThreadId(nextThread.id);
@@ -1138,6 +1232,7 @@ const DesignWorkflowChat = () => {
 								</button>
 							);
 						})}
+					</div>
 					</div>
 				</div>
 				</aside>
@@ -1310,15 +1405,15 @@ const DesignWorkflowChat = () => {
 						</div>
 					) : null}
 
-					{chatInitialLoading ? (
-						<div className="workflow-chat-empty-state">
-							<span><MessagesSquare size={22} /></span>
+					{chatInitialLoading || messagesBusy ? (
+						<div className="workflow-chat-loading-state" role="status" aria-live="polite">
+							<span aria-hidden="true" />
 							<h3>{t.workflow.labels.loading ?? t.common.loading ?? 'Loading...'}</h3>
 							<p>{t.workflow.labels.loadingConversation ?? t.workflow.labels.selectConversationHint ?? 'Loading conversations.'}</p>
 						</div>
 					) : null}
 
-					{!chatInitialLoading && !selectedThread ? (
+					{!chatInitialLoading && !messagesBusy && !selectedThread ? (
 						<div className="workflow-chat-empty-state">
 							<span><MessagesSquare size={22} /></span>
 							<h3>{t.workflow.labels.selectConversation ?? 'Select a conversation'}</h3>
@@ -1326,7 +1421,7 @@ const DesignWorkflowChat = () => {
 						</div>
 					) : null}
 
-					{!chatInitialLoading && selectedThread && messageList.length === 0 ? (
+					{!chatInitialLoading && !messagesBusy && selectedThread && messageList.length === 0 ? (
 						<div className="workflow-chat-empty-state">
 							<span><MessagesSquare size={22} /></span>
 							<h3>{t.workflow.labels.emptyConversation ?? t.workflow.labels.noMessageYet ?? 'No message yet'}</h3>
@@ -1334,7 +1429,7 @@ const DesignWorkflowChat = () => {
 						</div>
 					) : null}
 
-					{groupedMessages.map((group) => (
+					{messagesBusy ? null : groupedMessages.map((group) => (
 						<div key={group.day} className="space-y-3">
 							<div className="flex justify-center">
 								<span className="workflow-chat-day-chip">
