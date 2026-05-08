@@ -617,6 +617,16 @@ const DesignWorkflowChat = () => {
 		() => dedupeMessages([...olderMessages, ...currentMessages]),
 		[olderMessages, currentMessages],
 	);
+	const threadPreviewFor = useCallback((thread: ChatThread) => {
+		const latestSelectedMessage = selectedThread?.id === thread.id ? (messageList[messageList.length - 1] ?? null) : null;
+		return threadPreview(
+			thread.last_message ? thread : { ...thread, last_message: latestSelectedMessage },
+			profile.id,
+			threadPreviewLabels,
+			tasks,
+			projects,
+		);
+	}, [messageList, profile.id, projects, selectedThread?.id, tasks, threadPreviewLabels]);
 	const messageMentionUsers = useMemo(
 		() => {
 			const byId = new Map<number, WorkflowUser>();
@@ -1013,7 +1023,7 @@ const DesignWorkflowChat = () => {
 					<WorkflowPanelPill baseClassName="workflow-chat-panel-pill" label={t.workflow.labels.chatTitle ?? 'Studio chat'} value={publicThreads.length} labelElement="span" />
 					{publicThreads.map((thread) => {
 						const peer = thread.participants.find((user) => user.id !== profile.id) ?? thread.participants[0];
-						const preview = threadPreview(thread, profile.id, threadPreviewLabels, tasks, projects);
+						const preview = threadPreviewFor(thread);
 						return (
 							<button
 								key={thread.id}
@@ -1067,7 +1077,7 @@ const DesignWorkflowChat = () => {
 					<div className="workflow-chat-context-list">
 						{projects.map((project) => {
 							const thread = projectThreadByProjectId.get(project.id);
-							const preview = thread ? threadPreview(thread, profile.id, threadPreviewLabels, tasks, projects) : null;
+							const preview = thread ? threadPreviewFor(thread) : null;
 							return (
 								<button
 									key={project.id}
@@ -1095,7 +1105,7 @@ const DesignWorkflowChat = () => {
 					<div className="workflow-chat-direct-list">
 						{users.map((user) => {
 							const thread = privateThreadByUserId.get(user.id);
-							const preview = thread ? threadPreview(thread, profile.id, threadPreviewLabels, tasks, projects) : null;
+							const preview = thread ? threadPreviewFor(thread) : null;
 							return (
 								<button
 									key={user.id}
