@@ -232,13 +232,17 @@
 
 @media (max-width: 64rem) and (min-width: 48rem) {
 	.workflow-kanban-page .workflow-board-lanes {
+		display: grid !important;
+		grid-auto-flow: column !important;
+		grid-auto-columns: calc((100% - 1.25rem) / 2) !important;
 		gap: 1.25rem !important;
+		overflow-x: auto !important;
 		scroll-snap-type: x mandatory !important;
 	}
 
 	.workflow-kanban-page .workflow-column {
-		width: calc((100% - 1.25rem) / 2) !important;
-		min-width: calc((100% - 1.25rem) / 2) !important;
+		width: 100% !important;
+		min-width: 100% !important;
 	}
 }
 
@@ -249,7 +253,11 @@
 	}
 
 	.workflow-kanban-page .workflow-board-lanes {
+		display: grid !important;
+		grid-auto-flow: column !important;
+		grid-auto-columns: 100% !important;
 		gap: 1rem !important;
+		overflow-x: auto !important;
 		padding-bottom: 0.5rem !important;
 		scroll-snap-type: x mandatory !important;
 	}
