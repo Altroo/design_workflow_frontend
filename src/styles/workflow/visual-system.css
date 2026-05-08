@@ -561,19 +561,6 @@
 	padding: 1rem !important;
 }
 
-@media (max-width: 60rem) {
-	.workflow-kanban-header > div:first-child,
-	.workflow-kanban-header-metrics,
-	.workflow-kanban-actions {
-		flex-basis: 100% !important;
-	}
-
-	.workflow-kanban-actions,
-	.workflow-kanban-header-metrics {
-		justify-content: flex-start !important;
-	}
-}
-
 @media (max-width: 87.5rem) {
 	.workflow-overview-metrics,
 	.workflow-projects-metrics,
