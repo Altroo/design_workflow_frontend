@@ -70,7 +70,7 @@
 .workflow-kanban-header {
 	display: grid !important;
 	min-height: 8rem !important;
-	grid-template-columns: minmax(22rem, 0.45fr) minmax(0, 1fr) !important;
+	grid-template-columns: minmax(19rem, 0.38fr) minmax(0, 1fr) !important;
 	align-items: center !important;
 	gap: 1.25rem 2rem !important;
 	padding: 1.875rem 2rem !important;
@@ -111,6 +111,7 @@
 
 .workflow-kanban-header > div:first-child {
 	max-width: none !important;
+	grid-row: 1 / span 2 !important;
 }
 
 .workflow-overview-header p,
@@ -174,6 +175,8 @@
 .workflow-kanban-header-metrics,
 .workflow-kanban-actions {
 	width: auto !important;
+	grid-column: 2 !important;
+	justify-content: flex-end !important;
 }
 
 .workflow-overview-actions span,
@@ -322,6 +325,18 @@
 	line-height: 1 !important;
 }
 
+.workflow-report-metric > strong,
+.workflow-users-metric > strong {
+	overflow-wrap: anywhere !important;
+	white-space: normal !important;
+}
+
+.workflow-report-metric-rose > strong,
+.workflow-users-metric > strong {
+	font-size: clamp(1.65rem, 1.8vw, 2.15rem) !important;
+	line-height: 1.05 !important;
+}
+
 .workflow-overview-panel,
 .workflow-overview-chart-card,
 .workflow-projects-create,
@@ -370,6 +385,13 @@
 	padding: 0.65rem 0.9rem !important;
 	color: #020617 !important;
 	box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.82) !important;
+}
+
+.workflow-notification-preferences > div:first-child {
+	display: grid !important;
+	min-height: 4.25rem !important;
+	align-content: center !important;
+	justify-content: start !important;
 }
 
 .workflow-report-chart-head,
@@ -528,9 +550,16 @@
 	padding: 1rem !important;
 }
 
-@media (max-width: 110rem) {
+@media (max-width: 80rem) {
 	.workflow-kanban-header {
 		grid-template-columns: 1fr !important;
+	}
+
+	.workflow-kanban-header > div:first-child,
+	.workflow-kanban-header-metrics,
+	.workflow-kanban-actions {
+		grid-column: 1 !important;
+		grid-row: auto !important;
 	}
 
 	.workflow-kanban-actions,
