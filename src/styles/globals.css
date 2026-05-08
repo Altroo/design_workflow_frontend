@@ -12047,6 +12047,7 @@ body {
 }
 
 .workflow-rail > div:first-child {
+	min-width: 0;
 	min-height: 5.625rem;
 	padding-bottom: 1.5rem !important;
 	border-bottom-color: #eeeeee !important;
@@ -12055,12 +12056,21 @@ body {
 .workflow-rail-logo {
 	width: 3.75rem !important;
 	height: 3.75rem !important;
+	min-width: 3.75rem !important;
+	min-height: 3.75rem !important;
+	flex: 0 0 3.75rem !important;
+	aspect-ratio: 1 / 1;
 	border-radius: 1.875rem !important;
 	background:
 		linear-gradient(180deg, #334155 0%, #111827 100%) !important;
 	box-shadow: none !important;
 	font-size: 1rem !important;
 	font-weight: 700 !important;
+}
+
+.workflow-rail-title {
+	flex: 1 1 auto;
+	min-width: 0;
 }
 
 .workflow-topbar [class*='bg-(--accent)'] {

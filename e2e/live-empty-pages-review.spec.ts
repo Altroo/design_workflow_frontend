@@ -15,6 +15,9 @@ const pagesToReview = [
 	{ name: 'chat', path: '/dashboard/chat', marker: /Chat|Canal public|Public channel/i },
 	{ name: 'reports', path: '/dashboard/reports/time', marker: /Rapports|Reports/i },
 	{ name: 'notifications', path: '/dashboard/notifications', marker: /Notifications/i },
+	{ name: 'users-list', path: '/dashboard/users', marker: /Liste des utilisateurs|Users list/i },
+	{ name: 'users-new', path: '/dashboard/users/new', marker: /Nouvel utilisateur|New user/i },
+	{ name: 'password', path: '/dashboard/settings/password', marker: /Modifier le mot de passe|Change password/i },
 ] as const;
 
 const loginWithUi = async (page: Page) => {
@@ -37,6 +40,16 @@ const loginWithUi = async (page: Page) => {
 	await expect(page).toHaveURL(/\/dashboard\/(overview|my-work|board)/, { timeout: 30_000 });
 };
 
+const expectRailLogoToStayCircular = async (page: Page) => {
+	const logo = page.locator('.workflow-rail-logo').first();
+	await expect(logo).toBeVisible({ timeout: 10_000 });
+	const box = await logo.boundingBox();
+	expect(box).not.toBeNull();
+	if (!box) return;
+	expect(Math.abs(box.width - box.height)).toBeLessThanOrEqual(1);
+	expect(box.width).toBeGreaterThanOrEqual(58);
+};
+
 test.describe('live empty workflow pages', () => {
 	test.skip(!email || !password, 'Set DESIGN_WORKFLOW_E2E_EMAIL and DESIGN_WORKFLOW_E2E_PASSWORD.');
 	test.setTimeout(120_000);
@@ -50,6 +63,7 @@ test.describe('live empty workflow pages', () => {
 			await page.goto(target.path, { waitUntil: 'domcontentloaded' });
 			await expect(page.locator('body')).toContainText(target.marker, { timeout: 30_000 });
 			await page.waitForLoadState('networkidle').catch(() => undefined);
+			await expectRailLogoToStayCircular(page);
 			await page.screenshot({ path: join(screenshotDir, `${target.name}.png`), fullPage: true });
 		}
 	});

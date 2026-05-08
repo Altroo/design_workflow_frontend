@@ -340,10 +340,10 @@ const NavigationBar = ({ title, children, hideTopbar = false }: Props) => {
 		<div className={['workflow-shell', railOpen ? 'workflow-shell-expanded' : ''].join(' ')}>
 			<aside className={['workflow-rail app-card hidden flex-col bg-white p-3 lg:flex', railOpen ? 'workflow-rail-expanded' : 'items-center'].join(' ')}>
 				<div className="flex w-full items-center justify-between gap-3 border-b border-[color:var(--line)] pb-4">
-					<div className="workflow-rail-logo flex h-11 w-11 items-center justify-center rounded-lg bg-(--accent) text-center text-sm font-semibold leading-none text-white shadow-(--shadow-sm)">
+					<div className="workflow-rail-logo flex h-11 w-11 shrink-0 items-center justify-center rounded-lg bg-(--accent) text-center text-sm font-semibold leading-none text-white shadow-(--shadow-sm)">
 						DW
 					</div>
-					<div className="workflow-rail-title min-w-0">
+					<div className="workflow-rail-title min-w-0 flex-1">
 						<p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-(--ink-muted)">{t.navigation.productName}</p>
 						<p className="truncate text-base font-semibold text-(--ink)">{title}</p>
 					</div>
