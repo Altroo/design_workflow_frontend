@@ -567,8 +567,8 @@ textarea.app-input {
 }
 
 .workflow-avatar-presence[data-online='true'] .workflow-avatar-presence-dot {
-	background: #64748b;
-	box-shadow: 0 0 0 3px rgba(100, 116, 139, 0.14);
+	background: #22c55e;
+	box-shadow: 0 0 0 3px rgba(34, 197, 94, 0.18);
 }
 
 .workflow-language-flag {
@@ -6513,7 +6513,8 @@ button:focus-visible {
 }
 
 .workflow-chat-presence-badge[data-online='true'] {
-	background: #64748b;
+	background: #22c55e;
+	box-shadow: 0 0 0 3px rgba(34, 197, 94, 0.18);
 }
 
 .workflow-chat-message-row {
