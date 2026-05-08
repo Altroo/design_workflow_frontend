@@ -837,6 +837,42 @@
 		justify-content: flex-start !important;
 	}
 
+	.workflow-kanban-header {
+		gap: 1rem !important;
+		justify-content: flex-start !important;
+	}
+
+	.workflow-kanban-header > div:first-child,
+	.workflow-kanban-header-metrics,
+	.workflow-kanban-actions {
+		width: 100% !important;
+		flex: 0 0 auto !important;
+	}
+
+	.workflow-kanban-header-metrics {
+		display: grid !important;
+		grid-template-columns: 1fr !important;
+		gap: 0.5rem !important;
+	}
+
+	.workflow-kanban-header-metrics span {
+		width: 100% !important;
+		justify-content: center !important;
+	}
+
+	.workflow-kanban-actions {
+		display: grid !important;
+		grid-template-columns: 1fr !important;
+		gap: 0.625rem !important;
+	}
+
+	.workflow-kanban-actions .workflow-board-segment,
+	.workflow-kanban-actions .workflow-board-filter-toggle,
+	.workflow-kanban-actions .app-pill {
+		width: 100% !important;
+		justify-content: center !important;
+	}
+
 	.workflow-chat-content {
 		border-radius: 1rem !important;
 	}
