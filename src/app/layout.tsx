@@ -9,6 +9,7 @@ import '@/styles/workflow/cards.css';
 import '@/styles/workflow/page-heroes.css';
 import '@/styles/workflow/neutral-chrome.css';
 import '@/styles/workflow/empty-states.css';
+import '@/styles/workflow/visual-system.css';
 import SessionProvider from '@/providers/sessionProvider';
 import StoreProvider from '@/providers/storeProvider';
 import type { AppProps } from 'next/app';
