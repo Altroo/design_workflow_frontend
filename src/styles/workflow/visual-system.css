@@ -561,7 +561,7 @@
 	padding: 1rem !important;
 }
 
-@media (max-width: 80rem) {
+@media (max-width: 60rem) {
 	.workflow-kanban-header > div:first-child,
 	.workflow-kanban-header-metrics,
 	.workflow-kanban-actions {
