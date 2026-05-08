@@ -757,6 +757,15 @@
 	font-weight: 500 !important;
 }
 
+.workflow-users-empty {
+	border: 0 !important;
+	border-radius: 0 !important;
+	background: transparent !important;
+	box-shadow: none !important;
+	color: #020617 !important;
+	font-weight: 700 !important;
+}
+
 .workflow-projects-create .app-button:not(:disabled),
 .workflow-board-onboarding .app-button:not(:disabled),
 .workflow-user-form-submit button:not(:disabled),
@@ -966,6 +975,30 @@
 	}
 
 	.workflow-chat-content {
+		overflow: hidden !important;
 		border-radius: 1rem !important;
+	}
+
+	.workflow-chat-sidebar-head {
+		border-radius: 1rem 1rem 0 0 !important;
+	}
+
+	.workflow-chat-room {
+		min-height: min(36rem, calc(100vh - 7rem)) !important;
+		border-top: 1px solid var(--workflow-card-border) !important;
+	}
+
+	.workflow-chat-stream {
+		min-height: 18rem !important;
+		padding: 1rem !important;
+	}
+
+	.workflow-chat-stream > .workflow-chat-empty-state {
+		min-height: 100% !important;
+	}
+
+	.workflow-chat-composer {
+		gap: 0.625rem !important;
+		padding: 1rem !important;
 	}
 }

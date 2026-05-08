@@ -31,6 +31,10 @@
 	overflow: visible !important;
 }
 
+.workflow-kanban-page .workflow-column[data-status] {
+	scroll-snap-align: start !important;
+}
+
 .workflow-kanban-page .workflow-column[data-status] .workflow-column-header {
 	min-height: 3.5rem !important;
 	margin: 0 0 1rem !important;
@@ -226,6 +230,18 @@
 	box-shadow: none !important;
 }
 
+@media (max-width: 64rem) and (min-width: 48rem) {
+	.workflow-kanban-page .workflow-board-lanes {
+		gap: 1.25rem !important;
+		scroll-snap-type: x mandatory !important;
+	}
+
+	.workflow-kanban-page .workflow-column {
+		width: calc((100% - 1.25rem) / 2) !important;
+		min-width: calc((100% - 1.25rem) / 2) !important;
+	}
+}
+
 @media (max-width: 47.9375rem) {
 	.workflow-kanban-page .workflow-board-surface {
 		padding: 1rem !important;
@@ -235,11 +251,12 @@
 	.workflow-kanban-page .workflow-board-lanes {
 		gap: 1rem !important;
 		padding-bottom: 0.5rem !important;
+		scroll-snap-type: x mandatory !important;
 	}
 
 	.workflow-kanban-page .workflow-column {
-		width: min(19rem, calc(100vw - 3rem)) !important;
-		min-width: min(19rem, calc(100vw - 3rem)) !important;
+		width: 100% !important;
+		min-width: 100% !important;
 	}
 
 	.workflow-kanban-page .workflow-column[data-status] .workflow-column-header {
