@@ -140,7 +140,7 @@ import type {
 	WorkflowUser,
 	WorkloadRow,
 } from '@/types/designWorkflowTypes';
-import { DASHBOARD_BOARD, DASHBOARD_CHAT, DASHBOARD_PROJECT_VIEW, DASHBOARD_TASK_VIEW } from '@/utils/routes';
+import { DASHBOARD_BOARD, DASHBOARD_CHAT, DASHBOARD_PROJECTS, DASHBOARD_PROJECT_VIEW, DASHBOARD_TASK_VIEW } from '@/utils/routes';
 import { useAppSelector, useLanguage } from '@/utils/hooks';
 import { getAccessToken, getProfilState, getWSOnlineUserIdsState } from '@/store/selectors';
 import type { UserClass } from '@/models/classes';
@@ -1141,10 +1141,14 @@ const ToggleField = ({
 	</label>
 );
 
-const EmptyState = ({ title, description }: { title: string; description: string }) => (
-	<div className="workflow-empty-state rounded-2xl border border-dashed border-[color:var(--line-strong)] bg-white px-5 py-6 text-center">
-		<p className="text-base font-semibold text-(--ink)">{title}</p>
-		<p className="mt-2 text-sm leading-6 text-(--ink-soft)">{description}</p>
+const EmptyState = ({ title, description, icon, action }: { title: string; description: string; icon?: ReactNode; action?: ReactNode }) => (
+	<div className="workflow-empty-state rounded-2xl border border-[color:var(--line)] bg-white px-5 py-6 text-center">
+		<span className="workflow-empty-state-icon" aria-hidden="true">{icon ?? <FileText size={18} />}</span>
+		<div className="workflow-empty-state-copy">
+			<p className="text-base font-semibold text-(--ink)">{title}</p>
+			<p className="mt-2 text-sm leading-6 text-(--ink-soft)">{description}</p>
+		</div>
+		{action ? <div className="workflow-empty-state-action">{action}</div> : null}
 	</div>
 );
 
@@ -2794,6 +2798,19 @@ const DesignWorkflowShell = ({ title, variant, projectId, taskId }: Props) => {
 		const overdueBoardCount = filteredBoardTasks.filter((item) => item.is_overdue).length;
 		const blockedBoardCount = filteredBoardTasks.filter((item) => item.status === 'blocked').length;
 		const boardEffort = filteredBoardTasks.reduce((total, item) => total + (item.estimated_minutes || 0), 0);
+		const hasBoardSetup = projects.length > 0 || boardDraft.length > 0 || savedViews.length > 0;
+		const hasActiveFilters =
+			Boolean(boardFilters.search.trim()) ||
+			Boolean(boardFilters.project) ||
+			Boolean(boardFilters.status) ||
+			Boolean(boardFilters.priority) ||
+			Boolean(boardFilters.assignee) ||
+			Boolean(boardFilters.reviewState) ||
+			boardFilters.sort !== 'sort_order' ||
+			boardFilters.overdueOnly ||
+			boardFilters.blockedOnly ||
+			boardFilters.archivedOnly;
+		const showBoardTools = hasBoardSetup || hasActiveFilters;
 
 		return (
 			<div className="workflow-kanban-page">
@@ -2871,6 +2888,25 @@ const DesignWorkflowShell = ({ title, variant, projectId, taskId }: Props) => {
 					}
 				/>
 
+				{!hasBoardSetup ? (
+					<section className="workflow-board-onboarding">
+						<EmptyState
+							title={workflow.emptyStates.noProjects.title}
+							description={workflow.emptyStates.noProjects.description}
+							icon={<FolderKanban size={18} />}
+							action={
+								isManager ? (
+									<Link href={DASHBOARD_PROJECTS} className="app-button">
+										<Plus size={15} />
+										<span>{workflow.buttons.createProject ?? workflow.sections.createProject.title}</span>
+									</Link>
+								) : null
+							}
+						/>
+					</section>
+				) : null}
+
+				{showBoardTools ? (
 				<section className="workflow-kanban-toolbar" data-open={boardFiltersOpen}>
 					<div className="workflow-kanban-filter-grid">
 						<label className="workflow-kanban-search">
@@ -2999,6 +3035,7 @@ const DesignWorkflowShell = ({ title, variant, projectId, taskId }: Props) => {
 					</div>
 					{renderWorkspaceSearchResults()}
 				</section>
+				) : null}
 				{emptyDefaultSavedViewName ? (
 					<div className="workflow-board-view-notice" role="status">
 						<Bookmark size={16} />
@@ -5329,6 +5366,7 @@ const DesignWorkflowShell = ({ title, variant, projectId, taskId }: Props) => {
 			.filter((row) => row.overdue_tasks === 0)
 			.sort((left, right) => left.open_tasks - right.open_tasks)
 			.slice(0, 4);
+		const hasTeamWorkloadSignal = workload.some((row) => row.open_tasks > 0 || row.overdue_tasks > 0 || row.estimated_minutes > 0 || row.actual_minutes > 0);
 
 		return (
 			<div className="workflow-team-page">
@@ -5357,17 +5395,23 @@ const DesignWorkflowShell = ({ title, variant, projectId, taskId }: Props) => {
 					{workload.length ? (
 						<section className="workflow-team-analytics">
 							<WorkflowPanelPill baseClassName="workflow-team-panel-pill" label={workflow.labels.teamLoadMap} value={`${formatMinutes(totalActualMinutes)} ${workflow.labels.loggedSuffix}`} labelElement="span" />
-							<div className="workflow-team-chart-body" style={{ height: teamChartHeight }}>
-								<Bar data={teamBarData} options={teamBarOptions} />
-							</div>
-							<div className="workflow-team-chart-keys">
-								{chartRows.map((row, index) => (
-									<span key={row.user.id}>
-										<b>#{index + 1}</b>
-										{`${row.user.first_name} ${row.user.last_name}`.trim() || row.user.email}
-									</span>
-								))}
-							</div>
+							{hasTeamWorkloadSignal ? (
+								<>
+									<div className="workflow-team-chart-body" style={{ height: teamChartHeight }}>
+										<Bar data={teamBarData} options={teamBarOptions} />
+									</div>
+									<div className="workflow-team-chart-keys">
+										{chartRows.map((row, index) => (
+											<span key={row.user.id}>
+												<b>#{index + 1}</b>
+												{`${row.user.first_name} ${row.user.last_name}`.trim() || row.user.email}
+											</span>
+										))}
+									</div>
+								</>
+							) : (
+								<EmptyState {...workflow.emptyStates.noWorkloadData} icon={<Users size={18} />} />
+							)}
 						</section>
 					) : null}
 					<div className="workflow-team-board">
