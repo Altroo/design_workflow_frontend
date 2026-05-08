@@ -247,10 +247,16 @@
 	padding: 0 !important;
 }
 
+.workflow-overview-chart-card {
+	display: grid !important;
+	gap: 1rem !important;
+	align-content: start !important;
+}
+
 .workflow-overview-chart-body:has(.workflow-empty-state) {
 	display: grid !important;
-	height: 100% !important;
-	min-height: 12rem !important;
+	height: auto !important;
+	min-height: 13rem !important;
 	align-items: stretch !important;
 	justify-items: stretch !important;
 	padding: 0 !important;
@@ -258,16 +264,17 @@
 
 .workflow-overview-chart-card:has(.workflow-empty-state) {
 	display: grid !important;
-	grid-template-rows: auto minmax(12rem, 1fr) auto !important;
-	align-content: stretch !important;
+	grid-template-rows: auto minmax(13rem, auto) auto !important;
+	align-content: start !important;
 }
 
 .workflow-overview-chart-body > .workflow-empty-state {
 	width: 100% !important;
-	height: 100% !important;
-	min-height: 100% !important;
+	height: auto !important;
+	min-height: 13rem !important;
 	align-self: stretch !important;
 	justify-self: stretch !important;
+	align-content: center !important;
 }
 
 .workflow-overview-chart-keys:empty {
@@ -414,6 +421,41 @@
 	grid-template-columns: minmax(0, 1fr) minmax(0, auto) !important;
 	align-items: end !important;
 	gap: 1rem !important;
+}
+
+.workflow-team-grid,
+.workflow-team-side {
+	align-items: stretch !important;
+}
+
+.workflow-team-side {
+	display: grid !important;
+}
+
+.workflow-team-spotlight,
+.workflow-team-lane {
+	display: grid !important;
+	min-height: 13.5rem !important;
+	height: 100% !important;
+	align-content: start !important;
+}
+
+.workflow-team-spotlight:has(.workflow-empty-state),
+.workflow-team-lane:has(.workflow-team-empty-line) {
+	grid-template-rows: auto minmax(0, 1fr) !important;
+}
+
+.workflow-team-spotlight > .workflow-empty-state,
+.workflow-team-empty-line {
+	align-self: stretch !important;
+	height: 100% !important;
+	min-height: 0 !important;
+	align-content: center !important;
+}
+
+.workflow-team-empty-line {
+	display: grid !important;
+	place-items: center !important;
 }
 
 .workflow-overview-metric-pill,
