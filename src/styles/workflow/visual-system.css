@@ -72,14 +72,13 @@
 }
 
 .workflow-kanban-header {
-	display: flex !important;
-	height: 10rem !important;
-	min-height: 10rem !important;
+	display: grid !important;
+	min-height: 8rem !important;
+	height: auto !important;
+	grid-template-columns: minmax(0, 1fr) auto !important;
 	align-items: center !important;
-	justify-content: space-between !important;
-	flex-wrap: wrap !important;
-	gap: 0.75rem 2rem !important;
-	padding: 1.5rem 2rem !important;
+	gap: 0.875rem 1.25rem !important;
+	padding: 1.625rem 2rem !important;
 }
 
 .workflow-chat-sidebar-head,
@@ -117,6 +116,8 @@
 
 .workflow-kanban-header > div:first-child {
 	max-width: none !important;
+	grid-column: 1 !important;
+	grid-row: 1 !important;
 	flex: 1 1 22rem !important;
 	align-self: center !important;
 }
@@ -187,11 +188,15 @@
 }
 
 .workflow-kanban-header-metrics {
+	grid-column: 2 !important;
+	grid-row: 1 !important;
 	flex: 0 1 auto !important;
 }
 
 .workflow-kanban-actions {
-	flex: 1 1 100% !important;
+	grid-column: 1 / -1 !important;
+	grid-row: 2 !important;
+	flex: 0 1 auto !important;
 	margin-top: 0 !important;
 }
 
@@ -458,6 +463,28 @@
 
 .workflow-overview-panel-copy {
 	margin: 0 0.25rem !important;
+}
+
+.workflow-overview-task-list:has(> .workflow-empty-state),
+.workflow-overview-people:has(> .workflow-empty-state),
+.workflow-overview-projects:has(> .workflow-empty-state),
+.workflow-team-chart-body:has(> .workflow-empty-state),
+.workflow-notifications-list:has(> .workflow-empty-state) {
+	display: grid !important;
+	min-height: 6.25rem !important;
+	align-items: stretch !important;
+}
+
+.workflow-overview-task-list > .workflow-empty-state,
+.workflow-overview-people > .workflow-empty-state,
+.workflow-overview-projects > .workflow-empty-state,
+.workflow-team-chart-body > .workflow-empty-state,
+.workflow-notifications-list > .workflow-empty-state {
+	width: 100% !important;
+	height: 100% !important;
+	min-height: 100% !important;
+	align-self: stretch !important;
+	align-content: center !important;
 }
 
 .workflow-team-grid,
@@ -728,6 +755,25 @@
 	border-radius: 0 !important;
 	color: #020617 !important;
 	font-weight: 500 !important;
+}
+
+.workflow-projects-create .app-button:not(:disabled),
+.workflow-board-onboarding .app-button:not(:disabled),
+.workflow-user-form-submit button:not(:disabled),
+.workflow-users-hero-actions .app-button:not(:disabled) {
+	min-height: 3rem !important;
+	border-color: var(--workflow-icon-bg) !important;
+	background: var(--workflow-icon-bg) !important;
+	color: var(--workflow-icon-fg) !important;
+	box-shadow: 0 1rem 1.875rem -1.5rem rgba(15, 23, 42, 0.48) !important;
+}
+
+.workflow-projects-create .app-button:disabled,
+.workflow-user-form-submit button:disabled {
+	border-color: #d1d5db !important;
+	background: #f3f4f6 !important;
+	color: #6b7280 !important;
+	box-shadow: none !important;
 }
 
 .workflow-chat-content {
