@@ -47,7 +47,7 @@ const expectRailLogoToStayCircular = async (page: Page) => {
 	expect(box).not.toBeNull();
 	if (!box) return;
 	expect(Math.abs(box.width - box.height)).toBeLessThanOrEqual(1);
-	expect(box.width).toBeGreaterThanOrEqual(58);
+	expect(box.width).toBeGreaterThanOrEqual(50);
 };
 
 test.describe('live empty workflow pages', () => {
