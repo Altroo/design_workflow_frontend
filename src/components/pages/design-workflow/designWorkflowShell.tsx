@@ -1844,7 +1844,7 @@ const DesignWorkflowShell = ({ title, variant, projectId, taskId }: Props) => {
 	});
 	const projectsBusy = !workflowDataReady || projectsLoading;
 	const projectBusy = !workflowDataReady || projectLoading;
-	const tasksBusy = !workflowDataReady || tasksLoading || tasksFetching;
+	const tasksBusy = !workflowDataReady || tasksLoading;
 	const taskBusy = !workflowDataReady || taskLoading;
 	const task = useMemo(() => normalizeTaskDetail(taskData), [taskData]);
 	const { data: workloadData } = useGetWorkloadQuery(undefined, {
@@ -2231,7 +2231,17 @@ const DesignWorkflowShell = ({ title, variant, projectId, taskId }: Props) => {
 		}
 
 		const previousBoard = boardDraft;
+		const scrollBeforeMove = typeof window !== 'undefined'
+			? { x: window.scrollX, y: window.scrollY }
+			: null;
+		const restoreBoardScroll = () => {
+			if (!scrollBeforeMove || typeof window === 'undefined') return;
+			window.requestAnimationFrame(() => {
+				window.scrollTo(scrollBeforeMove.x, scrollBeforeMove.y);
+			});
+		};
 		setBoardDraft(nextState.nextBoard);
+		restoreBoardScroll();
 
 		try {
 			await reorderTasks({
@@ -2242,9 +2252,11 @@ const DesignWorkflowShell = ({ title, variant, projectId, taskId }: Props) => {
 					sort_order: taskItem.sort_order,
 				})),
 			}).unwrap();
+			restoreBoardScroll();
 			return true;
 		} catch {
 			setBoardDraft(previousBoard);
+			restoreBoardScroll();
 			return false;
 		}
 	};
