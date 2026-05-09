@@ -3266,7 +3266,15 @@ const DesignWorkflowShell = ({ title, variant, projectId, taskId }: Props) => {
 			<div className="workflow-project-detail-page">
 				<WorkflowPageHero
 					className="workflow-project-detail-header"
-					eyebrow={workflow.labels.workflow}
+					eyebrow={
+						<span className="workflow-project-detail-eyebrow">
+							<Link href={DASHBOARD_PROJECTS} className="workflow-project-detail-back-link">
+								<ChevronLeft size={15} />
+								<span>{workflow.buttons.backToProjects ?? workflow.pageTitles.projects}</span>
+							</Link>
+							<span>{workflow.labels.workflow}</span>
+						</span>
+					}
 					title={project.name}
 					actionsClassName="workflow-projects-actions"
 					actions={
@@ -3666,7 +3674,7 @@ const DesignWorkflowShell = ({ title, variant, projectId, taskId }: Props) => {
 		};
 		const approved = task.review_state === 'approved';
 		const pendingReviewAction = updateTaskReviewState.isLoading || pendingReviewMutationRef.current === task.id;
-		const nextApprovalReviewState: TaskDetail['review_state'] = approved ? 'needs_review' : 'approved';
+		const reviewLocked = approved || pendingReviewAction;
 		const submitArtifactVersion = async () => {
 			await createTaskVersion({
 				id: task.id,
@@ -3755,7 +3763,7 @@ const DesignWorkflowShell = ({ title, variant, projectId, taskId }: Props) => {
 						<div className="workflow-trello-modal-actions" ref={taskAddActionsRef}>
 							<button
 								type="button"
-								disabled={pendingReviewAction}
+								disabled={reviewLocked}
 								onClick={() => void submitReviewUpdate(task.review_state === 'needs_review' ? 'changes_requested' : 'needs_review', { resetNotes: false })}
 								className="workflow-trello-modal-action"
 							>
@@ -3765,13 +3773,13 @@ const DesignWorkflowShell = ({ title, variant, projectId, taskId }: Props) => {
 							{isManager ? (
 								<button
 									type="button"
-									disabled={pendingReviewAction}
-									onClick={() => void submitReviewUpdate(nextApprovalReviewState, { resetNotes: false })}
+									disabled={reviewLocked}
+									onClick={() => void submitReviewUpdate('approved', { resetNotes: false })}
 									className="workflow-trello-modal-action"
 									data-active={approved}
 								>
 									<CheckCircle2 size={17} />
-									<span>{approved ? (workflow.buttons.reopenReview ?? 'Reopen review') : (workflow.buttons.approve ?? 'Approve')}</span>
+									<span>{approved ? (workflow.labels.approved ?? 'Approved') : (workflow.buttons.approve ?? 'Approve')}</span>
 								</button>
 							) : null}
 							<Popover.Root>
@@ -4408,7 +4416,7 @@ const DesignWorkflowShell = ({ title, variant, projectId, taskId }: Props) => {
 											<button
 												type="button"
 												className="app-button"
-												disabled={pendingReviewAction || task.review_state === 'needs_review'}
+												disabled={reviewLocked || task.review_state === 'needs_review'}
 												onClick={() => submitReviewUpdate('needs_review')}
 											>
 												<ShieldCheck size={16} />
@@ -4417,7 +4425,7 @@ const DesignWorkflowShell = ({ title, variant, projectId, taskId }: Props) => {
 											<button
 												type="button"
 												className="app-button app-button-secondary"
-												disabled={pendingReviewAction || task.review_state === 'changes_requested'}
+												disabled={reviewLocked || task.review_state === 'changes_requested'}
 												onClick={() => submitReviewUpdate('changes_requested')}
 											>
 												<CircleAlert size={16} />
@@ -4427,11 +4435,11 @@ const DesignWorkflowShell = ({ title, variant, projectId, taskId }: Props) => {
 												<button
 													type="button"
 													className="app-button app-button-secondary"
-													disabled={pendingReviewAction}
-													onClick={() => submitReviewUpdate(nextApprovalReviewState)}
+													disabled={reviewLocked}
+													onClick={() => submitReviewUpdate('approved')}
 												>
 													<CheckCircle2 size={16} />
-													<span>{approved ? (workflow.buttons.reopenReview ?? 'Reopen review') : (workflow.buttons.approve ?? 'Approve')}</span>
+													<span>{approved ? (workflow.labels.approved ?? 'Approved') : (workflow.buttons.approve ?? 'Approve')}</span>
 												</button>
 											) : null}
 										</div>
@@ -5284,7 +5292,7 @@ const DesignWorkflowShell = ({ title, variant, projectId, taskId }: Props) => {
 		const chartRows = [...workload]
 			.sort((left, right) => right.estimated_minutes - left.estimated_minutes || right.open_tasks - left.open_tasks)
 			.slice(0, 8);
-		const teamChartHeight = Math.min(300, Math.max(200, chartRows.length * 38 + 86));
+		const teamChartHeight = Math.min(380, Math.max(240, chartRows.length * 58 + 110));
 		const teamBarData: ChartData<'bar', number[], string> = {
 			labels: chartRows.map((row) => `${row.user.first_name} ${row.user.last_name}`.trim() || row.user.email),
 			datasets: [
@@ -5294,7 +5302,9 @@ const DesignWorkflowShell = ({ title, variant, projectId, taskId }: Props) => {
 					backgroundColor: '#111827',
 					borderRadius: 10,
 					borderSkipped: false,
-					barThickness: 14,
+					barThickness: 12,
+					barPercentage: 0.66,
+					categoryPercentage: 0.78,
 				},
 				{
 					label: workflow.labels.logged,
@@ -5302,7 +5312,9 @@ const DesignWorkflowShell = ({ title, variant, projectId, taskId }: Props) => {
 					backgroundColor: '#94a3b8',
 					borderRadius: 10,
 					borderSkipped: false,
-					barThickness: 14,
+					barThickness: 12,
+					barPercentage: 0.66,
+					categoryPercentage: 0.78,
 				},
 			],
 		};

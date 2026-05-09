@@ -33,6 +33,9 @@ import { WorkflowAvatar } from '@/components/shared/workflow/workflowAvatar';
 const API_URL = process.env.NEXT_PUBLIC_API_URL ?? '';
 const WS_URL = API_URL.replace(/^http/, 'ws');
 const PAGE_SIZE = 40;
+const EMPTY_CHAT_MESSAGES: ChatMessage[] = [];
+const MESSAGE_SPINNER_SHOW_DELAY_MS = 120;
+const MESSAGE_SPINNER_HIDE_DELAY_MS = 220;
 const REACTION_OPTIONS = [
 	{ emoji: '\u2705', label: 'Done', Icon: CheckCheck },
 	{ emoji: '\ud83d\udc40', label: 'Seen', Icon: Eye },
@@ -379,7 +382,9 @@ const DesignWorkflowChat = () => {
 	const [reminderMessage, setReminderMessage] = useState<ChatMessage | null>(null);
 	const [reminderDraft, setReminderDraft] = useState({ taskId: '', remindAt: '', note: '' });
 	const [typingUsers, setTypingUsers] = useState<Record<number, WorkflowUser>>({});
+	const [recordingUsers, setRecordingUsers] = useState<Record<number, WorkflowUser>>({});
 	const [onlineUserIds, setOnlineUserIds] = useState<number[]>([]);
+	const [messagesBusyVisible, setMessagesBusyVisible] = useState(false);
 	const [recording, setRecording] = useState(false);
 	const [recordingSeconds, setRecordingSeconds] = useState(0);
 	const [taskModalOpen, setTaskModalOpen] = useState(false);
@@ -394,6 +399,8 @@ const DesignWorkflowChat = () => {
 	const markedReadIdsRef = useRef<Set<number>>(new Set());
 	const wsRef = useRef<WebSocket | null>(null);
 	const typingTimeoutRef = useRef<number | null>(null);
+	const recordingPresenceTimeoutsRef = useRef<Record<number, number>>({});
+	const messagesBusyTimeoutRef = useRef<number | null>(null);
 	const mediaRecorderRef = useRef<MediaRecorder | null>(null);
 	const recordedChunksRef = useRef<BlobPart[]>([]);
 	const discardRecordingRef = useRef(false);
@@ -453,13 +460,13 @@ const DesignWorkflowChat = () => {
 			});
 		return byProjectId;
 	}, [chatThreads]);
-	const { data: cachedMessages = [], currentData: currentThreadMessages, isLoading: messagesLoading, isFetching: messagesFetching, refetch: refetchMessages } = useGetChatMessagesQuery(
+	const { currentData: currentThreadMessages, isLoading: messagesLoading, isFetching: messagesFetching, refetch: refetchMessages } = useGetChatMessagesQuery(
 		{ threadId: selectedThread?.id ?? 0, limit: PAGE_SIZE, q: searchTerm || undefined, ...searchFilters },
 		{ skip: !chatDataReady || !selectedThread?.id },
 	);
 	const currentMessages = useMemo(
-		() => currentThreadMessages ?? ((messagesLoading || messagesFetching) ? [] : cachedMessages),
-		[cachedMessages, currentThreadMessages, messagesFetching, messagesLoading],
+		() => currentThreadMessages ?? EMPTY_CHAT_MESSAGES,
+		[currentThreadMessages],
 	);
 	const [loadOlderMessages] = useLazyGetChatMessagesQuery();
 	const [createThread] = useCreateChatThreadMutation();
@@ -546,6 +553,7 @@ const DesignWorkflowChat = () => {
 		setOlderMessages([]);
 		setHasOlder(false);
 		setTypingUsers({});
+		setRecordingUsers({});
 		setReactionPickerMessageId(null);
 		markedReadIdsRef.current.clear();
 	}, [selectedThread?.id, searchTerm, searchFilters]);
@@ -616,6 +624,33 @@ const DesignWorkflowChat = () => {
 					}
 					return;
 				}
+				if ((signalType === 'chat.recording' || signalType === 'chat_recording') && payload.thread_id === selectedThread?.id && payload.user?.id !== profile.id) {
+					const recordingUser = payload.user as WorkflowUser | undefined;
+					if (!recordingUser?.id) return;
+					if (payload.is_recording) {
+						setRecordingUsers((current) => ({ ...current, [recordingUser.id]: recordingUser }));
+						const existingTimeout = recordingPresenceTimeoutsRef.current[recordingUser.id];
+						if (existingTimeout) window.clearTimeout(existingTimeout);
+						recordingPresenceTimeoutsRef.current[recordingUser.id] = window.setTimeout(() => {
+							setRecordingUsers((current) => {
+								const next = { ...current };
+								delete next[recordingUser.id];
+								return next;
+							});
+							delete recordingPresenceTimeoutsRef.current[recordingUser.id];
+						}, 3600);
+					} else {
+						const existingTimeout = recordingPresenceTimeoutsRef.current[recordingUser.id];
+						if (existingTimeout) window.clearTimeout(existingTimeout);
+						delete recordingPresenceTimeoutsRef.current[recordingUser.id];
+						setRecordingUsers((current) => {
+							const next = { ...current };
+							delete next[recordingUser.id];
+							return next;
+						});
+					}
+					return;
+				}
 				if (['chat.message', 'chat.read', 'chat.deleted', 'chat.updated', 'chat.reaction', 'chat.decision', 'chat.reminder', 'chat_message', 'chat_read', 'chat_deleted', 'chat_updated', 'chat_reaction', 'chat_decision', 'chat_reminder'].includes(signalType)) {
 					refetchThreads();
 					refetchMessages();
@@ -630,11 +665,42 @@ const DesignWorkflowChat = () => {
 		};
 	}, [profile.id, refetchMessages, refetchThreads, selectedThread?.id, token]);
 
+	useEffect(() => () => {
+		Object.values(recordingPresenceTimeoutsRef.current).forEach((timeout) => window.clearTimeout(timeout));
+		if (messagesBusyTimeoutRef.current) window.clearTimeout(messagesBusyTimeoutRef.current);
+	}, []);
+
 	const messageList = useMemo(
 		() => dedupeMessages([...olderMessages, ...currentMessages]),
 		[olderMessages, currentMessages],
 	);
-	const messagesBusy = Boolean(selectedThread?.id && (messagesLoading || messagesFetching) && messageList.length === 0);
+	const immediateMessagesBusy = Boolean(selectedThread?.id && currentThreadMessages === undefined && (messagesLoading || messagesFetching) && messageList.length === 0);
+	useEffect(() => {
+		if (messagesBusyTimeoutRef.current) window.clearTimeout(messagesBusyTimeoutRef.current);
+		if (immediateMessagesBusy) {
+			messagesBusyTimeoutRef.current = window.setTimeout(() => {
+				setMessagesBusyVisible(true);
+				messagesBusyTimeoutRef.current = null;
+			}, MESSAGE_SPINNER_SHOW_DELAY_MS);
+			return () => {
+				if (messagesBusyTimeoutRef.current) {
+					window.clearTimeout(messagesBusyTimeoutRef.current);
+					messagesBusyTimeoutRef.current = null;
+				}
+			};
+		}
+		messagesBusyTimeoutRef.current = window.setTimeout(() => {
+			setMessagesBusyVisible(false);
+			messagesBusyTimeoutRef.current = null;
+		}, MESSAGE_SPINNER_HIDE_DELAY_MS);
+		return () => {
+			if (messagesBusyTimeoutRef.current) {
+				window.clearTimeout(messagesBusyTimeoutRef.current);
+				messagesBusyTimeoutRef.current = null;
+			}
+		};
+	}, [immediateMessagesBusy]);
+	const messagesBusy = messagesBusyVisible && messageList.length === 0;
 	const threadPreviewFor = useCallback((thread: ChatThread) => {
 		const latestSelectedMessage = selectedThread?.id === thread.id ? (messageList[messageList.length - 1] ?? null) : null;
 		return threadPreview(
@@ -688,6 +754,7 @@ const DesignWorkflowChat = () => {
 	const previewTask = previewTarget?.kind === 'task' ? tasks.find((task) => task.id === previewTarget.id) : undefined;
 	const previewProject = previewTarget?.kind === 'project' ? projects.find((project) => project.id === previewTarget.id) : undefined;
 	const typingNames = Object.values(typingUsers).map(userLabel).join(', ');
+	const recordingNames = Object.values(recordingUsers).map(userLabel).join(', ');
 	const activeChatFilterCount = [
 		searchTerm.trim(),
 		searchFilters.sender_id,
@@ -857,6 +924,11 @@ const DesignWorkflowChat = () => {
 		}
 	};
 
+	const emitRecording = (isRecording: boolean) => {
+		if (!selectedThread?.id || !wsRef.current || wsRef.current.readyState !== WebSocket.OPEN) return;
+		wsRef.current.send(JSON.stringify({ type: 'chat.recording', thread_id: selectedThread.id, is_recording: isRecording }));
+	};
+
 	const submitEdit = async () => {
 		if (!editingMessage || !editText.trim()) return;
 		await editChatMessage({ id: editingMessage.id, body: editText.trim() }).unwrap();
@@ -946,6 +1018,7 @@ const DesignWorkflowChat = () => {
 
 	const stopVoiceRecording = (discard = false) => {
 		discardRecordingRef.current = discard;
+		emitRecording(false);
 		mediaRecorderRef.current?.stop();
 		setRecording(false);
 	};
@@ -979,6 +1052,7 @@ const DesignWorkflowChat = () => {
 		};
 		recorder.start();
 		setRecording(true);
+		emitRecording(true);
 	};
 
 	const confirmDeleteMessage = async () => {
@@ -1078,6 +1152,7 @@ const DesignWorkflowChat = () => {
 						<ChevronDown size={16} />
 					</button>
 					<div id="workflow-chat-studio-list" className="workflow-chat-section-body" data-open={openSidebarSection === 'studio'}>
+					<div className="workflow-chat-section-inner">
 					{publicThreads.map((thread) => {
 						const peer = thread.participants.find((user) => user.id !== profile.id) ?? thread.participants[0];
 						const preview = threadPreviewFor(thread);
@@ -1131,6 +1206,7 @@ const DesignWorkflowChat = () => {
 							</button>
 						);
 					})}
+					</div>
 					</div>
 				</div>
 				<div className="workflow-chat-context-section" data-open={openSidebarSection === 'projects'}>
@@ -1755,6 +1831,12 @@ const DesignWorkflowChat = () => {
 						<span>{typingNames} {t.workflow.labels.typing ?? 'is typing'}</span>
 					</div>
 				) : null}
+				{recordingNames ? (
+					<div className="workflow-chat-typing workflow-chat-recording-presence">
+						<Mic size={15} />
+						<span>{recordingNames} {t.workflow.labels.recordingVoice ?? 'is recording a voice note'}</span>
+					</div>
+				) : null}
 				<div className="workflow-chat-composer">
 					{replyTarget ? (
 						<div className="mb-3 flex items-start justify-between gap-3 rounded-lg border border-[color:var(--line)] bg-(--surface-muted) px-3 py-2">
@@ -1862,18 +1944,28 @@ const DesignWorkflowChat = () => {
 											return;
 										}
 									}
-									if (!referenceOptions.length) return;
-									if (event.key === 'ArrowDown') {
-										event.preventDefault();
-										setReferenceActiveIndex((current) => (current + 1) % referenceOptions.length);
+									if (referenceOptions.length) {
+										if (event.key === 'ArrowDown') {
+											event.preventDefault();
+											setReferenceActiveIndex((current) => (current + 1) % referenceOptions.length);
+											return;
+										}
+										if (event.key === 'ArrowUp') {
+											event.preventDefault();
+											setReferenceActiveIndex((current) => (current - 1 + referenceOptions.length) % referenceOptions.length);
+											return;
+										}
+										if (event.key === 'Enter' && referenceMatch) {
+											event.preventDefault();
+											insertReference(referenceOptions[referenceActiveIndex] ?? referenceOptions[0]);
+											return;
+										}
 									}
-									if (event.key === 'ArrowUp') {
+									if (event.key === 'Enter' && !event.shiftKey) {
 										event.preventDefault();
-										setReferenceActiveIndex((current) => (current - 1 + referenceOptions.length) % referenceOptions.length);
-									}
-									if (event.key === 'Enter' && referenceMatch) {
-										event.preventDefault();
-										insertReference(referenceOptions[referenceActiveIndex] ?? referenceOptions[0]);
+										if (selectedThread?.id && !sendMessageState.isLoading && (body.trim() || files.length > 0)) {
+											void submit();
+										}
 									}
 								}}
 								rows={2}
