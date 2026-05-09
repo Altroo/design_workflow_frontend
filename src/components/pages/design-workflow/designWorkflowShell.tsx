@@ -5292,7 +5292,7 @@ const DesignWorkflowShell = ({ title, variant, projectId, taskId }: Props) => {
 		const chartRows = [...workload]
 			.sort((left, right) => right.estimated_minutes - left.estimated_minutes || right.open_tasks - left.open_tasks)
 			.slice(0, 8);
-		const teamChartHeight = Math.min(560, Math.max(300, chartRows.length * 78 + 110));
+		const teamChartHeight = Math.min(480, Math.max(280, chartRows.length * 68 + 110));
 		const teamBarData: ChartData<'bar', number[], string> = {
 			labels: chartRows.map((row) => `${row.user.first_name} ${row.user.last_name}`.trim() || row.user.email),
 			datasets: [
@@ -5304,7 +5304,7 @@ const DesignWorkflowShell = ({ title, variant, projectId, taskId }: Props) => {
 					borderSkipped: false,
 					barThickness: 11,
 					barPercentage: 0.74,
-					categoryPercentage: 0.54,
+					categoryPercentage: 0.64,
 				},
 				{
 					label: workflow.labels.logged,
@@ -5314,7 +5314,7 @@ const DesignWorkflowShell = ({ title, variant, projectId, taskId }: Props) => {
 					borderSkipped: false,
 					barThickness: 11,
 					barPercentage: 0.74,
-					categoryPercentage: 0.54,
+					categoryPercentage: 0.64,
 				},
 			],
 		};
