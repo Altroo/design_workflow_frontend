@@ -5292,7 +5292,7 @@ const DesignWorkflowShell = ({ title, variant, projectId, taskId }: Props) => {
 		const chartRows = [...workload]
 			.sort((left, right) => right.estimated_minutes - left.estimated_minutes || right.open_tasks - left.open_tasks)
 			.slice(0, 8);
-		const teamChartHeight = Math.min(380, Math.max(240, chartRows.length * 58 + 110));
+		const teamChartHeight = Math.min(560, Math.max(300, chartRows.length * 78 + 110));
 		const teamBarData: ChartData<'bar', number[], string> = {
 			labels: chartRows.map((row) => `${row.user.first_name} ${row.user.last_name}`.trim() || row.user.email),
 			datasets: [
@@ -5302,9 +5302,9 @@ const DesignWorkflowShell = ({ title, variant, projectId, taskId }: Props) => {
 					backgroundColor: '#111827',
 					borderRadius: 10,
 					borderSkipped: false,
-					barThickness: 12,
-					barPercentage: 0.66,
-					categoryPercentage: 0.78,
+					barThickness: 11,
+					barPercentage: 0.74,
+					categoryPercentage: 0.54,
 				},
 				{
 					label: workflow.labels.logged,
@@ -5312,9 +5312,9 @@ const DesignWorkflowShell = ({ title, variant, projectId, taskId }: Props) => {
 					backgroundColor: '#94a3b8',
 					borderRadius: 10,
 					borderSkipped: false,
-					barThickness: 12,
-					barPercentage: 0.66,
-					categoryPercentage: 0.78,
+					barThickness: 11,
+					barPercentage: 0.74,
+					categoryPercentage: 0.54,
 				},
 			],
 		};
@@ -5405,7 +5405,7 @@ const DesignWorkflowShell = ({ title, variant, projectId, taskId }: Props) => {
 							<WorkflowPanelPill baseClassName="workflow-team-panel-pill" label={workflow.labels.teamLoadMap} value={`${formatMinutes(totalActualMinutes)} ${workflow.labels.loggedSuffix}`} labelElement="span" />
 							{hasTeamWorkloadSignal ? (
 								<>
-									<div className="workflow-team-chart-body" style={{ height: teamChartHeight }}>
+									<div className="workflow-team-chart-body" style={{ '--workflow-team-chart-height': `${teamChartHeight}px` } as CSSProperties}>
 										<Bar data={teamBarData} options={teamBarOptions} />
 									</div>
 									<div className="workflow-team-chart-keys">
