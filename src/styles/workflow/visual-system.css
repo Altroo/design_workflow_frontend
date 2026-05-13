@@ -1333,6 +1333,16 @@
 	background: #020617 !important;
 }
 
+.workflow-kanban-actions .workflow-board-segment button,
+.workflow-kanban-actions .workflow-board-segment button.is-active {
+	border: 0 !important;
+	box-shadow: none !important;
+}
+
+.workflow-kanban-actions .workflow-board-segment button.is-active {
+	background: #f1f5f9 !important;
+}
+
 @keyframes workflow-chat-fade-in {
 	from {
 		opacity: 0;
