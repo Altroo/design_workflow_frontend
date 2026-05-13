@@ -76,8 +76,8 @@ describe('auth.ts', () => {
 				maxAge: 6 * 24 * 60 * 60,
 			});
 			expect(config.pages).toEqual({
-				signIn: 'login',
-				error: 'login',
+				signIn: '/login',
+				error: '/login',
 			});
 		});
 
