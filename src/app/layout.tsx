@@ -69,11 +69,11 @@ export const generateMetadata = async (): Promise<Metadata> => {
 				{ url: '/assets/ico/favicon-16x16.png', sizes: '16x16', type: 'image/png' },
 				{ url: '/assets/ico/favicon-32x32.png', sizes: '32x32', type: 'image/png' },
 				{ url: '/assets/ico/favicon-96x96.png', sizes: '96x96', type: 'image/png' },
-				{ url: '/assets/ico/android-icon-36x36', sizes: '36x36', type: 'image/png' },
-				{ url: '/assets/ico/android-icon-48x48', sizes: '48x48', type: 'image/png' },
-				{ url: '/assets/ico/android-icon-72x72', sizes: '72x72', type: 'image/png' },
-				{ url: '/assets/ico/android-icon-96x96', sizes: '96x96', type: 'image/png' },
-				{ url: '/assets/ico/android-icon-144x144', sizes: '144x144', type: 'image/png' },
+				{ url: '/assets/ico/android-icon-36x36.png', sizes: '36x36', type: 'image/png' },
+				{ url: '/assets/ico/android-icon-48x48.png', sizes: '48x48', type: 'image/png' },
+				{ url: '/assets/ico/android-icon-72x72.png', sizes: '72x72', type: 'image/png' },
+				{ url: '/assets/ico/android-icon-96x96.png', sizes: '96x96', type: 'image/png' },
+				{ url: '/assets/ico/android-icon-144x144.png', sizes: '144x144', type: 'image/png' },
 				{ url: '/assets/ico/android-icon-192x192.png', sizes: '192x192', type: 'image/png' },
 			],
 			apple: [
@@ -89,7 +89,7 @@ export const generateMetadata = async (): Promise<Metadata> => {
 			],
 		},
 		other: {
-			'msapplication-TileColor': '#ffffff',
+			'msapplication-TileColor': '#111827',
 			'msapplication-TileImage': '/assets/ico/ms-icon-144x144.png',
 			copyright: `Copyright - ${t.metadata.appTitle} © ${new Date().getFullYear()}`,
 			rating: 'general',
@@ -101,7 +101,7 @@ export const generateMetadata = async (): Promise<Metadata> => {
 export const viewport: Viewport = {
 	width: 'device-width',
 	initialScale: 1.0,
-	themeColor: '#ffffff',
+	themeColor: '#111827',
 };
 
 interface EntryPointProps extends AppProps {

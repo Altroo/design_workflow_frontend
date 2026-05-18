@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-labelledby="title">
+	<title id="title">Design Workflow logo</title>
+	<rect width="512" height="512" rx="104" fill="#111827"/>
+	<text x="256" y="306" fill="#ffffff" font-family="Arial, Helvetica, sans-serif" font-size="172" font-weight="800" text-anchor="middle">DW</text>
+	<path d="M92 398h328" stroke="#ffffff" stroke-width="24" stroke-linecap="round" opacity="0.22"/>
+</svg>
