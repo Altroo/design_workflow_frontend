@@ -5306,6 +5306,10 @@ button:focus-visible {
 	font-weight: 900;
 	text-transform: uppercase;
 	letter-spacing: 0.1em;
+	filter: blur(2px) saturate(0.82);
+	opacity: 0.5;
+	pointer-events: none;
+	user-select: none;
 }
 
 .auth-board-grid {
@@ -5314,6 +5318,10 @@ button:focus-visible {
 	gap: 16px;
 	min-height: calc(100vh - 170px);
 	padding: 18px 440px 24px 18px;
+	filter: blur(3px) saturate(0.76);
+	opacity: 0.48;
+	pointer-events: none;
+	user-select: none;
 }
 
 .auth-board-column {
@@ -5459,6 +5467,28 @@ button:focus-visible {
 	right: 46px;
 	z-index: 2;
 	width: min(390px, calc(100% - 32px));
+	isolation: isolate;
+}
+
+.auth-login-dock::before {
+	content: '';
+	position: absolute;
+	inset: -22px;
+	z-index: 0;
+	border: 1px solid rgba(255, 255, 255, 0.74);
+	border-radius: 28px;
+	background: rgba(255, 255, 255, 0.52);
+	box-shadow:
+		0 34px 90px -58px rgba(15, 23, 42, 0.62),
+		0 18px 44px -38px rgba(15, 23, 42, 0.4);
+	backdrop-filter: blur(18px) saturate(1.08);
+	-webkit-backdrop-filter: blur(18px) saturate(1.08);
+	pointer-events: none;
+}
+
+.auth-login-dock > * {
+	position: relative;
+	z-index: 1;
 }
 
 .auth-login-card {
@@ -5581,6 +5611,11 @@ button:focus-visible {
 		width: auto;
 		margin: 0 16px 18px;
 	}
+
+	.auth-login-dock::before {
+		inset: -14px;
+		border-radius: 24px;
+	}
 }
 
 @media (max-width: 640px) {
@@ -5598,6 +5633,11 @@ button:focus-visible {
 
 	.auth-login-card {
 		border-radius: 16px;
+	}
+
+	.auth-login-dock::before {
+		inset: -10px;
+		border-radius: 22px;
 	}
 }
 
