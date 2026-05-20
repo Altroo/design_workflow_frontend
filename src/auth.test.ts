@@ -45,6 +45,11 @@ const getAuthorizeFunction = () => {
 	return config?.providers?.[0]?.authorize;
 };
 
+const getSsoAuthorizeFunction = () => {
+	const config = getNextAuthConfig();
+	return config?.providers?.[1]?.authorize;
+};
+
 // Helper to get callbacks
 const getCallbacks = () => {
 	const config = getNextAuthConfig();
@@ -192,6 +197,49 @@ describe('auth.ts', () => {
 			const result = await authorize(validCredentials);
 
 			expect(result).toBeNull();
+		});
+	});
+
+	describe('sso authorize function', () => {
+		it('hydrates workflow role from profile after SSO exchange', async () => {
+			const profileGet = jest.fn().mockResolvedValue({
+				status: 200,
+				data: {
+					pk: 1,
+					email: 'manager@example.com',
+					first_name: 'Manager',
+					last_name: 'User',
+					role: 'manager',
+					is_staff: true,
+					is_superuser: true,
+				},
+			});
+			mockedAllowAnyInstance.mockReturnValueOnce({ get: profileGet });
+			mockedPostApi.mockResolvedValueOnce({
+				status: 200,
+				data: {
+					user: {
+						pk: 1,
+						email: 'manager@example.com',
+						first_name: 'Manager',
+						last_name: 'User',
+					},
+					access: 'access-token-123',
+					refresh: 'refresh-token-456',
+					access_expiration: '2025-12-31T00:00:00Z',
+					refresh_expiration: '2026-01-15T00:00:00Z',
+				},
+			});
+
+			const authorize = getSsoAuthorizeFunction();
+			const result = await authorize({ code: 'sso-code' });
+
+			expect(profileGet).toHaveBeenCalledWith(expect.any(String), {
+				headers: { Authorization: 'Bearer access-token-123' },
+			});
+			expect(result.user.role).toBe('manager');
+			expect(result.user.is_staff).toBe(true);
+			expect(result.user.is_superuser).toBe(true);
 		});
 	});
 

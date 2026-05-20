@@ -173,24 +173,35 @@ export const { handlers, auth } = NextAuth({
 
 					if (response.status === 200) {
 						const { user, access, refresh, access_expiration, refresh_expiration } = response.data;
-						const isStaff = Boolean(user.is_staff || user.is_superuser);
-						const role = user.role ?? (isStaff ? 'manager' : 'designer');
+						let resolvedUser = user;
+						try {
+							const profileResponse = await instance.get(`${process.env.NEXT_PUBLIC_ACCOUNT_PROFIL}`, {
+								headers: { Authorization: `Bearer ${access}` },
+							});
+							if (profileResponse.status === 200 && profileResponse.data) {
+								resolvedUser = { ...user, ...profileResponse.data, pk: user.pk, email: user.email };
+							}
+						} catch {
+							resolvedUser = user;
+						}
+						const isStaff = Boolean(resolvedUser.is_staff || resolvedUser.is_superuser);
+						const role = resolvedUser.role ?? user.role ?? (isStaff ? 'manager' : 'designer');
 						return {
-							id: String(user.pk),
-							email: user.email,
-							name: `${user.first_name} ${user.last_name}`,
+							id: String(resolvedUser.pk ?? user.pk),
+							email: resolvedUser.email ?? user.email,
+							name: `${resolvedUser.first_name ?? user.first_name} ${resolvedUser.last_name ?? user.last_name}`,
 							image: null,
 							user: {
-								id: String(user.pk),
-								pk: user.pk,
-								email: user.email,
+								id: String(resolvedUser.pk ?? user.pk),
+								pk: resolvedUser.pk ?? user.pk,
+								email: resolvedUser.email ?? user.email,
 								emailVerified: null,
-								name: `${user.first_name} ${user.last_name}`,
-								first_name: user.first_name,
-								last_name: user.last_name,
+								name: `${resolvedUser.first_name ?? user.first_name} ${resolvedUser.last_name ?? user.last_name}`,
+								first_name: resolvedUser.first_name ?? user.first_name,
+								last_name: resolvedUser.last_name ?? user.last_name,
 								role,
 								is_staff: isStaff,
-								is_superuser: Boolean(user.is_superuser),
+								is_superuser: Boolean(resolvedUser.is_superuser),
 								image: null,
 							},
 							access,
