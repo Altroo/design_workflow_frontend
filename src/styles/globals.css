@@ -5623,12 +5623,43 @@ button:focus-visible {
 		padding: 8px !important;
 	}
 
+	.auth-board {
+		min-height: calc(100vh - 1rem);
+		padding-bottom: 0;
+	}
+
 	.auth-board-header {
 		align-items: flex-start;
+		position: relative;
+		z-index: 4;
 	}
 
 	.auth-top-pill-decorator {
 		display: none;
+	}
+
+	.auth-board-tabs {
+		position: absolute;
+		inset: 78px 0 auto;
+		z-index: 0;
+	}
+
+	.auth-board-grid {
+		position: absolute;
+		inset: 132px 0 0;
+		z-index: 0;
+		overflow: hidden;
+	}
+
+	.auth-login-dock {
+		position: absolute;
+		top: 50%;
+		left: 50%;
+		right: auto;
+		z-index: 3;
+		width: min(390px, calc(100% - 32px));
+		margin: 0;
+		transform: translate(-50%, -50%);
 	}
 
 	.auth-login-card {
