@@ -5,7 +5,7 @@ import Image from 'next/image';
 import { Wrench } from 'lucide-react';
 import { useAppSelector, useLanguage } from '@/utils/hooks';
 import { getWSMaintenanceState } from '@/store/selectors';
-import Logo from '../../../../public/assets/images/design-workflow-logo.svg';
+import Logo from '../../../../public/assets/images/design-workflow-logo.png';
 import IlluSVG from '../../../../public/assets/images/auth_illu/handshake.svg';
 
 const Maintenance: React.FC = () => {

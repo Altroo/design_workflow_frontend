@@ -4,7 +4,7 @@ import React from 'react';
 import Image from 'next/image';
 import FlagGB from '../../../../public/assets/images/flags/gb.svg';
 import FlagFR from '../../../../public/assets/images/flags/fr.svg';
-import Logo from '../../../../public/assets/images/design-workflow-logo.svg';
+import Logo from '../../../../public/assets/images/design-workflow-logo.png';
 import DesignBoardSVG from '../../../../public/assets/images/auth_illu/design-board.svg';
 import MaterialsSVG from '../../../../public/assets/images/auth_illu/materials.svg';
 import WorkflowCardSVG from '../../../../public/assets/images/auth_illu/workflow-card.svg';
