@@ -87,10 +87,7 @@ const NavigationBar = ({ title, children, hideTopbar = false }: Props) => {
 	const seenUnreadIdsRef = useRef<number[]>([]);
 	const isSuperuser = Boolean((profile as { is_superuser?: boolean }).is_superuser);
 	const hasWorkflowDataAccess = Boolean(session && (profile.role || profile.is_staff || isSuperuser));
-	const unreadNotificationsQuery = useGetNotificationsQuery(
-		{ unread: true },
-		{ skip: !hasWorkflowDataAccess },
-	);
+	const unreadNotificationsQuery = useGetNotificationsQuery({ unread: true }, { skip: !hasWorkflowDataAccess });
 	const unreadNotifications = unreadNotificationsQuery.data?.length ?? 0;
 	const notificationsPreviewQuery = useGetNotificationsQuery(undefined, {
 		skip: !hasWorkflowDataAccess,
@@ -114,7 +111,9 @@ const NavigationBar = ({ title, children, hideTopbar = false }: Props) => {
 			return {
 				label: t.workflow.labels.notificationProject ?? 'Project',
 				name: notification.project.name,
-				context: notification.project.manager ? `${notification.project.manager.first_name} ${notification.project.manager.last_name}`.trim() : '',
+				context: notification.project.manager
+					? `${notification.project.manager.first_name} ${notification.project.manager.last_name}`.trim()
+					: '',
 				href: DASHBOARD_PROJECT_VIEW(notification.project.id),
 				icon: <FolderKanban size={16} />,
 				tone: 'bg-emerald-50 text-emerald-700 border-emerald-100',
@@ -147,7 +146,11 @@ const NavigationBar = ({ title, children, hideTopbar = false }: Props) => {
 		if (notification.type === 'task_status' && typeof notification.payload.status === 'string') {
 			return `${t.workflow.labels.statusLabel ?? 'Status'}: ${t.workflow.statuses[notification.payload.status] ?? notification.payload.status}`;
 		}
-		if (notification.type === 'task_reassigned' && typeof notification.payload.reason === 'string' && notification.payload.reason.trim()) {
+		if (
+			notification.type === 'task_reassigned' &&
+			typeof notification.payload.reason === 'string' &&
+			notification.payload.reason.trim()
+		) {
 			return notification.payload.reason;
 		}
 		if (notification.type === 'chat_message' && typeof notification.payload.title === 'string') {
@@ -212,8 +215,12 @@ const NavigationBar = ({ title, children, hideTopbar = false }: Props) => {
 		seenUnreadIdsRef.current = unreadIds;
 		if (Notification.permission !== 'granted' || document.visibilityState === 'visible') return;
 		newNotifications.slice(0, 2).forEach((notification) => {
-			const title = t.workflow.activities[notification.type] ?? (t.workflow.labels.notificationFallback ?? 'Workflow notification');
-			const body = notification.task?.title ?? notification.project?.name ?? (typeof notification.payload.title === 'string' ? notification.payload.title : notification.type);
+			const title =
+				t.workflow.activities[notification.type] ?? t.workflow.labels.notificationFallback ?? 'Workflow notification';
+			const body =
+				notification.task?.title ??
+				notification.project?.name ??
+				(typeof notification.payload.title === 'string' ? notification.payload.title : notification.type);
 			new Notification(title, { body });
 		});
 	}, [t.workflow.activities, t.workflow.labels.notificationFallback, unreadNotificationsQuery.data]);
@@ -359,10 +366,17 @@ const NavigationBar = ({ title, children, hideTopbar = false }: Props) => {
 
 	return (
 		<div className={['workflow-shell', railOpen ? 'workflow-shell-expanded' : ''].join(' ')}>
-			<aside className={['workflow-rail app-card hidden flex-col bg-white p-3 lg:flex', railOpen ? 'workflow-rail-expanded' : 'items-center'].join(' ')}>
+			<aside
+				className={[
+					'workflow-rail app-card hidden flex-col bg-white p-3 lg:flex',
+					railOpen ? 'workflow-rail-expanded' : 'items-center',
+				].join(' ')}
+			>
 				<div className="flex w-full items-center justify-between gap-3 border-b border-[color:var(--line)] pb-4">
 					<div className="workflow-rail-title min-w-0 flex-1">
-						<p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-(--ink-muted)">{t.navigation.productName}</p>
+						<p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-(--ink-muted)">
+							{t.navigation.productName}
+						</p>
 						<p className="truncate text-base font-semibold text-(--ink)">{title}</p>
 					</div>
 					<button
@@ -375,8 +389,13 @@ const NavigationBar = ({ title, children, hideTopbar = false }: Props) => {
 					</button>
 				</div>
 
-				<nav aria-label="Workflow navigation" className={['mt-5 flex flex-1 flex-col gap-2', railOpen ? 'w-full items-stretch' : 'items-center'].join(' ')}>
-					<p className="workflow-nav-section px-2 text-[11px] font-bold uppercase tracking-[0.18em] text-(--accent-strong)">{t.navigation.workspace}</p>
+				<nav
+					aria-label="Workflow navigation"
+					className={['mt-5 flex flex-1 flex-col gap-2', railOpen ? 'w-full items-stretch' : 'items-center'].join(' ')}
+				>
+					<p className="workflow-nav-section px-2 text-[11px] font-bold uppercase tracking-[0.18em] text-(--accent-strong)">
+						{t.navigation.workspace}
+					</p>
 					{workflowItems.map(renderNavLink)}
 					<div className="mt-5 w-full border-t border-[color:var(--line)] pt-4">
 						<p className="workflow-nav-section mb-2 px-2 text-[11px] font-semibold uppercase tracking-[0.18em] text-(--ink-muted)">
@@ -387,7 +406,9 @@ const NavigationBar = ({ title, children, hideTopbar = false }: Props) => {
 				</nav>
 
 				<div className="workflow-rail-user mt-5 rounded-lg border border-[color:var(--line)] bg-(--accent-tint) p-3">
-					<p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-(--ink-muted)">{t.navigation.signedIn}</p>
+					<p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-(--ink-muted)">
+						{t.navigation.signedIn}
+					</p>
 					<p className="mt-1 truncate text-sm font-semibold text-(--ink)">
 						{profile.first_name} {profile.last_name}
 					</p>
@@ -396,8 +417,7 @@ const NavigationBar = ({ title, children, hideTopbar = false }: Props) => {
 			</aside>
 
 			<div className="workflow-main">
-				<div className="mx-auto flex w-full max-w-[1520px] flex-col gap-4">
-					{hideTopbar ? null : (
+				{hideTopbar ? null : (
 					<header className="workflow-topbar workflow-commandbar app-card overflow-visible bg-white px-3 py-3 sm:px-4">
 						<div className="flex flex-wrap items-center gap-3">
 							<button
@@ -414,15 +434,27 @@ const NavigationBar = ({ title, children, hideTopbar = false }: Props) => {
 
 							<div className="workflow-topbar-controls ml-auto flex items-center gap-2">
 								<div ref={notificationsRef} className="relative">
-									<button type="button" onClick={() => setNotificationsOpen((current) => !current)} className="workflow-topbar-icon workflow-focus-ring relative flex h-10 w-10 items-center justify-center text-(--ink)">
+									<button
+										type="button"
+										onClick={() => setNotificationsOpen((current) => !current)}
+										className="workflow-topbar-icon workflow-focus-ring relative flex h-10 w-10 items-center justify-center text-(--ink)"
+									>
 										<Bell size={18} />
-										{unreadNotifications ? <span className="absolute right-2 top-2 h-2.5 w-2.5 rounded-full bg-red-600" /> : null}
+										{unreadNotifications ? (
+											<span className="absolute right-2 top-2 h-2.5 w-2.5 rounded-full bg-red-600" />
+										) : null}
 									</button>
 									{notificationsOpen ? (
 										<div className="workflow-topbar-menu workflow-notification-menu absolute right-0 top-[calc(100%+10px)] z-[110] flex w-[360px] max-w-[calc(100vw-24px)] flex-col gap-2 rounded-2xl border border-[color:var(--line)] bg-white p-3 shadow-(--shadow-lg)">
 											<div className="flex items-center justify-between gap-3 px-1">
 												<p className="text-sm font-bold text-(--ink)">{t.navigation.notifications}</p>
-												<Link href={DASHBOARD_NOTIFICATIONS} onClick={() => setNotificationsOpen(false)} className="text-xs font-semibold text-(--accent-strong)">{t.navigation.openInbox ?? 'Open inbox'}</Link>
+												<Link
+													href={DASHBOARD_NOTIFICATIONS}
+													onClick={() => setNotificationsOpen(false)}
+													className="text-xs font-semibold text-(--accent-strong)"
+												>
+													{t.navigation.openInbox ?? 'Open inbox'}
+												</Link>
 											</div>
 											<div className="space-y-2">
 												{notificationsPreview.map((notification) => {
@@ -437,7 +469,9 @@ const NavigationBar = ({ title, children, hideTopbar = false }: Props) => {
 															className="workflow-notification-preview-card group block rounded-xl border px-3 py-3 transition"
 														>
 															<div className="flex items-start gap-3">
-																<span className={`mt-0.5 grid h-9 w-9 shrink-0 place-items-center rounded-[10px] border ${entity.tone}`}>
+																<span
+																	className={`mt-0.5 grid h-9 w-9 shrink-0 place-items-center rounded-[10px] border ${entity.tone}`}
+																>
 																	{entity.icon}
 																</span>
 																<div className="min-w-0 flex-1">
@@ -447,17 +481,25 @@ const NavigationBar = ({ title, children, hideTopbar = false }: Props) => {
 																		</span>
 																		{notification.is_read ? null : <span className="h-2 w-2 rounded-full bg-red-600" />}
 																	</div>
-																	<p className="text-sm font-bold leading-snug text-(--ink)">{labelForNotificationType(notification.type)}</p>
+																	<p className="text-sm font-bold leading-snug text-(--ink)">
+																		{labelForNotificationType(notification.type)}
+																	</p>
 																	<p className="mt-1 truncate text-xs font-semibold text-(--ink-soft)">{entity.name}</p>
 																	{detail || entity.context ? (
-																		<p className="mt-1 truncate text-[11px] text-(--ink-muted)">{detail || entity.context}</p>
+																		<p className="mt-1 truncate text-[11px] text-(--ink-muted)">
+																			{detail || entity.context}
+																		</p>
 																	) : null}
 																</div>
 															</div>
 														</Link>
 													);
 												})}
-												{notificationsPreview.length === 0 ? <p className="px-1 py-4 text-sm text-(--ink-soft)">{t.navigation.noNotificationsYet ?? 'No notifications yet.'}</p> : null}
+												{notificationsPreview.length === 0 ? (
+													<p className="px-1 py-4 text-sm text-(--ink-soft)">
+														{t.navigation.noNotificationsYet ?? 'No notifications yet.'}
+													</p>
+												) : null}
 											</div>
 										</div>
 									) : null}
@@ -526,10 +568,15 @@ const NavigationBar = ({ title, children, hideTopbar = false }: Props) => {
 								</div>
 							</div>
 						</div>
-
 					</header>
-					)}
+				)}
 
+				<div
+					className={[
+						'workflow-content-frame mx-auto flex w-full max-w-[1520px] flex-col gap-4',
+						hideTopbar ? '' : 'workflow-content-frame-with-topbar',
+					].join(' ')}
+				>
 					<main className="min-w-0 pb-6">{children}</main>
 				</div>
 			</div>
@@ -550,7 +597,9 @@ const NavigationBar = ({ title, children, hideTopbar = false }: Props) => {
 					>
 						<div className="workflow-mobile-drawer-head">
 							<div className="min-w-0 flex-1">
-								<p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-(--ink-muted)">{t.navigation.productName}</p>
+								<p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-(--ink-muted)">
+									{t.navigation.productName}
+								</p>
 								<p className="truncate text-base font-semibold text-(--ink)">{title}</p>
 							</div>
 							<button
@@ -564,7 +613,9 @@ const NavigationBar = ({ title, children, hideTopbar = false }: Props) => {
 						</div>
 
 						<nav aria-label="Workflow navigation" className="workflow-mobile-drawer-nav">
-							<p className="workflow-nav-section px-1 text-[11px] font-bold uppercase tracking-[0.18em] text-(--accent-strong)">{t.navigation.workspace}</p>
+							<p className="workflow-nav-section px-1 text-[11px] font-bold uppercase tracking-[0.18em] text-(--accent-strong)">
+								{t.navigation.workspace}
+							</p>
 							<div className="workflow-mobile-drawer-links">{workflowItems.map(renderNavLink)}</div>
 							<div className="workflow-mobile-drawer-section">
 								<p className="workflow-nav-section px-1 text-[11px] font-semibold uppercase tracking-[0.18em] text-(--ink-muted)">

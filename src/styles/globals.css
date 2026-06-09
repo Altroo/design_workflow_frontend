@@ -15404,7 +15404,64 @@ body {
 	position: sticky !important;
 	top: 0 !important;
 	z-index: 120 !important;
+	width: 100% !important;
+	margin-right: 0 !important;
+	margin-left: 0 !important;
 	background: rgba(255, 255, 255, 0.96) !important;
 	backdrop-filter: blur(14px) !important;
 	box-shadow: 0 1.25rem 2.5rem -2.25rem rgba(15, 23, 42, 0.28) !important;
+}
+
+.workflow-main {
+	padding: 0 !important;
+}
+
+.workflow-content-frame {
+	padding-right: 14px !important;
+	padding-bottom: 14px !important;
+	padding-left: 14px !important;
+}
+
+.workflow-content-frame-with-topbar {
+	margin-top: 1rem;
+}
+
+.workflow-topbar > div:first-child {
+	width: 100% !important;
+	padding-right: clamp(1.25rem, 2vw, 2.5rem) !important;
+	padding-left: clamp(1.25rem, 2vw, 2.5rem) !important;
+}
+
+@media (max-width: 87.5rem) {
+	.workflow-content-frame {
+		padding-right: 1.875rem !important;
+		padding-bottom: 1.875rem !important;
+		padding-left: 1.875rem !important;
+	}
+}
+
+@media (max-width: 63.9375rem) {
+	.workflow-shell,
+	.workflow-shell-expanded {
+		padding: 0 !important;
+	}
+
+	.workflow-content-frame {
+		padding-right: 1.25rem !important;
+		padding-bottom: 1.25rem !important;
+		padding-left: 1.25rem !important;
+	}
+}
+
+@media (max-width: 47.9375rem) {
+	.workflow-content-frame {
+		padding-right: 0.9375rem !important;
+		padding-bottom: 0.9375rem !important;
+		padding-left: 0.9375rem !important;
+	}
+
+	.workflow-topbar > div:first-child {
+		padding-right: 0.9375rem !important;
+		padding-left: 0.9375rem !important;
+	}
 }
