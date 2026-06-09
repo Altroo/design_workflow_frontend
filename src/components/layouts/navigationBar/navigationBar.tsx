@@ -419,7 +419,7 @@ const NavigationBar = ({ title, children, hideTopbar = false }: Props) => {
 										{unreadNotifications ? <span className="absolute right-2 top-2 h-2.5 w-2.5 rounded-full bg-red-600" /> : null}
 									</button>
 									{notificationsOpen ? (
-										<div className="workflow-topbar-menu absolute right-0 top-[calc(100%+10px)] z-[110] flex w-[360px] max-w-[calc(100vw-24px)] flex-col gap-2 rounded-2xl border border-[color:var(--line)] bg-white p-3 shadow-(--shadow-lg)">
+										<div className="workflow-topbar-menu workflow-notification-menu absolute right-0 top-[calc(100%+10px)] z-[110] flex w-[360px] max-w-[calc(100vw-24px)] flex-col gap-2 rounded-2xl border border-[color:var(--line)] bg-white p-3 shadow-(--shadow-lg)">
 											<div className="flex items-center justify-between gap-3 px-1">
 												<p className="text-sm font-bold text-(--ink)">{t.navigation.notifications}</p>
 												<Link href={DASHBOARD_NOTIFICATIONS} onClick={() => setNotificationsOpen(false)} className="text-xs font-semibold text-(--accent-strong)">{t.navigation.openInbox ?? 'Open inbox'}</Link>

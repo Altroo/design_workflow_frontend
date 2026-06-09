@@ -12052,6 +12052,26 @@ button.workflow-chat-ref-card {
 	color: #1e40af;
 }
 
+@media (max-width: 47.9375rem) {
+	.workflow-notification-menu {
+		position: fixed !important;
+		left: 0.75rem !important;
+		right: 0.75rem !important;
+		top: 5rem !important;
+		width: auto !important;
+		max-width: none !important;
+		max-height: calc(100dvh - 5.75rem) !important;
+		overflow-y: auto !important;
+		border-radius: 1rem !important;
+		padding: 0.75rem !important;
+	}
+
+	.workflow-notification-menu .workflow-notification-preview-card {
+		border-radius: 0.875rem !important;
+		padding: 0.75rem !important;
+	}
+}
+
 .workflow-topbar-icon {
 	width: 3.25rem !important;
 	min-width: 3.25rem !important;
