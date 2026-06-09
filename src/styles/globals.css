@@ -15399,3 +15399,12 @@ body {
 	background: #dbeafe;
 	color: #1e40af;
 }
+
+.workflow-topbar {
+	position: sticky !important;
+	top: 0 !important;
+	z-index: 120 !important;
+	background: rgba(255, 255, 255, 0.96) !important;
+	backdrop-filter: blur(14px) !important;
+	box-shadow: 0 1.25rem 2.5rem -2.25rem rgba(15, 23, 42, 0.28) !important;
+}
