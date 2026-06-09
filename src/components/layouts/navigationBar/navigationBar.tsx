@@ -23,6 +23,7 @@ import {
 	PanelLeftOpen,
 	Shield,
 	Users,
+	X,
 } from 'lucide-react';
 import {
 	AUTH_LOGIN,
@@ -157,10 +158,29 @@ const NavigationBar = ({ title, children, hideTopbar = false }: Props) => {
 
 	useEffect(() => {
 		const syncViewport = () => setIsMobile(window.innerWidth <= 1023);
+		const handleResize = () => {
+			const nextIsMobile = window.innerWidth <= 1023;
+			setIsMobile(nextIsMobile);
+			if (!nextIsMobile) setMobileMenuOpen(false);
+		};
 		syncViewport();
-		window.addEventListener('resize', syncViewport);
-		return () => window.removeEventListener('resize', syncViewport);
+		window.addEventListener('resize', handleResize);
+		return () => window.removeEventListener('resize', handleResize);
 	}, []);
+
+	useEffect(() => {
+		if (!isMobile || !mobileMenuOpen) return;
+		const originalOverflow = document.body.style.overflow;
+		const handleKeyDown = (event: KeyboardEvent) => {
+			if (event.key === 'Escape') setMobileMenuOpen(false);
+		};
+		document.body.style.overflow = 'hidden';
+		document.addEventListener('keydown', handleKeyDown);
+		return () => {
+			document.body.style.overflow = originalOverflow;
+			document.removeEventListener('keydown', handleKeyDown);
+		};
+	}, [isMobile, mobileMenuOpen]);
 
 	useEffect(() => {
 		if (!notificationsOpen) return;
@@ -292,6 +312,7 @@ const NavigationBar = ({ title, children, hideTopbar = false }: Props) => {
 				key={item.path}
 				href={item.path}
 				title={item.label}
+				aria-current={active ? 'page' : undefined}
 				onClick={() => setMobileMenuOpen(false)}
 				className={[
 					'app-pill workflow-focus-ring workflow-nav-link',
@@ -340,9 +361,6 @@ const NavigationBar = ({ title, children, hideTopbar = false }: Props) => {
 		<div className={['workflow-shell', railOpen ? 'workflow-shell-expanded' : ''].join(' ')}>
 			<aside className={['workflow-rail app-card hidden flex-col bg-white p-3 lg:flex', railOpen ? 'workflow-rail-expanded' : 'items-center'].join(' ')}>
 				<div className="flex w-full items-center justify-between gap-3 border-b border-[color:var(--line)] pb-4">
-					<div className="workflow-rail-logo flex h-11 w-11 shrink-0 items-center justify-center rounded-lg bg-(--accent) text-center text-sm font-semibold leading-none text-white shadow-(--shadow-sm)">
-						DW
-					</div>
 					<div className="workflow-rail-title min-w-0 flex-1">
 						<p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-(--ink-muted)">{t.navigation.productName}</p>
 						<p className="truncate text-base font-semibold text-(--ink)">{title}</p>
@@ -393,18 +411,6 @@ const NavigationBar = ({ title, children, hideTopbar = false }: Props) => {
 							>
 								<Menu size={18} />
 							</button>
-
-							<div className="app-pill flex items-center gap-3 px-3 py-2 lg:hidden">
-								<div className="flex h-10 w-10 items-center justify-center rounded-lg bg-(--accent) text-sm font-semibold text-white">
-									DW
-								</div>
-								<div className="hidden sm:block">
-									<p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-(--ink-muted)">
-										{t.navigation.productName}
-									</p>
-									<p className="text-sm font-semibold text-(--ink)">{title}</p>
-								</div>
-							</div>
 
 							<div className="workflow-topbar-controls ml-auto flex items-center gap-2">
 								<div ref={notificationsRef} className="relative">
@@ -521,23 +527,55 @@ const NavigationBar = ({ title, children, hideTopbar = false }: Props) => {
 							</div>
 						</div>
 
-						{isMobile && mobileMenuOpen ? (
-							<div className="mt-3 flex flex-col gap-2 rounded-lg border border-[color:var(--line)] bg-(--surface-muted) p-3 lg:hidden">
-								{workflowItems.map(renderNavLink)}
-								<div className="rounded-lg border border-dashed border-[color:var(--line)] p-3">
-									<p className="mb-2 text-xs font-semibold uppercase tracking-[0.16em] text-(--ink-muted)">
-										{profile.is_staff || isSuperuser ? t.navigation.users : t.navigation.settings}
-									</p>
-									<div className="flex flex-col gap-2">{utilityItems.map(renderNavLink)}</div>
-								</div>
-							</div>
-						) : null}
 					</header>
 					)}
 
 					<main className="min-w-0 pb-6">{children}</main>
 				</div>
 			</div>
+
+			{isMobile && mobileMenuOpen ? (
+				<div className="workflow-mobile-drawer-layer lg:hidden">
+					<button
+						type="button"
+						className="workflow-mobile-drawer-backdrop"
+						aria-label={t.common.close}
+						onClick={() => setMobileMenuOpen(false)}
+					/>
+					<aside
+						className="workflow-mobile-drawer-panel"
+						role="dialog"
+						aria-modal="true"
+						aria-label={t.accessibility.toggleDrawer}
+					>
+						<div className="workflow-mobile-drawer-head">
+							<div className="min-w-0 flex-1">
+								<p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-(--ink-muted)">{t.navigation.productName}</p>
+								<p className="truncate text-base font-semibold text-(--ink)">{title}</p>
+							</div>
+							<button
+								type="button"
+								className="workflow-mobile-drawer-close workflow-focus-ring"
+								aria-label={t.common.close}
+								onClick={() => setMobileMenuOpen(false)}
+							>
+								<X size={18} />
+							</button>
+						</div>
+
+						<nav aria-label="Workflow navigation" className="workflow-mobile-drawer-nav">
+							<p className="workflow-nav-section px-1 text-[11px] font-bold uppercase tracking-[0.18em] text-(--accent-strong)">{t.navigation.workspace}</p>
+							<div className="workflow-mobile-drawer-links">{workflowItems.map(renderNavLink)}</div>
+							<div className="workflow-mobile-drawer-section">
+								<p className="workflow-nav-section px-1 text-[11px] font-semibold uppercase tracking-[0.18em] text-(--ink-muted)">
+									{profile.is_staff || isSuperuser ? t.navigation.users : t.navigation.settings}
+								</p>
+								<div className="workflow-mobile-drawer-links">{utilityItems.map(renderNavLink)}</div>
+							</div>
+						</nav>
+					</aside>
+				</div>
+			) : null}
 		</div>
 	);
 };

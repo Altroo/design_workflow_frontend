@@ -12051,6 +12051,137 @@ button.workflow-chat-ref-card {
 	background: #dbeafe;
 	color: #1e40af;
 }
+
+.workflow-topbar-icon {
+	width: 3.25rem !important;
+	min-width: 3.25rem !important;
+	height: 3.25rem !important;
+	min-height: 3.25rem !important;
+	flex: 0 0 3.25rem !important;
+	aspect-ratio: 1 / 1;
+	border-radius: 50% !important;
+	padding: 0 !important;
+}
+
+.workflow-mobile-drawer-layer {
+	position: fixed;
+	inset: 0;
+	z-index: 190;
+	display: block;
+}
+
+.workflow-mobile-drawer-backdrop {
+	position: absolute;
+	inset: 0;
+	border: 0;
+	background: rgba(15, 23, 42, 0.45);
+	cursor: pointer;
+}
+
+.workflow-mobile-drawer-panel {
+	position: absolute;
+	left: 0;
+	top: 0;
+	display: flex;
+	width: min(20rem, calc(100vw - 2rem));
+	height: 100dvh;
+	flex-direction: column;
+	gap: 1rem;
+	overflow: hidden auto;
+	border-right: 1px solid var(--line);
+	background: #ffffff;
+	padding: 1rem;
+	box-shadow: 1.5rem 0 4rem -2rem rgba(15, 23, 42, 0.55);
+}
+
+.workflow-mobile-drawer-head {
+	display: flex;
+	align-items: center;
+	gap: 0.75rem;
+	border-bottom: 1px solid var(--line);
+	padding-bottom: 1rem;
+}
+
+.workflow-mobile-drawer-close {
+	display: inline-flex;
+	width: 2.5rem;
+	height: 2.5rem;
+	flex: 0 0 2.5rem;
+	align-items: center;
+	justify-content: center;
+	border: 1px solid var(--line);
+	border-radius: 999px;
+	background: #ffffff;
+	color: var(--ink);
+	box-shadow: 0 0.75rem 1.5rem -1.35rem rgba(15, 23, 42, 0.22);
+}
+
+.workflow-mobile-drawer-nav,
+.workflow-mobile-drawer-links {
+	display: flex;
+	flex-direction: column;
+	gap: 0.375rem;
+}
+
+.workflow-mobile-drawer-section {
+	display: flex;
+	flex-direction: column;
+	gap: 0.375rem;
+	margin-top: 1rem;
+	border-top: 1px solid var(--line);
+	padding-top: 1rem;
+}
+
+.workflow-mobile-drawer-panel .workflow-nav-link {
+	min-height: 2.875rem !important;
+	width: 100% !important;
+	justify-content: flex-start !important;
+	border-radius: 0.875rem !important;
+	padding: 0.625rem 0.75rem !important;
+}
+
+.workflow-mobile-drawer-panel .workflow-nav-text,
+.workflow-mobile-drawer-panel .workflow-nav-section,
+.workflow-mobile-drawer-panel .workflow-nav-badge {
+	display: block !important;
+}
+
+.workflow-mobile-drawer-panel .workflow-nav-badge {
+	display: inline-flex !important;
+}
+
+@media (max-width: 63.9375rem) {
+	.workflow-topbar {
+		width: 100% !important;
+		min-height: 4.75rem !important;
+		align-items: center !important;
+		justify-content: stretch !important;
+	}
+
+	.workflow-topbar > div:first-child {
+		width: 100% !important;
+		flex-wrap: nowrap !important;
+	}
+
+	.workflow-topbar-controls {
+		margin-left: auto !important;
+	}
+
+	.workflow-commandbar {
+		padding: 0.5rem 0 !important;
+	}
+}
+
+@media (max-width: 47.9375rem) {
+	.workflow-topbar {
+		min-height: 4.25rem !important;
+	}
+
+	.workflow-mobile-drawer-panel {
+		width: min(20rem, calc(100vw - 1.5rem));
+		padding: 0.875rem;
+	}
+}
 /* Workload template parity sweep.
    This layer keeps the template spacing and card rhythm, using neutral chrome tokens
    instead of a separate brand accent. */
