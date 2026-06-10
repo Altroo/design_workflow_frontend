@@ -15411,9 +15411,18 @@ body {
 	border-bottom: 1px solid rgba(15, 23, 42, 0.06) !important;
 	background: rgba(255, 255, 255, 0.96) !important;
 	backdrop-filter: blur(14px) !important;
-	box-shadow:
-		0 0.875rem 1.875rem rgba(15, 23, 42, 0.12),
-		0 0.125rem 0.375rem rgba(15, 23, 42, 0.06) !important;
+	box-shadow: none !important;
+}
+
+.workflow-topbar::after {
+	position: absolute;
+	right: 0;
+	bottom: -1.75rem;
+	left: 0;
+	height: 1.75rem;
+	pointer-events: none;
+	content: "";
+	background: linear-gradient(180deg, rgba(15, 23, 42, 0.12) 0%, rgba(15, 23, 42, 0.055) 42%, rgba(15, 23, 42, 0) 100%);
 }
 
 .workflow-shell {
