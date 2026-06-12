@@ -7,10 +7,10 @@ const DashboardPage = async () => {
 	const session = await auth();
 
 	if (!session) {
-		redirect(AUTH_LOGIN);
+		return redirect(AUTH_LOGIN);
 	}
 
-	redirect(hasWorkflowManagerAccess(session.user) ? DASHBOARD_OVERVIEW : DASHBOARD_MY_WORK);
+	return redirect(hasWorkflowManagerAccess(session.user) ? DASHBOARD_OVERVIEW : DASHBOARD_MY_WORK);
 };
 
 export default DashboardPage;

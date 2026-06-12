@@ -43,7 +43,7 @@ describe('routes', () => {
 		// eslint-disable-next-line @typescript-eslint/no-require-imports
 		const routes = require('./routes');
 
-		expect(routes.SITE_ROOT).toBe('undefined/');
+		expect(routes.SITE_ROOT).toBe('/');
 		expect(routes.AUTH_LOGIN).toContain('/login');
 	});
 });

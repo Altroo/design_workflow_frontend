@@ -18,42 +18,35 @@ describe('NoPermission', () => {
 	});
 
 	test('renders lock icon', () => {
-		render(<NoPermission />);
-		const icon = document.querySelector('[data-testid="LockIcon"]');
+		const { container } = render(<NoPermission />);
+		const icon = container.querySelector('.lucide-lock');
 		expect(icon).toBeInTheDocument();
 	});
 
-	test('renders Paper component with elevation', () => {
+	test('renders card container', () => {
 		const { container } = render(<NoPermission />);
-		const paper = container.querySelector('.MuiPaper-elevation3');
-		expect(paper).toBeInTheDocument();
+		expect(container.querySelector('.app-card')).toBeInTheDocument();
 	});
 
-	test('applies correct styling to container Box', () => {
+	test('applies centered layout classes', () => {
 		const { container } = render(<NoPermission />);
 		const box = container.firstChild as HTMLElement;
-		expect(box).toHaveStyle({
-			display: 'flex',
-			justifyContent: 'center',
-			alignItems: 'center',
-		});
+		expect(box).toHaveClass('flex');
+		expect(box).toHaveClass('items-center');
+		expect(box).toHaveClass('justify-center');
 	});
 
 	test('renders with proper semantic structure', () => {
-		const { container } = render(<NoPermission />);
+		render(<NoPermission />);
 
-		const heading = screen.getByRole('heading', { level: 5 });
+		const heading = screen.getByRole('heading', { level: 2 });
 		expect(heading).toHaveTextContent('Accès Refusé');
-
-		expect(container.querySelector('.MuiBox-root')).toBeInTheDocument();
-		expect(container.querySelector('.MuiPaper-root')).toBeInTheDocument();
-		expect(container.querySelector('.MuiTypography-root')).toBeInTheDocument();
 	});
 
-	test('renders all Typography components', () => {
+	test('renders title and body text elements', () => {
 		const { container } = render(<NoPermission />);
-		const typographyElements = container.querySelectorAll('.MuiTypography-root');
 
-		expect(typographyElements.length).toBeGreaterThanOrEqual(2);
+		expect(container.querySelector('h2')).toBeInTheDocument();
+		expect(container.querySelector('p')).toBeInTheDocument();
 	});
 });

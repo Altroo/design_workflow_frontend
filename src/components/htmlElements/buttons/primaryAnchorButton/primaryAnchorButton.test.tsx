@@ -9,22 +9,24 @@ describe('PrimaryAnchorButton', () => {
 		jest.clearAllMocks();
 	});
 
-	it('renders button with correct text', () => {
+	it('renders link with correct text', () => {
 		render(<PrimaryAnchorButton buttonText="Continue" active={true} nextPage="/next" />);
 
-		expect(screen.getByRole('button', { name: 'Continue' })).toBeInTheDocument();
+		expect(screen.getByRole('link', { name: 'Continue' })).toBeInTheDocument();
 	});
 
-	it('renders as disabled when active is false', () => {
+	it('renders as aria-disabled when active is false', () => {
 		render(<PrimaryAnchorButton buttonText="Continue" active={false} nextPage="/next" />);
 
-		expect(screen.getByRole('button', { name: 'Continue' })).toBeDisabled();
+		const link = screen.getByRole('link', { name: 'Continue' });
+		expect(link).toHaveAttribute('aria-disabled', 'true');
+		expect(link).toHaveClass('pointer-events-none');
 	});
 
 	it('calls onClick when button is clicked and active is true', () => {
 		render(<PrimaryAnchorButton buttonText="Continue" active={true} nextPage="/next" onClick={mockClick} />);
 
-		fireEvent.click(screen.getByRole('button', { name: 'Continue' }));
+		fireEvent.click(screen.getByRole('link', { name: 'Continue' }));
 		expect(mockClick).toHaveBeenCalled();
 	});
 

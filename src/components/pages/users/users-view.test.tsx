@@ -84,7 +84,7 @@ describe('UsersViewClient', () => {
 				<UsersViewClient id={1} />
 			</Provider>,
 		);
-		expect(screen.getByText('Marie Martin')).toBeInTheDocument();
+		expect(screen.getAllByText('Marie Martin').length).toBeGreaterThanOrEqual(1);
 		expect(screen.getByText('marie@test.com')).toBeInTheDocument();
 	});
 

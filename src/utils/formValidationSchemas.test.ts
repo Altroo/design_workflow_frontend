@@ -109,6 +109,7 @@ describe('Zod Schema Validation', () => {
 			last_name: 'User',
 			email: 'al@example.com',
 			gender: 'H',
+			role: 'manager',
 			is_active: true,
 			is_staff: false,
 			can_view: true,
@@ -227,4 +228,3 @@ describe('Zod Schema Validation', () => {
 		});
 	});
 });
-
