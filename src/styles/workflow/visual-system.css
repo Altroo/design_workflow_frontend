@@ -1404,17 +1404,35 @@
 .workflow-chat-ref-toggle.has-tooltip {
 	position: relative !important;
 	overflow: visible !important;
-	z-index: 12 !important;
+	z-index: 80 !important;
 }
 
 .workflow-chat-ref-toggle.has-tooltip i {
 	position: absolute !important;
 	right: 50% !important;
-	bottom: calc(100% + 0.625rem) !important;
-	z-index: 260 !important;
+	top: calc(100% + 0.625rem) !important;
+	bottom: auto !important;
+	z-index: 99999 !important;
 	transform: translateX(50%) translateY(0.25rem) !important;
 	pointer-events: none !important;
 	white-space: nowrap !important;
+}
+
+.workflow-chat-filters,
+.workflow-chat-filter-grid,
+.workflow-chat-filter-row,
+.workflow-chat-filter-actions,
+.workflow-chat-room-header,
+.workflow-chat-room-tools,
+.workflow-chat-room-head,
+.workflow-chat-main,
+.workflow-chat-room {
+	overflow: visible !important;
+}
+
+.workflow-chat-ref-toggle.has-tooltip:hover,
+.workflow-chat-ref-toggle.has-tooltip:focus-visible {
+	z-index: 99999 !important;
 }
 
 .workflow-chat-ref-toggle.has-tooltip:hover i,
@@ -1460,18 +1478,19 @@
 }
 
 .workflow-task-modal .workflow-trello-modal-floating-panel {
-	position: relative !important;
+	position: static !important;
 	inset: auto !important;
 	width: min(42rem, 100%) !important;
 	max-width: 100% !important;
 	margin: 0.75rem 0 1rem 2.25rem !important;
 	transform: none !important;
 	z-index: 8 !important;
+	overflow: visible !important;
 }
 
 .workflow-task-modal .workflow-trello-modal-floating-body {
-	max-height: min(28rem, calc(100vh - 14rem)) !important;
-	overflow: auto !important;
+	max-height: none !important;
+	overflow: visible !important;
 }
 
 .workflow-task-modal .workflow-checklist-template-picker {
@@ -1482,6 +1501,30 @@
 
 .workflow-task-modal .workflow-checklist-template-picker > p {
 	margin: 0 !important;
+}
+
+.workflow-checklist-group-actions {
+	display: inline-flex !important;
+	align-items: center !important;
+	justify-content: flex-end !important;
+	gap: 0.5rem !important;
+	margin-left: auto !important;
+}
+
+.workflow-checklist-delete-button {
+	flex: 0 0 auto !important;
+	width: 2rem !important;
+	height: 2rem !important;
+}
+
+.workflow-trello-modal-section-head .workflow-checklist-delete-button {
+	margin-left: auto !important;
+}
+
+.workflow-task-tools-panel .workflow-trello-action-button[data-active='true'] {
+	border-color: #111827 !important;
+	background: #111827 !important;
+	color: #ffffff !important;
 }
 
 .workflow-task-modal .workflow-checklist-template-picker > div {

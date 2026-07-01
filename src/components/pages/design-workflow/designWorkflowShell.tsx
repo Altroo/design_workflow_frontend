@@ -81,6 +81,7 @@ import {
 	useCreateAttachmentAnnotationMutation,
 	useCreateLabelMutation,
 	useCreateTaskVersionMutation,
+	useDeleteChecklistMutation,
 	useDeleteChecklistItemMutation,
 	useDeleteTaskAttachmentMutation,
 	useDeleteTaskCoverMutation,
@@ -1905,6 +1906,7 @@ const DesignWorkflowShell = ({ title, variant, projectId, taskId }: Props) => {
 	const [reorderTasks, reorderTasksState] = useReorderTasksMutation();
 	const [archiveTask] = useArchiveTaskMutation();
 	const [addChecklist, addChecklistState] = useAddChecklistMutation();
+	const [deleteChecklist] = useDeleteChecklistMutation();
 	const [addChecklistItem, addChecklistItemState] = useAddChecklistItemMutation();
 	const [updateChecklistItem] = useUpdateChecklistItemMutation();
 	const [deleteChecklistItem] = useDeleteChecklistItemMutation();
@@ -3895,36 +3897,41 @@ const DesignWorkflowShell = ({ title, variant, projectId, taskId }: Props) => {
 									<span>{approvalButtonLabel}</span>
 								</button>
 							) : null}
-							<Popover.Root>
-								<Popover.Trigger className="workflow-trello-modal-action-primary">
-									<Plus size={18} />
-									<span>{t.common.add}</span>
-								</Popover.Trigger>
-								<Popover.Portal>
-									<Popover.Content align="start" sideOffset={8} className="workflow-trello-add-menu workflow-trello-modal-add-menu">
-										<div className="workflow-trello-add-menu-head">
-											<p>{workflow.labels.addToCard ?? 'Add to card'}</p>
-											<Popover.Close aria-label={t.common.close}><X size={16} /></Popover.Close>
-										</div>
-									<div className="workflow-trello-add-options">
-											{addOptions.map((option) => (
-												<Popover.Close asChild key={option.key}>
-													<button type="button" onClick={() => {
-														setTaskAddPanel((current) => current === option.key ? null : option.key);
-														if (option.key !== 'labels') setModalLabelComposerOpen(false);
-													}}>
-														<span>{option.icon}</span>
-														<span>
-															<b>{option.title}</b>
-															<small>{option.body}</small>
-														</span>
-													</button>
-												</Popover.Close>
-											))}
-									</div>
-								</Popover.Content>
-							</Popover.Portal>
-							</Popover.Root>
+							<button
+								type="button"
+								onClick={() => {
+									setTaskAddPanel((current) => current === 'labels' ? null : 'labels');
+								}}
+								className="workflow-trello-modal-action-primary"
+								data-active={taskAddPanel === 'labels'}
+							>
+								<Tag size={17} />
+								<span>{workflow.labels.labelsPanel ?? 'Étiquettes'}</span>
+							</button>
+							<button
+								type="button"
+								onClick={() => {
+									setTaskAddPanel((current) => current === 'cover' ? null : 'cover');
+									setModalLabelComposerOpen(false);
+								}}
+								className="workflow-trello-modal-action"
+								data-active={taskAddPanel === 'cover'}
+							>
+								<ImagePlus size={17} />
+								<span>{workflow.labels.cardImage ?? 'Image de carte'}</span>
+							</button>
+							<button
+								type="button"
+								onClick={() => {
+									setTaskAddPanel((current) => current === 'attachments' ? null : 'attachments');
+									setModalLabelComposerOpen(false);
+								}}
+								className="workflow-trello-modal-action"
+								data-active={taskAddPanel === 'attachments'}
+							>
+								<Paperclip size={17} />
+								<span>{workflow.labels.attachmentsPanel ?? 'Pièces jointes'}</span>
+							</button>
 							<button
 								type="button"
 								onClick={() => {
@@ -4270,6 +4277,27 @@ const DesignWorkflowShell = ({ title, variant, projectId, taskId }: Props) => {
 											<h3>{group.title}</h3>
 											<span>{Math.round(groupProgress)}% - {groupDoneCount}/{group.items.length}</span>
 										</div>
+										{taskMutable && group.id > 0 ? (
+											<button
+												type="button"
+												className="workflow-tool-icon-button workflow-tool-icon-button-danger workflow-checklist-delete-button"
+												onClick={() => void runPrimaryAction(
+													async () => {
+														await deleteChecklist({ id: task.id, checklistId: group.id }).unwrap();
+														setNewChecklistItemsByChecklist((current) => {
+															const next = { ...current };
+															delete next[String(group.id)];
+															return next;
+														});
+													},
+													messageFor('Liste supprimée avec succès.', 'Checklist deleted successfully.'),
+													messageFor('Impossible de supprimer la liste.', 'Could not delete the checklist.'),
+												)}
+												aria-label={t.common.delete}
+											>
+												<Trash2 size={15} />
+											</button>
+										) : null}
 									</div>
 									<div className="workflow-trello-modal-progress"><span style={{ width: `${groupProgress}%` }} /></div>
 									<div className="workflow-trello-modal-checklist">
@@ -4834,39 +4862,54 @@ const DesignWorkflowShell = ({ title, variant, projectId, taskId }: Props) => {
 				) : null}
 
 				<Surface className="workflow-task-detail-panel workflow-task-tools-panel workflow-trello-tools-panel" title={workflow.labels.cardActions ?? "Card actions"}>
-					<div className="workflow-trello-action-row">
-						<Popover.Root>
-							<Popover.Trigger className="workflow-trello-action-button workflow-trello-action-button-primary">
-								<Plus size={17} />
-								<span>{t.common.add}</span>
-							</Popover.Trigger>
-							<Popover.Portal>
-								<Popover.Content align="start" sideOffset={8} className="workflow-trello-add-menu">
-									<div className="workflow-trello-add-menu-head">
-										<p>{workflow.labels.addToCard ?? 'Add to card'}</p>
-										<Popover.Close aria-label={t.common.close}><X size={16} /></Popover.Close>
-									</div>
-									<div className="workflow-trello-add-options">
-										{addOptions.map((option) => (
-											<Popover.Close asChild key={option.key}>
-												<button type="button" onClick={() => setTaskAddPanel(option.key)}>
-													<span>{option.icon}</span>
-													<span>
-														<b>{option.title}</b>
-														<small>{option.body}</small>
-													</span>
-												</button>
-											</Popover.Close>
-										))}
-									</div>
-								</Popover.Content>
-							</Popover.Portal>
-						</Popover.Root>
-						<button type="button" onClick={() => setTaskAddPanel('cover')} className="workflow-trello-action-button"><ImagePlus size={16} /><span>{workflow.labels.cardImage ?? 'Card image'}</span></button>
-						<button type="button" onClick={() => setTaskAddPanel('checklist')} className="workflow-trello-action-button"><CheckCircle2 size={16} /><span>{workflow.labels.checklistPanel ?? 'Checklist'}</span></button>
-						<button type="button" onClick={() => setTaskAddPanel('members')} className="workflow-trello-action-button"><Users size={16} /><span>{workflow.labels.membersPanel ?? 'Members'}</span></button>
+					<div className="workflow-trello-action-row" ref={taskAddActionsRef}>
+						<button
+							type="button"
+							onClick={() => setTaskAddPanel((current) => current === 'labels' ? null : 'labels')}
+							className="workflow-trello-action-button workflow-trello-action-button-primary"
+							data-active={taskAddPanel === 'labels'}
+						>
+							<Tag size={16} />
+							<span>{workflow.labels.labelsPanel ?? 'Étiquettes'}</span>
+						</button>
+						<button
+							type="button"
+							onClick={() => setTaskAddPanel((current) => current === 'cover' ? null : 'cover')}
+							className="workflow-trello-action-button"
+							data-active={taskAddPanel === 'cover'}
+						>
+							<ImagePlus size={16} />
+							<span>{workflow.labels.cardImage ?? 'Image de carte'}</span>
+						</button>
+						<button
+							type="button"
+							onClick={() => setTaskAddPanel((current) => current === 'attachments' ? null : 'attachments')}
+							className="workflow-trello-action-button"
+							data-active={taskAddPanel === 'attachments'}
+						>
+							<Paperclip size={16} />
+							<span>{workflow.labels.attachmentsPanel ?? 'Pièces jointes'}</span>
+						</button>
+						<button
+							type="button"
+							onClick={() => setTaskAddPanel((current) => current === 'checklist' ? null : 'checklist')}
+							className="workflow-trello-action-button"
+							data-active={taskAddPanel === 'checklist'}
+						>
+							<CheckCircle2 size={16} />
+							<span>{workflow.labels.checklistPanel ?? 'Checklist'}</span>
+						</button>
+						<button
+							type="button"
+							onClick={() => setTaskAddPanel((current) => current === 'members' ? null : 'members')}
+							className="workflow-trello-action-button"
+							data-active={taskAddPanel === 'members'}
+						>
+							<Users size={16} />
+							<span>{workflow.labels.membersPanel ?? 'Members'}</span>
+						</button>
 					</div>
-					<div className="workflow-task-tools-board">
+					<div className="workflow-task-tools-board" ref={taskAddPanelRef}>
 						{showChecklistPanel ? (
 						<div className="app-card-muted workflow-checklist-card workflow-tool-card-primary">
 							<div className="workflow-tool-card-heading workflow-tool-card-heading-large">
@@ -4927,7 +4970,30 @@ const DesignWorkflowShell = ({ title, variant, projectId, taskId }: Props) => {
 										<div key={group.id || `legacy-${task.id}`} className="workflow-checklist-group">
 											<div className="workflow-checklist-group-head">
 												<p>{group.title}</p>
-												<span>{Math.round(groupProgress)}% - {groupDoneCount}/{group.items.length}</span>
+												<div className="workflow-checklist-group-actions">
+													<span>{Math.round(groupProgress)}% - {groupDoneCount}/{group.items.length}</span>
+													{taskMutable && group.id > 0 ? (
+														<button
+															type="button"
+															className="workflow-tool-icon-button workflow-tool-icon-button-danger workflow-checklist-delete-button"
+															onClick={() => void runPrimaryAction(
+																async () => {
+																	await deleteChecklist({ id: task.id, checklistId: group.id }).unwrap();
+																	setNewChecklistItemsByChecklist((current) => {
+																		const next = { ...current };
+																		delete next[String(group.id)];
+																		return next;
+																	});
+																},
+																messageFor('Liste supprimée avec succès.', 'Checklist deleted successfully.'),
+																messageFor('Impossible de supprimer la liste.', 'Could not delete the checklist.'),
+															)}
+															aria-label={t.common.delete}
+														>
+															<Trash2 size={15} />
+														</button>
+													) : null}
+												</div>
 											</div>
 											<div className="workflow-checklist-progress" aria-hidden="true">
 												<span style={{ width: `${groupProgress}%` }} />

@@ -223,6 +223,13 @@ export const designWorkflowApi = createApi({
 			}),
 			invalidatesTags: (_result, _error, { id }) => ['Task', { type: 'Task', id }],
 		}),
+		deleteChecklist: builder.mutation<void, { id: number; checklistId: number }>({
+			query: ({ id, checklistId }) => ({
+				url: `${DESIGN_WORKFLOW_ROOT}tasks/${id}/checklists/${checklistId}/`,
+				method: 'DELETE',
+			}),
+			invalidatesTags: (_result, _error, { id }) => ['Task', { type: 'Task', id }],
+		}),
 		addChecklistItem: builder.mutation<TaskChecklistItem, { id: number; checklist_id?: number; title: string; done?: boolean; sort_order?: number }>({
 			query: ({ id, ...data }) => ({
 				url: `${DESIGN_WORKFLOW_ROOT}tasks/${id}/checklist/`,
@@ -502,6 +509,7 @@ export const {
 	useToggleTaskCompletionMutation,
 	useArchiveTaskMutation,
 	useAddChecklistMutation,
+	useDeleteChecklistMutation,
 	useAddChecklistItemMutation,
 	useUpdateChecklistItemMutation,
 	useDeleteChecklistItemMutation,

@@ -126,6 +126,7 @@ const mockArchiveTask = jest.fn();
 const mockAddChecklist = jest.fn();
 const mockAddChecklistItem = jest.fn();
 const mockUpdateChecklistItem = jest.fn();
+const mockDeleteChecklist = jest.fn();
 const mockDeleteChecklistItem = jest.fn();
 const mockCreateTaskVersion = jest.fn();
 const mockCreateAttachmentAnnotation = jest.fn();
@@ -170,6 +171,7 @@ jest.mock('@/store/services/designWorkflow', () => ({
 	useCreateSavedViewMutation: jest.fn(() => [mockCreateSavedView, { isLoading: false, isError: false }]),
 	useCreateTaskMutation: jest.fn(() => [mockCreateTask, { isLoading: false, isError: false }]),
 	useCreateTaskVersionMutation: jest.fn(() => [mockCreateTaskVersion, { isLoading: false, isError: false }]),
+	useDeleteChecklistMutation: jest.fn(() => [mockDeleteChecklist, { isLoading: false, isError: false }]),
 	useDeleteChecklistItemMutation: jest.fn(() => [mockDeleteChecklistItem, { isLoading: false, isError: false }]),
 	useDeleteSavedViewMutation: jest.fn(() => [mockDeleteSavedView, { isLoading: false, isError: false }]),
 	useDeleteTaskAttachmentMutation: jest.fn(() => [mockDeleteTaskAttachment, { isLoading: false, isError: false }]),
@@ -612,6 +614,7 @@ describe('Design workflow acceptance flows', () => {
 		mockAddChecklist.mockReturnValue(makeMutationResult());
 		mockAddChecklistItem.mockReturnValue(makeMutationResult());
 		mockUpdateChecklistItem.mockReturnValue(makeMutationResult());
+		mockDeleteChecklist.mockReturnValue(makeMutationResult());
 		mockDeleteChecklistItem.mockReturnValue(makeMutationResult());
 		mockCreateTaskVersion.mockReturnValue(makeMutationResult());
 		mockCreateAttachmentAnnotation.mockReturnValue(makeMutationResult());
