@@ -141,7 +141,7 @@ import type {
 	WorkloadRow,
 } from '@/types/designWorkflowTypes';
 import { DASHBOARD_BOARD, DASHBOARD_CHAT, DASHBOARD_PROJECTS, DASHBOARD_PROJECT_VIEW, DASHBOARD_TASK_VIEW } from '@/utils/routes';
-import { useAppSelector, useLanguage } from '@/utils/hooks';
+import { useAppSelector, useLanguage, useToast } from '@/utils/hooks';
 import { getAccessToken, getProfilState, getWSOnlineUserIdsState } from '@/store/selectors';
 import type { UserClass } from '@/models/classes';
 import type { TranslationDictionary } from '@/types/languageTypes';
@@ -664,9 +664,11 @@ const formatFileSize = (size: number) => {
 const AvatarBadge = ({
 	user,
 	size = WORKFLOW_AVATAR_SIZES.default,
+	showPresence = true,
 }: {
 	user?: WorkflowUser | null;
 	size?: number;
+	showPresence?: boolean;
 }) => {
 	const onlineUserIds = useAppSelector(getWSOnlineUserIdsState);
 	const online = !!user && onlineUserIds.includes(user.id);
@@ -675,7 +677,7 @@ const AvatarBadge = ({
 			user={user}
 			size={size}
 			online={online}
-			showPresence={!!user}
+			showPresence={!!user && showPresence}
 			fallbackInitials="S"
 		/>
 	);
@@ -1315,10 +1317,6 @@ const TaskCardItem = ({
 			<div className="workflow-task-cover">
 				<Image src={resolveMediaUrl(task.cover_image_url)} alt={task.title} width={640} height={260} unoptimized loading="eager" className="h-full w-full object-cover" />
 				<div className="workflow-task-cover-shade" />
-				<div className="workflow-task-cover-chip" style={{ color: BOARD_STATUS_META[task.status].text, backgroundColor: BOARD_STATUS_META[task.status].soft }}>
-					{BOARD_STATUS_META[task.status].icon}
-					<span>{labelFor(task.status)}</span>
-				</div>
 			</div>
 		) : (
 			<div className="workflow-task-cover workflow-task-cover-empty" style={{ '--status-accent': BOARD_STATUS_META[task.status].accent } as CSSProperties}>
@@ -1327,10 +1325,6 @@ const TaskCardItem = ({
 					<span />
 					<span />
 					<span />
-				</div>
-				<div className="workflow-task-cover-chip" style={{ color: BOARD_STATUS_META[task.status].text, backgroundColor: BOARD_STATUS_META[task.status].soft }}>
-					{BOARD_STATUS_META[task.status].icon}
-					<span>{labelFor(task.status)}</span>
 				</div>
 			</div>
 		)}
@@ -1638,12 +1632,14 @@ const DesignWorkflowShell = ({ title, variant, projectId, taskId }: Props) => {
 	const token = useAppSelector(getAccessToken);
 	const onlineUserIds = useAppSelector(getWSOnlineUserIdsState);
 	const { t, language } = useLanguage();
+	const { onSuccess, onError } = useToast();
 	const workflow = t.workflow;
 	const locale = language === 'en' ? 'en-US' : 'fr-FR';
 	const labelFor = (value: string) => workflow.statuses[value] ?? workflow.priorities[value] ?? workflow.activities[value] ?? workflow.labels[value] ?? formatLabel(value);
 	const riskLabelFor = (value: string) => workflow.labels[`risk_${value}`] ?? workflow.labels[value] ?? workflow.priorities[value] ?? labelFor(value);
 	const dateFor = (value?: string | null) => formatDate(value, workflow.labels.noDate, locale);
 	const dateTimeFor = (value?: string | null) => formatDateTime(value, workflow.labels.noDate, locale);
+	const messageFor = (fr: string, en: string) => (language === 'en' ? en : fr);
 	const calendarWeekdays = useMemo(() => {
 		const baseSunday = new Date(Date.UTC(2026, 0, 4));
 		return Array.from({ length: 7 }, (_, index) =>
@@ -1794,9 +1790,13 @@ const DesignWorkflowShell = ({ title, variant, projectId, taskId }: Props) => {
 		...(currentUserOption && currentUserOption.role === 'manager' ? [currentUserOption] : []),
 		...users.filter((user) => user.role === 'manager' && user.id !== currentUserOption?.id),
 	];
+	const designerUsers = [
+		...(currentUserOption && currentUserOption.role === 'designer' ? [currentUserOption] : []),
+		...users.filter((user) => user.role === 'designer' && user.id !== currentUserOption?.id),
+	];
 	const userOptionLabel = (user: WorkflowUser) =>
 		`${user.first_name} ${user.last_name}${user.id === profile.id ? ` (${workflow.labels.you})` : ''}`;
-	const validReassignAssigneeSelected = users.some((user) => String(user.id) === reassignForm.assignee_id);
+	const validReassignAssigneeSelected = designerUsers.some((user) => String(user.id) === reassignForm.assignee_id);
 	const { data: projectsData, isLoading: projectsLoading } = useGetProjectsQuery(undefined, {
 		skip: !workflowDataReady || !['projects', 'overview', 'board', 'project-detail', 'task-detail'].includes(variant),
 	});
@@ -1851,6 +1851,7 @@ const DesignWorkflowShell = ({ title, variant, projectId, taskId }: Props) => {
 		skip: !workflowDataReady || !isManager || !['team', 'overview'].includes(variant),
 	});
 	const workload = workloadData ?? EMPTY_WORKLOAD;
+	const designerWorkload = workload.filter((row) => row.user.role === 'designer');
 	const { data: timeReportData } = useGetTimeReportQuery(
 		{
 			start_date: reportFilters.start_date || undefined,
@@ -1910,6 +1911,18 @@ const DesignWorkflowShell = ({ title, variant, projectId, taskId }: Props) => {
 	const [snoozeNotification] = useSnoozeNotificationMutation();
 	const [runNotificationAction] = useRunNotificationActionMutation();
 	const [updateNotificationPreferences] = useUpdateNotificationPreferencesMutation();
+
+	const runPrimaryAction = useCallback(
+		async (action: () => Promise<unknown>, successMessage: string, errorMessage = t.errors.unexpectedError) => {
+			try {
+				await action();
+				onSuccess(successMessage);
+			} catch (error) {
+				onError(getApiErrorMessage(error, errorMessage));
+			}
+		},
+		[onError, onSuccess, t.errors.unexpectedError],
+	);
 
 	useEffect(() => {
 		setReportChartsMounted(true);
@@ -2076,8 +2089,14 @@ const DesignWorkflowShell = ({ title, variant, projectId, taskId }: Props) => {
 	};
 
 	const handleSetAttachmentAsCover = async (taskItem: TaskDetail, attachment: TaskAttachment) => {
-		await setTaskCoverFromAttachment({ id: taskItem.id, attachmentId: attachment.id }).unwrap();
-		setTaskAddPanel(null);
+		await runPrimaryAction(
+			async () => {
+				await setTaskCoverFromAttachment({ id: taskItem.id, attachmentId: attachment.id }).unwrap();
+				setTaskAddPanel(null);
+			},
+			messageFor('Image de carte mise à jour.', 'Card image updated.'),
+			messageFor('Impossible de modifier l’image de carte.', 'Could not update the card image.'),
+		);
 	};
 
 	const openAttachmentPreview = (attachment: TaskAttachment, url: string, meta: string) => {
@@ -2133,7 +2152,7 @@ const DesignWorkflowShell = ({ title, variant, projectId, taskId }: Props) => {
 			...emptyTaskForm(),
 			title,
 			status,
-			current_assignee_id: profile.id ? String(profile.id) : '',
+			current_assignee_id: currentUserOption?.role === 'designer' && profile.id ? String(profile.id) : '',
 			sort_order: String(columnTasks.length),
 		}, { includeTime: isManager })).unwrap();
 		setQuickAddTitle('');
@@ -2147,7 +2166,7 @@ const DesignWorkflowShell = ({ title, variant, projectId, taskId }: Props) => {
 			.sort((left, right) => left.sort_order - right.sort_order || left.id - right.id),
 	}));
 
-	const busiestUsers = [...workload].sort((left, right) => right.open_tasks - left.open_tasks).slice(0, 4);
+	const busiestUsers = [...designerWorkload].sort((left, right) => right.open_tasks - left.open_tasks).slice(0, 4);
 	const isUserOnline = (userId: number) => onlineUserIds.includes(userId);
 	const taskMutable = !!task && (isManager || task.current_assignee?.id === profile.id);
 	const pageHeading =
@@ -2169,7 +2188,7 @@ const DesignWorkflowShell = ({ title, variant, projectId, taskId }: Props) => {
 		...(variant === 'projects' ? [`${workflow.labels.projects} ${projects.length}`] : []),
 		...(variant === 'project-detail' && project ? [`${workflow.labels.open} ${project.open_tasks_count}`, `${workflow.labels.status} ${labelFor(project.status)}`] : []),
 		...(variant === 'task-detail' && task ? [`${workflow.labels.status} ${labelFor(task.status)}`, ...(isManager ? [`${workflow.labels.spent} ${formatMinutes(task.total_logged_minutes)}`] : [])] : []),
-		...(variant === 'team' ? [`${workflow.labels.contributors} ${workload.length}`] : []),
+		...(variant === 'team' ? [`${workflow.labels.contributors} ${designerWorkload.length}`] : []),
 		...(variant === 'report-time' ? [`${workflow.labels.projects} ${timeReport.length}`] : []),
 		...(variant === 'notifications' ? [`${workflow.labels.unread} ${notifications.filter((item) => !item.is_read).length}`] : []),
 	];
@@ -2948,7 +2967,7 @@ const DesignWorkflowShell = ({ title, variant, projectId, taskId }: Props) => {
 							onChange={(value) => setBoardFilters((current) => ({ ...current, assignee: value }))}
 							options={[
 								{ value: '', label: usersLoading ? workflow.labels.loading : workflow.labels.allAssignees },
-								...users.map((item) => ({
+								...designerUsers.map((item) => ({
 									value: item.id,
 									label: `${item.first_name} ${item.last_name}`,
 								})),
@@ -3192,10 +3211,14 @@ const DesignWorkflowShell = ({ title, variant, projectId, taskId }: Props) => {
 					<div className="mt-5">
 						<button
 							type="button"
-							onClick={async () => {
-								await createProject(buildProjectPayload(projectForm)).unwrap();
-								setProjectForm(emptyProjectForm(profile.id));
-							}}
+							onClick={() => void runPrimaryAction(
+								async () => {
+									await createProject(buildProjectPayload(projectForm)).unwrap();
+									setProjectForm(emptyProjectForm(profile.id));
+								},
+								messageFor('Projet créé avec succès.', 'Project created successfully.'),
+								messageFor('Impossible de créer le projet.', 'Could not create the project.'),
+							)}
 							disabled={!projectForm.name.trim() || !projectForm.manager_id}
 							className="app-button"
 						>
@@ -3219,7 +3242,7 @@ const DesignWorkflowShell = ({ title, variant, projectId, taskId }: Props) => {
 				) : (
 					<div className="workflow-projects-card-grid">
 						{projects.map((item) => (
-							<article key={item.id} className="workflow-project-card-modern" data-status={item.status}>
+							<Link key={item.id} href={DASHBOARD_PROJECT_VIEW(item.id)} className="workflow-project-card-modern" data-status={item.status}>
 								<div className="workflow-project-card-pill">
 									<b>{item.name}</b>
 									<em>{labelFor(item.status)}</em>
@@ -3238,12 +3261,8 @@ const DesignWorkflowShell = ({ title, variant, projectId, taskId }: Props) => {
 								</div>
 								<div className="mt-4 flex items-center justify-between gap-3">
 									<Chip>{labelFor(item.priority)}</Chip>
-									<Link href={DASHBOARD_PROJECT_VIEW(item.id)} className="workflow-project-card-open">
-										<span>{workflow.buttons.open}</span>
-										<ArrowRight size={16} />
-									</Link>
 								</div>
-							</article>
+							</Link>
 						))}
 						{projects.length === 0 ? <EmptyState {...workflow.emptyStates.noProjects} /> : null}
 					</div>
@@ -3263,7 +3282,7 @@ const DesignWorkflowShell = ({ title, variant, projectId, taskId }: Props) => {
 			return <EmptyState {...workflow.emptyStates.missingProject} />;
 		}
 
-		const pageSize = 4;
+		const pageSize = 6;
 		const projectTasksTotalPages = Math.max(1, Math.ceil(project.tasks.length / pageSize));
 		const commentsTotalPages = Math.max(1, Math.ceil(project.recent_comments.length / pageSize));
 		const activityTotalPages = Math.max(1, Math.ceil(project.recent_activity.length / pageSize));
@@ -3309,7 +3328,7 @@ const DesignWorkflowShell = ({ title, variant, projectId, taskId }: Props) => {
 							<div className="workflow-project-detail-meta-card">
 								<span>{workflow.labels.manager}</span>
 								<div className="mt-3 flex items-center gap-3">
-									<AvatarBadge user={project.manager} size={34} />
+									<AvatarBadge user={project.manager} size={34} showPresence={false} />
 									<p>{project.manager.first_name} {project.manager.last_name}</p>
 								</div>
 							</div>
@@ -3378,7 +3397,13 @@ const DesignWorkflowShell = ({ title, variant, projectId, taskId }: Props) => {
 							<div className="mt-5">
 								<button
 									type="button"
-									onClick={() => updateProject({ id: project.id, data: buildProjectPayload(projectEditForm) })}
+									onClick={() => void runPrimaryAction(
+										async () => {
+											await updateProject({ id: project.id, data: buildProjectPayload(projectEditForm) }).unwrap();
+										},
+										messageFor('Projet modifié avec succès.', 'Project saved successfully.'),
+										messageFor('Impossible de modifier le projet.', 'Could not save the project.'),
+									)}
 									className="app-button"
 								>
 									<Pencil size={16} />
@@ -3399,15 +3424,17 @@ const DesignWorkflowShell = ({ title, variant, projectId, taskId }: Props) => {
 							))}
 							{project.tasks.length === 0 ? <EmptyState {...workflow.emptyStates.noTasks} /> : null}
 						</div>
-						<div className="workflow-project-detail-pager mt-4">
-							<button type="button" aria-label={workflow.buttons.previous} disabled={projectTasksCurrentPage <= 1} onClick={() => setProjectTasksPage((page) => Math.max(1, page - 1))}>
-								<ChevronLeft size={16} />
-							</button>
-							<span>{projectTasksCurrentPage}/{projectTasksTotalPages}</span>
-							<button type="button" aria-label={workflow.buttons.next} disabled={projectTasksCurrentPage >= projectTasksTotalPages} onClick={() => setProjectTasksPage((page) => Math.min(projectTasksTotalPages, page + 1))}>
-								<ChevronRight size={16} />
-							</button>
-						</div>
+						{projectTasksTotalPages > 1 ? (
+							<div className="workflow-project-detail-pager mt-4">
+								<button type="button" aria-label={workflow.buttons.previous} disabled={projectTasksCurrentPage <= 1} onClick={() => setProjectTasksPage((page) => Math.max(1, page - 1))}>
+									<ChevronLeft size={16} />
+								</button>
+								<span>{projectTasksCurrentPage}/{projectTasksTotalPages}</span>
+								<button type="button" aria-label={workflow.buttons.next} disabled={projectTasksCurrentPage >= projectTasksTotalPages} onClick={() => setProjectTasksPage((page) => Math.min(projectTasksTotalPages, page + 1))}>
+									<ChevronRight size={16} />
+								</button>
+							</div>
+						) : null}
 					</section>
 
 					<section className="workflow-project-detail-panel workflow-project-detail-create" data-tone="cyan">
@@ -3428,7 +3455,7 @@ const DesignWorkflowShell = ({ title, variant, projectId, taskId }: Props) => {
 								onChange={(value) => setTaskForm((current) => ({ ...current, current_assignee_id: value }))}
 								options={[
 									{ value: '', label: usersLoading ? workflow.labels.loading : workflow.labels.unassigned },
-									...users.map((user) => ({ value: user.id, label: `${user.first_name} ${user.last_name}` })),
+									...designerUsers.map((user) => ({ value: user.id, label: `${user.first_name} ${user.last_name}` })),
 								]}
 								startIcon={<Users size={18} />}
 							/>
@@ -3469,10 +3496,14 @@ const DesignWorkflowShell = ({ title, variant, projectId, taskId }: Props) => {
 					<div className="mt-5">
 						<button
 							type="button"
-							onClick={async () => {
-								await createTask(buildTaskPayload(project.id, taskForm, { includeTime: isManager })).unwrap();
-								setTaskForm(emptyTaskForm());
-							}}
+							onClick={() => void runPrimaryAction(
+								async () => {
+									await createTask(buildTaskPayload(project.id, taskForm, { includeTime: isManager })).unwrap();
+									setTaskForm(emptyTaskForm());
+								},
+								messageFor('Tâche créée avec succès.', 'Task created successfully.'),
+								messageFor('Impossible de créer la tâche.', 'Could not create the task.'),
+							)}
 							disabled={!taskForm.title.trim()}
 							className="app-button"
 						>
@@ -3593,33 +3624,45 @@ const DesignWorkflowShell = ({ title, variant, projectId, taskId }: Props) => {
 			setNewChecklistGroupTitle(template.title);
 		};
 		const createChecklistForTask = async () => {
-			const title = newChecklistGroupTitle.trim() || activeChecklistTemplate?.title || (workflow.labels.checklistPanel ?? 'Checklist');
-			const checklist = await addChecklist({ id: task.id, title, sort_order: checklistGroups.length }).unwrap();
-			if (activeChecklistTemplate) {
-				for (const [index, itemTitle] of activeChecklistTemplate.items.entries()) {
-					await addChecklistItem({
-						id: task.id,
-						checklist_id: checklist.id,
-						title: itemTitle,
-						sort_order: index,
-					}).unwrap();
-				}
-			}
-			setNewChecklistGroupTitle('');
-			setSelectedChecklistTemplate('');
-			setTaskAddPanel(null);
+			await runPrimaryAction(
+				async () => {
+					const title = newChecklistGroupTitle.trim() || activeChecklistTemplate?.title || (workflow.labels.checklistPanel ?? 'Checklist');
+					const checklist = await addChecklist({ id: task.id, title, sort_order: checklistGroups.length }).unwrap();
+					if (activeChecklistTemplate) {
+						for (const [index, itemTitle] of activeChecklistTemplate.items.entries()) {
+							await addChecklistItem({
+								id: task.id,
+								checklist_id: checklist.id,
+								title: itemTitle,
+								sort_order: index,
+							}).unwrap();
+						}
+					}
+					setNewChecklistGroupTitle('');
+					setSelectedChecklistTemplate('');
+					setTaskAddPanel(null);
+				},
+				messageFor('Liste ajoutée avec succès.', 'Checklist added successfully.'),
+				messageFor('Impossible d’ajouter la liste.', 'Could not add the checklist.'),
+			);
 		};
 		const addChecklistItemToGroup = async (group: TaskChecklistGroup) => {
 			const key = String(group.id);
 			const title = (newChecklistItemsByChecklist[key] ?? '').trim();
 			if (!title) return;
-			await addChecklistItem({
-				id: task.id,
-				checklist_id: group.id > 0 ? group.id : undefined,
-				title,
-				sort_order: group.items.length,
-			}).unwrap();
-			setNewChecklistItemsByChecklist((current) => ({ ...current, [key]: '' }));
+			await runPrimaryAction(
+				async () => {
+					await addChecklistItem({
+						id: task.id,
+						checklist_id: group.id > 0 ? group.id : undefined,
+						title,
+						sort_order: group.items.length,
+					}).unwrap();
+					setNewChecklistItemsByChecklist((current) => ({ ...current, [key]: '' }));
+				},
+				messageFor('Élément ajouté avec succès.', 'Item added successfully.'),
+				messageFor('Impossible d’ajouter l’élément.', 'Could not add the item.'),
+			);
 		};
 		const addOptions = [
 			{ key: 'labels' as const, icon: <Tag size={18} />, title: workflow.labels.labelsPanel ?? 'Labels', body: workflow.labels.addLabelsHint ?? 'Organize and classify this card.' },
@@ -3674,11 +3717,17 @@ const DesignWorkflowShell = ({ title, variant, projectId, taskId }: Props) => {
 			if (task.review_state === reviewState || pendingReviewMutationRef.current === task.id) return;
 			pendingReviewMutationRef.current = task.id;
 			try {
-				await updateTaskReview({
-					id: task.id,
-					review_state: reviewState,
-					notes: options.notes ?? (reviewNotes.trim() || undefined),
-				}).unwrap();
+				await runPrimaryAction(
+					async () => {
+						await updateTaskReview({
+							id: task.id,
+							review_state: reviewState,
+							notes: options.notes ?? (reviewNotes.trim() || undefined),
+						}).unwrap();
+					},
+					messageFor('Revue mise à jour avec succès.', 'Review updated successfully.'),
+					messageFor('Impossible de mettre à jour la revue.', 'Could not update the review.'),
+				);
 				if (options.resetNotes ?? true) setReviewNotes('');
 			} finally {
 				if (pendingReviewMutationRef.current === task.id) pendingReviewMutationRef.current = null;
@@ -3688,43 +3737,61 @@ const DesignWorkflowShell = ({ title, variant, projectId, taskId }: Props) => {
 		const pendingReviewAction = updateTaskReviewState.isLoading || pendingReviewMutationRef.current === task.id;
 		const reviewLocked = approved || pendingReviewAction;
 		const submitArtifactVersion = async () => {
-			await createTaskVersion({
-				id: task.id,
-				attachment_id: versionAttachmentId ? Number(versionAttachmentId) : null,
-				notes: versionNotes.trim(),
-				approval_state: versionApprovalState,
-			}).unwrap();
-			setVersionNotes('');
-			setVersionApprovalState('pending');
+			await runPrimaryAction(
+				async () => {
+					await createTaskVersion({
+						id: task.id,
+						attachment_id: versionAttachmentId ? Number(versionAttachmentId) : null,
+						notes: versionNotes.trim(),
+						approval_state: versionApprovalState,
+					}).unwrap();
+					setVersionNotes('');
+					setVersionApprovalState('pending');
+				},
+				messageFor('Version ajoutée avec succès.', 'Version added successfully.'),
+				messageFor('Impossible d’ajouter la version.', 'Could not add the version.'),
+			);
 		};
 		const submitAnnotation = async () => {
 			if (!selectedAnnotationAttachment || !annotationBody.trim()) return;
-			await createAttachmentAnnotation({
-				attachmentId: selectedAnnotationAttachment.id,
-				version_id: annotationVersionId ? Number(annotationVersionId) : null,
-				x_percent: annotationX || '50',
-				y_percent: annotationY || '50',
-				body: annotationBody.trim(),
-				resolved: annotationResolved,
-			}).unwrap();
-			setAnnotationBody('');
-			setAnnotationResolved(false);
+			await runPrimaryAction(
+				async () => {
+					await createAttachmentAnnotation({
+						attachmentId: selectedAnnotationAttachment.id,
+						version_id: annotationVersionId ? Number(annotationVersionId) : null,
+						x_percent: annotationX || '50',
+						y_percent: annotationY || '50',
+						body: annotationBody.trim(),
+						resolved: annotationResolved,
+					}).unwrap();
+					setAnnotationBody('');
+					setAnnotationResolved(false);
+				},
+				messageFor('Annotation ajoutée avec succès.', 'Annotation added successfully.'),
+				messageFor('Impossible d’ajouter l’annotation.', 'Could not add the annotation.'),
+			);
 		};
 		const createHandoffChecklist = async () => {
 			if (!handoffTemplate) return;
-			const checklist = await addChecklist({
-				id: task.id,
-				title: handoffTemplate.title,
-				sort_order: checklistGroups.length,
-			}).unwrap();
-			for (const [index, itemTitle] of handoffTemplate.items.entries()) {
-				await addChecklistItem({
-					id: task.id,
-					checklist_id: checklist.id,
-					title: itemTitle,
-					sort_order: index,
-				}).unwrap();
-			}
+			await runPrimaryAction(
+				async () => {
+					const checklist = await addChecklist({
+						id: task.id,
+						title: handoffTemplate.title,
+						sort_order: checklistGroups.length,
+					}).unwrap();
+					for (const [index, itemTitle] of handoffTemplate.items.entries()) {
+						await addChecklistItem({
+							id: task.id,
+							checklist_id: checklist.id,
+							title: itemTitle,
+							sort_order: index,
+						}).unwrap();
+					}
+				},
+				messageFor('Checklist de livraison ajoutée.', 'Handoff checklist added.'),
+				messageFor('Impossible d’ajouter la checklist de livraison.', 'Could not add the handoff checklist.'),
+			);
 		};
 
 		if (selectedTaskId) {
@@ -3809,7 +3876,7 @@ const DesignWorkflowShell = ({ title, variant, projectId, taskId }: Props) => {
 											{addOptions.map((option) => (
 												<Popover.Close asChild key={option.key}>
 													<button type="button" onClick={() => {
-														setTaskAddPanel(option.key);
+														setTaskAddPanel((current) => current === option.key ? null : option.key);
 														if (option.key !== 'labels') setModalLabelComposerOpen(false);
 													}}>
 														<span>{option.icon}</span>
@@ -3820,12 +3887,34 @@ const DesignWorkflowShell = ({ title, variant, projectId, taskId }: Props) => {
 													</button>
 												</Popover.Close>
 											))}
-										</div>
-									</Popover.Content>
-								</Popover.Portal>
+									</div>
+								</Popover.Content>
+							</Popover.Portal>
 							</Popover.Root>
-							<button type="button" onClick={() => { setTaskAddPanel('checklist'); setModalLabelComposerOpen(false); }} className="workflow-trello-modal-action"><CheckCircle2 size={17} /><span>{workflow.labels.checklistPanel ?? 'Checklist'}</span></button>
-							<button type="button" onClick={() => { setTaskAddPanel('members'); setModalLabelComposerOpen(false); }} className="workflow-trello-modal-action"><Users size={17} /><span>{workflow.labels.membersPanel ?? 'Members'}</span></button>
+							<button
+								type="button"
+								onClick={() => {
+									setTaskAddPanel((current) => current === 'checklist' ? null : 'checklist');
+									setModalLabelComposerOpen(false);
+								}}
+								className="workflow-trello-modal-action"
+								data-active={taskAddPanel === 'checklist'}
+							>
+								<CheckCircle2 size={17} />
+								<span>{workflow.labels.checklistPanel ?? 'Checklist'}</span>
+							</button>
+							<button
+								type="button"
+								onClick={() => {
+									setTaskAddPanel((current) => current === 'members' ? null : 'members');
+									setModalLabelComposerOpen(false);
+								}}
+								className="workflow-trello-modal-action"
+								data-active={taskAddPanel === 'members'}
+							>
+								<Users size={17} />
+								<span>{workflow.labels.membersPanel ?? 'Members'}</span>
+							</button>
 							<button type="button" onClick={() => archiveTask({ id: task.id, archived: !task.archived })} className="workflow-trello-modal-action">
 								<Archive size={17} />
 								<span>{task.archived ? (workflow.buttons.restore ?? 'Restore') : (workflow.buttons.archive ?? 'Archive')}</span>
@@ -3881,13 +3970,17 @@ const DesignWorkflowShell = ({ title, variant, projectId, taskId }: Props) => {
 													<button
 														type="button"
 														disabled={!newLabelName.trim()}
-														onClick={async () => {
-															const label = await createLabel({ name: newLabelName.trim(), color: newLabelColor }).unwrap();
-															await updateTask({ id: task.id, data: { label_ids: [...task.labels.map((item) => item.id), label.id] } }).unwrap();
-															setNewLabelName('');
-															setModalLabelComposerOpen(false);
-															setTaskAddPanel(null);
-														}}
+														onClick={() => void runPrimaryAction(
+															async () => {
+																const label = await createLabel({ name: newLabelName.trim(), color: newLabelColor }).unwrap();
+																await updateTask({ id: task.id, data: { label_ids: [...task.labels.map((item) => item.id), label.id] } }).unwrap();
+																setNewLabelName('');
+																setModalLabelComposerOpen(false);
+																setTaskAddPanel(null);
+															},
+															messageFor('Étiquette ajoutée avec succès.', 'Label added successfully.'),
+															messageFor('Impossible d’ajouter l’étiquette.', 'Could not add the label.'),
+														)}
 													>
 														{t.common.add}
 													</button>
@@ -3940,14 +4033,18 @@ const DesignWorkflowShell = ({ title, variant, projectId, taskId }: Props) => {
 												<button
 													type="button"
 													disabled={!taskCoverFile}
-													onClick={async () => {
-														if (!taskCoverFile) return;
-														const data = new FormData();
-														data.append('cover_image', taskCoverFile);
-														await uploadTaskCover({ id: task.id, data }).unwrap();
-														setTaskCoverFile(null);
-														setTaskAddPanel(null);
-													}}
+													onClick={() => void runPrimaryAction(
+														async () => {
+															if (!taskCoverFile) return;
+															const data = new FormData();
+															data.append('cover_image', taskCoverFile);
+															await uploadTaskCover({ id: task.id, data }).unwrap();
+															setTaskCoverFile(null);
+															setTaskAddPanel(null);
+														},
+														messageFor('Image de carte ajoutée.', 'Card image added.'),
+														messageFor('Impossible d’ajouter l’image.', 'Could not add the image.'),
+													)}
 												>
 													{uploadTaskCoverState.isLoading ? workflow.buttons.saving : t.common.add}
 												</button>
@@ -3960,14 +4057,18 @@ const DesignWorkflowShell = ({ title, variant, projectId, taskId }: Props) => {
 												<button
 													type="button"
 													disabled={!taskAttachmentFile}
-													onClick={async () => {
-														if (!taskAttachmentFile) return;
-														const data = new FormData();
-														data.append('file', taskAttachmentFile);
-														await uploadTaskAttachment({ id: task.id, data }).unwrap();
-														setTaskAttachmentFile(null);
-														setTaskAddPanel(null);
-													}}
+													onClick={() => void runPrimaryAction(
+														async () => {
+															if (!taskAttachmentFile) return;
+															const data = new FormData();
+															data.append('file', taskAttachmentFile);
+															await uploadTaskAttachment({ id: task.id, data }).unwrap();
+															setTaskAttachmentFile(null);
+															setTaskAddPanel(null);
+														},
+														messageFor('Fichier ajouté avec succès.', 'File added successfully.'),
+														messageFor('Impossible d’ajouter le fichier.', 'Could not add the file.'),
+													)}
 												>
 													{uploadTaskAttachmentState.isLoading ? workflow.buttons.saving : t.common.add}
 												</button>
@@ -3980,7 +4081,7 @@ const DesignWorkflowShell = ({ title, variant, projectId, taskId }: Props) => {
 										<SelectField
 											value={reassignForm.assignee_id}
 											onChange={(value) => setReassignForm((current) => ({ ...current, assignee_id: value }))}
-											options={[{ value: '', label: workflow.labels.assignee }, ...users.map((user) => ({ value: user.id, label: `${user.first_name} ${user.last_name}` }))]}
+											options={[{ value: '', label: workflow.labels.assignee }, ...designerUsers.map((user) => ({ value: user.id, label: `${user.first_name} ${user.last_name}` }))]}
 											startIcon={<Users size={18} />}
 											placeholder={workflow.labels.assignee}
 										/>
@@ -3989,11 +4090,15 @@ const DesignWorkflowShell = ({ title, variant, projectId, taskId }: Props) => {
 											type="button"
 											disabled={!isManager || !validReassignAssigneeSelected || !reassignForm.reason.trim()}
 											className="workflow-trello-modal-save"
-											onClick={async () => {
-												await reassignTask({ id: task.id, assignee_id: Number(reassignForm.assignee_id), reason: reassignForm.reason.trim() }).unwrap();
-												setReassignForm((current) => ({ ...current, reason: '' }));
-												setTaskAddPanel(null);
-											}}
+											onClick={() => void runPrimaryAction(
+												async () => {
+													await reassignTask({ id: task.id, assignee_id: Number(reassignForm.assignee_id), reason: reassignForm.reason.trim() }).unwrap();
+													setReassignForm((current) => ({ ...current, reason: '' }));
+													setTaskAddPanel(null);
+												},
+												messageFor('Tâche réassignée avec succès.', 'Task reassigned successfully.'),
+												messageFor('Impossible de réassigner la tâche.', 'Could not reassign the task.'),
+											)}
 										>
 											{reassignTaskState.isLoading ? workflow.buttons.moving : workflow.buttons.reassign}
 										</button>
@@ -4032,10 +4137,14 @@ const DesignWorkflowShell = ({ title, variant, projectId, taskId }: Props) => {
 											<button
 												type="button"
 												className="workflow-trello-modal-save"
-												onClick={async () => {
-													await updateTask({ id: task.id, data: buildTaskPayload(task.project.id, taskEditForm, { includeTime: isManager }) }).unwrap();
-													setModalDescriptionEditing(false);
-												}}
+												onClick={() => void runPrimaryAction(
+													async () => {
+														await updateTask({ id: task.id, data: buildTaskPayload(task.project.id, taskEditForm, { includeTime: isManager }) }).unwrap();
+														setModalDescriptionEditing(false);
+													},
+													messageFor('Tâche enregistrée avec succès.', 'Task saved successfully.'),
+													messageFor('Impossible d’enregistrer la tâche.', 'Could not save the task.'),
+												)}
 											>
 												{updateTaskState.isLoading ? workflow.buttons.saving : t.common.save}
 											</button>
@@ -4097,7 +4206,17 @@ const DesignWorkflowShell = ({ title, variant, projectId, taskId }: Props) => {
 											<WorkDaysField value={taskEditForm.estimated_minutes} onChange={(value) => setTaskEditForm((current) => ({ ...current, estimated_minutes: value }))} />
 										</div>
 									) : null}
-									<button type="button" className="workflow-trello-modal-save" onClick={() => updateTask({ id: task.id, data: buildTaskPayload(task.project.id, taskEditForm, { includeTime: isManager }) })}>
+									<button
+										type="button"
+										className="workflow-trello-modal-save"
+										onClick={() => void runPrimaryAction(
+											async () => {
+												await updateTask({ id: task.id, data: buildTaskPayload(task.project.id, taskEditForm, { includeTime: isManager }) }).unwrap();
+											},
+											messageFor('Tâche enregistrée avec succès.', 'Task saved successfully.'),
+											messageFor('Impossible d’enregistrer la tâche.', 'Could not save the task.'),
+										)}
+									>
 										{updateTaskState.isLoading ? workflow.buttons.saving : t.common.save}
 									</button>
 								</div>
@@ -4175,13 +4294,17 @@ const DesignWorkflowShell = ({ title, variant, projectId, taskId }: Props) => {
 												type="button"
 												className="workflow-trello-modal-save"
 												disabled={!taskCoverFile}
-												onClick={async () => {
-													if (!taskCoverFile) return;
-													const data = new FormData();
-													data.append('cover_image', taskCoverFile);
-													await uploadTaskCover({ id: task.id, data }).unwrap();
-													setTaskCoverFile(null);
-												}}
+												onClick={() => void runPrimaryAction(
+													async () => {
+														if (!taskCoverFile) return;
+														const data = new FormData();
+														data.append('cover_image', taskCoverFile);
+														await uploadTaskCover({ id: task.id, data }).unwrap();
+														setTaskCoverFile(null);
+													},
+													messageFor('Image de carte ajoutée.', 'Card image added.'),
+													messageFor('Impossible d’ajouter l’image.', 'Could not add the image.'),
+												)}
 											>
 												{uploadTaskCoverState.isLoading ? workflow.buttons.saving : t.common.add}
 											</button>
@@ -4254,13 +4377,17 @@ const DesignWorkflowShell = ({ title, variant, projectId, taskId }: Props) => {
 											type="button"
 											className="workflow-trello-modal-save"
 											disabled={!taskAttachmentFile}
-											onClick={async () => {
-												if (!taskAttachmentFile) return;
-												const data = new FormData();
-												data.append('file', taskAttachmentFile);
-												await uploadTaskAttachment({ id: task.id, data }).unwrap();
-												setTaskAttachmentFile(null);
-											}}
+											onClick={() => void runPrimaryAction(
+												async () => {
+													if (!taskAttachmentFile) return;
+													const data = new FormData();
+													data.append('file', taskAttachmentFile);
+													await uploadTaskAttachment({ id: task.id, data }).unwrap();
+													setTaskAttachmentFile(null);
+												},
+												messageFor('Fichier ajouté avec succès.', 'File added successfully.'),
+												messageFor('Impossible d’ajouter le fichier.', 'Could not add the file.'),
+											)}
 										>
 											{uploadTaskAttachmentState.isLoading ? workflow.buttons.saving : t.common.add}
 										</button>
@@ -4283,10 +4410,14 @@ const DesignWorkflowShell = ({ title, variant, projectId, taskId }: Props) => {
 								<Area value={commentBody} onChange={setCommentBody} rows={3} placeholder={workflow.labels.commentPlaceholder} />
 								<button
 									type="button"
-									onClick={async () => {
-										await addTaskComment({ id: task.id, body: commentBody.trim() }).unwrap();
-										setCommentBody('');
-									}}
+									onClick={() => void runPrimaryAction(
+										async () => {
+											await addTaskComment({ id: task.id, body: commentBody.trim() }).unwrap();
+											setCommentBody('');
+										},
+										messageFor('Commentaire publié.', 'Comment posted.'),
+										messageFor('Impossible de publier le commentaire.', 'Could not post the comment.'),
+									)}
 									disabled={!commentBody.trim()}
 								>
 									{addCommentState.isLoading ? workflow.buttons.posting : workflow.buttons.postComment}
@@ -4874,11 +5005,15 @@ const DesignWorkflowShell = ({ title, variant, projectId, taskId }: Props) => {
 											<button
 												type="button"
 												disabled={!newLabelName.trim()}
-												onClick={async () => {
-													const label = await createLabel({ name: newLabelName.trim(), color: newLabelColor }).unwrap();
-													await updateTask({ id: task.id, data: { label_ids: [...task.labels.map((item) => item.id), label.id] } }).unwrap();
-													setNewLabelName('');
-												}}
+												onClick={() => void runPrimaryAction(
+													async () => {
+														const label = await createLabel({ name: newLabelName.trim(), color: newLabelColor }).unwrap();
+														await updateTask({ id: task.id, data: { label_ids: [...task.labels.map((item) => item.id), label.id] } }).unwrap();
+														setNewLabelName('');
+													},
+													messageFor('Étiquette ajoutée avec succès.', 'Label added successfully.'),
+													messageFor('Impossible d’ajouter l’étiquette.', 'Could not add the label.'),
+												)}
 												className="app-button workflow-label-create-button"
 											>
 												<Plus size={16} />
@@ -4920,13 +5055,17 @@ const DesignWorkflowShell = ({ title, variant, projectId, taskId }: Props) => {
 											<button
 												type="button"
 												disabled={!taskCoverFile}
-												onClick={async () => {
-													if (!taskCoverFile) return;
-													const data = new FormData();
-													data.append('cover_image', taskCoverFile);
-													await uploadTaskCover({ id: task.id, data }).unwrap();
-													setTaskCoverFile(null);
-												}}
+												onClick={() => void runPrimaryAction(
+													async () => {
+														if (!taskCoverFile) return;
+														const data = new FormData();
+														data.append('cover_image', taskCoverFile);
+														await uploadTaskCover({ id: task.id, data }).unwrap();
+														setTaskCoverFile(null);
+													},
+													messageFor('Image de carte ajoutée.', 'Card image added.'),
+													messageFor('Impossible d’ajouter l’image.', 'Could not add the image.'),
+												)}
 												className="app-button workflow-upload-submit"
 											>
 												<ImagePlus size={16} />
@@ -5002,13 +5141,17 @@ const DesignWorkflowShell = ({ title, variant, projectId, taskId }: Props) => {
 										<button
 											type="button"
 											disabled={!taskAttachmentFile}
-											onClick={async () => {
-												if (!taskAttachmentFile) return;
-												const data = new FormData();
-												data.append('file', taskAttachmentFile);
-												await uploadTaskAttachment({ id: task.id, data }).unwrap();
-												setTaskAttachmentFile(null);
-											}}
+											onClick={() => void runPrimaryAction(
+												async () => {
+													if (!taskAttachmentFile) return;
+													const data = new FormData();
+													data.append('file', taskAttachmentFile);
+													await uploadTaskAttachment({ id: task.id, data }).unwrap();
+													setTaskAttachmentFile(null);
+												},
+												messageFor('Fichier ajouté avec succès.', 'File added successfully.'),
+												messageFor('Impossible d’ajouter le fichier.', 'Could not add the file.'),
+											)}
 											className="app-button workflow-upload-submit"
 										>
 											<Paperclip size={16} />
@@ -5030,18 +5173,22 @@ const DesignWorkflowShell = ({ title, variant, projectId, taskId }: Props) => {
 										<SelectField
 											value={reassignForm.assignee_id}
 											onChange={(value) => setReassignForm((current) => ({ ...current, assignee_id: value }))}
-											options={users.map((user) => ({ value: user.id, label: `${user.first_name} ${user.last_name}` }))}
+											options={designerUsers.map((user) => ({ value: user.id, label: `${user.first_name} ${user.last_name}` }))}
 											startIcon={<Users size={18} />}
 											placeholder={workflow.labels.assignee}
 										/>
 										<Field value={reassignForm.reason} onChange={(value) => setReassignForm((current) => ({ ...current, reason: value }))} placeholder={workflow.labels.reassignReasonPlaceholder} startIcon={<MessagesSquare size={18} />} />
 										<button
 											type="button"
-											onClick={async () => {
-												await reassignTask({ id: task.id, assignee_id: Number(reassignForm.assignee_id), reason: reassignForm.reason.trim() }).unwrap();
-												setReassignForm((current) => ({ ...current, reason: '' }));
-												setTaskAddPanel(null);
-											}}
+											onClick={() => void runPrimaryAction(
+												async () => {
+													await reassignTask({ id: task.id, assignee_id: Number(reassignForm.assignee_id), reason: reassignForm.reason.trim() }).unwrap();
+													setReassignForm((current) => ({ ...current, reason: '' }));
+													setTaskAddPanel(null);
+												},
+												messageFor('Tâche réassignée avec succès.', 'Task reassigned successfully.'),
+												messageFor('Impossible de réassigner la tâche.', 'Could not reassign the task.'),
+											)}
 											disabled={!validReassignAssigneeSelected || !reassignForm.reason.trim()}
 											className="app-button"
 										>
@@ -5076,7 +5223,7 @@ const DesignWorkflowShell = ({ title, variant, projectId, taskId }: Props) => {
 									onChange={(value) => setTaskEditForm((current) => ({ ...current, current_assignee_id: value }))}
 									options={[
 										{ value: '', label: workflow.labels.unassigned },
-										...users.map((user) => ({ value: user.id, label: `${user.first_name} ${user.last_name}` })),
+										...designerUsers.map((user) => ({ value: user.id, label: `${user.first_name} ${user.last_name}` })),
 									]}
 									startIcon={<Users size={18} />}
 								/>
@@ -5126,7 +5273,13 @@ const DesignWorkflowShell = ({ title, variant, projectId, taskId }: Props) => {
 						<div className="mt-5 flex flex-wrap gap-3">
 							<button
 								type="button"
-								onClick={() => updateTask({ id: task.id, data: buildTaskPayload(task.project.id, taskEditForm, { includeTime: isManager }) })}
+								onClick={() => void runPrimaryAction(
+									async () => {
+										await updateTask({ id: task.id, data: buildTaskPayload(task.project.id, taskEditForm, { includeTime: isManager }) }).unwrap();
+									},
+									messageFor('Tâche enregistrée avec succès.', 'Task saved successfully.'),
+									messageFor('Impossible d’enregistrer la tâche.', 'Could not save the task.'),
+								)}
 								className="app-button"
 							>
 								<Pencil size={16} />
@@ -5135,14 +5288,18 @@ const DesignWorkflowShell = ({ title, variant, projectId, taskId }: Props) => {
 							{!isManager ? (
 								<button
 									type="button"
-									onClick={() =>
-										updateTaskStatus({
-											id: task.id,
-											status: taskEditForm.status,
-											blocked_reason: taskEditForm.blocked_reason,
-											sort_order: Number(taskEditForm.sort_order || 0),
-										})
-									}
+									onClick={() => void runPrimaryAction(
+										async () => {
+											await updateTaskStatus({
+												id: task.id,
+												status: taskEditForm.status,
+												blocked_reason: taskEditForm.blocked_reason,
+												sort_order: Number(taskEditForm.sort_order || 0),
+											}).unwrap();
+										},
+										messageFor('Statut mis à jour avec succès.', 'Status updated successfully.'),
+										messageFor('Impossible de mettre à jour le statut.', 'Could not update the status.'),
+									)}
 									className="app-button app-button-secondary"
 								>
 									<CheckCircle2 size={16} />
@@ -5166,7 +5323,7 @@ const DesignWorkflowShell = ({ title, variant, projectId, taskId }: Props) => {
 									id="new-assignee"
 									value={reassignForm.assignee_id}
 									onChange={(value) => setReassignForm((current) => ({ ...current, assignee_id: value }))}
-									options={users.map((user) => ({ value: user.id, label: `${user.first_name} ${user.last_name}` }))}
+									options={designerUsers.map((user) => ({ value: user.id, label: `${user.first_name} ${user.last_name}` }))}
 									startIcon={<Users size={18} />}
 									placeholder={workflow.labels.assignee}
 								/>
@@ -5178,14 +5335,18 @@ const DesignWorkflowShell = ({ title, variant, projectId, taskId }: Props) => {
 							<div className="self-end">
 								<button
 									type="button"
-									onClick={async () => {
-										await reassignTask({
-											id: task.id,
-											assignee_id: Number(reassignForm.assignee_id),
-											reason: reassignForm.reason.trim(),
-										}).unwrap();
-										setReassignForm((current) => ({ ...current, reason: '' }));
-									}}
+									onClick={() => void runPrimaryAction(
+										async () => {
+											await reassignTask({
+												id: task.id,
+												assignee_id: Number(reassignForm.assignee_id),
+												reason: reassignForm.reason.trim(),
+											}).unwrap();
+											setReassignForm((current) => ({ ...current, reason: '' }));
+										},
+										messageFor('Tâche réassignée avec succès.', 'Task reassigned successfully.'),
+										messageFor('Impossible de réassigner la tâche.', 'Could not reassign the task.'),
+									)}
 									disabled={!validReassignAssigneeSelected || !reassignForm.reason.trim()}
 									className="app-button"
 								>
@@ -5205,10 +5366,14 @@ const DesignWorkflowShell = ({ title, variant, projectId, taskId }: Props) => {
 								<Area id="add-comment" value={commentBody} onChange={setCommentBody} rows={3} placeholder={workflow.labels.commentPlaceholder} startIcon={<MessagesSquare size={18} />} />
 								<button
 									type="button"
-									onClick={async () => {
-										await addTaskComment({ id: task.id, body: commentBody.trim() }).unwrap();
-										setCommentBody('');
-									}}
+									onClick={() => void runPrimaryAction(
+										async () => {
+											await addTaskComment({ id: task.id, body: commentBody.trim() }).unwrap();
+											setCommentBody('');
+										},
+										messageFor('Commentaire publié.', 'Comment posted.'),
+										messageFor('Impossible de publier le commentaire.', 'Could not post the comment.'),
+									)}
 									disabled={!commentBody.trim()}
 									className="app-button"
 								>
@@ -5294,14 +5459,14 @@ const DesignWorkflowShell = ({ title, variant, projectId, taskId }: Props) => {
 	};
 
 	const renderTeam = () => {
-		const totalOpenTasks = workload.reduce((sum, row) => sum + row.open_tasks, 0);
-		const totalOverdueTasks = workload.reduce((sum, row) => sum + row.overdue_tasks, 0);
-		const totalEstimatedMinutes = workload.reduce((sum, row) => sum + row.estimated_minutes, 0);
-		const totalActualMinutes = workload.reduce((sum, row) => sum + row.actual_minutes, 0);
-		const maxOpenTasks = Math.max(1, ...workload.map((row) => row.open_tasks));
-		const maxEstimatedMinutes = Math.max(1, ...workload.map((row) => row.estimated_minutes));
-		const leadUser = [...workload].sort((left, right) => right.open_tasks - left.open_tasks || right.overdue_tasks - left.overdue_tasks)[0];
-		const chartRows = [...workload]
+		const totalOpenTasks = designerWorkload.reduce((sum, row) => sum + row.open_tasks, 0);
+		const totalOverdueTasks = designerWorkload.reduce((sum, row) => sum + row.overdue_tasks, 0);
+		const totalEstimatedMinutes = designerWorkload.reduce((sum, row) => sum + row.estimated_minutes, 0);
+		const totalActualMinutes = designerWorkload.reduce((sum, row) => sum + row.actual_minutes, 0);
+		const maxOpenTasks = Math.max(1, ...designerWorkload.map((row) => row.open_tasks));
+		const maxEstimatedMinutes = Math.max(1, ...designerWorkload.map((row) => row.estimated_minutes));
+		const leadUser = [...designerWorkload].sort((left, right) => right.open_tasks - left.open_tasks || right.overdue_tasks - left.overdue_tasks)[0];
+		const chartRows = [...designerWorkload]
 			.sort((left, right) => right.estimated_minutes - left.estimated_minutes || right.open_tasks - left.open_tasks)
 			.slice(0, 8);
 		const teamChartHeight = Math.min(480, Math.max(280, chartRows.length * 68 + 110));
@@ -5378,15 +5543,15 @@ const DesignWorkflowShell = ({ title, variant, projectId, taskId }: Props) => {
 				},
 			},
 		};
-		const pressureRows = workload
+		const pressureRows = designerWorkload
 			.filter((row) => row.overdue_tasks > 0 || row.open_tasks >= Math.max(4, Math.ceil(maxOpenTasks * 0.75)))
 			.sort((left, right) => right.overdue_tasks - left.overdue_tasks || right.open_tasks - left.open_tasks)
 			.slice(0, 4);
-		const calmRows = workload
+		const calmRows = designerWorkload
 			.filter((row) => row.overdue_tasks === 0)
 			.sort((left, right) => left.open_tasks - right.open_tasks)
 			.slice(0, 4);
-		const hasTeamWorkloadSignal = workload.some((row) => row.open_tasks > 0 || row.overdue_tasks > 0 || row.estimated_minutes > 0 || row.actual_minutes > 0);
+		const hasTeamWorkloadSignal = designerWorkload.some((row) => row.open_tasks > 0 || row.overdue_tasks > 0 || row.estimated_minutes > 0 || row.actual_minutes > 0);
 
 		return (
 			<div className="workflow-team-page">
@@ -5397,7 +5562,7 @@ const DesignWorkflowShell = ({ title, variant, projectId, taskId }: Props) => {
 					actionsClassName="workflow-team-header-actions"
 					actions={
 						<>
-							<span>{workflow.labels.contributors} {workload.length}</span>
+							<span>{workflow.labels.contributors} {designerWorkload.length}</span>
 							<span>{workflow.labels.open} {totalOpenTasks}</span>
 							<span>{workflow.labels.overdue} {totalOverdueTasks}</span>
 						</>
@@ -5405,14 +5570,14 @@ const DesignWorkflowShell = ({ title, variant, projectId, taskId }: Props) => {
 				/>
 
 				<section className="workflow-team-metrics">
-					<MetricCard icon={<Users size={16} />} label={workflow.labels.teamMembers ?? 'Team members'} value={workload.length} tone="indigo" />
+					<MetricCard icon={<Users size={16} />} label={workflow.labels.teamMembers ?? 'Team members'} value={designerWorkload.length} tone="indigo" />
 					<MetricCard icon={<ListTodo size={16} />} label={workflow.labels.openTasksLabel ?? 'Open tasks'} value={totalOpenTasks} tone="amber" />
 					<MetricCard icon={<CircleAlert size={16} />} label={workflow.labels.overdueTasksLabel ?? 'Overdue tasks'} value={totalOverdueTasks} tone="rose" />
 					<MetricCard icon={<Clock3 size={16} />} label={workflow.labels.estimatedLoad ?? 'Estimated load'} value={formatWorkDays(totalEstimatedMinutes, workflow.labels.daysUnit)} tone="green" />
 				</section>
 
 				<section className="workflow-team-grid">
-					{workload.length ? (
+					{designerWorkload.length ? (
 						<section className="workflow-team-analytics">
 							<WorkflowPanelPill baseClassName="workflow-team-panel-pill" label={workflow.labels.teamLoadMap} value={`${formatMinutes(totalActualMinutes)} ${workflow.labels.loggedSuffix}`} labelElement="span" />
 							{hasTeamWorkloadSignal ? (
@@ -5437,7 +5602,7 @@ const DesignWorkflowShell = ({ title, variant, projectId, taskId }: Props) => {
 					<div className="workflow-team-board">
 						<WorkflowPanelPill baseClassName="workflow-team-panel-pill" label={workflow.sections.teamWorkload.title} value={`${formatMinutes(totalActualMinutes)} ${workflow.labels.loggedSuffix}`} labelElement="span" />
 						<div className="workflow-team-card-grid">
-							{workload.map((row: WorkloadRow) => {
+							{designerWorkload.map((row: WorkloadRow) => {
 								const loadPercent = Math.min(100, Math.round((row.open_tasks / maxOpenTasks) * 100));
 								const estimatePercent = Math.min(100, Math.round((row.estimated_minutes / maxEstimatedMinutes) * 100));
 								const tone = row.overdue_tasks > 0 ? 'danger' : row.open_tasks >= maxOpenTasks && maxOpenTasks > 1 ? 'heavy' : 'calm';
@@ -5481,7 +5646,7 @@ const DesignWorkflowShell = ({ title, variant, projectId, taskId }: Props) => {
 									</article>
 								);
 							})}
-							{workload.length === 0 ? <EmptyState {...workflow.emptyStates.noWorkloadData} /> : null}
+							{designerWorkload.length === 0 ? <EmptyState {...workflow.emptyStates.noWorkloadData} /> : null}
 						</div>
 					</div>
 
@@ -6328,4 +6493,3 @@ const DesignWorkflowShell = ({ title, variant, projectId, taskId }: Props) => {
 };
 
 export default DesignWorkflowShell;
-

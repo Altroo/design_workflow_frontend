@@ -66,6 +66,7 @@ jest.mock('@/utils/hooks', () => {
 	return {
 		useAppSelector: (selector: unknown) => mockUseAppSelector(selector),
 		useLanguage: () => ({ language: 'en', setLanguage: jest.fn(), t: en }),
+		useToast: () => ({ onSuccess: jest.fn(), onError: jest.fn() }),
 	};
 });
 

@@ -1343,6 +1343,109 @@
 	background: #f1f5f9 !important;
 }
 
+.workflow-projects-card-grid {
+	grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+	align-items: stretch !important;
+}
+
+.workflow-project-card-modern {
+	display: flex !important;
+	min-width: 0 !important;
+	flex-direction: column !important;
+	color: inherit !important;
+	text-decoration: none !important;
+	cursor: pointer !important;
+}
+
+.workflow-project-card-modern > .mt-4 {
+	margin-top: auto !important;
+}
+
+.workflow-chat-context-icon {
+	display: inline-grid !important;
+	width: 2.75rem !important;
+	min-width: 2.75rem !important;
+	height: 2.75rem !important;
+	flex: 0 0 2.75rem !important;
+	place-items: center !important;
+	border-radius: 999px !important;
+	padding: 0 !important;
+	aspect-ratio: 1 / 1 !important;
+}
+
+.workflow-chat-ref-toggle.has-tooltip {
+	position: relative !important;
+	overflow: visible !important;
+	z-index: 12 !important;
+}
+
+.workflow-chat-ref-toggle.has-tooltip i {
+	position: absolute !important;
+	right: 50% !important;
+	bottom: calc(100% + 0.625rem) !important;
+	z-index: 260 !important;
+	transform: translateX(50%) translateY(0.25rem) !important;
+	pointer-events: none !important;
+	white-space: nowrap !important;
+}
+
+.workflow-chat-ref-toggle.has-tooltip:hover i,
+.workflow-chat-ref-toggle.has-tooltip:focus-visible i {
+	transform: translateX(50%) translateY(0) !important;
+}
+
+.workflow-chat-composer > .flex {
+	align-items: center !important;
+}
+
+.workflow-chat-composer .app-pill,
+.workflow-chat-composer .app-button {
+	flex: 0 0 auto !important;
+	align-self: center !important;
+}
+
+.workflow-chat-composer textarea.app-input {
+	display: block !important;
+	min-height: 3.25rem !important;
+}
+
+.workflow-task-modal {
+	width: min(96rem, calc(100vw - 2rem)) !important;
+	max-height: calc(100vh - 2rem) !important;
+}
+
+.workflow-task-modal-body {
+	overflow: hidden !important;
+}
+
+.workflow-task-modal .workflow-trello-modal-detail {
+	width: 100% !important;
+	min-height: min(42rem, calc(100vh - 2rem)) !important;
+	grid-template-columns: minmax(0, 1fr) minmax(20rem, 0.36fr) !important;
+	overflow: hidden !important;
+}
+
+.workflow-task-modal .workflow-trello-modal-main,
+.workflow-task-modal .workflow-trello-modal-activity {
+	max-height: calc(100vh - 2rem) !important;
+	overflow: auto !important;
+}
+
+.workflow-task-modal .workflow-trello-modal-floating-panel {
+	position: relative !important;
+	inset: auto !important;
+	width: min(42rem, 100%) !important;
+	max-width: 100% !important;
+	margin: 0.75rem 0 1rem 2.25rem !important;
+	transform: none !important;
+	z-index: 8 !important;
+}
+
+.workflow-task-modal .workflow-trello-modal-floating-body {
+	max-height: min(28rem, calc(100vh - 14rem)) !important;
+	overflow: auto !important;
+}
+
 @keyframes workflow-chat-fade-in {
 	from {
 		opacity: 0;
@@ -1355,8 +1458,27 @@
 }
 
 @media (max-width: 48rem) {
+	.workflow-projects-card-grid {
+		grid-template-columns: 1fr !important;
+	}
+
 	.workflow-task-modal .workflow-trello-modal-actions {
 		margin-left: 0 !important;
 		max-width: 100% !important;
+	}
+
+	.workflow-task-modal .workflow-trello-modal-detail {
+		grid-template-columns: 1fr !important;
+	}
+
+	.workflow-task-modal .workflow-trello-modal-floating-panel {
+		width: 100% !important;
+		margin-left: 0 !important;
+	}
+}
+
+@media (min-width: 48.0625rem) and (max-width: 72rem) {
+	.workflow-projects-card-grid {
+		grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
 	}
 }
