@@ -381,15 +381,24 @@ const formatWorkDays = (minutes: number, dayLabel = 'Days') => {
 };
 
 const csvCell = (value: string | number | null | undefined) => `"${String(value ?? '').replace(/"/g, '""')}"`;
+const ensureFileExtension = (filename: string, extension: string) => {
+	const normalizedExtension = extension.replace(/^\./, '').toLowerCase();
+	const normalizedFilename = filename.trim().replace(/\.+$/, '');
+	return normalizedFilename.toLowerCase().endsWith(`.${normalizedExtension}`) ? normalizedFilename : `${normalizedFilename}.${normalizedExtension}`;
+};
+
 const downloadCsv = (filename: string, rows: Array<Array<string | number | null | undefined>>) => {
 	if (typeof window === 'undefined') return;
 	const blob = new Blob([rows.map((row) => row.map(csvCell).join(',')).join('\n')], { type: 'text/csv;charset=utf-8' });
 	const url = URL.createObjectURL(blob);
 	const link = document.createElement('a');
 	link.href = url;
-	link.download = filename;
+	link.download = ensureFileExtension(filename, 'csv');
+	link.rel = 'noopener';
+	document.body.appendChild(link);
 	link.click();
-	URL.revokeObjectURL(url);
+	link.remove();
+	window.setTimeout(() => URL.revokeObjectURL(url), 0);
 };
 const escapeHtml = (value: string | number | null | undefined) =>
 	String(value ?? '')
@@ -576,7 +585,7 @@ const getChecklistTemplates = (labels: WorkflowCopy['labels']): ChecklistTemplat
 const WORKFLOW_CHART_PALETTE = ['#111827', '#475569', '#64748b', '#94a3b8', '#cbd5e1', '#e5e7eb'];
 
 const BOARD_STATUS_META: Record<TaskStatus, { accent: string; text: string; soft: string; icon: ReactNode }> = {
-	backlog: { accent: '#64748b', text: '#334155', soft: '#f8fafc', icon: <Archive size={14} /> },
+	backlog: { accent: '#64748b', text: '#334155', soft: '#f8fafc', icon: <Bookmark size={14} /> },
 	todo: { accent: '#4f46e5', text: '#312e81', soft: '#eef2ff', icon: <ListTodo size={14} /> },
 	in_progress: { accent: '#f59e0b', text: '#92400e', soft: '#fffbeb', icon: <Clock3 size={14} /> },
 	in_review: { accent: '#06b6d4', text: '#155e75', soft: '#ecfeff', icon: <ShieldCheck size={14} /> },
@@ -1698,6 +1707,7 @@ const DesignWorkflowShell = ({ title, variant, projectId, taskId }: Props) => {
 	const defaultSavedViewAppliedRef = useRef(false);
 	const [notificationsUnreadOnly, setNotificationsUnreadOnly] = useState(false);
 	const [notificationCommentDrafts, setNotificationCommentDrafts] = useState<Record<number, string>>({});
+	const [notificationPreferenceDraft, setNotificationPreferenceDraft] = useState<NotificationPreference>(DEFAULT_NOTIFICATION_PREFERENCES);
 	const [reportFilters, setReportFilters] = useState({ start_date: '', end_date: '' });
 	const [projectForm, setProjectForm] = useState<ProjectInput>(() => emptyProjectForm(profile.id));
 	const [projectEditForm, setProjectEditForm] = useState<ProjectInput>(() => emptyProjectForm(profile.id));
@@ -1875,7 +1885,7 @@ const DesignWorkflowShell = ({ title, variant, projectId, taskId }: Props) => {
 	const { data: notificationPreferences } = useGetNotificationPreferencesQuery(undefined, {
 		skip: !workflowDataReady || variant !== 'notifications',
 	});
-	const resolvedNotificationPreferences = notificationPreferences ?? DEFAULT_NOTIFICATION_PREFERENCES;
+	const resolvedNotificationPreferences = notificationPreferenceDraft;
 	const { data: labels = [] } = useGetLabelsQuery(undefined, { skip: !workflowDataReady || (!activeTaskId && variant !== 'project-detail') });
 	const { data: selectedAttachmentAnnotations = EMPTY_ANNOTATIONS } = useGetAttachmentAnnotationsQuery(
 		selectedAnnotationAttachmentId ?? 0,
@@ -1927,6 +1937,12 @@ const DesignWorkflowShell = ({ title, variant, projectId, taskId }: Props) => {
 	useEffect(() => {
 		setReportChartsMounted(true);
 	}, []);
+
+	useEffect(() => {
+		if (notificationPreferences) {
+			setNotificationPreferenceDraft(notificationPreferences);
+		}
+	}, [notificationPreferences]);
 
 	useEffect(() => {
 		if (profile.id && !projectForm.manager_id) {
@@ -2101,6 +2117,13 @@ const DesignWorkflowShell = ({ title, variant, projectId, taskId }: Props) => {
 
 	const openAttachmentPreview = (attachment: TaskAttachment, url: string, meta: string) => {
 		setAttachmentPreview({ name: attachment.name, url, meta });
+	};
+
+	const updateBoardFiltersManually = (updater: BoardFiltersState | ((current: BoardFiltersState) => BoardFiltersState)) => {
+		setBoardFilters((current) => (typeof updater === 'function' ? updater(current) : updater));
+		setSelectedSavedViewId(null);
+		setAutoAppliedSavedViewId(null);
+		setEmptyDefaultSavedViewName('');
 	};
 
 	const applySavedView = (view: SavedView) => {
@@ -2694,7 +2717,14 @@ const DesignWorkflowShell = ({ title, variant, projectId, taskId }: Props) => {
 									<SelectField
 										value={taskItem.status}
 										onChange={(value) => {
-											if (isTaskStatus(value)) void updateTaskStatus({ id: taskItem.id, status: value });
+											if (!isTaskStatus(value) || value === taskItem.status) return;
+											void runPrimaryAction(
+												async () => {
+													await updateTaskStatus({ id: taskItem.id, status: value }).unwrap();
+												},
+												messageFor('Statut mis à jour avec succès.', 'Status updated successfully.'),
+												messageFor('Impossible de mettre à jour le statut.', 'Could not update the status.'),
+											);
 										}}
 										options={STATUS_COLUMNS.map((status) => ({ value: status, label: labelFor(status) }))}
 									/>
@@ -2886,14 +2916,14 @@ const DesignWorkflowShell = ({ title, variant, projectId, taskId }: Props) => {
 						<div className="workflow-board-segment">
 							<button
 								type="button"
-								onClick={() => setBoardFilters((current) => ({ ...current, archivedOnly: false }))}
+								onClick={() => updateBoardFiltersManually((current) => ({ ...current, archivedOnly: false }))}
 								className={!boardFilters.archivedOnly ? 'is-active' : ''}
 							>
 								{workflow.labels.activeCards}
 							</button>
 							<button
 								type="button"
-								onClick={() => setBoardFilters((current) => ({ ...current, archivedOnly: true }))}
+								onClick={() => updateBoardFiltersManually((current) => ({ ...current, archivedOnly: true }))}
 								className={boardFilters.archivedOnly ? 'is-active' : ''}
 							>
 								<Archive size={14} />
@@ -2931,13 +2961,13 @@ const DesignWorkflowShell = ({ title, variant, projectId, taskId }: Props) => {
 							<input
 								id="board-search"
 								value={boardFilters.search}
-								onChange={(event) => setBoardFilters((current) => ({ ...current, search: event.target.value }))}
+								onChange={(event) => updateBoardFiltersManually((current) => ({ ...current, search: event.target.value }))}
 								placeholder={workflow.labels.taskProjectDescription}
 							/>
 						</label>
 						<SelectField
 							value={boardFilters.project}
-							onChange={(value) => setBoardFilters((current) => ({ ...current, project: value }))}
+							onChange={(value) => updateBoardFiltersManually((current) => ({ ...current, project: value }))}
 							options={[
 								{ value: '', label: workflow.labels.allProjects },
 								...projects.map((item) => ({ value: item.id, label: item.name })),
@@ -2946,7 +2976,7 @@ const DesignWorkflowShell = ({ title, variant, projectId, taskId }: Props) => {
 						/>
 						<SelectField
 							value={boardFilters.status}
-							onChange={(value) => setBoardFilters((current) => ({ ...current, status: value }))}
+							onChange={(value) => updateBoardFiltersManually((current) => ({ ...current, status: value }))}
 							options={[
 								{ value: '', label: workflow.labels.allStatuses },
 								...STATUS_COLUMNS.map((item) => ({ value: item, label: labelFor(item) })),
@@ -2955,7 +2985,7 @@ const DesignWorkflowShell = ({ title, variant, projectId, taskId }: Props) => {
 						/>
 						<SelectField
 							value={boardFilters.priority}
-							onChange={(value) => setBoardFilters((current) => ({ ...current, priority: value }))}
+							onChange={(value) => updateBoardFiltersManually((current) => ({ ...current, priority: value }))}
 							options={[
 								{ value: '', label: workflow.labels.allPriorities },
 								...PRIORITY_OPTIONS.map((item) => ({ value: item, label: labelFor(item) })),
@@ -2964,7 +2994,7 @@ const DesignWorkflowShell = ({ title, variant, projectId, taskId }: Props) => {
 						/>
 						<SelectField
 							value={boardFilters.assignee}
-							onChange={(value) => setBoardFilters((current) => ({ ...current, assignee: value }))}
+							onChange={(value) => updateBoardFiltersManually((current) => ({ ...current, assignee: value }))}
 							options={[
 								{ value: '', label: usersLoading ? workflow.labels.loading : workflow.labels.allAssignees },
 								...designerUsers.map((item) => ({
@@ -2976,7 +3006,7 @@ const DesignWorkflowShell = ({ title, variant, projectId, taskId }: Props) => {
 						/>
 						<SelectField
 							value={boardFilters.reviewState}
-							onChange={(value) => setBoardFilters((current) => ({ ...current, reviewState: value as BoardFiltersState['reviewState'] }))}
+							onChange={(value) => updateBoardFiltersManually((current) => ({ ...current, reviewState: value as BoardFiltersState['reviewState'] }))}
 							options={[
 								{ value: '', label: workflow.labels.allReviews ?? 'All reviews' },
 								...REVIEW_STATE_OPTIONS.map((item) => ({ value: item, label: labelFor(item) })),
@@ -2985,7 +3015,7 @@ const DesignWorkflowShell = ({ title, variant, projectId, taskId }: Props) => {
 						/>
 						<SelectField
 							value={boardFilters.sort}
-							onChange={(value) => setBoardFilters((current) => ({ ...current, sort: value }))}
+							onChange={(value) => updateBoardFiltersManually((current) => ({ ...current, sort: value }))}
 							options={[
 								{ value: 'sort_order', label: workflow.labels.manualOrder ?? 'Manual order' },
 								{ value: 'due_date', label: workflow.labels.dueDateAsc ?? 'Due date ascending' },
@@ -2998,8 +3028,8 @@ const DesignWorkflowShell = ({ title, variant, projectId, taskId }: Props) => {
 						/>
 					</div>
 					<div className="workflow-kanban-toggles">
-						<ToggleField label={workflow.labels.overdueOnly} checked={boardFilters.overdueOnly} onChange={(checked) => setBoardFilters((current) => ({ ...current, overdueOnly: checked }))} />
-						<ToggleField label={workflow.labels.blockedOnly} checked={boardFilters.blockedOnly} onChange={(checked) => setBoardFilters((current) => ({ ...current, blockedOnly: checked }))} />
+						<ToggleField label={workflow.labels.overdueOnly} checked={boardFilters.overdueOnly} onChange={(checked) => updateBoardFiltersManually((current) => ({ ...current, overdueOnly: checked }))} />
+						<ToggleField label={workflow.labels.blockedOnly} checked={boardFilters.blockedOnly} onChange={(checked) => updateBoardFiltersManually((current) => ({ ...current, blockedOnly: checked }))} />
 						<Chip tone="neutral">{workflow.labels.active} {activeBoardCount}</Chip>
 					</div>
 					<div className="workflow-saved-view-bar">
@@ -3735,7 +3765,11 @@ const DesignWorkflowShell = ({ title, variant, projectId, taskId }: Props) => {
 		};
 		const approved = task.review_state === 'approved';
 		const pendingReviewAction = updateTaskReviewState.isLoading || pendingReviewMutationRef.current === task.id;
-		const reviewLocked = approved || pendingReviewAction;
+		const reviewLocked = pendingReviewAction;
+		const approvalTargetState: TaskDetail['review_state'] = approved ? 'not_submitted' : 'approved';
+		const approvalButtonLabel = approved
+			? (workflow.buttons.undoApproval ?? "Annuler l'approbation")
+			: (workflow.buttons.approve ?? 'Approve');
 		const submitArtifactVersion = async () => {
 			await runPrimaryAction(
 				async () => {
@@ -3853,12 +3887,12 @@ const DesignWorkflowShell = ({ title, variant, projectId, taskId }: Props) => {
 								<button
 									type="button"
 									disabled={reviewLocked}
-									onClick={() => void submitReviewUpdate('approved', { resetNotes: false })}
+									onClick={() => void submitReviewUpdate(approvalTargetState, { resetNotes: false })}
 									className="workflow-trello-modal-action"
 									data-active={approved}
 								>
 									<CheckCircle2 size={17} />
-									<span>{approved ? (workflow.labels.approved ?? 'Approved') : (workflow.buttons.approve ?? 'Approve')}</span>
+									<span>{approvalButtonLabel}</span>
 								</button>
 							) : null}
 							<Popover.Root>
@@ -4579,10 +4613,10 @@ const DesignWorkflowShell = ({ title, variant, projectId, taskId }: Props) => {
 													type="button"
 													className="app-button app-button-secondary"
 													disabled={reviewLocked}
-													onClick={() => submitReviewUpdate('approved')}
+													onClick={() => submitReviewUpdate(approvalTargetState)}
 												>
 													<CheckCircle2 size={16} />
-													<span>{approved ? (workflow.labels.approved ?? 'Approved') : (workflow.buttons.approve ?? 'Approve')}</span>
+													<span>{approvalButtonLabel}</span>
 												</button>
 											) : null}
 										</div>
@@ -6207,8 +6241,31 @@ const DesignWorkflowShell = ({ title, variant, projectId, taskId }: Props) => {
 		};
 		const toneForNotification = (notification: NotificationItem) =>
 			notification.type === 'chat_message' ? 'cyan' : notification.task ? 'green' : notification.is_read ? 'indigo' : 'rose';
-		const updatePreference = (key: 'mentions' | 'assignments' | 'review_requests' | 'due_soon', value: boolean) => {
-			void updateNotificationPreferences({ [key]: value });
+		const updatePreference = async (key: 'mentions' | 'assignments' | 'review_requests' | 'due_soon', value: boolean) => {
+			const previousPreferences = notificationPreferenceDraft;
+			const nextPreferences = { ...previousPreferences, [key]: value };
+			setNotificationPreferenceDraft(nextPreferences);
+			try {
+				const savedPreferences = await updateNotificationPreferences({ [key]: value }).unwrap();
+				setNotificationPreferenceDraft(savedPreferences ?? nextPreferences);
+				onSuccess(messageFor('Préférences mises à jour.', 'Preferences updated.'));
+			} catch (error) {
+				setNotificationPreferenceDraft(previousPreferences);
+				onError(getApiErrorMessage(error, messageFor('Impossible de mettre à jour les préférences.', 'Could not update preferences.')));
+			}
+		};
+		const updateDigestFrequency = async (value: NotificationPreference['digest_frequency']) => {
+			const previousPreferences = notificationPreferenceDraft;
+			const nextPreferences = { ...previousPreferences, digest_frequency: value };
+			setNotificationPreferenceDraft(nextPreferences);
+			try {
+				const savedPreferences = await updateNotificationPreferences({ digest_frequency: value }).unwrap();
+				setNotificationPreferenceDraft(savedPreferences ?? nextPreferences);
+				onSuccess(messageFor('Préférences mises à jour.', 'Preferences updated.'));
+			} catch (error) {
+				setNotificationPreferenceDraft(previousPreferences);
+				onError(getApiErrorMessage(error, messageFor('Impossible de mettre à jour les préférences.', 'Could not update preferences.')));
+			}
 		};
 		const snoozeForOneHour = (notification: NotificationItem) => {
 			const snoozedUntil = new Date(Date.now() + 60 * 60 * 1000).toISOString();
@@ -6277,7 +6334,7 @@ const DesignWorkflowShell = ({ title, variant, projectId, taskId }: Props) => {
 								<input
 									type="checkbox"
 									checked={Boolean(resolvedNotificationPreferences[key as keyof NotificationPreference])}
-									onChange={(event) => updatePreference(key as 'mentions' | 'assignments' | 'review_requests' | 'due_soon', event.target.checked)}
+									onChange={(event) => void updatePreference(key as 'mentions' | 'assignments' | 'review_requests' | 'due_soon', event.target.checked)}
 									suppressHydrationWarning
 								/>
 								<span>{label}</span>
@@ -6287,7 +6344,7 @@ const DesignWorkflowShell = ({ title, variant, projectId, taskId }: Props) => {
 							<span>{workflow.labels.digestFrequency ?? 'Digest frequency'}</span>
 							<select
 								value={resolvedNotificationPreferences.digest_frequency}
-								onChange={(event) => void updateNotificationPreferences({ digest_frequency: event.target.value as NotificationPreference['digest_frequency'] })}
+								onChange={(event) => void updateDigestFrequency(event.target.value as NotificationPreference['digest_frequency'])}
 							>
 								<option value="instant">{workflow.labels.instant ?? 'Instant'}</option>
 								<option value="daily">{workflow.labels.daily ?? 'Daily'}</option>

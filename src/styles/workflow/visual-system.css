@@ -494,15 +494,18 @@
 
 .workflow-team-side {
 	display: grid !important;
+	grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+	gap: 1rem !important;
 }
 
 .workflow-team-spotlight,
 .workflow-team-lane {
-	display: grid !important;
+	display: flex !important;
+	flex-direction: column !important;
 	gap: 1rem !important;
 	min-height: 13.5rem !important;
 	height: 100% !important;
-	align-content: start !important;
+	align-content: stretch !important;
 }
 
 .workflow-team-side > .workflow-team-spotlight,
@@ -520,10 +523,20 @@
 
 .workflow-team-spotlight > .workflow-empty-state,
 .workflow-team-empty-line {
+	flex: 1 1 0 !important;
 	align-self: stretch !important;
 	height: 100% !important;
 	min-height: 0 !important;
 	align-content: center !important;
+}
+
+.workflow-team-lane .workflow-team-panel-pill {
+	flex: 0 0 auto !important;
+}
+
+.workflow-team-lane .workflow-team-mini-row {
+	flex: 1 1 0 !important;
+	min-height: 5.75rem !important;
 }
 
 .workflow-team-empty-line {
@@ -1352,13 +1365,28 @@
 	display: flex !important;
 	min-width: 0 !important;
 	flex-direction: column !important;
+	gap: 0.875rem !important;
 	color: inherit !important;
 	text-decoration: none !important;
 	cursor: pointer !important;
 }
 
+.workflow-project-card-modern .workflow-project-card-main,
+.workflow-project-card-modern .workflow-project-card-stats {
+	margin-top: 0 !important;
+}
+
+.workflow-project-card-modern .workflow-project-card-stats {
+	align-items: stretch !important;
+}
+
+.workflow-project-card-modern .workflow-project-card-stats span {
+	min-height: 5.25rem !important;
+	align-content: space-between !important;
+}
+
 .workflow-project-card-modern > .mt-4 {
-	margin-top: auto !important;
+	margin-top: 0.875rem !important;
 }
 
 .workflow-chat-context-icon {
@@ -1444,6 +1472,25 @@
 .workflow-task-modal .workflow-trello-modal-floating-body {
 	max-height: min(28rem, calc(100vh - 14rem)) !important;
 	overflow: auto !important;
+}
+
+.workflow-task-modal .workflow-checklist-template-picker {
+	gap: 1rem !important;
+	margin-top: 1rem !important;
+	padding: 1rem !important;
+}
+
+.workflow-task-modal .workflow-checklist-template-picker > p {
+	margin: 0 !important;
+}
+
+.workflow-task-modal .workflow-checklist-template-picker > div {
+	gap: 0.875rem !important;
+}
+
+.workflow-task-modal .workflow-checklist-template-picker button {
+	gap: 0.45rem !important;
+	padding: 1rem 1.125rem !important;
 }
 
 @keyframes workflow-chat-fade-in {

@@ -503,6 +503,7 @@ export const en: TranslationDictionary = {
       markAsRead: 'Mark as read',
       markAllAsRead: 'Mark all read',
       archive: 'Archive',
+      undoApproval: 'Undo approval',
       openChat: 'Open chat',
       restore: 'Restore',
       loadOlder: 'Load older',
@@ -840,4 +841,3 @@ export const en: TranslationDictionary = {
     moreActions: 'More actions',
   },
 };
-
