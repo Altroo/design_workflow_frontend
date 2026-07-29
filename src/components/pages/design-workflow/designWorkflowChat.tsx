@@ -518,10 +518,13 @@ const DesignWorkflowChat = () => {
 		}
 	}, [chatThreads, requestedThreadId, selectedThreadId]);
 
-	const usersResponse = useGetUsersListQuery({ with_pagination: false }, { skip: !chatDataReady });
+	const usersResponse = useGetUsersListQuery({ with_pagination: false, is_active: true }, { skip: !chatDataReady });
 	const usersRaw = (usersResponse.data ?? []) as Array<Partial<UserClass>> | { results?: Array<Partial<UserClass>>; data?: Array<Partial<UserClass>> };
 	const users = (Array.isArray(usersRaw) ? usersRaw : usersRaw.results ?? usersRaw.data ?? [])
-		.filter((user): user is WorkflowUser => typeof user.id === 'number' && Boolean(user.email) && user.id !== profile.id)
+		.filter(
+			(user): user is WorkflowUser =>
+				user.is_active === true && typeof user.id === 'number' && Boolean(user.email) && user.id !== profile.id,
+		)
 		.map((user) => {
 			const croppedAvatar = 'avatar_cropped' in user && typeof user.avatar_cropped === 'string' ? user.avatar_cropped : null;
 			return {
