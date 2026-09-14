@@ -4,7 +4,7 @@ const cx = (...parts: Array<string | false | null | undefined>) => parts.filter(
 
 type WorkflowPageHeroProps = {
 	className: string;
-	eyebrow: ReactNode;
+	eyebrow?: ReactNode;
 	title: ReactNode;
 	actions?: ReactNode;
 	actionsClassName?: string;
@@ -29,7 +29,7 @@ export const WorkflowPageHero = ({
 }: WorkflowPageHeroProps) => (
 	<Element className={className}>
 		<div className={titleClassName}>
-			<p>{eyebrow}</p>
+			{eyebrow ? <p>{eyebrow}</p> : null}
 			<Title>{title}</Title>
 			{description ? <span>{description}</span> : null}
 		</div>

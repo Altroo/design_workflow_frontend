@@ -533,7 +533,7 @@ const DesignWorkflowChat = () => {
 				last_name: user.last_name ?? '',
 				email: user.email ?? '',
 				role: user.role ?? 'designer',
-				avatar: typeof user.avatar === 'string' ? user.avatar : croppedAvatar,
+				avatar: croppedAvatar || (typeof user.avatar === 'string' ? user.avatar : null),
 			};
 		});
 	const currentWorkflowUser: WorkflowUser = useMemo(() => ({
@@ -542,8 +542,9 @@ const DesignWorkflowChat = () => {
 		last_name: profile.last_name ?? '',
 		email: profile.email ?? '',
 		role: profile.role ?? 'designer',
-		avatar: typeof profile.avatar === 'string' ? profile.avatar : null,
-	}), [profile.avatar, profile.email, profile.first_name, profile.id, profile.last_name, profile.role]);
+		avatar: (typeof profile.avatar_cropped === 'string' && profile.avatar_cropped)
+			|| (typeof profile.avatar === 'string' ? profile.avatar : null),
+	}), [profile.avatar, profile.avatar_cropped, profile.email, profile.first_name, profile.id, profile.last_name, profile.role]);
 
 	useEffect(() => {
 		const pendingRequestedThread = requestedThreadId && (threadsLoading || threadsFetching || requestedThreadAvailable);
@@ -1129,7 +1130,6 @@ const DesignWorkflowChat = () => {
 				<WorkflowPageHero
 					element="div"
 					className="workflow-chat-sidebar-head"
-					eyebrow={t.workflow.labels.workflow}
 					title={t.workflow.labels.chatTitle ?? 'Chat'}
 					titleElement="h2"
 					actionsWrapper={false}
@@ -1546,7 +1546,7 @@ const DesignWorkflowChat = () => {
 											</button>
 										) : null}
 										<div className={['workflow-chat-bubble max-w-[82%] rounded-2xl border px-4 py-3 shadow-(--shadow-sm)', mine ? 'workflow-chat-bubble-mine' : '', bubbleTone].join(' ')}>
-											<div className="mb-2 flex items-start justify-between gap-3">
+											<div className="workflow-chat-message-head mb-2 flex items-start justify-between gap-3">
 												<button
 													type="button"
 													onClick={() => selectedThread?.kind === 'public' && !mine && void startPrivateThread(message.sender)}
@@ -1555,7 +1555,7 @@ const DesignWorkflowChat = () => {
 												>
 													{senderName}
 												</button>
-												<div className="flex items-center gap-2 text-(--ink-soft)">
+												<div className="workflow-chat-message-actions flex items-center gap-2 text-(--ink-soft)">
 													<button
 														type="button"
 														onClick={() => setReplyTarget(message)}
@@ -2029,6 +2029,7 @@ const DesignWorkflowChat = () => {
 							onClick={submit}
 							disabled={!selectedThread?.id || sendMessageState.isLoading || (!body.trim() && files.length === 0)}
 							className="app-button h-11 px-4"
+							aria-label={t.common.submit}
 						>
 							<Send size={16} />
 						</button>

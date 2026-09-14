@@ -820,6 +820,7 @@ describe('Design workflow acceptance flows', () => {
 	});
 
 	it('surfaces source chat links on task detail', async () => {
+		const user = userEvent.setup();
 		mockProfile(manager);
 		mockUseGetTaskQuery.mockReturnValue({ data: sourceTaskDetail, isLoading: false });
 
@@ -833,10 +834,15 @@ describe('Design workflow acceptance flows', () => {
 		render(<DesignWorkflowShell title="Board" variant="board" taskId={sourceTaskDetail.id} />);
 
 		await waitFor(() => {
-			expect(screen.getByRole('dialog')).toBeInTheDocument();
+			expect(screen.getByRole('dialog', { name: sourceTaskDetail.title })).toBeInTheDocument();
 		});
 		expect(screen.getByText('Source chat message')).toBeInTheDocument();
 		expect(screen.getByRole('link', { name: 'Open source chat' })).toHaveAttribute('href', '/dashboard/chat?thread=44&message=555');
+		const closeButton = within(screen.getByRole('dialog')).getByRole('button', { name: 'Close' });
+		expect(closeButton.parentElement).toHaveClass('workflow-task-modal');
+		expect(closeButton.closest('.workflow-task-modal-body')).toBeNull();
+		await user.click(closeButton);
+		expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
 	});
 
 	it('covers overdue signal across dashboard, workload, report, and notifications', async () => {

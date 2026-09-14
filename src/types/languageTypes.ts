@@ -196,6 +196,7 @@ export type TranslationDictionary = {
   };
   auth: {
     login: string;
+    loginDescription: string;
     emailAddress: string;
     emailPlaceholder: string;
     password: string;
@@ -300,4 +301,3 @@ export type TranslationDictionary = {
     moreActions: string;
   };
 };
-

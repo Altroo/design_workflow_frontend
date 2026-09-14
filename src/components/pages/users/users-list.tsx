@@ -281,18 +281,20 @@ const UsersListClient: React.FC<SessionProps> = ({ session }) => {
 															<div className="workflow-users-row-actions">
 																<button
 																	type="button"
-																	onClick={() => router.push(USERS_VIEW(user.id))}
-																	className="workflow-users-icon-button"
-																	title={t.common.view}
+																onClick={() => router.push(USERS_VIEW(user.id))}
+																className="workflow-users-icon-button"
+																data-tone="view"
+																title={t.common.view}
 																	aria-label={t.common.view}
 																>
 																	<Eye className="h-4 w-4" />
 																</button>
 																<button
 																	type="button"
-																	onClick={() => router.push(USERS_EDIT(user.id))}
-																	className="workflow-users-icon-button"
-																	title={t.common.edit}
+																onClick={() => router.push(USERS_EDIT(user.id))}
+																className="workflow-users-icon-button"
+																data-tone="edit"
+																title={t.common.edit}
 																	aria-label={t.common.edit}
 																>
 																	<PencilLine className="h-4 w-4" />
@@ -303,7 +305,8 @@ const UsersListClient: React.FC<SessionProps> = ({ session }) => {
 																		setSelectedUserId(user.id);
 																		setShowDeleteModal(true);
 																	}}
-																	className="workflow-users-icon-button workflow-users-icon-button-danger"
+																className="workflow-users-icon-button workflow-users-icon-button-danger"
+																data-tone="delete"
 																	title={t.common.delete}
 																	aria-label={t.common.delete}
 																>
@@ -359,10 +362,10 @@ const UsersListClient: React.FC<SessionProps> = ({ session }) => {
 													<span>{t.users.registrationDate}: <b>{formatDate(user.date_joined)}</b></span>
 												</div>
 												<div className="workflow-users-mobile-actions">
-													<button type="button" onClick={() => router.push(USERS_VIEW(user.id))} className="workflow-users-icon-button" title={t.common.view} aria-label={t.common.view}>
+											<button type="button" onClick={() => router.push(USERS_VIEW(user.id))} className="workflow-users-icon-button" data-tone="view" title={t.common.view} aria-label={t.common.view}>
 														<Eye className="h-4 w-4" />
 													</button>
-													<button type="button" onClick={() => router.push(USERS_EDIT(user.id))} className="workflow-users-icon-button" title={t.common.edit} aria-label={t.common.edit}>
+											<button type="button" onClick={() => router.push(USERS_EDIT(user.id))} className="workflow-users-icon-button" data-tone="edit" title={t.common.edit} aria-label={t.common.edit}>
 														<PencilLine className="h-4 w-4" />
 													</button>
 													<button
@@ -371,7 +374,8 @@ const UsersListClient: React.FC<SessionProps> = ({ session }) => {
 															setSelectedUserId(user.id);
 															setShowDeleteModal(true);
 														}}
-														className="workflow-users-icon-button workflow-users-icon-button-danger"
+												className="workflow-users-icon-button workflow-users-icon-button-danger"
+												data-tone="delete"
 														title={t.common.delete}
 														aria-label={t.common.delete}
 													>

@@ -1,4 +1,4 @@
-/* Final unified palette layer: neutral workspace with slate chrome accent. */
+/* Shared workspace palette with a consistent action accent. */
 :root {
 	--app-bg: #f8fafc;
 	--surface: #ffffff;
@@ -9,10 +9,10 @@
 	--ink-muted: #64748b;
 	--line: #e5e7eb;
 	--line-strong: #cbd5e1;
-	--accent: #111827;
-	--accent-strong: #020617;
-	--accent-soft: #f8fafc;
-	--accent-tint: #f8fafc;
+	--accent: #4f46e5;
+	--accent-strong: #4338ca;
+	--accent-soft: #eef2ff;
+	--accent-tint: #fafaff;
 }
 
 .workflow-kanban-page,

@@ -147,6 +147,7 @@ import { getAccessToken, getProfilState, getWSOnlineUserIdsState } from '@/store
 import type { UserClass } from '@/models/classes';
 import type { TranslationDictionary } from '@/types/languageTypes';
 import { WorkflowMetricCard as MetricCard, WorkflowPageHero, WorkflowPanelPill, WorkflowSimpleMetric } from '@/components/shared/workflow/workflowPrimitives';
+import { BOARD_STATUS_META, STATUS_COLUMNS } from '@/components/shared/workflow/boardAppearance';
 import { WorkflowAvatar, WORKFLOW_AVATAR_SIZES } from '@/components/shared/workflow/workflowAvatar';
 
 ChartJS.register(CategoryScale, LinearScale, BarElement, ArcElement, LineElement, PointElement, Filler, Tooltip, Legend);
@@ -201,7 +202,6 @@ type BoardFiltersState = {
 	archivedOnly: boolean;
 };
 
-const STATUS_COLUMNS: TaskStatus[] = ['backlog', 'todo', 'in_progress', 'in_review', 'blocked', 'done'];
 const PRIORITY_OPTIONS: Array<TaskCard['priority']> = ['low', 'medium', 'high', 'urgent'];
 const REVIEW_STATE_OPTIONS: Array<TaskCard['review_state']> = ['not_submitted', 'needs_review', 'changes_requested', 'approved'];
 const BOARD_SORT_OPTIONS = ['sort_order', 'due_date', '-due_date', 'priority', '-priority', 'updated_at', '-updated_at', 'title'] as const;
@@ -225,23 +225,51 @@ const EMPTY_SELECT_VALUE = '__empty__';
 const WORK_DAY_MINUTES = 9 * 60;
 type WorkflowCopy = TranslationDictionary['workflow'];
 type PrintableReportCopy = {
+	brand: string;
+	reportStudio: string;
 	title: string;
+	issuedBy: string;
+	generatedOn: string;
+	period: string;
+	scope: string;
+	allProjects: string;
+	summary: string;
+	projectsIncluded: string;
 	trackedTime: string;
 	leadTime: string;
 	cycleTime: string;
 	blockedTime: string;
+	blockedTasks: string;
 	projectTime: string;
 	project: string;
 	manager: string;
+	status: string;
+	priority: string;
 	minutes: string;
 	hours: string;
+	share: string;
+	deliveryFlow: string;
+	reviewBottlenecks: string;
+	estimateVsActual: string;
+	statusDistribution: string;
+	tasksSampled: string;
+	needsReview: string;
+	changesRequested: string;
+	approved: string;
+	pendingReviewMinutes: string;
+	estimatedMinutes: string;
+	actualMinutes: string;
+	varianceMinutes: string;
 	designerForecast: string;
 	designer: string;
 	openTasks: string;
 	overdueTasks: string;
 	remainingMinutes: string;
 	loadPercent: string;
+	forecastDays: string;
 	risk: string;
+	designersIncluded: string;
+	page: string;
 	noProjectTimeWindow: string;
 	noForecastRows: string;
 };
@@ -324,9 +352,6 @@ const isCardInteractiveTarget = (target: EventTarget | null) =>
 	target instanceof HTMLElement && Boolean(target.closest('button, a, input, textarea, select, [data-no-card-open]'));
 let boardDragPointerY: number | null = null;
 let boardDragPointerX: number | null = null;
-let boardPointerDragTask: { id: number; startX: number; startY: number } | null = null;
-let boardMouseDragTask: { id: number; startX: number; startY: number } | null = null;
-let boardReleaseTaskId: number | null = null;
 
 const emptyProjectForm = (managerId?: number): ProjectInput => ({
 	name: '',
@@ -390,7 +415,7 @@ const ensureFileExtension = (filename: string, extension: string) => {
 
 const downloadCsv = (filename: string, rows: Array<Array<string | number | null | undefined>>) => {
 	if (typeof window === 'undefined') return;
-	const blob = new Blob([rows.map((row) => row.map(csvCell).join(',')).join('\n')], { type: 'text/csv;charset=utf-8' });
+	const blob = new Blob([`\uFEFF${rows.map((row) => row.map(csvCell).join(',')).join('\n')}`], { type: 'text/csv;charset=utf-8' });
 	const url = URL.createObjectURL(blob);
 	const link = document.createElement('a');
 	link.href = url;
@@ -408,19 +433,30 @@ const escapeHtml = (value: string | number | null | undefined) =>
 		.replace(/>/g, '&gt;')
 		.replace(/"/g, '&quot;')
 		.replace(/'/g, '&#039;');
+const formatExportDateTime = (value: string, locale: string) => {
+	const parsed = new Date(value);
+	if (Number.isNaN(parsed.getTime())) return value;
+	return new Intl.DateTimeFormat(locale, { dateStyle: 'medium', timeStyle: 'short' }).format(parsed);
+};
 const openPrintableReport = ({
 	dateWindow,
+	generatedAt,
+	locale,
 	totalMinutes,
 	timeReport,
 	workflowReport,
 	copy,
+	labelFor,
 	riskLabelFor,
 }: {
 	dateWindow: string;
+	generatedAt: string;
+	locale: string;
 	totalMinutes: number;
 	timeReport: TimeReportRow[];
 	workflowReport?: WorkflowAnalyticsReport;
 	copy: PrintableReportCopy;
+	labelFor: (value: string) => string;
 	riskLabelFor: (risk: string) => string;
 }) => {
 	if (typeof window === 'undefined') return;
@@ -429,14 +465,18 @@ const openPrintableReport = ({
 		window.print();
 		return;
 	}
+	const generatedLabel = formatExportDateTime(generatedAt, locale);
 	const forecastRows = workflowReport?.designer_forecast ?? [];
 	const projectRows = timeReport
 		.map((row) => `
 			<tr>
 				<td>${escapeHtml(row.project.name)}</td>
 				<td>${escapeHtml(`${row.project.manager.first_name} ${row.project.manager.last_name}`.trim() || row.project.manager.email)}</td>
+				<td><span class="status-chip">${escapeHtml(labelFor(row.project.status))}</span></td>
+				<td>${escapeHtml(labelFor(row.project.priority))}</td>
 				<td>${escapeHtml(row.minutes)}</td>
-				<td>${escapeHtml(Math.round((row.minutes / 60) * 100) / 100)}</td>
+				<td>${escapeHtml((row.minutes / 60).toFixed(2))}</td>
+				<td>${escapeHtml(totalMinutes ? `${Math.round((row.minutes / totalMinutes) * 100)}%` : '0%')}</td>
 			</tr>
 		`)
 		.join('');
@@ -448,51 +488,126 @@ const openPrintableReport = ({
 				<td>${escapeHtml(row.overdue_tasks)}</td>
 				<td>${escapeHtml(row.remaining_minutes)}</td>
 				<td>${escapeHtml(`${row.load_percent}%`)}</td>
+				<td>${escapeHtml(row.forecast_days)}</td>
 				<td>${escapeHtml(riskLabelFor(row.risk))}</td>
 			</tr>
 		`)
 		.join('');
+	const statusHtml = STATUS_COLUMNS
+		.map((status) => `
+			<div class="status-item">
+				<span><i class="status-dot status-${escapeHtml(status)}"></i>${escapeHtml(labelFor(status))}</span>
+				<strong>${escapeHtml(workflowReport?.status_counts[status] ?? 0)}</strong>
+			</div>
+		`)
+		.join('');
+	const review = workflowReport?.review_bottlenecks;
+	const estimate = workflowReport?.estimate_vs_actual;
+	const topProject = timeReport[0]?.project.name ?? '-';
 	printable.document.write(`<!doctype html>
-		<html>
+		<html lang="${locale.startsWith('fr') ? 'fr' : 'en'}">
 			<head>
+				<meta charset="utf-8" />
 				<title>${escapeHtml(copy.title)}</title>
 				<style>
 					* { box-sizing: border-box; }
-					body { margin: 0; padding: 32px; color: #0f172a; font: 13px/1.45 Arial, sans-serif; }
-					header { border-bottom: 2px solid #0f172a; margin-bottom: 24px; padding-bottom: 16px; }
-					h1 { margin: 0; font-size: 28px; }
-					h2 { margin: 24px 0 10px; font-size: 18px; }
-					.kpis { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; }
-					.kpi { border: 1px solid #cbd5e1; border-radius: 10px; padding: 12px; }
-					.kpi span { display: block; color: #64748b; font-size: 11px; font-weight: 700; text-transform: uppercase; }
-					.kpi strong { display: block; margin-top: 6px; font-size: 20px; }
-					table { width: 100%; border-collapse: collapse; margin-top: 8px; }
-					th, td { border: 1px solid #cbd5e1; padding: 8px; text-align: left; }
-					th { background: #f1f5f9; font-size: 11px; text-transform: uppercase; }
-					@page { margin: 16mm; }
+					:root { --navy: #1e2a52; --ink: #334155; --muted: #64748b; --brand: #4f46e5; --cyan: #0891b2; --green: #15803d; --rose: #be123c; --amber: #b45309; --line: #dbe2ee; --soft: #f7f8fc; }
+					body { margin: 0; color: var(--ink); background: #fff; font: 10px/1.45 Arial, Helvetica, sans-serif; }
+					.report { width: 100%; }
+					.report-header { display: grid; grid-template-columns: 1.1fr .9fr; gap: 18px; align-items: start; padding-bottom: 14px; border-bottom: 2px solid var(--brand); }
+					.brand-card { display: grid; grid-template-columns: 4px 1fr; min-height: 64px; border: 1px solid var(--line); background: var(--soft); }
+					.brand-rail { background: var(--brand); }
+					.brand-copy { padding: 10px 12px; }
+					.eyebrow { margin: 0; color: var(--brand); font-size: 7px; font-weight: 800; letter-spacing: .12em; text-transform: uppercase; }
+					.brand-copy strong { display: block; margin-top: 4px; color: var(--navy); font-size: 16px; }
+					.brand-copy span { color: var(--muted); font-size: 8px; }
+					.report-title { text-align: right; }
+					h1 { margin: 0; color: var(--navy); font-size: 21px; line-height: 1.15; letter-spacing: -.02em; text-transform: uppercase; }
+					.report-title p { margin: 7px 0 0; color: var(--muted); font-size: 8px; }
+					.meta-strip { display: grid; grid-template-columns: repeat(3, 1fr); margin: 10px 0 12px; border: 1px solid var(--line); background: var(--soft); }
+					.meta { min-height: 46px; padding: 8px 10px; border-right: 1px solid var(--line); }
+					.meta:last-child { border-right: 0; }
+					.meta span, .kpi span, .mini-card span { display: block; color: var(--muted); font-size: 7px; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; }
+					.meta strong { display: block; margin-top: 4px; color: var(--navy); font-size: 10px; }
+					.kpis { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin-bottom: 14px; }
+					.kpi { min-height: 58px; padding: 9px 10px; border: 1px solid var(--line); border-left: 4px solid var(--accent); background: #fff; break-inside: avoid; }
+					.kpi strong { display: block; margin-top: 5px; color: var(--accent); font-size: 16px; line-height: 1; }
+					.kpi small { display: block; margin-top: 5px; color: var(--muted); font-size: 7px; }
+					.section { margin-top: 14px; break-inside: avoid-page; }
+					.section-head { display: flex; align-items: flex-end; justify-content: space-between; gap: 12px; padding-bottom: 5px; border-bottom: 1px solid var(--brand); }
+					.section-head h2 { margin: 0; color: var(--navy); font-size: 12px; }
+					.section-head span { color: var(--muted); font-size: 7px; }
+					.report-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 9px; }
+					.mini-card { min-height: 108px; padding: 10px; border: 1px solid var(--line); background: var(--soft); break-inside: avoid; }
+					.mini-card h3 { margin: 0 0 8px; color: var(--navy); font-size: 10px; }
+					.mini-metrics { display: grid; grid-template-columns: 1fr 1fr; gap: 7px; }
+					.mini-metrics div { padding-left: 7px; border-left: 3px solid var(--accent); }
+					.mini-metrics strong { display: block; margin-top: 2px; color: var(--navy); font-size: 11px; }
+					table { width: 100%; margin-top: 7px; border-collapse: collapse; }
+					thead { display: table-header-group; }
+					tr { break-inside: avoid; }
+					th { padding: 6px 7px; border: 1px solid #cfd7e6; color: var(--navy); background: #eef1f8; font-size: 7px; letter-spacing: .05em; text-align: left; text-transform: uppercase; }
+					td { padding: 6px 7px; border: 1px solid #dfe5ef; color: #475569; font-size: 7.5px; vertical-align: top; }
+					tbody tr:nth-child(even) td { background: #fafbfe; }
+					.status-chip { display: inline-block; padding: 2px 5px; border: 1px solid #c7d2fe; color: #4338ca; background: #eef2ff; font-weight: 700; }
+					.status-dot { display: inline-block; width: 6px; height: 6px; margin-right: 5px; border-radius: 50%; background: var(--brand); }
+					.status-backlog { background: #64748b; } .status-todo { background: #4f46e5; } .status-in_progress { background: #0891b2; } .status-in_review { background: #b45309; } .status-blocked { background: #be123c; } .status-done { background: #15803d; }
+					.status-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; margin-top: 7px; }
+					.status-item { display: flex; align-items: center; justify-content: space-between; gap: 8px; min-height: 30px; padding: 6px 8px; border: 1px solid var(--line); background: var(--soft); }
+					.status-item span { display: flex; align-items: center; color: #475569; font-size: 7.5px; }
+					.status-item strong { color: var(--navy); font-size: 10px; }
+					.empty { padding: 12px; color: var(--muted); text-align: center; }
+					.report-footer { display: none; }
+					@page {
+						size: A4;
+						margin: 12mm 11mm 16mm;
+						@bottom-left { content: "${escapeHtml(copy.brand)} - ${escapeHtml(copy.generatedOn)} ${escapeHtml(generatedLabel)}"; color: #64748b; font: 7px Arial, Helvetica, sans-serif; }
+						@bottom-right { content: "${escapeHtml(copy.page)} " counter(page) " / " counter(pages); color: #64748b; font: 7px Arial, Helvetica, sans-serif; }
+					}
+					@media screen { body { max-width: 900px; margin: 0 auto; padding: 28px; } .report-footer { display: flex; justify-content: space-between; margin-top: 18px; padding-top: 6px; border-top: 1px solid var(--line); color: var(--muted); font-size: 7px; } }
 				</style>
 			</head>
 			<body>
-				<header>
-					<h1>${escapeHtml(copy.title)}</h1>
-					<p>${escapeHtml(dateWindow)}</p>
-				</header>
-				<section class="kpis">
-					<div class="kpi"><span>${escapeHtml(copy.trackedTime)}</span><strong>${escapeHtml(formatMinutes(totalMinutes))}</strong></div>
-					<div class="kpi"><span>${escapeHtml(copy.leadTime)}</span><strong>${escapeHtml(workflowReport ? `${workflowReport.lead_time_days}d` : 'n/a')}</strong></div>
-					<div class="kpi"><span>${escapeHtml(copy.cycleTime)}</span><strong>${escapeHtml(workflowReport ? `${workflowReport.cycle_time_days}d` : 'n/a')}</strong></div>
-					<div class="kpi"><span>${escapeHtml(copy.blockedTime)}</span><strong>${escapeHtml(formatMinutes(workflowReport?.blocked_time_minutes ?? 0))}</strong></div>
-				</section>
-				<h2>${escapeHtml(copy.projectTime)}</h2>
-				<table>
-					<thead><tr><th>${escapeHtml(copy.project)}</th><th>${escapeHtml(copy.manager)}</th><th>${escapeHtml(copy.minutes)}</th><th>${escapeHtml(copy.hours)}</th></tr></thead>
-					<tbody>${projectRows || `<tr><td colspan="4">${escapeHtml(copy.noProjectTimeWindow)}</td></tr>`}</tbody>
-				</table>
-				<h2>${escapeHtml(copy.designerForecast)}</h2>
-				<table>
-					<thead><tr><th>${escapeHtml(copy.designer)}</th><th>${escapeHtml(copy.openTasks)}</th><th>${escapeHtml(copy.overdueTasks)}</th><th>${escapeHtml(copy.remainingMinutes)}</th><th>${escapeHtml(copy.loadPercent)}</th><th>${escapeHtml(copy.risk)}</th></tr></thead>
-					<tbody>${forecastHtml || `<tr><td colspan="6">${escapeHtml(copy.noForecastRows)}</td></tr>`}</tbody>
-				</table>
+				<main class="report">
+					<header class="report-header">
+						<div class="brand-card"><div class="brand-rail"></div><div class="brand-copy"><p class="eyebrow">${escapeHtml(copy.issuedBy)}</p><strong>${escapeHtml(copy.brand)}</strong><span>${escapeHtml(copy.reportStudio)}</span></div></div>
+						<div class="report-title"><h1>${escapeHtml(copy.title)}</h1><p>${escapeHtml(copy.generatedOn)} ${escapeHtml(generatedLabel)}</p></div>
+					</header>
+					<section class="meta-strip">
+						<div class="meta"><span>${escapeHtml(copy.scope)}</span><strong>${escapeHtml(copy.allProjects)}</strong></div>
+						<div class="meta"><span>${escapeHtml(copy.period)}</span><strong>${escapeHtml(dateWindow)}</strong></div>
+						<div class="meta"><span>${escapeHtml(copy.tasksSampled)}</span><strong>${escapeHtml(workflowReport?.tasks_sampled ?? 0)}</strong></div>
+					</section>
+					<section class="kpis">
+						<div class="kpi" style="--accent:#4f46e5"><span>${escapeHtml(copy.trackedTime)}</span><strong>${escapeHtml(formatMinutes(totalMinutes))}</strong><small>${escapeHtml(timeReport.length)} ${escapeHtml(copy.projectsIncluded)}</small></div>
+						<div class="kpi" style="--accent:#0891b2"><span>${escapeHtml(copy.leadTime)}</span><strong>${escapeHtml(workflowReport ? `${workflowReport.lead_time_days}d` : '-')}</strong><small>${escapeHtml(copy.deliveryFlow)}</small></div>
+						<div class="kpi" style="--accent:#15803d"><span>${escapeHtml(copy.cycleTime)}</span><strong>${escapeHtml(workflowReport ? `${workflowReport.cycle_time_days}d` : '-')}</strong><small>${escapeHtml(topProject)}</small></div>
+						<div class="kpi" style="--accent:#be123c"><span>${escapeHtml(copy.blockedTime)}</span><strong>${escapeHtml(formatMinutes(workflowReport?.blocked_time_minutes ?? 0))}</strong><small>${escapeHtml(workflowReport?.blocked_tasks ?? 0)} ${escapeHtml(copy.blockedTasks)}</small></div>
+					</section>
+					<section class="section">
+						<div class="section-head"><h2>${escapeHtml(copy.projectTime)}</h2><span>${escapeHtml(timeReport.length)} ${escapeHtml(copy.projectsIncluded)}</span></div>
+						<table>
+							<thead><tr><th>${escapeHtml(copy.project)}</th><th>${escapeHtml(copy.manager)}</th><th>${escapeHtml(copy.status)}</th><th>${escapeHtml(copy.priority)}</th><th>${escapeHtml(copy.minutes)}</th><th>${escapeHtml(copy.hours)}</th><th>${escapeHtml(copy.share)}</th></tr></thead>
+							<tbody>${projectRows || `<tr><td class="empty" colspan="7">${escapeHtml(copy.noProjectTimeWindow)}</td></tr>`}</tbody>
+						</table>
+					</section>
+					<section class="section report-grid">
+						<article class="mini-card" style="--accent:#b45309"><h3>${escapeHtml(copy.reviewBottlenecks)}</h3><div class="mini-metrics"><div><span>${escapeHtml(copy.needsReview)}</span><strong>${escapeHtml(review?.needs_review ?? 0)}</strong></div><div><span>${escapeHtml(copy.changesRequested)}</span><strong>${escapeHtml(review?.changes_requested ?? 0)}</strong></div><div><span>${escapeHtml(copy.approved)}</span><strong>${escapeHtml(review?.approved ?? 0)}</strong></div><div><span>${escapeHtml(copy.pendingReviewMinutes)}</span><strong>${escapeHtml(formatMinutes(review?.pending_review_minutes ?? 0))}</strong></div></div></article>
+						<article class="mini-card" style="--accent:#0891b2"><h3>${escapeHtml(copy.estimateVsActual)}</h3><div class="mini-metrics"><div><span>${escapeHtml(copy.estimatedMinutes)}</span><strong>${escapeHtml(formatMinutes(estimate?.estimated_minutes ?? 0))}</strong></div><div><span>${escapeHtml(copy.actualMinutes)}</span><strong>${escapeHtml(formatMinutes(estimate?.actual_minutes ?? 0))}</strong></div><div><span>${escapeHtml(copy.varianceMinutes)}</span><strong>${escapeHtml(formatMinutes(estimate?.variance_minutes ?? 0))}</strong></div><div><span>${escapeHtml(copy.tasksSampled)}</span><strong>${escapeHtml(workflowReport?.tasks_sampled ?? 0)}</strong></div></div></article>
+					</section>
+					<section class="section">
+						<div class="section-head"><h2>${escapeHtml(copy.statusDistribution)}</h2><span>${escapeHtml(workflowReport?.tasks_sampled ?? 0)} ${escapeHtml(copy.tasksSampled.toLowerCase())}</span></div>
+						<div class="status-grid">${statusHtml}</div>
+					</section>
+					<section class="section">
+						<div class="section-head"><h2>${escapeHtml(copy.designerForecast)}</h2><span>${escapeHtml(forecastRows.length)} ${escapeHtml(copy.designersIncluded)}</span></div>
+						<table>
+							<thead><tr><th>${escapeHtml(copy.designer)}</th><th>${escapeHtml(copy.openTasks)}</th><th>${escapeHtml(copy.overdueTasks)}</th><th>${escapeHtml(copy.remainingMinutes)}</th><th>${escapeHtml(copy.loadPercent)}</th><th>${escapeHtml(copy.forecastDays)}</th><th>${escapeHtml(copy.risk)}</th></tr></thead>
+							<tbody>${forecastHtml || `<tr><td class="empty" colspan="7">${escapeHtml(copy.noForecastRows)}</td></tr>`}</tbody>
+						</table>
+					</section>
+				</main>
+				<footer class="report-footer"><span>${escapeHtml(copy.brand)} - ${escapeHtml(copy.generatedOn)} ${escapeHtml(generatedLabel)}</span><span>${escapeHtml(copy.page)}</span></footer>
 			</body>
 		</html>`);
 	printable.document.close();
@@ -583,16 +698,7 @@ const getChecklistTemplates = (labels: WorkflowCopy['labels']): ChecklistTemplat
 	},
 ];
 
-const WORKFLOW_CHART_PALETTE = ['#111827', '#475569', '#64748b', '#94a3b8', '#cbd5e1', '#e5e7eb'];
-
-const BOARD_STATUS_META: Record<TaskStatus, { accent: string; text: string; soft: string; icon: ReactNode }> = {
-	backlog: { accent: '#64748b', text: '#334155', soft: '#f8fafc', icon: <Bookmark size={14} /> },
-	todo: { accent: '#4f46e5', text: '#312e81', soft: '#eef2ff', icon: <ListTodo size={14} /> },
-	in_progress: { accent: '#f59e0b', text: '#92400e', soft: '#fffbeb', icon: <Clock3 size={14} /> },
-	in_review: { accent: '#06b6d4', text: '#155e75', soft: '#ecfeff', icon: <ShieldCheck size={14} /> },
-	blocked: { accent: '#e11d48', text: '#9f1239', soft: '#fff1f2', icon: <CircleAlert size={14} /> },
-	done: { accent: '#22c55e', text: '#166534', soft: '#f0fdf4', icon: <CheckCircle2 size={14} /> },
-};
+const WORKFLOW_CHART_PALETTE = ['#4f46e5', '#0891b2', '#059669', '#d97706', '#7c3aed', '#e11d48'];
 
 const formatDate = (value?: string | null, emptyLabel = 'No date', locale?: string) => {
 	if (!value) return emptyLabel;
@@ -1181,17 +1287,12 @@ const TaskPeople = ({ task }: { task: TaskCard }) => {
 	);
 };
 
-const BoardTaskCover = ({
-	task,
-	labelFor,
-}: {
-	task: TaskCard;
-	labelFor: (value: string) => string;
-}) => {
+const BoardTaskCover = ({ task }: { task: TaskCard }) => {
 	const [failedCoverUrl, setFailedCoverUrl] = useState<string | null>(null);
 	const statusMeta = BOARD_STATUS_META[task.status];
 	const rawCoverUrl = task.cover_image_url ? resolveMediaUrl(task.cover_image_url) : null;
 	const coverUrl = rawCoverUrl && failedCoverUrl !== rawCoverUrl ? rawCoverUrl : null;
+	if (!coverUrl) return null;
 	const coverStyle = {
 		'--card-cover-accent': statusMeta.accent,
 		'--card-cover-soft': statusMeta.soft,
@@ -1199,27 +1300,16 @@ const BoardTaskCover = ({
 	} as CSSProperties;
 
 	return (
-		<div className={cn('workflow-trello-card-cover', !coverUrl && 'workflow-trello-card-cover-fallback')} style={coverStyle}>
-			<div className="workflow-trello-card-cover-art" aria-hidden="true">
-				<span />
-				<span />
-				<span />
-			</div>
-			<div className="workflow-trello-card-cover-status" aria-hidden="true">
-				{statusMeta.icon}
-				<span>{labelFor(task.status)}</span>
-			</div>
-			{coverUrl ? (
-				<Image
-					src={coverUrl}
-					alt={task.title}
-					width={420}
-					height={160}
-					unoptimized
-					loading="eager"
-					onError={() => setFailedCoverUrl(coverUrl)}
-				/>
-			) : null}
+		<div className="workflow-trello-card-cover" style={coverStyle}>
+			<Image
+				src={coverUrl}
+				alt={task.title}
+				width={420}
+				height={160}
+				unoptimized
+				loading="eager"
+				onError={() => setFailedCoverUrl(coverUrl)}
+			/>
 		</div>
 	);
 };
@@ -1232,6 +1322,7 @@ const TaskCardItem = ({
 	dateFor,
 	onOpen,
 	onArchive,
+	dragHandle,
 	variant = 'default',
 	showTime = false,
 }: {
@@ -1242,6 +1333,7 @@ const TaskCardItem = ({
 	dateFor: (value?: string | null) => string;
 	onOpen?: (taskId: number) => void;
 	onArchive?: (task: TaskCard) => void;
+	dragHandle?: ReactNode;
 	variant?: 'default' | 'board';
 	showTime?: boolean;
 }) => {
@@ -1253,7 +1345,7 @@ const TaskCardItem = ({
 				data-status={task.status}
 				className={cn('workflow-trello-board-card', task.is_completed && 'is-complete', task.is_overdue && 'is-overdue')}
 			>
-				<BoardTaskCover task={task} labelFor={labelFor} />
+				<BoardTaskCover task={task} />
 				<div className="workflow-trello-card-body">
 					{task.labels.length ? (
 						<div className="workflow-trello-card-labels">
@@ -1264,19 +1356,24 @@ const TaskCardItem = ({
 					) : null}
 					<div className="workflow-trello-card-title-row">
 						<p>{task.title}</p>
-						{onArchive ? (
-							<button
-								type="button"
-								data-no-card-open
-								aria-label="Archive task"
-								onClick={(event) => {
-									event.stopPropagation();
-									onArchive(task);
-								}}
-								className="workflow-trello-card-edit"
-							>
-								<Archive size={13} />
-							</button>
+						{dragHandle || onArchive ? (
+							<div className="workflow-trello-card-controls">
+								{dragHandle}
+								{onArchive ? (
+									<button
+										type="button"
+										data-no-card-open
+										aria-label="Archive task"
+										onClick={(event) => {
+											event.stopPropagation();
+											onArchive(task);
+										}}
+										className="workflow-trello-card-edit"
+									>
+										<Archive size={13} />
+									</button>
+								) : null}
+							</div>
 						) : null}
 					</div>
 					<span className="workflow-trello-card-project">{task.project.name}</span>
@@ -1328,16 +1425,7 @@ const TaskCardItem = ({
 				<Image src={resolveMediaUrl(task.cover_image_url)} alt={task.title} width={640} height={260} unoptimized loading="eager" className="h-full w-full object-cover" />
 				<div className="workflow-task-cover-shade" />
 			</div>
-		) : (
-			<div className="workflow-task-cover workflow-task-cover-empty" style={{ '--status-accent': BOARD_STATUS_META[task.status].accent } as CSSProperties}>
-				<div className="workflow-task-cover-mark">{BOARD_STATUS_META[task.status].icon}</div>
-				<div className="workflow-task-cover-empty-lines">
-					<span />
-					<span />
-					<span />
-				</div>
-			</div>
-		)}
+		) : null}
 		<div className={cn('p-4', compact ? 'space-y-3' : 'space-y-4')}>
 			<div className="flex items-start justify-between gap-3">
 				<div className="flex min-w-0 flex-1 items-start gap-3">
@@ -1355,7 +1443,7 @@ const TaskCardItem = ({
 								event.stopPropagation();
 								onArchive(task);
 							}}
-							className="workflow-focus-ring grid h-8 w-8 place-items-center rounded-lg border border-[color:var(--line)] text-(--ink-soft) hover:bg-(--surface-muted) hover:text-(--ink)"
+							className="workflow-task-card-archive workflow-focus-ring grid h-8 w-8 place-items-center rounded-lg border border-[color:var(--line)] text-(--ink-soft) hover:bg-(--surface-muted) hover:text-(--ink)"
 						>
 							<Archive size={15} />
 						</button>
@@ -1427,7 +1515,7 @@ const BoardTaskCard = ({
 	onArchive?: (task: TaskCard) => void;
 	showTime?: boolean;
 }) => {
-	const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
+	const { attributes, listeners, setNodeRef, setActivatorNodeRef, transform, transition, isDragging } = useSortable({
 		id: getTaskDragId(task.id),
 		data: {
 			type: 'task',
@@ -1440,8 +1528,6 @@ const BoardTaskCard = ({
 			ref={setNodeRef}
 			data-task-id={task.id}
 			data-testid={`board-task-${task.id}`}
-			{...attributes}
-			{...listeners}
 			onClick={(event) => {
 				if (!onOpen || isCardInteractiveTarget(event.target)) return;
 				onOpen(task.id);
@@ -1453,41 +1539,40 @@ const BoardTaskCard = ({
 					onOpen(task.id);
 				}
 			}}
-			onMouseMove={(event) => {
-				boardDragPointerX = event.clientX;
-				boardDragPointerY = event.clientY;
-			}}
-			onMouseDownCapture={(event) => {
-				boardMouseDragTask = { id: task.id, startX: event.clientX, startY: event.clientY };
-				boardDragPointerX = event.clientX;
-				boardDragPointerY = event.clientY;
-			}}
-			onPointerMove={(event) => {
-				boardDragPointerX = event.clientX;
-				boardDragPointerY = event.clientY;
-			}}
-			onPointerDownCapture={(event) => {
-				event.currentTarget.setPointerCapture(event.pointerId);
-				boardPointerDragTask = { id: task.id, startX: event.clientX, startY: event.clientY };
-				boardDragPointerX = event.clientX;
-				boardDragPointerY = event.clientY;
-			}}
 			style={
 				{
 					transform: CSS.Transform.toString(transform),
 					transition,
 					opacity: isDragging ? 0.35 : 1,
-					touchAction: 'none',
 					pointerEvents: isDragging ? 'none' : undefined,
 				} as CSSProperties
 			}
 		>
-			<div className="cursor-grab active:cursor-grabbing">
+			<div>
 				<div className="workflow-board-card-shell">
-					<span className="workflow-board-drag-handle" aria-hidden="true">
-						<GripVertical size={15} />
-					</span>
-					<TaskCardItem task={task} compact copy={copy} labelFor={labelFor} dateFor={dateFor} onArchive={onArchive} variant="board" showTime={showTime} />
+					<TaskCardItem
+						task={task}
+						compact
+						copy={copy}
+						labelFor={labelFor}
+						dateFor={dateFor}
+						onArchive={onArchive}
+						dragHandle={(
+							<button
+								type="button"
+								ref={setActivatorNodeRef}
+								data-no-card-open
+								aria-label={`${copy.buttons.moveTask}: ${task.title}`}
+								className="workflow-board-drag-handle"
+								{...attributes}
+								{...listeners}
+							>
+								<GripVertical size={15} />
+							</button>
+						)}
+						variant="board"
+						showTime={showTime}
+					/>
 				</div>
 			</div>
 		</div>
@@ -1733,8 +1818,6 @@ const DesignWorkflowShell = ({ title, variant, projectId, taskId }: Props) => {
 	const [draggedTaskId, setDraggedTaskId] = useState<number | null>(null);
 	const [quickAddColumn, setQuickAddColumn] = useState<TaskStatus | null>(null);
 	const [quickAddTitle, setQuickAddTitle] = useState('');
-	const dragDeltaRef = useRef({ x: 0, y: 0 });
-	const dragPointerYRef = useRef<number | null>(null);
 	const taskAddPanelRef = useRef<HTMLDivElement | null>(null);
 	const taskAddActionsRef = useRef<HTMLDivElement | null>(null);
 	const pendingReviewMutationRef = useRef<number | null>(null);
@@ -2014,15 +2097,12 @@ const DesignWorkflowShell = ({ title, variant, projectId, taskId }: Props) => {
 	]);
 
 	useEffect(() => {
-		const handleMove = (event: MouseEvent | PointerEvent) => {
+		const handleMove = (event: PointerEvent) => {
 			boardDragPointerX = event.clientX;
-			dragPointerYRef.current = event.clientY;
 			boardDragPointerY = event.clientY;
 		};
-		window.addEventListener('mousemove', handleMove, true);
 		window.addEventListener('pointermove', handleMove, true);
 		return () => {
-			window.removeEventListener('mousemove', handleMove, true);
 			window.removeEventListener('pointermove', handleMove, true);
 		};
 	}, []);
@@ -2305,53 +2385,6 @@ const DesignWorkflowShell = ({ title, variant, projectId, taskId }: Props) => {
 		}
 	};
 
-	const handlePointerTaskDrop = (taskId: number, x: number, y: number) => {
-		const activeTask = boardDraft.find((item) => item.id === taskId);
-		if (!activeTask) {
-			return;
-		}
-		const placement = getDropPlacementFromPoint(taskId, x, y, activeTask.status);
-		if (!placement) {
-			return;
-		}
-		void applyBoardMove(taskId, placement);
-	};
-
-	useEffect(() => {
-		const releaseTask = (taskId: number, startX: number, startY: number, clientX: number, clientY: number) => {
-			if (Math.hypot(clientX - startX, clientY - startY) < 8) return;
-			if (boardReleaseTaskId === taskId) return;
-			boardReleaseTaskId = taskId;
-			window.setTimeout(() => {
-				if (boardReleaseTaskId === taskId) boardReleaseTaskId = null;
-			}, 0);
-			handlePointerTaskDrop(taskId, clientX, clientY);
-		};
-
-		const handleGlobalPointerUp = (event: PointerEvent) => {
-			const pointerTask = boardPointerDragTask;
-			if (!pointerTask) return;
-			const { id, startX, startY } = pointerTask;
-			boardPointerDragTask = null;
-			releaseTask(id, startX, startY, event.clientX, event.clientY);
-		};
-
-		const handleGlobalMouseUp = (event: MouseEvent) => {
-			const mouseTask = boardMouseDragTask;
-			if (!mouseTask) return;
-			const { id, startX, startY } = mouseTask;
-			boardMouseDragTask = null;
-			releaseTask(id, startX, startY, event.clientX, event.clientY);
-		};
-
-		window.addEventListener('pointerup', handleGlobalPointerUp, true);
-		window.addEventListener('mouseup', handleGlobalMouseUp, true);
-		return () => {
-			window.removeEventListener('pointerup', handleGlobalPointerUp, true);
-			window.removeEventListener('mouseup', handleGlobalMouseUp, true);
-		};
-	});
-
 	const getDropPlacement = (event: DragEndEvent, movingTaskId: number) => {
 		const activeId = event.active.id;
 		const overId = event.over?.id;
@@ -2396,14 +2429,10 @@ const DesignWorkflowShell = ({ title, variant, projectId, taskId }: Props) => {
 	const handleDragStart = (event: DragStartEvent) => {
 		if (typeof event.active.id !== 'string' || !isTaskDragId(event.active.id)) return;
 		const taskId = getTaskIdFromDragId(event.active.id);
-		dragDeltaRef.current = { x: 0, y: 0 };
 		const initialRect = event.active.rect.current.initial;
-		dragPointerYRef.current = initialRect ? initialRect.top + initialRect.height / 2 : null;
+		boardDragPointerX = initialRect ? initialRect.left + initialRect.width / 2 : null;
+		boardDragPointerY = initialRect ? initialRect.top + initialRect.height / 2 : null;
 		setDraggedTaskId(taskId);
-	};
-
-	const handleDragMove = (event: { delta: { x: number; y: number } }) => {
-		dragDeltaRef.current = event.delta;
 	};
 
 	const handleDragEnd = async (event: DragEndEvent) => {
@@ -2413,8 +2442,11 @@ const DesignWorkflowShell = ({ title, variant, projectId, taskId }: Props) => {
 
 		const movingTaskId = getTaskIdFromDragId(activeId);
 		const placement = getDropPlacement(event, movingTaskId);
-		if (!placement) return;
-		await applyBoardMove(movingTaskId, placement);
+		if (placement) {
+			await applyBoardMove(movingTaskId, placement);
+		}
+		boardDragPointerX = null;
+		boardDragPointerY = null;
 	};
 
 	const renderHeader = () => (
@@ -2501,7 +2533,7 @@ const DesignWorkflowShell = ({ title, variant, projectId, taskId }: Props) => {
 			datasets: [
 				{
 					data: taskMixValues,
-					backgroundColor: taskMixValues.map((_, index) => WORKFLOW_CHART_PALETTE[index % WORKFLOW_CHART_PALETTE.length]),
+					backgroundColor: [BOARD_STATUS_META.todo.accent, BOARD_STATUS_META.in_progress.accent, BOARD_STATUS_META.in_review.accent, BOARD_STATUS_META.blocked.accent, BOARD_STATUS_META.done.accent],
 					borderColor: '#ffffff',
 					borderWidth: 4,
 					hoverOffset: 8,
@@ -2537,7 +2569,6 @@ const DesignWorkflowShell = ({ title, variant, projectId, taskId }: Props) => {
 			<div className="workflow-overview-page">
 				<WorkflowPageHero
 					className="workflow-overview-header"
-					eyebrow={workflow.labels.workflow}
 					title={workflow.pageTitles.overview}
 					actionsClassName="workflow-overview-actions"
 					actions={
@@ -2706,7 +2737,7 @@ const DesignWorkflowShell = ({ title, variant, projectId, taskId }: Props) => {
 						const doneItems = taskItem.checklist_items.filter((item) => item.done).length;
 						const checklistTotal = taskItem.checklist_items.length;
 						return (
-							<tr key={taskItem.id}>
+							<tr key={taskItem.id} data-status={taskItem.status}>
 								<td>
 									<button type="button" onClick={() => setSelectedTaskId(taskItem.id)} className="workflow-board-table-task">
 										<b>{taskItem.title}</b>
@@ -2813,6 +2844,7 @@ const DesignWorkflowShell = ({ title, variant, projectId, taskId }: Props) => {
 											key={taskItem.id}
 											onClick={() => setSelectedTaskId(taskItem.id)}
 											className={cn('workflow-calendar-task', taskItem.is_overdue && 'is-overdue')}
+											data-status={taskItem.status}
 										>
 											<b>{taskItem.title}</b>
 											<small>{labelFor(taskItem.status)} - {labelFor(taskItem.review_state)}</small>
@@ -2865,7 +2897,6 @@ const DesignWorkflowShell = ({ title, variant, projectId, taskId }: Props) => {
 			<div className="workflow-kanban-page">
 				<WorkflowPageHero
 					className="workflow-kanban-header"
-					eyebrow={workflow.labels.workflow}
 					title={variant === 'my-work' ? workflow.pageTitles['my-work'] : workflow.pageTitles.board}
 					actionsWrapper={false}
 					actions={
@@ -3104,7 +3135,11 @@ const DesignWorkflowShell = ({ title, variant, projectId, taskId }: Props) => {
 						renderBoardCalendar()
 					) : (
 						<div className="workflow-board-layout">
-							<DndContext sensors={sensors} collisionDetection={closestCenter} onDragStart={handleDragStart} onDragMove={handleDragMove} onDragEnd={handleDragEnd}>
+							<DndContext sensors={sensors} collisionDetection={closestCenter} onDragStart={handleDragStart} onDragEnd={handleDragEnd} onDragCancel={() => {
+								setDraggedTaskId(null);
+								boardDragPointerX = null;
+								boardDragPointerY = null;
+							}}>
 								<div className="workflow-board-lanes flex gap-4 overflow-x-auto pb-2">
 									{tasksByStatus.map((column) => (
 										<BoardColumn
@@ -3164,7 +3199,6 @@ const DesignWorkflowShell = ({ title, variant, projectId, taskId }: Props) => {
 		<div className="workflow-projects-page">
 			<WorkflowPageHero
 				className="workflow-projects-header"
-				eyebrow={workflow.labels.workflow}
 				title={workflow.pageTitles.projects}
 				actionsClassName="workflow-projects-actions"
 				actions={
@@ -3833,33 +3867,14 @@ const DesignWorkflowShell = ({ title, variant, projectId, taskId }: Props) => {
 		if (selectedTaskId) {
 			return (
 				<div className="workflow-trello-modal-detail">
-					<button
-						type="button"
-						aria-label={t.common.close}
-						onClick={closeTaskModal}
-						className="workflow-trello-modal-close"
-						style={{
-							position: 'absolute',
-							top: 14,
-							right: 14,
-							zIndex: 85,
-							display: 'grid',
-							width: 38,
-							height: 38,
-							placeItems: 'center',
-							border: '1px solid #dbe3ef',
-							borderRadius: 9,
-							background: '#ffffff',
-							color: '#334155',
-							boxShadow: '0 14px 28px -22px rgba(15, 23, 42, 0.55)',
-						}}
-					>
-						<X size={18} />
-					</button>
 					<main className="workflow-trello-modal-main">
 						<div className="workflow-trello-modal-titlebar">
 							<div className="min-w-0">
-								<div className="workflow-trello-modal-status-row">
+								<div className="workflow-trello-modal-status-row" style={{
+									'--task-status-soft': BOARD_STATUS_META[task.status].soft,
+									'--task-status-text': BOARD_STATUS_META[task.status].text,
+									'--task-status-accent': BOARD_STATUS_META[task.status].accent,
+								} as CSSProperties}>
 									<Chip status={task.status}>{labelFor(task.status)}</Chip>
 									<Chip tone={task.review_state === 'approved' ? 'progress' : task.review_state === 'changes_requested' ? 'urgent' : task.review_state === 'needs_review' ? 'warning' : 'neutral'}>
 										<span className="inline-flex items-center gap-1.5">
@@ -3869,7 +3884,7 @@ const DesignWorkflowShell = ({ title, variant, projectId, taskId }: Props) => {
 									</Chip>
 									<span className="workflow-trello-modal-project-chip">{task.project.name}</span>
 								</div>
-								<h2>{task.title}</h2>
+								<h2 id="workflow-task-dialog-title">{task.title}</h2>
 							</div>
 						</div>
 
@@ -3881,6 +3896,7 @@ const DesignWorkflowShell = ({ title, variant, projectId, taskId }: Props) => {
 								disabled={reviewLocked}
 								onClick={() => void submitReviewUpdate(task.review_state === 'needs_review' ? 'changes_requested' : 'needs_review', { resetNotes: false })}
 								className="workflow-trello-modal-action"
+								data-tone={task.review_state === 'needs_review' ? 'amber' : 'blue'}
 							>
 								<ShieldCheck size={17} />
 								<span>{task.review_state === 'needs_review' ? (workflow.buttons.requestChanges ?? 'Request changes') : (workflow.buttons.requestReview ?? 'Request review')}</span>
@@ -3891,6 +3907,7 @@ const DesignWorkflowShell = ({ title, variant, projectId, taskId }: Props) => {
 									disabled={reviewLocked}
 									onClick={() => void submitReviewUpdate(approvalTargetState, { resetNotes: false })}
 									className="workflow-trello-modal-action"
+									data-tone={approved ? 'amber' : 'green'}
 									data-active={approved}
 								>
 									<CheckCircle2 size={17} />
@@ -3902,7 +3919,8 @@ const DesignWorkflowShell = ({ title, variant, projectId, taskId }: Props) => {
 								onClick={() => {
 									setTaskAddPanel((current) => current === 'labels' ? null : 'labels');
 								}}
-								className="workflow-trello-modal-action-primary"
+								className="workflow-trello-modal-action"
+								data-tone="violet"
 								data-active={taskAddPanel === 'labels'}
 							>
 								<Tag size={17} />
@@ -3915,6 +3933,7 @@ const DesignWorkflowShell = ({ title, variant, projectId, taskId }: Props) => {
 									setModalLabelComposerOpen(false);
 								}}
 								className="workflow-trello-modal-action"
+								data-tone="violet"
 								data-active={taskAddPanel === 'cover'}
 							>
 								<ImagePlus size={17} />
@@ -3927,6 +3946,7 @@ const DesignWorkflowShell = ({ title, variant, projectId, taskId }: Props) => {
 									setModalLabelComposerOpen(false);
 								}}
 								className="workflow-trello-modal-action"
+								data-tone="blue"
 								data-active={taskAddPanel === 'attachments'}
 							>
 								<Paperclip size={17} />
@@ -3939,6 +3959,7 @@ const DesignWorkflowShell = ({ title, variant, projectId, taskId }: Props) => {
 									setModalLabelComposerOpen(false);
 								}}
 								className="workflow-trello-modal-action"
+								data-tone="blue"
 								data-active={taskAddPanel === 'checklist'}
 							>
 								<CheckCircle2 size={17} />
@@ -3951,12 +3972,13 @@ const DesignWorkflowShell = ({ title, variant, projectId, taskId }: Props) => {
 									setModalLabelComposerOpen(false);
 								}}
 								className="workflow-trello-modal-action"
+								data-tone="blue"
 								data-active={taskAddPanel === 'members'}
 							>
 								<Users size={17} />
 								<span>{workflow.labels.membersPanel ?? 'Members'}</span>
 							</button>
-							<button type="button" onClick={() => archiveTask({ id: task.id, archived: !task.archived })} className="workflow-trello-modal-action">
+							<button type="button" onClick={() => archiveTask({ id: task.id, archived: !task.archived })} className="workflow-trello-modal-action" data-tone={task.archived ? 'blue' : 'rose'}>
 								<Archive size={17} />
 								<span>{task.archived ? (workflow.buttons.restore ?? 'Restore') : (workflow.buttons.archive ?? 'Archive')}</span>
 							</button>
@@ -5576,7 +5598,7 @@ const DesignWorkflowShell = ({ title, variant, projectId, taskId }: Props) => {
 				{
 					label: workflow.labels.estimatedLoad,
 					data: chartRows.map((row) => row.estimated_minutes),
-					backgroundColor: '#111827',
+					backgroundColor: '#4f46e5',
 					borderRadius: 10,
 					borderSkipped: false,
 					barThickness: 11,
@@ -5586,7 +5608,7 @@ const DesignWorkflowShell = ({ title, variant, projectId, taskId }: Props) => {
 				{
 					label: workflow.labels.logged,
 					data: chartRows.map((row) => row.actual_minutes),
-					backgroundColor: '#94a3b8',
+					backgroundColor: '#0891b2',
 					borderRadius: 10,
 					borderSkipped: false,
 					barThickness: 11,
@@ -5657,7 +5679,6 @@ const DesignWorkflowShell = ({ title, variant, projectId, taskId }: Props) => {
 			<div className="workflow-team-page">
 				<WorkflowPageHero
 					className="workflow-team-header"
-					eyebrow={workflow.labels.workflow}
 					title={workflow.pageTitles.team}
 					actionsClassName="workflow-team-header-actions"
 					actions={
@@ -5916,10 +5937,10 @@ const DesignWorkflowShell = ({ title, variant, projectId, taskId }: Props) => {
 				{
 					label: workflow.labels.effortCurve,
 					data: chartRows.map((row) => row.minutes),
-					borderColor: '#111827',
-					backgroundColor: 'rgba(17, 24, 39, 0.08)',
+					borderColor: '#4f46e5',
+					backgroundColor: 'rgba(79, 70, 229, 0.08)',
 					fill: true,
-					pointBackgroundColor: '#6b7280',
+					pointBackgroundColor: '#4f46e5',
 					pointBorderColor: '#ffffff',
 					pointBorderWidth: 3,
 					pointRadius: 5,
@@ -5963,56 +5984,120 @@ const DesignWorkflowShell = ({ title, variant, projectId, taskId }: Props) => {
 			reportFilters.start_date || reportFilters.end_date
 				? `${reportFilters.start_date || workflow.labels.noDate} - ${reportFilters.end_date || workflow.labels.noDate}`
 				: workflow.labels.allTimeWindow;
+		const generatedAt = workflowReport?.generated_at ?? new Date().toISOString();
+		const generatedLabel = formatExportDateTime(generatedAt, locale);
+		const reportFileDate = new Date(generatedAt).toISOString().slice(0, 10);
 		const printableReportCopy: PrintableReportCopy = {
-			title: workflow.pageTitles['report-time'],
+			brand: t.navigation.productName,
+			reportStudio: workflow.labels.reportStudio,
+			title: workflow.labels.reportExportTitle,
+			issuedBy: workflow.labels.reportIssuedBy,
+			generatedOn: workflow.labels.reportGeneratedOn,
+			period: workflow.labels.reportPeriod,
+			scope: workflow.labels.reportScope,
+			allProjects: workflow.labels.allProjects,
+			summary: workflow.labels.reportSummary,
+			projectsIncluded: workflow.labels.projectsIncluded,
 			trackedTime: workflow.labels.trackedTime,
 			leadTime: workflow.labels.leadTime,
 			cycleTime: workflow.labels.cycleTime,
 			blockedTime: workflow.labels.blockedTime,
-			projectTime: workflow.labels.projectTime ?? workflow.labels.timeByProject,
+			blockedTasks: workflow.labels.blockedTasks,
+			projectTime: workflow.labels.timeByProject,
 			project: workflow.labels.project,
 			manager: workflow.labels.manager,
+			status: workflow.labels.status,
+			priority: workflow.labels.priority,
 			minutes: workflow.labels.minutesUnit,
 			hours: workflow.labels.hoursUnit,
+			share: workflow.labels.reportShare,
+			deliveryFlow: workflow.labels.deliveryFlow,
+			reviewBottlenecks: workflow.labels.reviewBottlenecks,
+			estimateVsActual: workflow.labels.estimateVsActual,
+			statusDistribution: workflow.labels.statusDistribution,
+			tasksSampled: workflow.labels.tasksSampled,
+			needsReview: workflow.labels.needsReview,
+			changesRequested: workflow.labels.changesRequested,
+			approved: workflow.labels.approved,
+			pendingReviewMinutes: workflow.labels.pendingReviewMinutes,
+			estimatedMinutes: workflow.labels.estimatedMinutesMetric,
+			actualMinutes: workflow.labels.actualMinutes,
+			varianceMinutes: workflow.labels.varianceMinutes,
 			designerForecast: workflow.labels.designerForecast,
 			designer: workflow.statuses.designer ?? 'Designer',
 			openTasks: workflow.labels.openTasksLabel,
 			overdueTasks: workflow.labels.overdueTasksLabel,
 			remainingMinutes: workflow.labels.remainingMinutes,
 			loadPercent: workflow.labels.loadPercent,
+			forecastDays: workflow.labels.forecastDays,
 			risk: workflow.labels.risk,
+			designersIncluded: workflow.labels.designersIncluded,
+			page: workflow.labels.reportPage,
 			noProjectTimeWindow: workflow.labels.noProjectTimeWindow,
 			noForecastRows: workflow.labels.noForecastRows,
 		};
+		const exportMetadataRows: Array<Array<string | number | null | undefined>> = [
+			[printableReportCopy.title],
+			[printableReportCopy.generatedOn, generatedLabel],
+			[printableReportCopy.period, dateWindow],
+			[printableReportCopy.scope, printableReportCopy.allProjects],
+			[],
+		];
 		const exportTimeReport = () => {
-			downloadCsv('design-workflow-time-report.csv', [
-				[workflow.labels.project, workflow.labels.manager, workflow.labels.status, workflow.labels.priority, workflow.labels.minutesUnit, workflow.labels.hoursUnit],
+			downloadCsv(`flux-design-time-report-${reportFileDate}.csv`, [
+				...exportMetadataRows,
+				[printableReportCopy.summary],
+				[workflow.labels.metric, t.common.value, workflow.labels.reportUnit],
+				[workflow.labels.trackedTime, totalMinutes, workflow.labels.minutesUnit],
+				[workflow.labels.activeReportProjects, timeReport.length, workflow.labels.projectsIncluded],
+				[workflow.labels.averagePerProject, averageMinutes, workflow.labels.minutesUnit],
+				[workflow.labels.topProject, topRow?.project.name ?? workflow.labels.noReportProject, ''],
+				[],
+				[workflow.labels.timeByProject],
+				[workflow.labels.project, workflow.labels.manager, workflow.labels.status, workflow.labels.priority, workflow.labels.minutesUnit, workflow.labels.hoursUnit, workflow.labels.reportShare],
 				...sortedReport.map((row) => [
 					row.project.name,
 					`${row.project.manager.first_name} ${row.project.manager.last_name}`.trim() || row.project.manager.email,
 					labelFor(row.project.status),
 					labelFor(row.project.priority),
 					row.minutes,
-					Math.round((row.minutes / 60) * 100) / 100,
+					(row.minutes / 60).toFixed(2),
+					totalMinutes ? `${Math.round((row.minutes / totalMinutes) * 100)}%` : '0%',
 				]),
 			]);
 		};
 		const exportWorkflowReport = (report?: WorkflowAnalyticsReport) => {
 			if (!report) return;
-			downloadCsv('design-workflow-analytics-report.csv', [
-				[workflow.labels.metric, t.common.value],
+			downloadCsv(`flux-design-analytics-report-${reportFileDate}.csv`, [
+				...exportMetadataRows,
+				[workflow.labels.deliveryFlow],
+				[workflow.labels.metric, t.common.value, workflow.labels.reportUnit],
 				[workflow.labels.tasksSampled, report.tasks_sampled],
-				[workflow.labels.leadTimeDays, report.lead_time_days],
-				[workflow.labels.cycleTimeDays, report.cycle_time_days],
+				[workflow.labels.leadTimeDays, report.lead_time_days, workflow.labels.daysUnit],
+				[workflow.labels.cycleTimeDays, report.cycle_time_days, workflow.labels.daysUnit],
 				[workflow.labels.blockedTasks, report.blocked_tasks],
-				[workflow.labels.blockedTimeMinutes, report.blocked_time_minutes],
+				[workflow.labels.blockedTimeMinutes, report.blocked_time_minutes, workflow.labels.minutesUnit],
+				[],
+				[workflow.labels.reviewBottlenecks],
+				[workflow.labels.metric, t.common.value, workflow.labels.reportUnit],
 				[workflow.labels.needsReview, report.review_bottlenecks.needs_review],
 				[workflow.labels.changesRequested, report.review_bottlenecks.changes_requested],
+				[workflow.labels.approved, report.review_bottlenecks.approved],
 				[workflow.labels.pendingReviewMinutes, report.review_bottlenecks.pending_review_minutes],
+				[workflow.labels.averageReviewWait, report.review_bottlenecks.average_pending_review_minutes, workflow.labels.minutesUnit],
+				[],
+				[workflow.labels.estimateVsActual],
+				[workflow.labels.metric, t.common.value, workflow.labels.reportUnit],
 				[workflow.labels.estimatedMinutesMetric, report.estimate_vs_actual.estimated_minutes],
 				[workflow.labels.actualMinutes, report.estimate_vs_actual.actual_minutes],
 				[workflow.labels.varianceMinutes, report.estimate_vs_actual.variance_minutes],
+				[workflow.labels.actualRatio, report.estimate_vs_actual.actual_to_estimate_ratio],
 				[],
+				[workflow.labels.statusDistribution],
+				[workflow.labels.status, workflow.labels.tasksSampled],
+				...STATUS_COLUMNS.map((status) => [labelFor(status), report.status_counts[status] ?? 0]),
+				[],
+				[workflow.labels.designerForecast],
 				[workflow.statuses.designer ?? 'Designer', workflow.labels.openTasksLabel, workflow.labels.overdueTasksLabel, workflow.labels.remainingMinutes, workflow.labels.loadPercent, workflow.labels.forecastDays, workflow.labels.risk],
 				...report.designer_forecast.map((row) => [
 					`${row.user.first_name} ${row.user.last_name}`.trim() || row.user.email,
@@ -6026,7 +6111,7 @@ const DesignWorkflowShell = ({ title, variant, projectId, taskId }: Props) => {
 			]);
 		};
 		const exportPrintableReport = () => {
-			openPrintableReport({ dateWindow, totalMinutes, timeReport: sortedReport, workflowReport, copy: printableReportCopy, riskLabelFor });
+			openPrintableReport({ dateWindow, generatedAt, locale, totalMinutes, timeReport: sortedReport, workflowReport, copy: printableReportCopy, labelFor, riskLabelFor });
 		};
 		const reviewBottlenecks = workflowReport?.review_bottlenecks;
 		const estimateVsActual = workflowReport?.estimate_vs_actual;
@@ -6043,7 +6128,6 @@ const DesignWorkflowShell = ({ title, variant, projectId, taskId }: Props) => {
 			<div className="workflow-report-shell">
 				<WorkflowPageHero
 					className="workflow-report-hero"
-					eyebrow={workflow.labels.reportStudio}
 					title={workflow.pageTitles['report-time']}
 					actionsWrapper={false}
 					actions={
@@ -6351,7 +6435,6 @@ const DesignWorkflowShell = ({ title, variant, projectId, taskId }: Props) => {
 			<div className="workflow-notifications-shell">
 				<WorkflowPageHero
 					className="workflow-notifications-hero"
-					eyebrow={workflow.labels.notificationStudio}
 					title={workflow.pageTitles.notifications}
 					actionsClassName="workflow-notifications-hero-actions"
 					actions={
@@ -6558,13 +6641,15 @@ const DesignWorkflowShell = ({ title, variant, projectId, taskId }: Props) => {
 					className="workflow-task-modal-backdrop fixed inset-0 z-[120] flex items-center justify-center px-3 py-4 sm:px-6"
 					role="dialog"
 					aria-modal="true"
+					aria-labelledby={task ? 'workflow-task-dialog-title' : undefined}
 					onClick={closeTaskModal}
 				>
 						<div
-						className="workflow-task-modal flex h-[calc(100vh-32px)] w-[min(1480px,calc(100vw-32px))] flex-col overflow-hidden"
+						className="workflow-task-modal relative flex flex-col overflow-hidden"
 						onClick={(event) => event.stopPropagation()}
 						onWheel={(event) => event.stopPropagation()}
 					>
+						<button type="button" aria-label={t.common.close} onClick={closeTaskModal} className="workflow-trello-modal-close"><X size={18} /></button>
 						<div className="workflow-task-modal-body min-h-0 flex-1 overscroll-contain overflow-y-auto p-4 sm:p-5">{renderTaskDetail()}</div>
 					</div>
 				</div>

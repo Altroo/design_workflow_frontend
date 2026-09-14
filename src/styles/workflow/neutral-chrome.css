@@ -1,9 +1,9 @@
-/* Final neutral chrome layer: generic UI uses grayscale; semantic board statuses keep their own colors. */
+/* Shared workspace controls; board statuses keep their semantic colors. */
 :root {
-	--accent: #111827;
-	--accent-strong: #020617;
-	--accent-soft: #f8fafc;
-	--accent-tint: #f8fafc;
+	--accent: #4f46e5;
+	--accent-strong: #4338ca;
+	--accent-soft: #eef2ff;
+	--accent-tint: #fafaff;
 }
 
 .workflow-rail-logo,
@@ -50,15 +50,15 @@
 
 .workflow-nav-link[aria-current='page'],
 .workflow-nav-link[class*='bg-(--accent-soft)'] {
-	border-color: var(--line-strong) !important;
-	background: #f1f5f9 !important;
-	color: var(--ink) !important;
-	box-shadow: inset 0.1875rem 0 0 var(--ink) !important;
+	border-color: transparent !important;
+	background: var(--accent-soft) !important;
+	color: var(--accent-strong) !important;
+	box-shadow: inset 0.1875rem 0 0 var(--accent) !important;
 }
 
 .workflow-nav-link[aria-current='page'] svg,
 .workflow-nav-link[class*='bg-(--accent-soft)'] svg {
-	color: var(--ink) !important;
+	color: var(--accent-strong) !important;
 }
 
 .workflow-nav-badge {
@@ -90,8 +90,8 @@
 .workflow-task-modal .workflow-trello-modal-checklist-add button,
 .workflow-task-modal .workflow-trello-modal-upload-row button,
 .workflow-task-modal .workflow-trello-modal-comment-box button {
-	border-color: var(--ink) !important;
-	background: var(--ink) !important;
+	border-color: var(--accent) !important;
+	background: var(--accent) !important;
 	color: #ffffff !important;
 	box-shadow: 0 1rem 1.875rem -1.5rem rgba(15, 23, 42, 0.62) !important;
 }
@@ -163,10 +163,10 @@
 }
 
 .workflow-chat-shell {
-	--chat-accent: #475569 !important;
-	--chat-accent-soft: #f1f5f9 !important;
-	--chat-accent-line: #cbd5e1 !important;
-	--chat-accent-text: #334155 !important;
+	--chat-accent: var(--accent) !important;
+	--chat-accent-soft: var(--accent-soft) !important;
+	--chat-accent-line: #c7d2fe !important;
+	--chat-accent-text: var(--accent-strong) !important;
 }
 
 .workflow-chat-thread-button:hover,
@@ -178,18 +178,18 @@
 .workflow-chat-thread-button.is-unread,
 .workflow-chat-context-button.is-unread,
 .workflow-chat-direct-button.is-unread {
-	border-color: var(--line-strong) !important;
-	background: #f1f5f9 !important;
+	border-color: #c7d2fe !important;
+	background: var(--accent-soft) !important;
 	color: var(--ink) !important;
-	box-shadow: inset 0.25rem 0 0 #475569 !important;
+	box-shadow: inset 0.25rem 0 0 var(--accent) !important;
 }
 
 .workflow-chat-context-button.is-active .workflow-chat-context-icon,
 .workflow-chat-direct-button.is-active .workflow-chat-context-icon,
 .workflow-chat-context-button:hover .workflow-chat-context-icon,
 .workflow-chat-direct-button:hover .workflow-chat-context-icon {
-	background: #e2e8f0 !important;
-	color: #334155 !important;
+	background: #e0e7ff !important;
+	color: var(--accent-strong) !important;
 }
 
 .workflow-chat-thread-button.is-unread .workflow-chat-thread-preview,
@@ -602,10 +602,10 @@
 }
 
 .workflow-chat-bubble.workflow-chat-bubble-mine {
-	border: 1px solid #cbd5e1 !important;
-	background: #eef3f8 !important;
+	border: 1px solid #c7d2fe !important;
+	background: var(--accent-soft) !important;
 	color: #0f172a !important;
-	box-shadow: 0 0.875rem 1.875rem -1.65rem rgba(15, 23, 42, 0.28) !important;
+	box-shadow: none !important;
 }
 
 .workflow-chat-bubble-mine .workflow-chat-sender-name,
@@ -641,8 +641,9 @@
 	background: #f8fafc !important;
 }
 
+.workflow-chat-voice-player > button,
 .workflow-chat-bubble-mine .workflow-chat-voice-player > button {
-	background: #64748b !important;
+	background: var(--accent) !important;
 	color: #ffffff !important;
 	box-shadow: none !important;
 }
@@ -652,16 +653,53 @@
 	background: #cbd5e1 !important;
 }
 
+.workflow-chat-voice-waveform span[data-active='true'],
+.workflow-chat-voice-player[data-playing='true'] .workflow-chat-voice-waveform span[data-active='true'],
 .workflow-chat-bubble-mine .workflow-chat-voice-waveform span[data-active='true'],
 .workflow-chat-bubble-mine .workflow-chat-voice-player[data-playing='true'] .workflow-chat-voice-waveform span[data-active='true'] {
-	background: #64748b !important;
+	background: var(--accent) !important;
 }
 
 .workflow-chat-composer .app-button:not(.app-button-ghost) {
-	border-color: #475569 !important;
-	background: #475569 !important;
+	border-color: var(--accent) !important;
+	background: var(--accent) !important;
 	color: #ffffff !important;
-	box-shadow: 0 1rem 1.875rem -1.5rem rgba(71, 85, 105, 0.55) !important;
+	box-shadow: none !important;
+}
+
+.workflow-chat-composer .app-button:not(.app-button-ghost):hover:not(:disabled) {
+	border-color: var(--accent-strong) !important;
+	background: var(--accent-strong) !important;
+}
+
+.workflow-chat-composer .app-button:disabled {
+	border-color: #cbd5e1 !important;
+	background: #cbd5e1 !important;
+}
+
+.workflow-chat-composer .app-pill:not(.is-recording) {
+	border-color: #c7d2fe !important;
+	background: var(--accent-soft) !important;
+	color: var(--accent-strong) !important;
+}
+
+.workflow-chat-tools-toggle.is-open,
+.workflow-chat-tools-toggle:hover,
+.workflow-chat-mini-toggle.is-active {
+	border-color: #c7d2fe !important;
+	background: var(--accent-soft) !important;
+	color: var(--accent-strong) !important;
+}
+
+.workflow-chat-ref-toggle i {
+	background: var(--accent-strong) !important;
+	color: #ffffff !important;
+}
+
+.workflow-chat-search:focus-within,
+.workflow-chat-composer .app-input:focus {
+	border-color: var(--accent) !important;
+	box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.12) !important;
 }
 
 .workflow-language-toggle,
@@ -683,6 +721,12 @@
 	border: 1px solid #cbd5e1 !important;
 	background: #e2e8f0 !important;
 	color: #334155 !important;
+}
+
+.workflow-chat-shell .workflow-avatar-initials {
+	border: 1px solid #c7d2fe !important;
+	background: #e0e7ff !important;
+	color: var(--accent-strong) !important;
 }
 
 .workflow-chat-shell .workflow-chat-presence-badge[data-online='true'],
@@ -1625,10 +1669,10 @@
 }
 
 .workflow-saved-view-bar .app-button:not(.app-button-secondary):not(.app-button-ghost) {
-	border-color: #111827 !important;
-	background: #111827 !important;
+	border-color: #4f46e5 !important;
+	background: #4f46e5 !important;
 	color: #ffffff !important;
-	box-shadow: 0 0.875rem 1.5rem -1.35rem rgba(15, 23, 42, 0.45) !important;
+	box-shadow: 0 0.875rem 1.5rem -1.35rem rgba(79, 70, 229, 0.42) !important;
 }
 
 .workflow-saved-view-bar .app-button.app-button-secondary,
@@ -1651,8 +1695,8 @@
 }
 
 .workflow-saved-view-bar .app-button:not(.app-button-secondary):not(.app-button-ghost):hover:not(:disabled) {
-	border-color: #030712 !important;
-	background: #030712 !important;
+	border-color: #4338ca !important;
+	background: #4338ca !important;
 	color: #ffffff !important;
 }
 
@@ -1959,10 +2003,10 @@
 .workflow-task-modal .workflow-trello-modal-checklist-add button,
 .workflow-task-modal .workflow-trello-modal-upload-row button,
 .workflow-task-modal .workflow-trello-modal-comment-box button {
-	border-color: #111827 !important;
-	background: #030712 !important;
+	border-color: var(--accent) !important;
+	background: var(--accent) !important;
 	color: #ffffff !important;
-	box-shadow: 0 0.875rem 1.5rem -1.35rem rgba(15, 23, 42, 0.45) !important;
+	box-shadow: none !important;
 }
 
 .workflow-task-modal .workflow-trello-modal-action:hover:not(:disabled),
@@ -1980,8 +2024,8 @@
 .workflow-task-modal .workflow-trello-modal-checklist-add button:hover:not(:disabled),
 .workflow-task-modal .workflow-trello-modal-upload-row button:hover:not(:disabled),
 .workflow-task-modal .workflow-trello-modal-comment-box button:hover:not(:disabled) {
-	border-color: #030712 !important;
-	background: #030712 !important;
+	border-color: var(--accent-strong) !important;
+	background: var(--accent-strong) !important;
 	color: #ffffff !important;
 }
 
@@ -2630,12 +2674,12 @@
 }
 
 .app-select-item[data-highlighted] {
-	background: #f8fafc !important;
-	color: #030712 !important;
+	background: #eef2ff !important;
+	color: #4338ca !important;
 }
 
 .app-select-item[data-state='checked'] {
-	background: #030712 !important;
+	background: #4f46e5 !important;
 	color: #ffffff !important;
 }
 

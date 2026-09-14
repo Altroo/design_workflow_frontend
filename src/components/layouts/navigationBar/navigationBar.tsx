@@ -9,12 +9,10 @@ import { signOut, useSession } from 'next-auth/react';
 import { usePathname, useRouter } from 'next/navigation';
 import {
 	Bell,
-	BriefcaseBusiness,
 	ChevronDown,
 	CircleUserRound,
 	FolderKanban,
 	KeyRound,
-	LayoutDashboard,
 	ListTodo,
 	LogOut,
 	MessagesSquare,
@@ -22,45 +20,30 @@ import {
 	PanelLeftClose,
 	PanelLeftOpen,
 	Shield,
-	Users,
 	X,
 } from 'lucide-react';
 import {
 	AUTH_LOGIN,
 	BACKEND_SITE_ADMIN,
-	DASHBOARD_BOARD,
 	DASHBOARD_CHAT,
 	DASHBOARD_EDIT_PROFILE,
-	DASHBOARD_MY_WORK,
 	DASHBOARD_NOTIFICATIONS,
-	DASHBOARD_OVERVIEW,
 	DASHBOARD_PASSWORD,
-	DASHBOARD_PROJECTS,
 	DASHBOARD_PROJECT_VIEW,
-	DASHBOARD_REPORTS_TIME,
-	DASHBOARD_TEAM,
 	DASHBOARD_TASK_VIEW,
 	SITE_ROOT,
-	USERS_ADD,
-	USERS_LIST,
 } from '@/utils/routes';
 import { cookiesDeleter } from '@/utils/apiHelpers';
 import { useAppSelector, useLanguage } from '@/utils/hooks';
 import { getProfilState } from '@/store/selectors';
 import { useGetNotificationsQuery, useMarkNotificationReadMutation } from '@/store/services/designWorkflow';
 import type { NotificationItem } from '@/types/designWorkflowTypes';
+import { getWorkflowNavigation, getWorkflowUtilities, type WorkflowNavItem as NavItem } from '@/components/shared/workflow/workflowNavigation';
 
 type Props = {
 	title: string;
 	children: React.ReactNode;
 	hideTopbar?: boolean;
-};
-
-type NavItem = {
-	label: string;
-	path: string;
-	icon: React.ReactNode;
-	badge?: number;
 };
 
 const normalizePath = (url: string) => {
@@ -226,48 +209,12 @@ const NavigationBar = ({ title, children, hideTopbar = false }: Props) => {
 	}, [t.workflow.activities, t.workflow.labels.notificationFallback, unreadNotificationsQuery.data]);
 
 	const workflowItems = useMemo<NavItem[]>(
-		() =>
-			hasManagerAccess
-				? [
-						{ label: t.navigation.overview, path: DASHBOARD_OVERVIEW, icon: <LayoutDashboard size={16} /> },
-						{ label: t.navigation.board, path: DASHBOARD_BOARD, icon: <BriefcaseBusiness size={16} /> },
-						{ label: t.navigation.projects, path: DASHBOARD_PROJECTS, icon: <FolderKanban size={16} /> },
-						{ label: t.navigation.team, path: DASHBOARD_TEAM, icon: <Users size={16} /> },
-						{ label: t.workflow.labels.chatTitle ?? 'Chat', path: DASHBOARD_CHAT, icon: <MessagesSquare size={16} /> },
-						{ label: t.navigation.reports, path: DASHBOARD_REPORTS_TIME, icon: <Shield size={16} /> },
-						{
-							label: t.navigation.notifications,
-							path: DASHBOARD_NOTIFICATIONS,
-							icon: <Bell size={16} />,
-							badge: unreadNotifications,
-						},
-					]
-				: [
-						{ label: t.navigation.myWork, path: DASHBOARD_MY_WORK, icon: <LayoutDashboard size={16} /> },
-						{ label: t.navigation.board, path: DASHBOARD_BOARD, icon: <BriefcaseBusiness size={16} /> },
-						{ label: t.navigation.projects, path: DASHBOARD_PROJECTS, icon: <FolderKanban size={16} /> },
-						{ label: t.workflow.labels.chatTitle ?? 'Chat', path: DASHBOARD_CHAT, icon: <MessagesSquare size={16} /> },
-						{
-							label: t.navigation.notifications,
-							path: DASHBOARD_NOTIFICATIONS,
-							icon: <Bell size={16} />,
-							badge: unreadNotifications,
-						},
-					],
+		() => getWorkflowNavigation(t, hasManagerAccess, unreadNotifications),
 		[hasManagerAccess, t, unreadNotifications],
 	);
 
 	const utilityItems = useMemo<NavItem[]>(
-		() => [
-			...(profile.is_staff || isSuperuser
-				? [
-						{ label: t.navigation.usersList, path: USERS_LIST, icon: <Users size={16} /> },
-						{ label: t.navigation.newUser, path: USERS_ADD, icon: <Users size={16} /> },
-					]
-				: []),
-			{ label: t.navigation.myProfile, path: DASHBOARD_EDIT_PROFILE, icon: <CircleUserRound size={16} /> },
-			{ label: t.navigation.changePassword, path: DASHBOARD_PASSWORD, icon: <KeyRound size={16} /> },
-		],
+		() => getWorkflowUtilities(t, Boolean(profile.is_staff || isSuperuser)),
 		[isSuperuser, profile.is_staff, t],
 	);
 	const profileMenuItems = useMemo<NavItem[]>(
@@ -345,11 +292,13 @@ const NavigationBar = ({ title, children, hideTopbar = false }: Props) => {
 		);
 	};
 
+	const profileAvatarUrl = (typeof profile.avatar_cropped === 'string' && profile.avatar_cropped)
+		|| (typeof profile.avatar === 'string' ? profile.avatar : '');
 	const profileAvatar = (
 		<div className="workflow-topbar-avatar relative flex h-10 w-10 items-center justify-center overflow-hidden rounded-full bg-(--surface-strong)">
-			{profile.avatar_cropped ? (
+			{profileAvatarUrl ? (
 				<Image
-					src={profile.avatar_cropped as string}
+					src={profileAvatarUrl}
 					alt={`${profile.first_name} ${profile.last_name}`}
 					fill
 					sizes="40px"
@@ -377,7 +326,7 @@ const NavigationBar = ({ title, children, hideTopbar = false }: Props) => {
 						<p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-(--ink-muted)">
 							{t.navigation.productName}
 						</p>
-						<p className="truncate text-base font-semibold text-(--ink)">{title}</p>
+						<p className="workflow-rail-page-title text-base font-semibold text-(--ink)">{title}</p>
 					</div>
 					<button
 						type="button"

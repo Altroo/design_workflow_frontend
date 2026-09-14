@@ -106,6 +106,9 @@ describe('LoginClient', () => {
 			name: /Me connecter/i,
 		});
 		expect(loginButtons.length).toBeGreaterThanOrEqual(1);
+		expect(screen.queryByText('DW')).not.toBeInTheDocument();
+		expect(screen.queryByText('Sécurité')).not.toBeInTheDocument();
+		expect(screen.getByText('Retrouvez vos projets, vos tâches et votre équipe.')).toBeInTheDocument();
 	});
 
 	it('submits form and calls postApi and signIn on success', async () => {
