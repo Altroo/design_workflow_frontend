@@ -68,13 +68,15 @@ const ToggleRow = ({
 	name,
 	checked,
 	onChange,
+	tone,
 }: {
 	label: string;
 	name: string;
 	checked: boolean;
 	onChange: (checked: boolean) => void;
+	tone?: 'active' | 'admin';
 }) => (
-	<label className="workflow-user-form-toggle">
+	<label className="workflow-user-form-toggle" data-tone={tone}>
 		<span>{label}</span>
 		<input
 			id={name}
@@ -254,6 +256,7 @@ const FormikContent: React.FC<FormikContentProps> = ({ token, id }) => {
 									name="is_active"
 									checked={formik.values.is_active}
 									onChange={(checked) => formik.setFieldValue('is_active', checked)}
+									tone="active"
 								/>
 								<ToggleRow
 									label={t.users.adminAccount}
@@ -263,6 +266,7 @@ const FormikContent: React.FC<FormikContentProps> = ({ token, id }) => {
 										void formik.setFieldValue('is_staff', checked);
 										if (checked) void formik.setFieldValue('role', 'manager');
 									}}
+									tone="admin"
 								/>
 							</div>
 						</div>

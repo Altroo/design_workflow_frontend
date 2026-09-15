@@ -112,6 +112,7 @@ jest.mock('react-chartjs-2', () => ({
 
 const mockCreateProject = jest.fn();
 const mockCreateLabel = jest.fn();
+const mockUpdateLabel = jest.fn();
 const mockCreateSavedView = jest.fn();
 const mockUpdateSavedView = jest.fn();
 const mockDeleteSavedView = jest.fn();
@@ -198,6 +199,7 @@ jest.mock('@/store/services/designWorkflow', () => ({
 	useSnoozeNotificationMutation: jest.fn(() => [mockSnoozeNotification, { isLoading: false, isError: false }]),
 	useToggleTaskCompletionMutation: jest.fn(() => [mockToggleTaskCompletion, { isLoading: false, isError: false }]),
 	useUpdateChecklistItemMutation: jest.fn(() => [mockUpdateChecklistItem, { isLoading: false, isError: false }]),
+	useUpdateLabelMutation: jest.fn(() => [mockUpdateLabel, { isLoading: false, isError: false }]),
 	useUpdateNotificationPreferencesMutation: jest.fn(() => [mockUpdateNotificationPreferences, { isLoading: false, isError: false }]),
 	useUpdateProjectMutation: jest.fn(() => [mockUpdateProject, { isLoading: false, isError: false }]),
 	useUpdateSavedViewMutation: jest.fn(() => [mockUpdateSavedView, { isLoading: false, isError: false }]),
@@ -599,6 +601,7 @@ describe('Design workflow acceptance flows', () => {
 		jest.clearAllMocks();
 		setDefaultHookData();
 		mockCreateLabel.mockReturnValue(makeMutationResult());
+		mockUpdateLabel.mockReturnValue(makeMutationResult());
 		mockCreateProject.mockReturnValue(makeMutationResult());
 		mockCreateSavedView.mockReturnValue(makeMutationResult());
 		mockUpdateProject.mockReturnValue(makeMutationResult());
@@ -929,5 +932,155 @@ describe('Design workflow acceptance flows', () => {
 			expect(mockUpdateNotificationPreferences).toHaveBeenCalledWith({ mentions: false });
 			expect(mockUpdateNotificationPreferences).toHaveBeenCalledWith({ digest_frequency: 'weekly' });
 		});
+	});
+
+	it('confirms project archiving with the running task count', async () => {
+		const user = userEvent.setup();
+		mockProfile(manager);
+
+		render(<DesignWorkflowShell title="Project" variant="project-detail" projectId={projectDetail.id} />);
+
+		await user.click(screen.getByRole('button', { name: 'Archive project' }));
+		const dialog = screen.getByRole('dialog', { name: 'Archive this project?' });
+		expect(within(dialog).getByText('2 running tasks')).toBeInTheDocument();
+
+		await user.click(within(dialog).getByRole('button', { name: 'Archive project' }));
+		await waitFor(() => expect(mockUpdateProject).toHaveBeenCalledWith({ id: projectDetail.id, data: { archived: true } }));
+	});
+
+	it('disables task restoration while its project is archived', () => {
+		mockProfile(manager);
+		mockUseGetTaskQuery.mockReturnValue({
+			data: {
+				...taskDetail,
+				archived: true,
+				archived_at: '2026-04-23T09:00:00Z',
+				project: {
+					...projectSummary,
+					status: 'archived',
+					archived: true,
+					archived_at: '2026-04-23T09:00:00Z',
+				},
+			},
+			isLoading: false,
+		});
+
+		render(<DesignWorkflowShell title="Task" variant="task-detail" taskId={taskDetail.id} />);
+
+		const restoreButtons = screen.getAllByRole('button', { name: 'Unarchive the project before restoring this task.' });
+		expect(restoreButtons.length).toBeGreaterThan(0);
+		restoreButtons.forEach((button) => expect(button).toBeDisabled());
+		expect(mockArchiveTask).not.toHaveBeenCalled();
+	});
+
+	it('toggles a checklist row and supports removing and editing labels', async () => {
+		const user = userEvent.setup();
+		mockProfile(manager);
+		const betaLabel = {
+			id: 41,
+			name: 'Beta review',
+			color: '#6366f1',
+			created_at: '2026-04-20T08:00:00Z',
+			updated_at: '2026-04-20T08:00:00Z',
+		};
+		const checklistItem = {
+			id: 61,
+			checklist_id: 60,
+			title: 'Join final plans',
+			done: false,
+			sort_order: 0,
+			created_by: manager,
+			completed_by: null,
+			completed_at: null,
+			created_at: '2026-04-20T08:00:00Z',
+			updated_at: '2026-04-20T08:00:00Z',
+		};
+		const enrichedTask: TaskDetail = {
+			...taskDetail,
+			labels: [betaLabel],
+			checklists: [{
+				id: 60,
+				title: 'Handoff',
+				sort_order: 0,
+				created_by: manager,
+				items: [checklistItem],
+				created_at: '2026-04-20T08:00:00Z',
+				updated_at: '2026-04-20T08:00:00Z',
+			}],
+			checklist_items: [checklistItem],
+		};
+		mockUseGetTaskQuery.mockReturnValue({ data: enrichedTask, isLoading: false });
+		mockUseGetTasksQuery.mockReturnValue({ data: [enrichedTask], isLoading: false });
+		mockUseGetLabelsQuery.mockReturnValue({ data: [betaLabel] });
+
+		render(<DesignWorkflowShell title="Board" variant="board" taskId={enrichedTask.id} />);
+		const dialog = await screen.findByRole('dialog', { name: enrichedTask.title });
+		const checklistRow = within(dialog).getByRole('checkbox', { name: /Join final plans/ });
+		await user.click(checklistRow);
+		expect(mockUpdateChecklistItem).toHaveBeenCalledWith({ id: enrichedTask.id, itemId: checklistItem.id, data: { done: true } });
+
+		await user.click(within(dialog).getByRole('button', { name: 'Remove label: Beta review' }));
+		expect(mockUpdateTask).toHaveBeenCalledWith({ id: enrichedTask.id, data: { label_ids: [] } });
+
+		await user.click(within(dialog).getByRole('button', { name: 'Labels' }));
+		await user.click(within(dialog).getByRole('button', { name: 'Edit: Beta review' }));
+		const labelInput = within(dialog).getByDisplayValue('Beta review');
+		await user.clear(labelInput);
+		await user.type(labelInput, 'Client review');
+		const editPanel = labelInput.closest('.workflow-trello-modal-label-edit');
+		expect(editPanel).not.toBeNull();
+		await user.click(within(editPanel as HTMLElement).getByRole('button', { name: 'Save' }));
+		await waitFor(() => expect(mockUpdateLabel).toHaveBeenCalledWith({
+			id: betaLabel.id,
+			data: { name: 'Client review', color: betaLabel.color },
+		}));
+	});
+
+	it('shows sorting only for the table and never exposes a redundant blocked-only filter', async () => {
+		const user = userEvent.setup();
+		mockProfile(manager);
+
+		render(<DesignWorkflowShell title="Board" variant="board" />);
+		expect(screen.queryByText('Blocked only')).not.toBeInTheDocument();
+		expect(screen.queryByRole('combobox', { name: 'Sort table by' })).not.toBeInTheDocument();
+
+		await user.click(screen.getByRole('button', { name: 'Table' }));
+		expect(screen.getByRole('combobox', { name: 'Sort table by' })).toBeInTheDocument();
+		await selectMuiOption(user, 'Sort table by', 'Due date descending');
+
+		await user.click(screen.getByRole('button', { name: 'Board' }));
+		expect(screen.queryByRole('combobox', { name: 'Sort table by' })).not.toBeInTheDocument();
+	});
+
+	it('clears saved-view filters when switching back to the unsaved default', async () => {
+		const user = userEvent.setup();
+		mockProfile(manager);
+		mockUseGetSavedViewsQuery.mockReturnValue({ data: [{
+			id: 88,
+			name: 'Beta review',
+			owner: manager,
+			visibility: 'private',
+			filters: { q: 'palette' },
+			sort: { field: 'due_date' },
+			density: 'compact',
+			collapsed_lanes: [],
+			show_archived: false,
+			is_default: false,
+			created_at: '2026-04-20T08:00:00Z',
+			updated_at: '2026-04-20T08:00:00Z',
+		}] });
+
+		render(<DesignWorkflowShell title="Board" variant="board" />);
+		const savedViewBar = document.querySelector('.workflow-saved-view-bar');
+		expect(savedViewBar).not.toBeNull();
+		const savedViewSelect = within(savedViewBar as HTMLElement).getAllByRole('combobox')[0];
+
+		await user.click(savedViewSelect);
+		await user.click(within(await screen.findByRole('listbox')).getByRole('option', { name: 'Beta review' }));
+		expect(screen.getByPlaceholderText('Task, project, description')).toHaveValue('palette');
+
+		await user.click(savedViewSelect);
+		await user.click(within(await screen.findByRole('listbox')).getByRole('option', { name: 'Saved views' }));
+		expect(screen.getByPlaceholderText('Task, project, description')).toHaveValue('');
 	});
 });

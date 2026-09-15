@@ -2,7 +2,7 @@
 
 import React, { useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { ArrowLeft, CheckCircle2, Eye, PencilLine, Plus, Search, ShieldCheck, Trash2, Users, XCircle } from 'lucide-react';
+import { ArrowLeft, CheckCircle2, Eye, PencilLine, Plus, Search, ShieldCheck, ShieldX, Trash2, Users, XCircle } from 'lucide-react';
 import { useInitAccessToken } from '@/contexts/InitContext';
 import NavigationBar from '@/components/layouts/navigationBar/navigationBar';
 import { useDeleteUserMutation, useGetUsersListQuery, useBulkDeleteUsersMutation } from '@/store/services/account';
@@ -116,9 +116,11 @@ const UsersListClient: React.FC<SessionProps> = ({ session }) => {
 		);
 	};
 
-	const statusIcon = (enabled: boolean, label: string) => (
-		<span className="workflow-users-status-icon" data-active={enabled} title={label} aria-label={label}>
-			{enabled ? <CheckCircle2 className="h-4 w-4" /> : <XCircle className="h-4 w-4" />}
+	const statusIcon = (enabled: boolean, label: string, tone: 'active' | 'admin') => (
+		<span className="workflow-users-status-icon" data-active={enabled} data-tone={tone} title={label} aria-label={label}>
+			{tone === 'admin'
+				? (enabled ? <ShieldCheck className="h-4 w-4" /> : <ShieldX className="h-4 w-4" />)
+				: (enabled ? <CheckCircle2 className="h-4 w-4" /> : <XCircle className="h-4 w-4" />)}
 		</span>
 	);
 
@@ -271,10 +273,10 @@ const UsersListClient: React.FC<SessionProps> = ({ session }) => {
 														<td className="px-4 py-4 text-(--ink)">{user.email}</td>
 														<td className="px-4 py-4 text-(--ink)">{user.gender || '-'}</td>
 														<td className="px-4 py-4">
-															{statusIcon(user.is_active, user.is_active ? t.common.yes : t.common.no)}
+													{statusIcon(user.is_active, user.is_active ? t.common.yes : t.common.no, 'active')}
 														</td>
 														<td className="px-4 py-4">
-															{statusIcon(user.is_staff, user.is_staff ? t.common.yes : t.common.no)}
+													{statusIcon(user.is_staff, user.is_staff ? t.common.yes : t.common.no, 'admin')}
 														</td>
 														<td className="px-4 py-4 text-(--ink-soft)">{formatDate(user.date_joined)}</td>
 														<td className="px-4 py-4">
@@ -357,8 +359,8 @@ const UsersListClient: React.FC<SessionProps> = ({ session }) => {
 												</div>
 												<div className="workflow-users-mobile-meta">
 													<span>{t.users.gender}: <b>{user.gender || '-'}</b></span>
-													<span>{t.users.active}: <b>{statusIcon(user.is_active, user.is_active ? t.common.yes : t.common.no)}</b></span>
-													<span>{t.users.admin}: <b>{statusIcon(user.is_staff, user.is_staff ? t.common.yes : t.common.no)}</b></span>
+											<span>{t.users.active}: <b>{statusIcon(user.is_active, user.is_active ? t.common.yes : t.common.no, 'active')}</b></span>
+											<span>{t.users.admin}: <b>{statusIcon(user.is_staff, user.is_staff ? t.common.yes : t.common.no, 'admin')}</b></span>
 													<span>{t.users.registrationDate}: <b>{formatDate(user.date_joined)}</b></span>
 												</div>
 												<div className="workflow-users-mobile-actions">

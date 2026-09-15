@@ -128,6 +128,10 @@ export const designWorkflowApi = createApi({
 			query: (data) => ({ url: `${DESIGN_WORKFLOW_ROOT}labels/`, method: 'POST', data }),
 			invalidatesTags: ['Label', 'Task'],
 		}),
+		updateLabel: builder.mutation<TaskLabel, { id: number; data: { name: string; color: string } }>({
+			query: ({ id, data }) => ({ url: `${DESIGN_WORKFLOW_ROOT}labels/${id}/`, method: 'PATCH', data }),
+			invalidatesTags: ['Label', 'Task'],
+		}),
 		getTasks: builder.query<TaskCard[], TaskFilters | void>({
 			query: (params) => ({
 				url: `${DESIGN_WORKFLOW_ROOT}tasks/`,
@@ -499,6 +503,7 @@ export const {
 	useGetProjectQuery,
 	useGetLabelsQuery,
 	useCreateLabelMutation,
+	useUpdateLabelMutation,
 	useGetTasksQuery,
 	useCreateTaskMutation,
 	useGetTaskQuery,

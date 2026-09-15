@@ -4,7 +4,7 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { AlarmClock, AlertTriangle, ArrowDown, BriefcaseBusiness, CalendarDays, CheckCheck, CheckSquare2, ChevronDown, Edit3, Eye, FileText, Forward, ImageIcon, Images, MessagesSquare, Mic, MoreHorizontal, Paperclip, Pause, Play, Reply, Search, Send, SlidersHorizontal, SmilePlus, Square, ThumbsUp, Trash2, Users, X } from 'lucide-react';
+import { AlarmClock, AlertTriangle, ArrowDown, BadgeCheck, BriefcaseBusiness, CheckCheck, CheckSquare2, ChevronDown, CircleCheckBig, Clock3, Edit3, Eye, FileText, Forward, ImageIcon, Images, ListTodo, MessagesSquare, Mic, MoreHorizontal, Paperclip, Pause, Play, Reply, Search, Send, SlidersHorizontal, SmilePlus, Square, ThumbsUp, Trash2, Users, X } from 'lucide-react';
 import {
 	useAddChatReminderMutation,
 	useCreateChatThreadMutation,
@@ -29,6 +29,7 @@ import type { ChatMessage, ChatThread, ProjectSummary, TaskCard, WorkflowUser } 
 import type { UserClass } from '@/models/classes';
 import { WorkflowPageHero } from '@/components/shared/workflow/workflowPrimitives';
 import { WorkflowAvatar } from '@/components/shared/workflow/workflowAvatar';
+import { WorkflowDateField, WorkflowSelectField } from '@/components/shared/workflow/workflowFormControls';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL ?? '';
 const WS_URL = API_URL.replace(/^http/, 'ws');
@@ -37,11 +38,17 @@ const EMPTY_CHAT_MESSAGES: ChatMessage[] = [];
 const MESSAGE_SPINNER_SHOW_DELAY_MS = 120;
 const MESSAGE_SPINNER_HIDE_DELAY_MS = 220;
 const REACTION_OPTIONS = [
-	{ emoji: '\u2705', label: 'Done', Icon: CheckCheck },
+	{ emoji: '\u2705', label: 'Done', Icon: CircleCheckBig },
 	{ emoji: '\ud83d\udc40', label: 'Seen', Icon: Eye },
 	{ emoji: '\ud83d\udc4d', label: 'Approved', Icon: ThumbsUp },
 	{ emoji: '\u26a0\ufe0f', label: 'Attention', Icon: AlertTriangle },
 ] as const;
+const REMINDER_TIME_OPTIONS = Array.from({ length: 48 }, (_, index) => {
+	const hour = Math.floor(index / 2).toString().padStart(2, '0');
+	const minute = index % 2 === 0 ? '00' : '30';
+	const value = `${hour}:${minute}`;
+	return { value, label: value };
+});
 const OTHER_BUBBLE_COLORS = [
 	'border-[color:var(--line)] bg-white',
 	'border-[color:var(--line)] bg-white',
@@ -114,8 +121,6 @@ const readableReferenceText = (body: string, tasks: TaskCard[] = [], projects: P
 		.replace(/\s+/g, ' ')
 		.trim();
 };
-const cleanMessageForTask = (body: string) => body.replace(/#(?:T|P)\d+/gi, '').replace(/#[\w-]+/g, '').replace(/@\w[\w.-]*/g, '').replace(/\s+/g, ' ').trim();
-const titleFromMessage = (body: string) => cleanMessageForTask(body).split(' ').slice(0, 9).join(' ') || 'New task';
 const tomorrowIsoDate = () => {
 	const date = new Date();
 	date.setDate(date.getDate() + 1);
@@ -362,7 +367,6 @@ const DesignWorkflowChat = () => {
 	const [body, setBody] = useState('');
 	const [files, setFiles] = useState<File[]>([]);
 	const [filePreviewUrls, setFilePreviewUrls] = useState<string[]>([]);
-	const [socketConnected, setSocketConnected] = useState(false);
 	const [referencesOpen, setReferencesOpen] = useState(false);
 	const [drawerMode, setDrawerMode] = useState<ChatDrawerMode>('references');
 	const [chatToolsOpen, setChatToolsOpen] = useState(false);
@@ -380,7 +384,7 @@ const DesignWorkflowChat = () => {
 	const [forwardMessage, setForwardMessage] = useState<ChatMessage | null>(null);
 	const [reactionPickerMessageId, setReactionPickerMessageId] = useState<number | null>(null);
 	const [reminderMessage, setReminderMessage] = useState<ChatMessage | null>(null);
-	const [reminderDraft, setReminderDraft] = useState({ taskId: '', remindAt: '', note: '' });
+	const [reminderDraft, setReminderDraft] = useState({ taskId: '', remindDate: '', remindTime: '', note: '' });
 	const [typingUsers, setTypingUsers] = useState<Record<number, WorkflowUser>>({});
 	const [recordingUsers, setRecordingUsers] = useState<Record<number, WorkflowUser>>({});
 	const [onlineUserIds, setOnlineUserIds] = useState<number[]>([]);
@@ -545,6 +549,14 @@ const DesignWorkflowChat = () => {
 		avatar: (typeof profile.avatar_cropped === 'string' && profile.avatar_cropped)
 			|| (typeof profile.avatar === 'string' ? profile.avatar : null),
 	}), [profile.avatar, profile.avatar_cropped, profile.email, profile.first_name, profile.id, profile.last_name, profile.role]);
+	const activeUserById = new Map(users.map((user) => [user.id, user]));
+	const forwardThreads = chatThreads.filter((thread) => (
+		thread.id !== selectedThreadId
+		&& (
+			thread.kind !== 'private'
+			|| thread.participants.some((participant) => participant.id !== profile.id && activeUserById.has(participant.id))
+		)
+	));
 
 	useEffect(() => {
 		const pendingRequestedThread = requestedThreadId && (threadsLoading || threadsFetching || requestedThreadAvailable);
@@ -596,9 +608,7 @@ const DesignWorkflowChat = () => {
 		if (!WS_URL || !token) return;
 		const ws = new WebSocket(`${WS_URL}/ws?token=${token}`);
 		wsRef.current = ws;
-		ws.onopen = () => setSocketConnected(true);
 		ws.onclose = () => {
-			setSocketConnected(false);
 			if (wsRef.current === ws) wsRef.current = null;
 		};
 		ws.onmessage = (event) => {
@@ -1003,8 +1013,9 @@ const DesignWorkflowChat = () => {
 		setReminderMessage(message);
 		setReminderDraft({
 			taskId: task ? String(task.id) : '',
-			remindAt: task?.due_date ? `${task.due_date}T09:00` : '',
-			note: cleanMessageForTask(message.body).slice(0, 120),
+			remindDate: task?.due_date ?? '',
+			remindTime: task?.due_date ? '09:00' : '',
+			note: '',
 		});
 	};
 
@@ -1013,11 +1024,13 @@ const DesignWorkflowChat = () => {
 		await addChatReminder({
 			id: reminderMessage.id,
 			task_id: reminderDraft.taskId ? Number(reminderDraft.taskId) : null,
-			remind_at: reminderDraft.remindAt ? new Date(reminderDraft.remindAt).toISOString() : null,
+			remind_at: reminderDraft.remindDate && reminderDraft.remindTime
+				? new Date(`${reminderDraft.remindDate}T${reminderDraft.remindTime}`).toISOString()
+				: null,
 			note: reminderDraft.note,
 		}).unwrap();
 		setReminderMessage(null);
-		setReminderDraft({ taskId: '', remindAt: '', note: '' });
+		setReminderDraft({ taskId: '', remindDate: '', remindTime: '', note: '' });
 	};
 
 	const stopVoiceRecording = (discard = false) => {
@@ -1066,17 +1079,11 @@ const DesignWorkflowChat = () => {
 	};
 
 	const openCreateTaskFromMessage = (message: ChatMessage) => {
-		const refs = extractReferenceIds(message.body, tasks, projects);
-		const referencedTask = tasks.find((task) => refs.taskIds.includes(task.id));
-		const referencedProject =
-			projects.find((project) => refs.projectIds.includes(project.id)) ??
-			(referencedTask ? projects.find((project) => project.id === referencedTask.project.id) : undefined) ??
-			projects[0];
 		setTaskSourceMessage(message);
 		setTaskDraft({
-			title: titleFromMessage(message.body),
-			description: message.body,
-			projectId: referencedProject ? String(referencedProject.id) : '',
+			title: '',
+			description: '',
+			projectId: '',
 		});
 		setTaskModalOpen(true);
 	};
@@ -1086,9 +1093,9 @@ const DesignWorkflowChat = () => {
 		if (!selectedText) return;
 		setTaskSourceMessage(null);
 		setTaskDraft({
-			title: selectedText.split(/\s+/).slice(0, 9).join(' '),
-			description: selectedText,
-			projectId: projects[0] ? String(projects[0].id) : '',
+			title: '',
+			description: '',
+			projectId: '',
 		});
 		setTaskModalOpen(true);
 	};
@@ -1132,12 +1139,6 @@ const DesignWorkflowChat = () => {
 					className="workflow-chat-sidebar-head"
 					title={t.workflow.labels.chatTitle ?? 'Chat'}
 					titleElement="h2"
-					actionsWrapper={false}
-					actions={
-						<span data-live={socketConnected}>
-							{socketConnected ? (t.workflow.labels.socketLive ?? 'Live') : (t.workflow.labels.socketOffline ?? 'Offline')}
-						</span>
-					}
 				/>
 				<div className="workflow-chat-thread-section" data-open={openSidebarSection === 'studio'}>
 					<button
@@ -1157,7 +1158,6 @@ const DesignWorkflowChat = () => {
 					<div id="workflow-chat-studio-list" className="workflow-chat-section-body" data-open={openSidebarSection === 'studio'}>
 					<div className="workflow-chat-section-inner">
 					{publicThreads.map((thread) => {
-						const peer = thread.participants.find((user) => user.id !== profile.id) ?? thread.participants[0];
 						const preview = threadPreviewFor(thread);
 						return (
 							<button
@@ -1173,17 +1173,9 @@ const DesignWorkflowChat = () => {
 									thread.unread_count ? 'is-unread' : '',
 								].join(' ')}
 							>
-								{peer ? (
-									<WorkflowAvatar
-										user={peer}
-										size={30}
-										online={onlineUserIds.includes(peer.id)}
-										showPresence
-										avatarClassName="workflow-chat-avatar"
-										presenceClassName="workflow-chat-presence-wrap"
-										presenceDotClassName="workflow-chat-presence-badge"
-									/>
-								) : <Users size={16} />}
+								<span className="workflow-chat-context-icon workflow-chat-context-icon-studio">
+									<MessagesSquare size={16} />
+								</span>
 								<span>
 									<b>
 										{threadTitle(
@@ -1359,35 +1351,26 @@ const DesignWorkflowChat = () => {
 							/>
 						</label>
 						<div className="workflow-chat-filter-row">
-							<select
-								value={searchFilters.sender_id ?? ''}
-								onChange={(event) => setSearchFilters((current) => ({ ...current, sender_id: event.target.value ? Number(event.target.value) : undefined }))}
+							<WorkflowSelectField
+								value={searchFilters.sender_id ? String(searchFilters.sender_id) : ''}
+								onChange={(value) => setSearchFilters((current) => ({ ...current, sender_id: value ? Number(value) : undefined }))}
+								options={[
+									{ value: '', label: t.workflow.labels.sender ?? 'Sender' },
+									...messageMentionUsers.map((user) => ({ value: user.id, label: `${userLabel(user)} — ${user.email}` })),
+								]}
+								startIcon={<Users size={16} />}
+								ariaLabel={t.workflow.labels.sender ?? 'Sender'}
 								className="workflow-chat-filter-select"
-								aria-label={t.workflow.labels.sender ?? 'Sender'}
-							>
-								<option key="sender-all" value="">{t.workflow.labels.sender ?? 'Sender'}</option>
-								{messageMentionUsers.map((user, index) => (
-									<option key={`sender-${user.id}-${index}`} value={user.id}>{userLabel(user)}</option>
-								))}
-							</select>
-							<div className="workflow-chat-date-field workflow-chat-filter-date">
-								<CalendarDays size={16} />
-								<input
-									type="date"
-									value={searchFilters.date_from ?? ''}
-									onChange={(event) => setSearchFilters((current) => ({ ...current, date_from: event.target.value || undefined }))}
-									aria-label={t.workflow.labels.dateFrom ?? 'From'}
-								/>
-								{searchFilters.date_from ? (
-									<button
-										type="button"
-										onClick={() => setSearchFilters((current) => ({ ...current, date_from: undefined }))}
-										aria-label={t.common.clearSelection}
-									>
-										<X size={14} />
-									</button>
-								) : null}
-							</div>
+							/>
+							<WorkflowDateField
+								value={searchFilters.date_from ?? ''}
+								onChange={(value) => setSearchFilters((current) => ({ ...current, date_from: value || undefined }))}
+								placeholder={t.workflow.labels.dateFrom ?? 'From'}
+								ariaLabel={t.workflow.labels.dateFrom ?? 'From'}
+								clearLabel={t.common.clearSelection}
+								wrapperClassName="workflow-chat-filter-date-control"
+								triggerClassName="workflow-chat-filter-date-trigger"
+							/>
 							<button
 								type="button"
 								className={['workflow-chat-mini-toggle', searchFilters.has_files ? 'is-active' : ''].join(' ')}
@@ -1559,8 +1542,10 @@ const DesignWorkflowChat = () => {
 													<button
 														type="button"
 														onClick={() => setReplyTarget(message)}
-														className="hover:text-(--ink)"
-													aria-label={t.workflow.buttons.reply ?? 'Reply'}
+												className="hover:text-(--ink)"
+												data-action="reply"
+												aria-label={t.workflow.buttons.reply ?? 'Reply'}
+												title={t.workflow.buttons.reply ?? 'Reply'}
 												>
 													<Reply size={15} />
 												</button>
@@ -1569,8 +1554,10 @@ const DesignWorkflowChat = () => {
 														<button
 															type="button"
 															onClick={() => setReactionPickerMessageId((current) => current === message.id ? null : message.id)}
-															className="hover:text-(--ink)"
-															aria-label={t.workflow.buttons.react ?? 'React'}
+													className="hover:text-(--ink)"
+													data-action="react"
+													aria-label={t.workflow.buttons.react ?? 'React'}
+													title={t.workflow.buttons.react ?? 'React'}
 														>
 															<SmilePlus size={15} />
 														</button>
@@ -1601,18 +1588,22 @@ const DesignWorkflowChat = () => {
 													<button
 														type="button"
 															onClick={() => markChatDecision({ id: message.id, is_decision: !message.decision_at })}
-															className={message.decision_at ? 'text-emerald-700' : 'hover:text-(--ink)'}
-															aria-label={t.workflow.buttons.markDecision ?? 'Mark decision'}
-														>
-															<CheckCheck size={15} />
+													className={message.decision_at ? 'text-emerald-700' : 'hover:text-(--ink)'}
+													data-action="decision"
+													aria-label={t.workflow.buttons.markDecision ?? 'Mark decision'}
+													title={t.workflow.buttons.markDecision ?? 'Mark decision'}
+												>
+													<BadgeCheck size={15} />
 														</button>
 													) : null}
 													{!message.is_deleted ? (
 														<button
 															type="button"
 															onClick={() => openReminder(message)}
-															className="hover:text-(--ink)"
-															aria-label={t.workflow.buttons.addReminder ?? 'Add reminder'}
+													className="hover:text-(--ink)"
+													data-action="reminder"
+													aria-label={t.workflow.buttons.addReminder ?? 'Add reminder'}
+													title={t.workflow.buttons.addReminder ?? 'Add reminder'}
 														>
 															<AlarmClock size={15} />
 														</button>
@@ -1621,8 +1612,10 @@ const DesignWorkflowChat = () => {
 														<button
 															type="button"
 															onClick={() => setForwardMessage(message)}
-															className="hover:text-(--ink)"
-															aria-label={t.workflow.buttons.forwardMessage ?? 'Forward'}
+													className="hover:text-(--ink)"
+													data-action="forward"
+													aria-label={t.workflow.buttons.forwardMessage ?? 'Forward'}
+													title={t.workflow.buttons.forwardMessage ?? 'Forward'}
 														>
 															<Forward size={15} />
 														</button>
@@ -1631,10 +1624,12 @@ const DesignWorkflowChat = () => {
 														<button
 															type="button"
 															onClick={() => openCreateTaskFromMessage(message)}
-															className="workflow-chat-create-task-action hover:text-(--accent-strong)"
-															aria-label={t.workflow.buttons.createTaskFromMessage ?? 'Create task from message'}
-														>
-															<CheckSquare2 size={15} />
+													className="workflow-chat-create-task-action hover:text-(--accent-strong)"
+													data-action="task"
+													aria-label={t.workflow.buttons.createTaskFromMessage ?? 'Create task from message'}
+													title={t.workflow.buttons.createTaskFromMessage ?? 'Create task from message'}
+												>
+													<ListTodo size={15} />
 														</button>
 													) : null}
 													{mine && !message.is_deleted ? (
@@ -1644,8 +1639,10 @@ const DesignWorkflowChat = () => {
 																setEditingMessage(message);
 																setEditText(message.body);
 															}}
-															className="hover:text-(--ink)"
-															aria-label={t.workflow.buttons.editMessage ?? 'Edit'}
+													className="hover:text-(--ink)"
+													data-action="edit"
+													aria-label={t.workflow.buttons.editMessage ?? 'Edit'}
+													title={t.workflow.buttons.editMessage ?? 'Edit'}
 														>
 															<Edit3 size={15} />
 														</button>
@@ -1654,8 +1651,10 @@ const DesignWorkflowChat = () => {
 														<button
 															type="button"
 															onClick={() => setDeleteTargetMessage(message)}
-															className="hover:text-red-600"
-															aria-label={t.workflow.buttons.deleteMessage ?? 'Delete message'}
+													className="hover:text-red-600"
+													data-action="delete"
+													aria-label={t.workflow.buttons.deleteMessage ?? 'Delete message'}
+													title={t.workflow.buttons.deleteMessage ?? 'Delete message'}
 														>
 															<Trash2 size={15} />
 														</button>
@@ -1727,22 +1726,27 @@ const DesignWorkflowChat = () => {
 											) : null}
 											{!message.is_deleted && message.reactions.length ? (
 												<div className="workflow-chat-reactions">
-													{REACTION_OPTIONS.map(({ emoji, label, Icon }) => {
-														const matchingReactions = message.reactions.filter((reaction) => reaction.emoji === emoji);
-														const count = matchingReactions.length;
-														if (!count) return null;
-														const active = matchingReactions.some((reaction) => reaction.user.id === profile.id);
-														return (
-															<button
+								{REACTION_OPTIONS.map(({ emoji, label, Icon }) => {
+									const matchingReactions = message.reactions.filter((reaction) => reaction.emoji === emoji);
+									const count = matchingReactions.length;
+									if (!count) return null;
+									const active = matchingReactions.some((reaction) => reaction.user.id === profile.id);
+									const participantNames = matchingReactions.map((reaction) => (
+										reaction.user.id === profile.id ? (t.workflow.labels.you ?? 'You') : userLabel(reaction.user)
+									));
+									const participantsLabel = participantNames.join(', ');
+									return (
+										<button
 																key={emoji}
 																type="button"
 																className={active ? 'is-active' : ''}
 																onClick={() => reactChatMessage({ id: message.id, emoji })}
-																aria-label={label}
-															>
-																<Icon size={13} />
-																<b>{count}</b>
-															</button>
+											aria-label={`${label}: ${participantsLabel}`}
+											title={participantsLabel}
+										>
+											<Icon size={13} />
+											<b className="workflow-chat-reaction-participants">{participantsLabel}</b>
+										</button>
 														);
 													})}
 												</div>
@@ -2060,7 +2064,7 @@ const DesignWorkflowChat = () => {
 											<button
 												type="button"
 												onClick={() => removeSelectedFile(index)}
-												className="absolute right-1 top-1 z-10 rounded-full bg-black/60 p-1 text-white"
+												className="absolute right-1 top-1 z-10 rounded-full bg-rose-600/90 p-1 text-white"
 												aria-label={t.common.delete}
 											>
 												<X size={12} />
@@ -2198,12 +2202,35 @@ const DesignWorkflowChat = () => {
 							</div>
 						</div>
 						<div className="workflow-chat-forward-list">
-							{chatThreads.map((thread) => (
-								<button key={thread.id} type="button" onClick={() => forwardToThread(thread)}>
-									<Users size={16} />
-									<span>{threadTitle(thread, profile.id, t.workflow.labels.publicStudio ?? 'Studio public', t.workflow.labels.privateChat ?? 'Private chat', t.workflow.labels.projectRoom ?? 'Project room', t.workflow.labels.taskRoom ?? 'Task room')}</span>
-								</button>
-							))}
+							{forwardThreads.map((thread) => {
+								const privatePeer = thread.kind === 'private'
+									? thread.participants.map((participant) => activeUserById.get(participant.id)).find((user) => user && user.id !== profile.id)
+									: undefined;
+								const peerOnline = privatePeer ? onlineUserIds.includes(privatePeer.id) : false;
+								return (
+									<button key={thread.id} type="button" onClick={() => forwardToThread(thread)}>
+										{privatePeer ? (
+											<WorkflowAvatar
+												user={privatePeer}
+												size={34}
+												online={peerOnline}
+												showPresence
+												avatarClassName="workflow-chat-avatar"
+												presenceClassName="workflow-chat-presence-wrap"
+												presenceDotClassName="workflow-chat-presence-badge"
+											/>
+										) : thread.kind === 'project' ? (
+											<BriefcaseBusiness size={17} />
+										) : (
+											<MessagesSquare size={17} />
+										)}
+										<span className="workflow-chat-forward-copy">
+											<b>{privatePeer ? userLabel(privatePeer) : threadTitle(thread, profile.id, t.workflow.labels.publicStudio ?? 'Studio public', t.workflow.labels.privateChat ?? 'Private chat', t.workflow.labels.projectRoom ?? 'Project room', t.workflow.labels.taskRoom ?? 'Task room')}</b>
+											{privatePeer ? <small>{peerOnline ? (t.workflow.labels.online ?? 'Online') : (t.workflow.labels.offline ?? 'Offline')}</small> : null}
+										</span>
+									</button>
+								);
+							})}
 						</div>
 					</div>
 				</div>
@@ -2227,37 +2254,45 @@ const DesignWorkflowChat = () => {
 						</div>
 						<label className="workflow-form-field">
 							<span>{t.workflow.labels.task ?? 'Task'}</span>
-							<select
+							<WorkflowSelectField
 								value={reminderDraft.taskId}
-								onChange={(event) => setReminderDraft((current) => ({ ...current, taskId: event.target.value }))}
-								className="app-input"
-							>
-								<option key="reminder-no-task" value="">{t.workflow.labels.noTask ?? 'No task'}</option>
-								{tasks.map((task, index) => (
-									<option key={`reminder-task-${task.id}-${index}`} value={task.id}>{task.title}</option>
-								))}
-							</select>
+								onChange={(value) => setReminderDraft((current) => ({ ...current, taskId: value }))}
+								options={[
+									{ value: '', label: t.workflow.labels.noTask ?? 'No task' },
+									...tasks.map((task) => ({ value: task.id, label: task.title })),
+								]}
+								startIcon={<ListTodo size={16} />}
+								ariaLabel={t.workflow.labels.task ?? 'Task'}
+							/>
 						</label>
-						<label className="workflow-form-field">
+						<div className="workflow-form-field">
 							<span>{t.workflow.labels.remindAt ?? 'Remind at'}</span>
-							<div className="workflow-chat-date-field workflow-chat-date-field-full">
-								<CalendarDays size={18} />
-								<input
-									type="datetime-local"
-									value={reminderDraft.remindAt}
-									onChange={(event) => setReminderDraft((current) => ({ ...current, remindAt: event.target.value }))}
-								/>
-								{reminderDraft.remindAt ? (
-									<button
-										type="button"
-										onClick={() => setReminderDraft((current) => ({ ...current, remindAt: '' }))}
-										aria-label={t.common.clearSelection}
-									>
-										<X size={15} />
-									</button>
-								) : null}
+							<div className="workflow-chat-reminder-datetime">
+								<div>
+									<small>{t.workflow.labels.dateLabel ?? 'Date'}</small>
+									<WorkflowDateField
+										value={reminderDraft.remindDate}
+										onChange={(value) => setReminderDraft((current) => ({ ...current, remindDate: value }))}
+										placeholder={t.workflow.labels.dateLabel ?? 'Date'}
+										ariaLabel={t.workflow.labels.dateLabel ?? 'Date'}
+										clearLabel={t.common.clearSelection}
+									/>
+								</div>
+								<div>
+									<small>{t.workflow.labels.timeLabel ?? 'Time'}</small>
+									<WorkflowSelectField
+										value={reminderDraft.remindTime}
+										onChange={(value) => setReminderDraft((current) => ({ ...current, remindTime: value }))}
+										options={[
+											{ value: '', label: t.workflow.labels.timeLabel ?? 'Time' },
+											...REMINDER_TIME_OPTIONS,
+										]}
+										startIcon={<Clock3 size={16} />}
+										ariaLabel={t.workflow.labels.timeLabel ?? 'Time'}
+									/>
+								</div>
 							</div>
-						</label>
+						</div>
 						<label className="workflow-form-field">
 							<span>{t.workflow.labels.note ?? 'Note'}</span>
 							<input
@@ -2305,15 +2340,16 @@ const DesignWorkflowChat = () => {
 						</label>
 						<label className="workflow-form-field">
 							<span>{t.workflow.labels.project}</span>
-							<select
+							<WorkflowSelectField
 								value={taskDraft.projectId}
-								onChange={(event) => setTaskDraft((current) => ({ ...current, projectId: event.target.value }))}
-								className="app-input"
-							>
-								{projects.map((project, index) => (
-									<option key={`task-project-${project.id}-${index}`} value={project.id}>{project.name}</option>
-								))}
-							</select>
+								onChange={(value) => setTaskDraft((current) => ({ ...current, projectId: value }))}
+								options={[
+									{ value: '', label: t.workflow.labels.selectProject ?? 'Select a project' },
+									...projects.map((project) => ({ value: project.id, label: project.name })),
+								]}
+								startIcon={<BriefcaseBusiness size={16} />}
+								ariaLabel={t.workflow.labels.project}
+							/>
 						</label>
 						<label className="workflow-form-field">
 							<span>{t.workflow.labels.description}</span>
@@ -2337,12 +2373,12 @@ const DesignWorkflowChat = () => {
 				</div>
 			) : null}
 			{selectedImage ? (
-				<div className="fixed inset-0 z-[260] grid place-items-center bg-black/75 p-4" onClick={() => setSelectedImage(null)}>
+				<div className="fixed inset-0 z-[260] grid place-items-center bg-indigo-950/55 p-4" onClick={() => setSelectedImage(null)}>
 					<div className="relative max-h-[90vh] max-w-[90vw]" onClick={(event) => event.stopPropagation()}>
 						<button
 							type="button"
 							onClick={() => setSelectedImage(null)}
-							className="absolute right-3 top-3 z-10 rounded-full bg-black/55 p-2 text-white"
+							className="absolute right-3 top-3 z-10 rounded-full bg-indigo-600/90 p-2 text-white"
 						>
 							<X size={18} />
 						</button>

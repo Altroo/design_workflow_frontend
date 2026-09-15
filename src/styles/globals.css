@@ -370,6 +370,16 @@ textarea.app-input {
 	overflow: hidden;
 }
 
+.app-select-content {
+	max-height: min(20rem, var(--radix-select-content-available-height));
+}
+
+.app-select-viewport {
+	max-height: inherit;
+	overflow-y: auto;
+	overscroll-behavior: contain;
+}
+
 .app-select-item {
 	position: relative;
 	display: flex;
@@ -10791,24 +10801,7 @@ button.workflow-chat-ref-card {
 
 .workflow-work-days-field {
 	position: relative;
-	display: grid;
-	grid-template-columns: minmax(0, 1fr) auto;
-	align-items: center;
-	gap: 8px;
-}
-
-.workflow-work-days-field > span {
-	display: inline-flex;
-	min-height: 42px;
-	align-items: center;
-	justify-content: center;
-	border: 1px solid #dbe3ef;
-	border-radius: 8px;
-	background: #f8fafc;
-	padding: 0 14px;
-	color: #334155;
-	font-size: 13px;
-	font-weight: 850;
+	display: block;
 }
 
 .workflow-checklist-template-picker {

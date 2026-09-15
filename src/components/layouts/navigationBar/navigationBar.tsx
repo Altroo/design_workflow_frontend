@@ -39,6 +39,7 @@ import { getProfilState } from '@/store/selectors';
 import { useGetNotificationsQuery, useMarkNotificationReadMutation } from '@/store/services/designWorkflow';
 import type { NotificationItem } from '@/types/designWorkflowTypes';
 import { getWorkflowNavigation, getWorkflowUtilities, type WorkflowNavItem as NavItem } from '@/components/shared/workflow/workflowNavigation';
+import { WorkflowAvatar } from '@/components/shared/workflow/workflowAvatar';
 
 type Props = {
 	title: string;
@@ -295,22 +296,17 @@ const NavigationBar = ({ title, children, hideTopbar = false }: Props) => {
 	const profileAvatarUrl = (typeof profile.avatar_cropped === 'string' && profile.avatar_cropped)
 		|| (typeof profile.avatar === 'string' ? profile.avatar : '');
 	const profileAvatar = (
-		<div className="workflow-topbar-avatar relative flex h-10 w-10 items-center justify-center overflow-hidden rounded-full bg-(--surface-strong)">
-			{profileAvatarUrl ? (
-				<Image
-					src={profileAvatarUrl}
-					alt={`${profile.first_name} ${profile.last_name}`}
-					fill
-					sizes="40px"
-					className="object-cover"
-				/>
-			) : (
-				<span className="workflow-avatar-initials inline-flex h-full w-full items-center justify-center text-center text-sm font-black leading-none text-(--ink)">
-					{(profile.first_name?.[0] ?? 'D').toUpperCase()}
-					{(profile.last_name?.[0] ?? 'W').toUpperCase()}
-				</span>
-			)}
-		</div>
+		<WorkflowAvatar
+			user={{
+				first_name: profile.first_name,
+				last_name: profile.last_name,
+				email: profile.email,
+				avatar: profileAvatarUrl,
+			}}
+			size={40}
+			avatarClassName="workflow-topbar-avatar"
+			fallbackInitials="DW"
+		/>
 	);
 
 	return (
@@ -355,13 +351,18 @@ const NavigationBar = ({ title, children, hideTopbar = false }: Props) => {
 				</nav>
 
 				<div className="workflow-rail-user mt-5 rounded-lg border border-[color:var(--line)] bg-(--accent-tint) p-3">
-					<p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-(--ink-muted)">
-						{t.navigation.signedIn}
-					</p>
-					<p className="mt-1 truncate text-sm font-semibold text-(--ink)">
-						{profile.first_name} {profile.last_name}
-					</p>
-					<p className="mt-1 text-xs text-(--ink-soft)">{profile.role || (profile.is_staff ? 'admin' : 'designer')}</p>
+					<div className="workflow-rail-user-content">
+						{profileAvatar}
+						<div className="min-w-0">
+							<p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-(--ink-muted)">
+								{t.navigation.signedIn}
+							</p>
+							<p className="mt-1 truncate text-sm font-semibold text-(--ink)">
+								{profile.first_name} {profile.last_name}
+							</p>
+							<p className="mt-1 text-xs text-(--ink-soft)">{profile.role || (profile.is_staff ? 'admin' : 'designer')}</p>
+						</div>
+					</div>
 				</div>
 			</aside>
 

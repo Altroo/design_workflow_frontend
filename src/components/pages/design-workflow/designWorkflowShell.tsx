@@ -5,10 +5,6 @@ import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { CSSProperties, ReactNode } from 'react';
-import * as Popover from '@radix-ui/react-popover';
-import * as Select from '@radix-ui/react-select';
-import { DayPicker } from 'react-day-picker';
-import 'react-day-picker/style.css';
 import { format as formatDateFns, isValid, parseISO } from 'date-fns';
 import { HexColorPicker } from 'react-colorful';
 import {
@@ -48,7 +44,6 @@ import {
 	CheckCircle2,
 	ChevronLeft,
 	ChevronRight,
-	ChevronDown,
 	Clock3,
 	CircleAlert,
 	FileText,
@@ -109,6 +104,7 @@ import {
 	useSnoozeNotificationMutation,
 	useSetTaskCoverFromAttachmentMutation,
 	useUpdateChecklistItemMutation,
+	useUpdateLabelMutation,
 	useUploadTaskAttachmentMutation,
 	useUploadTaskCoverMutation,
 	useSearchWorkspaceQuery,
@@ -149,6 +145,7 @@ import type { TranslationDictionary } from '@/types/languageTypes';
 import { WorkflowMetricCard as MetricCard, WorkflowPageHero, WorkflowPanelPill, WorkflowSimpleMetric } from '@/components/shared/workflow/workflowPrimitives';
 import { BOARD_STATUS_META, STATUS_COLUMNS } from '@/components/shared/workflow/boardAppearance';
 import { WorkflowAvatar, WORKFLOW_AVATAR_SIZES } from '@/components/shared/workflow/workflowAvatar';
+import { WorkflowDateField as DateField, WorkflowSelectField as SelectField } from '@/components/shared/workflow/workflowFormControls';
 
 ChartJS.register(CategoryScale, LinearScale, BarElement, ArcElement, LineElement, PointElement, Filler, Tooltip, Legend);
 
@@ -198,14 +195,13 @@ type BoardFiltersState = {
 	sort: string;
 	search: string;
 	overdueOnly: boolean;
-	blockedOnly: boolean;
 	archivedOnly: boolean;
 };
 
 const PRIORITY_OPTIONS: Array<TaskCard['priority']> = ['low', 'medium', 'high', 'urgent'];
 const REVIEW_STATE_OPTIONS: Array<TaskCard['review_state']> = ['not_submitted', 'needs_review', 'changes_requested', 'approved'];
 const BOARD_SORT_OPTIONS = ['sort_order', 'due_date', '-due_date', 'priority', '-priority', 'updated_at', '-updated_at', 'title'] as const;
-const PROJECT_STATUS_OPTIONS: Array<ProjectSummary['status']> = ['planned', 'active', 'on_hold', 'completed', 'archived'];
+const PROJECT_STATUS_OPTIONS: Array<ProjectSummary['status']> = ['planned', 'active', 'on_hold', 'completed'];
 const EMPTY_PROJECTS: ProjectSummary[] = [];
 const EMPTY_TASKS: TaskCard[] = [];
 const EMPTY_WORKLOAD: WorkloadRow[] = [];
@@ -221,7 +217,6 @@ const DEFAULT_NOTIFICATION_PREFERENCES: NotificationPreference = {
 	created_at: '',
 	updated_at: '',
 };
-const EMPTY_SELECT_VALUE = '__empty__';
 const WORK_DAY_MINUTES = 9 * 60;
 type WorkflowCopy = TranslationDictionary['workflow'];
 type PrintableReportCopy = {
@@ -385,7 +380,6 @@ const emptyBoardFilters = (): BoardFiltersState => ({
 	sort: 'sort_order',
 	search: '',
 	overdueOnly: false,
-	blockedOnly: false,
 	archivedOnly: false,
 });
 
@@ -856,14 +850,6 @@ const normalizeUsers = (usersResponse?: UsersListResponse): WorkflowUser[] => {
 const toNullableString = (value: string) => (value.trim() ? value : null);
 const toDatePayload = (value?: string | null) => (value?.trim() ? value : null);
 
-const parseDateValue = (value?: string | null) => {
-	if (!value) return null;
-	const parsed = parseISO(value);
-	return isValid(parsed) ? parsed : null;
-};
-
-const toDateValue = (value: Date | null) => (value ? formatDateFns(value, 'yyyy-MM-dd') : '');
-
 const buildProjectPayload = (form: ProjectInput): ProjectInput => ({
 	...form,
 	name: form.name.trim(),
@@ -904,7 +890,6 @@ const filtersFromSavedView = (view: SavedView): BoardFiltersState => {
 		sort: BOARD_SORT_OPTIONS.includes(sortField as (typeof BOARD_SORT_OPTIONS)[number]) ? sortField : 'sort_order',
 		search: stringFromSavedFilter(view.filters, 'q'),
 		overdueOnly: boolFromSavedFilter(view.filters, 'overdue'),
-		blockedOnly: boolFromSavedFilter(view.filters, 'blocked'),
 		archivedOnly: view.show_archived || boolFromSavedFilter(view.filters, 'archived'),
 	};
 };
@@ -920,7 +905,6 @@ const savedViewPayloadFromFilters = (name: string, filters: BoardFiltersState, v
 		review_state: filters.reviewState,
 		q: filters.search,
 		overdue: filters.overdueOnly,
-		blocked: filters.blockedOnly,
 		archived: filters.archivedOnly,
 	},
 	sort: { field: filters.sort },
@@ -1094,111 +1078,6 @@ const Area = ({
 	</div>
 );
 
-const SelectField = ({
-	id,
-	value,
-	onChange,
-	options,
-	startIcon,
-	placeholder,
-}: {
-	id?: string;
-	value: string;
-	onChange: (value: string) => void;
-	options: Array<{ value: string | number; label: string }>;
-	startIcon?: ReactNode;
-	placeholder?: string;
-}) => {
-	const hasMatchingOption = value !== '' && options.some((option) => String(option.value) === String(value));
-	const normalizedValue = value === '' || !hasMatchingOption ? EMPTY_SELECT_VALUE : String(value);
-
-	return (
-		<Select.Root
-			value={normalizedValue}
-			onValueChange={(nextValue) => onChange(nextValue === EMPTY_SELECT_VALUE ? '' : nextValue)}
-		>
-			<Select.Trigger id={id} className={cn('app-input app-select-trigger pr-14 text-left', startIcon ? 'pl-14' : '')}>
-				{startIcon ? (
-					<span className="pointer-events-none absolute left-3 top-0 z-10 flex h-full items-center justify-center text-(--ink-soft)">
-						{startIcon}
-					</span>
-				) : null}
-				<Select.Value placeholder={placeholder} />
-				<Select.Icon asChild>
-					<ChevronDown size={18} />
-				</Select.Icon>
-			</Select.Trigger>
-			<Select.Portal>
-				<Select.Content className="app-select-content z-[9999]" position="popper" sideOffset={8}>
-					<Select.Viewport className="p-1">
-						{options.map((option) => {
-							const optionValue = option.value === '' ? EMPTY_SELECT_VALUE : String(option.value);
-							return (
-								<Select.Item key={optionValue} value={optionValue} className="app-select-item">
-									<Select.ItemText>{option.label}</Select.ItemText>
-								</Select.Item>
-							);
-						})}
-					</Select.Viewport>
-				</Select.Content>
-			</Select.Portal>
-		</Select.Root>
-	);
-};
-
-const DateField = ({
-	id,
-	value,
-	onChange,
-	placeholder = 'YYYY-MM-DD',
-}: {
-	id?: string;
-	value?: string | null;
-	onChange: (value: string) => void;
-	placeholder?: string;
-}) => {
-	const selectedDate = parseDateValue(value);
-	const [open, setOpen] = useState(false);
-
-	return (
-		<Popover.Root open={open} onOpenChange={setOpen}>
-			<div className="relative">
-				<span className="pointer-events-none absolute left-3 top-1/2 z-10 -translate-y-1/2 text-(--ink-soft)">
-					<CalendarDays size={18} />
-				</span>
-				<Popover.Trigger id={id} className={cn('app-input app-date-trigger pl-14 pr-14 text-left', !value && 'text-(--ink-muted)')}>
-					{value || placeholder}
-				</Popover.Trigger>
-				{value ? (
-					<button
-						type="button"
-						aria-label="Clear date"
-						className="absolute right-5 top-1/2 z-10 -translate-y-1/2 text-(--ink-soft)"
-						onClick={() => onChange('')}
-					>
-						<X size={16} />
-					</button>
-				) : null}
-			</div>
-			<Popover.Portal>
-				<Popover.Content className="app-day-picker-popover" sideOffset={8} align="start">
-					<DayPicker
-						mode="single"
-						selected={selectedDate ?? undefined}
-						onSelect={(date) => {
-							onChange(toDateValue(date ?? null));
-							if (date) setOpen(false);
-						}}
-						captionLayout="label"
-						navLayout="around"
-						className="app-day-picker"
-					/>
-				</Popover.Content>
-			</Popover.Portal>
-		</Popover.Root>
-	);
-};
-
 const WorkDaysField = ({
 	id,
 	value,
@@ -1210,7 +1089,6 @@ const WorkDaysField = ({
 	onChange: (value: string) => void;
 	min?: number;
 }) => {
-	const { t } = useLanguage();
 	const numericValue = Number(value || 0);
 	const displayValue = numericValue ? String(Math.max(min, Math.round(numericValue / WORK_DAY_MINUTES))) : '';
 
@@ -1224,7 +1102,6 @@ const WorkDaysField = ({
 				onChange={(nextValue) => onChange(String(Math.max(min, Math.round(Number(nextValue || 0))) * WORK_DAY_MINUTES))}
 				startIcon={<CalendarDays size={18} />}
 			/>
-			<span>{t.workflow.labels.daysUnit ?? 'Days'}</span>
 		</div>
 	);
 };
@@ -1338,6 +1215,12 @@ const TaskCardItem = ({
 	showTime?: boolean;
 }) => {
 	const dueDelivery = getDueDeliveryInfo(task, copy.labels);
+	const taskRestoreLocked = task.archived && task.project.archived;
+	const taskArchiveLabel = taskRestoreLocked
+		? copy.labels.unarchiveProjectFirst
+		: task.archived
+			? (copy.buttons.restore ?? 'Restore')
+			: (copy.buttons.archive ?? 'Archive');
 	if (variant === 'board') {
 		const doneItems = task.checklist_items.filter((item) => item.done).length;
 		return (
@@ -1363,9 +1246,12 @@ const TaskCardItem = ({
 									<button
 										type="button"
 										data-no-card-open
-										aria-label="Archive task"
+										aria-label={taskArchiveLabel}
+										title={taskArchiveLabel}
+										disabled={taskRestoreLocked}
 										onClick={(event) => {
 											event.stopPropagation();
+											if (taskRestoreLocked) return;
 											onArchive(task);
 										}}
 										className="workflow-trello-card-edit"
@@ -1438,9 +1324,12 @@ const TaskCardItem = ({
 					{onArchive ? (
 						<button
 							type="button"
-							aria-label="Archive task"
+							aria-label={taskArchiveLabel}
+							title={taskArchiveLabel}
+							disabled={taskRestoreLocked}
 							onClick={(event) => {
 								event.stopPropagation();
+								if (taskRestoreLocked) return;
 								onArchive(task);
 							}}
 							className="workflow-task-card-archive workflow-focus-ring grid h-8 w-8 place-items-center rounded-lg border border-[color:var(--line)] text-(--ink-soft) hover:bg-(--surface-muted) hover:text-(--ink)"
@@ -1515,7 +1404,7 @@ const BoardTaskCard = ({
 	onArchive?: (task: TaskCard) => void;
 	showTime?: boolean;
 }) => {
-	const { attributes, listeners, setNodeRef, setActivatorNodeRef, transform, transition, isDragging } = useSortable({
+	const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
 		id: getTaskDragId(task.id),
 		data: {
 			type: 'task',
@@ -1528,16 +1417,25 @@ const BoardTaskCard = ({
 			ref={setNodeRef}
 			data-task-id={task.id}
 			data-testid={`board-task-${task.id}`}
+			{...attributes}
+			{...listeners}
+			onPointerDown={(event) => {
+				const target = event.target instanceof Element ? event.target : null;
+				if (target && isCardInteractiveTarget(target) && !target.closest('.workflow-board-drag-handle')) return;
+				listeners?.onPointerDown?.(event);
+			}}
 			onClick={(event) => {
 				if (!onOpen || isCardInteractiveTarget(event.target)) return;
 				onOpen(task.id);
 			}}
 			onKeyDown={(event) => {
-				if (!onOpen || isCardInteractiveTarget(event.target)) return;
-				if (event.key === 'Enter' || event.key === ' ') {
+				if (isCardInteractiveTarget(event.target)) return;
+				if (event.key === 'Enter' && onOpen) {
 					event.preventDefault();
 					onOpen(task.id);
+					return;
 				}
+				listeners?.onKeyDown?.(event);
 			}}
 			style={
 				{
@@ -1557,18 +1455,14 @@ const BoardTaskCard = ({
 						labelFor={labelFor}
 						dateFor={dateFor}
 						onArchive={onArchive}
-						dragHandle={(
-							<button
-								type="button"
-								ref={setActivatorNodeRef}
+							dragHandle={(
+							<span
 								data-no-card-open
-								aria-label={`${copy.buttons.moveTask}: ${task.title}`}
+								aria-hidden="true"
 								className="workflow-board-drag-handle"
-								{...attributes}
-								{...listeners}
 							>
 								<GripVertical size={15} />
-							</button>
+							</span>
 						)}
 						variant="board"
 						showTime={showTime}
@@ -1773,7 +1667,11 @@ const DesignWorkflowShell = ({ title, variant, projectId, taskId }: Props) => {
 			.slice(0, 3)
 			.map(([key, value]) => {
 				const translatedKey = workflow.labels[`activityMeta_${key}`] ?? workflow.labels[key] ?? labelFor(key);
-				const translatedValue = typeof value === 'string' ? labelFor(value) : String(value);
+				const translatedValue = typeof value === 'boolean'
+					? (value ? t.common.yes : t.common.no)
+					: typeof value === 'string'
+						? labelFor(value)
+						: String(value);
 				return `${translatedKey}: ${translatedValue}`;
 			})
 			.join(' • ')}`;
@@ -1809,9 +1707,13 @@ const DesignWorkflowShell = ({ title, variant, projectId, taskId }: Props) => {
 	const [modalLabelComposerOpen, setModalLabelComposerOpen] = useState(false);
 	const [newLabelName, setNewLabelName] = useState('');
 	const [newLabelColor, setNewLabelColor] = useState('#7F56D9');
+	const [editingLabelId, setEditingLabelId] = useState<number | null>(null);
+	const [editingLabelName, setEditingLabelName] = useState('');
+	const [editingLabelColor, setEditingLabelColor] = useState('#7F56D9');
 	const [taskAttachmentFile, setTaskAttachmentFile] = useState<File | null>(null);
 	const [taskCoverFile, setTaskCoverFile] = useState<File | null>(null);
 	const [mediaDeleteTarget, setMediaDeleteTarget] = useState<MediaDeleteTarget | null>(null);
+	const [projectArchiveOpen, setProjectArchiveOpen] = useState(false);
 	const [attachmentPreview, setAttachmentPreview] = useState<AttachmentPreviewTarget | null>(null);
 	const [reportChartsMounted, setReportChartsMounted] = useState(false);
 	const [boardDraft, setBoardDraft] = useState<TaskCard[]>([]);
@@ -1916,9 +1818,8 @@ const DesignWorkflowShell = ({ title, variant, projectId, taskId }: Props) => {
 					assignee: boardFilters.assignee ? Number(boardFilters.assignee) : undefined,
 					review_state: boardFilters.reviewState || undefined,
 					q: boardFilters.search.trim() || undefined,
-					sort: boardFilters.sort || undefined,
+					sort: boardViewMode === 'table' ? boardFilters.sort || undefined : 'sort_order',
 					overdue: boardFilters.overdueOnly || undefined,
-					blocked: boardFilters.blockedOnly || undefined,
 					archived: boardFilters.archivedOnly || undefined,
 				};
 	const { data: tasksData, isLoading: tasksLoading, isFetching: tasksFetching } = useGetTasksQuery(tasksParams, {
@@ -1978,10 +1879,12 @@ const DesignWorkflowShell = ({ title, variant, projectId, taskId }: Props) => {
 
 	const [createProject, createProjectState] = useCreateProjectMutation();
 	const [createLabel] = useCreateLabelMutation();
+	const [updateLabel, updateLabelState] = useUpdateLabelMutation();
 	const [createSavedView, createSavedViewState] = useCreateSavedViewMutation();
 	const [updateSavedView] = useUpdateSavedViewMutation();
 	const [deleteSavedView] = useDeleteSavedViewMutation();
 	const [updateProject, updateProjectState] = useUpdateProjectMutation();
+	const [setProjectArchived, projectArchiveState] = useUpdateProjectMutation();
 	const [createTask, createTaskState] = useCreateTaskMutation();
 	const [updateTask, updateTaskState] = useUpdateTaskMutation();
 	const [updateTaskStatus, updateStatusState] = useUpdateTaskStatusMutation();
@@ -2122,6 +2025,7 @@ const DesignWorkflowShell = ({ title, variant, projectId, taskId }: Props) => {
 		setTaskAddPanel(null);
 		setModalDescriptionEditing(false);
 		setModalLabelComposerOpen(false);
+		setEditingLabelId(null);
 	}, [task]);
 
 	useEffect(() => {
@@ -2174,6 +2078,23 @@ const DesignWorkflowShell = ({ title, variant, projectId, taskId }: Props) => {
 
 	const handleArchiveTask = async (taskItem: TaskCard) => {
 		await archiveTask({ id: taskItem.id, archived: !taskItem.archived }).unwrap();
+	};
+
+	const handleSetProjectArchived = async () => {
+		if (!project) return;
+		const archived = !project.archived;
+		await runPrimaryAction(
+			async () => {
+				await setProjectArchived({ id: project.id, data: { archived } }).unwrap();
+				setProjectArchiveOpen(false);
+			},
+			archived
+				? messageFor('Projet archivé avec succès.', 'Project archived successfully.')
+				: messageFor('Projet réactivé avec succès.', 'Project unarchived successfully.'),
+			archived
+				? messageFor('Impossible d’archiver le projet.', 'Could not archive the project.')
+				: messageFor('Impossible de réactiver le projet.', 'Could not unarchive the project.'),
+		);
 	};
 
 	const handleConfirmMediaDelete = async () => {
@@ -2719,7 +2640,27 @@ const DesignWorkflowShell = ({ title, variant, projectId, taskId }: Props) => {
 	};
 
 	const renderBoardTable = () => (
-		<div className="workflow-board-table-wrap">
+		<div className="workflow-board-table-view">
+			<div className="workflow-board-table-controls">
+				<div className="workflow-board-table-sort">
+					<FieldLabel htmlFor="board-table-sort">{workflow.labels.tableSort}</FieldLabel>
+					<SelectField
+						id="board-table-sort"
+						value={boardFilters.sort}
+						onChange={(value) => updateBoardFiltersManually((current) => ({ ...current, sort: value }))}
+						options={[
+							{ value: 'sort_order', label: workflow.labels.manualOrder ?? 'Manual order' },
+							{ value: 'due_date', label: workflow.labels.dueDateAsc ?? 'Due date ascending' },
+							{ value: '-due_date', label: workflow.labels.dueDateDesc ?? 'Due date descending' },
+							{ value: '-priority', label: workflow.labels.priorityDesc ?? 'Priority high first' },
+							{ value: '-updated_at', label: workflow.labels.recentlyUpdated ?? 'Recently updated' },
+							{ value: 'title', label: workflow.labels.titleAsc ?? 'Title A-Z' },
+						]}
+						startIcon={<SlidersHorizontal size={16} />}
+					/>
+				</div>
+			</div>
+			<div className="workflow-board-table-wrap">
 			<table className="workflow-board-table">
 				<thead>
 					<tr>
@@ -2776,6 +2717,7 @@ const DesignWorkflowShell = ({ title, variant, projectId, taskId }: Props) => {
 				</tbody>
 			</table>
 			{filteredBoardTasks.length === 0 ? <EmptyState {...workflow.emptyStates.noTasks} /> : null}
+			</div>
 		</div>
 	);
 
@@ -2889,7 +2831,6 @@ const DesignWorkflowShell = ({ title, variant, projectId, taskId }: Props) => {
 			Boolean(boardFilters.reviewState) ||
 			boardFilters.sort !== 'sort_order' ||
 			boardFilters.overdueOnly ||
-			boardFilters.blockedOnly ||
 			boardFilters.archivedOnly;
 		const showBoardTools = hasBoardSetup || hasActiveFilters || boardFiltersOpen;
 
@@ -3046,23 +2987,9 @@ const DesignWorkflowShell = ({ title, variant, projectId, taskId }: Props) => {
 							]}
 							startIcon={<ShieldCheck size={16} />}
 						/>
-						<SelectField
-							value={boardFilters.sort}
-							onChange={(value) => updateBoardFiltersManually((current) => ({ ...current, sort: value }))}
-							options={[
-								{ value: 'sort_order', label: workflow.labels.manualOrder ?? 'Manual order' },
-								{ value: 'due_date', label: workflow.labels.dueDateAsc ?? 'Due date ascending' },
-								{ value: '-due_date', label: workflow.labels.dueDateDesc ?? 'Due date descending' },
-								{ value: '-priority', label: workflow.labels.priorityDesc ?? 'Priority high first' },
-								{ value: '-updated_at', label: workflow.labels.recentlyUpdated ?? 'Recently updated' },
-								{ value: 'title', label: workflow.labels.titleAsc ?? 'Title A-Z' },
-							]}
-							startIcon={<SlidersHorizontal size={16} />}
-						/>
 					</div>
 					<div className="workflow-kanban-toggles">
 						<ToggleField label={workflow.labels.overdueOnly} checked={boardFilters.overdueOnly} onChange={(checked) => updateBoardFiltersManually((current) => ({ ...current, overdueOnly: checked }))} />
-						<ToggleField label={workflow.labels.blockedOnly} checked={boardFilters.blockedOnly} onChange={(checked) => updateBoardFiltersManually((current) => ({ ...current, blockedOnly: checked }))} />
 						<Chip tone="neutral">{workflow.labels.active} {activeBoardCount}</Chip>
 					</div>
 					<div className="workflow-saved-view-bar">
@@ -3071,7 +2998,7 @@ const DesignWorkflowShell = ({ title, variant, projectId, taskId }: Props) => {
 							onChange={(value) => {
 								const view = savedViews.find((item) => String(item.id) === value);
 								if (view) applySavedView(view);
-								if (!value) setSelectedSavedViewId(null);
+								if (!value) updateBoardFiltersManually(emptyBoardFilters());
 							}}
 							options={[
 								{ value: '', label: workflow.labels.savedViews ?? 'Saved views' },
@@ -3308,10 +3235,10 @@ const DesignWorkflowShell = ({ title, variant, projectId, taskId }: Props) => {
 				) : (
 					<div className="workflow-projects-card-grid">
 						{projects.map((item) => (
-							<Link key={item.id} href={DASHBOARD_PROJECT_VIEW(item.id)} className="workflow-project-card-modern" data-status={item.status}>
+							<Link key={item.id} href={DASHBOARD_PROJECT_VIEW(item.id)} className="workflow-project-card-modern" data-status={item.archived ? 'archived' : item.status}>
 								<div className="workflow-project-card-pill">
 									<b>{item.name}</b>
-									<em>{labelFor(item.status)}</em>
+									<em>{labelFor(item.archived ? 'archived' : item.status)}</em>
 								</div>
 								<div className="workflow-project-card-main">
 									<div className="min-w-0">
@@ -3358,6 +3285,7 @@ const DesignWorkflowShell = ({ title, variant, projectId, taskId }: Props) => {
 		const pagedTasks = project.tasks.slice((projectTasksCurrentPage - 1) * pageSize, projectTasksCurrentPage * pageSize);
 		const pagedComments = project.recent_comments.slice((projectCommentsCurrentPage - 1) * pageSize, projectCommentsCurrentPage * pageSize);
 		const pagedActivity = project.recent_activity.slice((projectActivityCurrentPage - 1) * pageSize, projectActivityCurrentPage * pageSize);
+		const projectStatusOptions = project.archived ? [...PROJECT_STATUS_OPTIONS, 'archived' as const] : PROJECT_STATUS_OPTIONS;
 
 		return (
 			<div className="workflow-project-detail-page">
@@ -3376,7 +3304,7 @@ const DesignWorkflowShell = ({ title, variant, projectId, taskId }: Props) => {
 					actionsClassName="workflow-projects-actions"
 					actions={
 						<>
-							<span>{labelFor(project.status)}</span>
+							<span>{labelFor(project.archived ? 'archived' : project.status)}</span>
 							<span>{project.open_tasks_count} {workflow.labels.openTasks}</span>
 							<span>{formatMinutes(project.total_logged_minutes)} {workflow.labels.loggedSuffix}</span>
 						</>
@@ -3447,8 +3375,9 @@ const DesignWorkflowShell = ({ title, variant, projectId, taskId }: Props) => {
 									<SelectField
 										value={projectEditForm.status ?? 'planned'}
 										onChange={(value) => setProjectEditForm((current) => ({ ...current, status: value as ProjectSummary['status'] }))}
-										options={PROJECT_STATUS_OPTIONS.map((item) => ({ value: item, label: labelFor(item) }))}
+										options={projectStatusOptions.map((item) => ({ value: item, label: labelFor(item) }))}
 										startIcon={<ListTodo size={18} />}
+										disabled={project.archived}
 									/>
 								</div>
 								<div>
@@ -3460,7 +3389,7 @@ const DesignWorkflowShell = ({ title, variant, projectId, taskId }: Props) => {
 									<DateField value={projectEditForm.target_end_date ?? ''} onChange={(value) => setProjectEditForm((current) => ({ ...current, target_end_date: value }))} />
 								</div>
 							</div>
-							<div className="mt-5">
+							<div className="mt-5 flex flex-wrap items-center gap-3">
 								<button
 									type="button"
 									onClick={() => void runPrimaryAction(
@@ -3474,6 +3403,16 @@ const DesignWorkflowShell = ({ title, variant, projectId, taskId }: Props) => {
 								>
 									<Pencil size={16} />
 									<span>{updateProjectState.isLoading ? workflow.buttons.saving : workflow.buttons.saveProject}</span>
+								</button>
+								<button
+									type="button"
+									onClick={() => setProjectArchiveOpen(true)}
+									disabled={projectArchiveState.isLoading}
+									className="workflow-project-archive-trigger"
+									data-archived={project.archived}
+								>
+									{project.archived ? <RefreshCcw size={16} /> : <Archive size={16} />}
+									<span>{project.archived ? workflow.buttons.unarchiveProject : workflow.buttons.archiveProject}</span>
 								</button>
 							</div>
 						</section>
@@ -3672,6 +3611,7 @@ const DesignWorkflowShell = ({ title, variant, projectId, taskId }: Props) => {
 		const checklistItemsCount = checklistGroups.reduce((total, group) => total + group.items.length, 0);
 		const checklistProgress = checklistItemsCount ? (checklistDoneCount / checklistItemsCount) * 100 : 0;
 		const taskDueDelivery = getDueDeliveryInfo(task, workflow.labels);
+		const taskRestoreLocked = task.archived && task.project.archived;
 		const showLabelsPanel = task.labels.length > 0 || taskAddPanel === 'labels';
 		const showChecklistPanel = checklistGroups.length > 0 || taskAddPanel === 'checklist';
 		const showAttachmentsPanel = task.attachments.length > 0 || task.cover_image_url || taskAddPanel === 'attachments' || taskAddPanel === 'cover';
@@ -3918,6 +3858,8 @@ const DesignWorkflowShell = ({ title, variant, projectId, taskId }: Props) => {
 								type="button"
 								onClick={() => {
 									setTaskAddPanel((current) => current === 'labels' ? null : 'labels');
+									setModalLabelComposerOpen(false);
+									setEditingLabelId(null);
 								}}
 								className="workflow-trello-modal-action"
 								data-tone="violet"
@@ -3978,9 +3920,16 @@ const DesignWorkflowShell = ({ title, variant, projectId, taskId }: Props) => {
 								<Users size={17} />
 								<span>{workflow.labels.membersPanel ?? 'Members'}</span>
 							</button>
-							<button type="button" onClick={() => archiveTask({ id: task.id, archived: !task.archived })} className="workflow-trello-modal-action" data-tone={task.archived ? 'blue' : 'rose'}>
+							<button
+								type="button"
+								disabled={taskRestoreLocked}
+								title={taskRestoreLocked ? workflow.labels.unarchiveProjectFirst : undefined}
+								onClick={() => archiveTask({ id: task.id, archived: !task.archived })}
+								className="workflow-trello-modal-action"
+								data-tone={task.archived ? 'blue' : 'rose'}
+							>
 								<Archive size={17} />
-								<span>{task.archived ? (workflow.buttons.restore ?? 'Restore') : (workflow.buttons.archive ?? 'Archive')}</span>
+								<span>{taskRestoreLocked ? workflow.labels.unarchiveProjectFirst : task.archived ? (workflow.buttons.restore ?? 'Restore') : (workflow.buttons.archive ?? 'Archive')}</span>
 							</button>
 						</div>
 
@@ -3988,7 +3937,7 @@ const DesignWorkflowShell = ({ title, variant, projectId, taskId }: Props) => {
 							<div className="workflow-trello-modal-floating-panel" data-panel={taskAddPanel} ref={taskAddPanelRef}>
 								<div className="workflow-trello-modal-floating-head">
 									<p>{addOptions.find((option) => option.key === taskAddPanel)?.title}</p>
-									<button type="button" onClick={() => { setTaskAddPanel(null); setModalLabelComposerOpen(false); }} aria-label={t.common.close}>
+									<button type="button" onClick={() => { setTaskAddPanel(null); setModalLabelComposerOpen(false); setEditingLabelId(null); }} aria-label={t.common.close}>
 										<X size={16} />
 									</button>
 								</div>
@@ -3998,34 +3947,51 @@ const DesignWorkflowShell = ({ title, variant, projectId, taskId }: Props) => {
 											{labels.map((label) => {
 												const active = task.labels.some((item) => item.id === label.id);
 												return (
-													<button
-														key={label.id}
-														type="button"
-														data-active={active}
-														disabled={!isManager}
-														onClick={() => updateTask({
-															id: task.id,
-															data: {
-																label_ids: active
-																	? task.labels.filter((item) => item.id !== label.id).map((item) => item.id)
-																	: [...task.labels.map((item) => item.id), label.id],
-															},
-														})}
-													>
-														<span style={{ backgroundColor: label.color }} />
-														{label.name}
-													</button>
+													<div key={label.id} className="workflow-trello-modal-label-row">
+														<button
+															type="button"
+															data-active={active}
+															disabled={!isManager}
+															onClick={() => updateTask({
+																id: task.id,
+																data: {
+																	label_ids: active
+																		? task.labels.filter((item) => item.id !== label.id).map((item) => item.id)
+																		: [...task.labels.map((item) => item.id), label.id],
+																},
+															})}
+														>
+															<span style={{ backgroundColor: label.color }} />
+															{label.name}
+															{active ? <CheckCircle2 size={14} /> : null}
+														</button>
+														{isManager ? (
+															<button
+																type="button"
+																className="workflow-trello-modal-label-edit-button"
+																aria-label={`${t.common.edit}: ${label.name}`}
+																onClick={() => {
+																	setEditingLabelId(label.id);
+																	setEditingLabelName(label.name);
+																	setEditingLabelColor(label.color);
+																	setModalLabelComposerOpen(false);
+																}}
+															>
+																<Pencil size={14} />
+															</button>
+														) : null}
+													</div>
 												);
 											})}
 										</div>
 										{labels.length === 0 ? <div className="workflow-trello-modal-empty-line">{workflow.labels.noLabelYet ?? 'No label yet'}</div> : null}
 										{isManager && !modalLabelComposerOpen ? (
-											<button type="button" className="workflow-trello-modal-secondary-action" onClick={() => setModalLabelComposerOpen(true)}>
+										<button type="button" className="workflow-trello-modal-secondary-action" onClick={() => { setEditingLabelId(null); setModalLabelComposerOpen(true); }}>
 												<Plus size={16} />
 												<span>{workflow.labels.newLabel ?? 'New label'}</span>
 											</button>
 										) : null}
-										{isManager && modalLabelComposerOpen ? (
+									{isManager && modalLabelComposerOpen ? (
 											<div className="workflow-trello-modal-label-create">
 												<Field value={newLabelName} onChange={setNewLabelName} placeholder={workflow.labels.newLabelPlaceholder ?? 'New label'} startIcon={<Tag size={16} />} />
 												<div>
@@ -4047,6 +4013,31 @@ const DesignWorkflowShell = ({ title, variant, projectId, taskId }: Props) => {
 													>
 														{t.common.add}
 													</button>
+												</div>
+											</div>
+										) : null}
+										{isManager && editingLabelId ? (
+											<div className="workflow-trello-modal-label-create workflow-trello-modal-label-edit">
+												<Field value={editingLabelName} onChange={setEditingLabelName} placeholder={workflow.labels.newLabelPlaceholder ?? 'Label name'} startIcon={<Tag size={16} />} />
+												<div>
+													<HexColorPicker color={editingLabelColor} onChange={setEditingLabelColor} />
+													<div className="workflow-trello-modal-label-edit-actions">
+														<button type="button" className="workflow-trello-modal-label-edit-cancel" onClick={() => setEditingLabelId(null)}>{t.common.cancel}</button>
+														<button
+															type="button"
+															disabled={!editingLabelName.trim() || updateLabelState.isLoading}
+															onClick={() => void runPrimaryAction(
+																async () => {
+																	await updateLabel({ id: editingLabelId, data: { name: editingLabelName.trim(), color: editingLabelColor } }).unwrap();
+																	setEditingLabelId(null);
+																},
+																messageFor('Étiquette modifiée avec succès.', 'Label updated successfully.'),
+																messageFor('Impossible de modifier l’étiquette.', 'Could not update the label.'),
+															)}
+														>
+															{updateLabelState.isLoading ? workflow.buttons.saving : t.common.save}
+														</button>
+													</div>
 												</div>
 											</div>
 										) : null}
@@ -4176,10 +4167,22 @@ const DesignWorkflowShell = ({ title, variant, projectId, taskId }: Props) => {
 									<Tag size={18} />
 									<h3>{workflow.labels.labelsPanel ?? 'Labels'}</h3>
 								</div>
-								<div className="workflow-trello-modal-labels">
-									{task.labels.map((label) => (
-										<span key={label.id} style={{ backgroundColor: label.color }}>{label.name}</span>
-									))}
+							<div className="workflow-trello-modal-labels">
+								{task.labels.map((label) => (
+									isManager ? (
+										<button
+											key={label.id}
+											type="button"
+											className="workflow-trello-modal-assigned-label"
+											style={{ backgroundColor: label.color }}
+											aria-label={`${workflow.buttons.removeLabel}: ${label.name}`}
+											onClick={() => void updateTask({ id: task.id, data: { label_ids: task.labels.filter((item) => item.id !== label.id).map((item) => item.id) } })}
+										>
+											<span>{label.name}</span>
+											<X size={14} />
+										</button>
+									) : <span key={label.id} style={{ backgroundColor: label.color }}>{label.name}</span>
+								))}
 									<button type="button" onClick={() => setTaskAddPanel('labels')} aria-label={t.common.add}>
 										<Plus size={17} />
 									</button>
@@ -4324,12 +4327,28 @@ const DesignWorkflowShell = ({ title, variant, projectId, taskId }: Props) => {
 									<div className="workflow-trello-modal-progress"><span style={{ width: `${groupProgress}%` }} /></div>
 									<div className="workflow-trello-modal-checklist">
 										{group.items.map((item) => (
-											<div key={item.id} className="workflow-trello-modal-checklist-item" data-done={item.done}>
-												<button type="button" onClick={() => updateChecklistItem({ id: task.id, itemId: item.id, data: { done: !item.done } })}>
+											<div
+												key={item.id}
+												className="workflow-trello-modal-checklist-item"
+												data-done={item.done}
+												role="checkbox"
+												aria-checked={item.done}
+												tabIndex={0}
+												onClick={(event) => {
+													if ((event.target as Element).closest('button')) return;
+													void updateChecklistItem({ id: task.id, itemId: item.id, data: { done: !item.done } });
+												}}
+												onKeyDown={(event) => {
+													if (event.target !== event.currentTarget || (event.key !== 'Enter' && event.key !== ' ')) return;
+													event.preventDefault();
+													void updateChecklistItem({ id: task.id, itemId: item.id, data: { done: !item.done } });
+												}}
+											>
+												<span className="workflow-trello-modal-checklist-toggle" aria-hidden="true">
 													<CheckCircle2 size={17} />
-												</button>
+												</span>
 												<span>{item.title}</span>
-												<button type="button" onClick={() => deleteChecklistItem({ id: task.id, itemId: item.id })} aria-label={t.common.delete}>
+												<button type="button" onClick={(event) => { event.stopPropagation(); void deleteChecklistItem({ id: task.id, itemId: item.id }); }} aria-label={t.common.delete}>
 													<Trash2 size={15} />
 												</button>
 											</div>
@@ -5323,9 +5342,15 @@ const DesignWorkflowShell = ({ title, variant, projectId, taskId }: Props) => {
 						</div>
 					</div>
 					<div className="mt-4">
-						<button type="button" onClick={() => archiveTask({ id: task.id, archived: !task.archived })} className="app-button app-button-secondary">
+						<button
+							type="button"
+							disabled={taskRestoreLocked}
+							title={taskRestoreLocked ? workflow.labels.unarchiveProjectFirst : undefined}
+							onClick={() => archiveTask({ id: task.id, archived: !task.archived })}
+							className="app-button app-button-secondary"
+						>
 							<Archive size={16} />
-							<span>{task.archived ? (workflow.buttons.restore ?? 'Restore') : (workflow.buttons.archive ?? 'Archive')}</span>
+							<span>{taskRestoreLocked ? workflow.labels.unarchiveProjectFirst : task.archived ? (workflow.buttons.restore ?? 'Restore') : (workflow.buttons.archive ?? 'Archive')}</span>
 						</button>
 					</div>
 				</Surface>
@@ -6669,6 +6694,28 @@ const DesignWorkflowShell = ({ title, variant, projectId, taskId }: Props) => {
 							<button type="button" className="workflow-media-confirm-cancel" onClick={() => setMediaDeleteTarget(null)}>{t.common.cancel}</button>
 							<button type="button" className="workflow-media-confirm-danger" onClick={handleConfirmMediaDelete}>
 								{t.common.delete}
+							</button>
+						</div>
+					</div>
+				</div>
+			) : null}
+			{projectArchiveOpen && project ? (
+				<div className="workflow-media-confirm-backdrop" role="dialog" aria-modal="true" aria-labelledby="workflow-project-archive-title" onClick={() => setProjectArchiveOpen(false)}>
+					<div className="workflow-media-confirm workflow-project-archive-confirm" data-restore={project.archived} onClick={(event) => event.stopPropagation()}>
+						<span>{project.archived ? <RefreshCcw size={19} /> : <Archive size={19} />}</span>
+						<h3 id="workflow-project-archive-title">{project.archived ? workflow.labels.unarchiveProjectTitle : workflow.labels.archiveProjectTitle}</h3>
+						<p><b>{project.name}</b> — {project.archived ? workflow.labels.unarchiveProjectBody : workflow.labels.archiveProjectBody}</p>
+						{!project.archived ? (
+							<strong>
+								{project.open_tasks_count} {project.open_tasks_count === 1 ? workflow.labels.runningTask : workflow.labels.runningTasks}
+							</strong>
+						) : null}
+						<div>
+							<button type="button" className="workflow-media-confirm-cancel" onClick={() => setProjectArchiveOpen(false)} disabled={projectArchiveState.isLoading}>{t.common.cancel}</button>
+							<button type="button" className="workflow-media-confirm-archive" data-restore={project.archived} onClick={() => void handleSetProjectArchived()} disabled={projectArchiveState.isLoading}>
+								{projectArchiveState.isLoading
+									? project.archived ? workflow.buttons.unarchiving : workflow.buttons.archiving
+									: project.archived ? workflow.buttons.unarchiveProject : workflow.buttons.archiveProject}
 							</button>
 						</div>
 					</div>
