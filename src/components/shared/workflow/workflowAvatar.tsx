@@ -61,14 +61,24 @@ export const WorkflowAvatar = ({
 }: WorkflowAvatarProps) => {
 	const avatarUrl = resolveMediaUrl(user?.avatar);
 	const avatarLabel = label ?? labelFor(user);
-	const avatarStyle: CSSProperties = { width: size, height: size };
+	const avatarStyle: CSSProperties = {
+		width: size,
+		height: size,
+		minWidth: size,
+		minHeight: size,
+		maxWidth: size,
+		maxHeight: size,
+		aspectRatio: '1 / 1',
+		borderRadius: '50%',
+		flex: '0 0 auto',
+	};
 	const avatar = avatarUrl ? (
-		<span className={cx('relative block overflow-hidden rounded-full', avatarClassName)} style={avatarStyle}>
-			<Image src={avatarUrl} alt={avatarLabel} fill sizes={`${size}px`} unoptimized className="object-cover" />
+		<span className={cx('relative block shrink-0 overflow-hidden rounded-full', avatarClassName)} style={avatarStyle}>
+			<Image src={avatarUrl} alt={avatarLabel} fill sizes={`${size}px`} unoptimized className="rounded-full object-cover" />
 		</span>
 	) : (
 		<span
-			className={cx('workflow-avatar-initials inline-flex items-center justify-center rounded-full bg-(--surface-strong) text-center text-xs font-bold leading-none text-(--ink)', avatarClassName)}
+			className={cx('workflow-avatar-initials inline-flex shrink-0 items-center justify-center rounded-full bg-(--surface-strong) text-center text-xs font-bold leading-none text-(--ink)', avatarClassName)}
 			style={avatarStyle}
 		>
 			{initialsFor(user, fallbackInitials)}
