@@ -30,6 +30,7 @@ export type TaskLabel = {
 	id: number;
 	name: string;
 	color: string;
+	created_by: WorkflowUser;
 	created_at: string;
 	updated_at: string;
 };
@@ -424,6 +425,13 @@ export type TaskFilters = {
 	start_date?: string;
 	end_date?: string;
 	archived?: boolean;
+};
+
+export type ReportFilters = {
+	start_date?: string;
+	end_date?: string;
+	project?: number;
+	user?: number;
 };
 
 export type ChatMessagesQuery = {

@@ -360,7 +360,9 @@ const NavigationBar = ({ title, children, hideTopbar = false }: Props) => {
 							<p className="mt-1 truncate text-sm font-semibold text-(--ink)">
 								{profile.first_name} {profile.last_name}
 							</p>
-							<p className="mt-1 text-xs text-(--ink-soft)">{profile.role || (profile.is_staff ? 'admin' : 'designer')}</p>
+							{profile.is_staff || profile.role === 'manager' ? (
+								<p className="mt-1 text-xs text-(--ink-soft)">{profile.is_staff ? t.users.adminAccount : t.users.managerRole}</p>
+							) : null}
 						</div>
 					</div>
 				</div>

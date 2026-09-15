@@ -181,8 +181,6 @@ const FormikContent: React.FC<FormikContentProps> = ({ token, id }) => {
 
 	const isLoading = isAddLoading || isCheckEmailLoading || isEditLoading || isPending || (isEditMode && isDataLoading);
 	const shouldShowError = (axiosError?.status ?? 0) > 400 && !isLoading;
-	const roleLockedByAdmin = formik.values.is_staff;
-
 	return (
 		<div className="workflow-user-form-shell">
 			<WorkflowPageHero
@@ -264,7 +262,7 @@ const FormikContent: React.FC<FormikContentProps> = ({ token, id }) => {
 									checked={formik.values.is_staff}
 									onChange={(checked) => {
 										void formik.setFieldValue('is_staff', checked);
-										if (checked) void formik.setFieldValue('role', 'manager');
+										void formik.setFieldValue('role', checked ? 'manager' : 'designer');
 									}}
 									tone="admin"
 								/>
@@ -327,24 +325,6 @@ const FormikContent: React.FC<FormikContentProps> = ({ token, id }) => {
 										helperText={formik.touched.gender ? formik.errors.gender : ''}
 										startIcon={<Users className="h-4 w-4" />}
 									/>
-								</div>
-								<div className="md:col-span-2">
-									<CustomDropDownSelect
-										id="role"
-										label={`${t.users.role} *`}
-										items={[
-											{ code: 'designer', value: t.users.designerRole },
-											{ code: 'manager', value: t.users.managerRole },
-										]}
-										value={formik.values.role}
-										onChange={(e) => formik.setFieldValue('role', e.target.value)}
-										onBlur={formik.handleBlur('role')}
-										error={formik.touched.role && Boolean(formik.errors.role)}
-										helperText={formik.touched.role ? formik.errors.role : ''}
-										disabled={roleLockedByAdmin}
-										startIcon={<Shield className="h-4 w-4" />}
-									/>
-									{roleLockedByAdmin ? <p className="workflow-user-form-hint">{t.users.adminRoleLocked}</p> : null}
 								</div>
 							</div>
 						</div>

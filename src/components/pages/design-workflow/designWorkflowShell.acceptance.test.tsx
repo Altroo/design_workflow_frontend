@@ -552,8 +552,9 @@ const mockProfile = (profile: WorkflowUser) => {
 	});
 };
 
-const selectMuiOption = async (user: ReturnType<typeof userEvent.setup>, label: string, option: string) => {
-	const trigger = screen.getByRole('combobox', { name: label });
+const selectMuiOption = async (user: ReturnType<typeof userEvent.setup>, label: string, option: string, root?: HTMLElement) => {
+	const scope = root ? within(root) : screen;
+	const trigger = scope.getByRole('combobox', { name: label });
 	if (trigger instanceof HTMLSelectElement) {
 		await user.selectOptions(trigger, within(trigger).getByRole('option', { name: option }));
 		return;
@@ -672,7 +673,7 @@ describe('Design workflow acceptance flows', () => {
 				status: 'backlog',
 				priority: 'medium',
 				due_date: null,
-				estimated_minutes: 540,
+				estimated_minutes: 480,
 				blocked_reason: '',
 				sort_order: 0,
 			});
@@ -692,6 +693,130 @@ describe('Design workflow acceptance flows', () => {
 		expect(screen.getAllByText('Overdue tasks')).toHaveLength(2);
 		expect(screen.getByText('Capacity snapshot')).toBeInTheDocument();
 		expect(screen.getByText('3 open • 1 overdue')).toBeInTheDocument();
+	});
+
+	it('edits a project task in a focused modal and opens the full preview on demand', async () => {
+		const user = userEvent.setup();
+		mockProfile(manager);
+
+		render(<DesignWorkflowShell title="Project" variant="project-detail" projectId={projectDetail.id} />);
+
+		await user.click(screen.getByRole('button', { name: /Finalize material board/ }));
+		const editDialog = await screen.findByRole('dialog', { name: 'Edit task' });
+		expect(within(editDialog).getByLabelText('Task title')).toHaveValue(taskDetail.title);
+		expect(within(editDialog).getByLabelText('Description')).toHaveValue(taskDetail.description);
+
+		await user.clear(within(editDialog).getByLabelText('Task title'));
+		await user.type(within(editDialog).getByLabelText('Task title'), 'Finalize approved material board');
+		await selectMuiOption(user, 'Status', 'In Progress', editDialog);
+		await selectMuiOption(user, 'Priority', 'High', editDialog);
+		await user.clear(within(editDialog).getByLabelText('Planned days'));
+		await user.type(within(editDialog).getByLabelText('Planned days'), '2');
+		await user.click(within(editDialog).getByRole('button', { name: 'Save' }));
+
+		await waitFor(() => expect(mockUpdateTask).toHaveBeenCalledWith({
+			id: taskDetail.id,
+			data: {
+				project_id: projectDetail.id,
+				title: 'Finalize approved material board',
+				description: taskDetail.description,
+				current_assignee_id: designerA.id,
+				status: 'in_progress',
+				priority: 'high',
+				due_date: taskDetail.due_date,
+				estimated_minutes: 960,
+				blocked_reason: '',
+				sort_order: 0,
+			},
+		}));
+		expect(screen.queryByRole('dialog', { name: 'Edit task' })).not.toBeInTheDocument();
+
+		await user.click(screen.getByRole('button', { name: /Finalize material board/ }));
+		await user.click(within(await screen.findByRole('dialog', { name: 'Edit task' })).getByRole('button', { name: 'Preview' }));
+		expect(await screen.findByRole('dialog', { name: taskDetail.title })).toBeInTheDocument();
+	});
+
+	it('allows a regular user to create projects and assign estimated tasks', async () => {
+		const user = userEvent.setup();
+		mockProfile(designerA);
+
+		const { rerender } = render(<DesignWorkflowShell title="Projects" variant="projects" />);
+		await user.type(screen.getByLabelText('Project name'), 'Shared campaign');
+		await waitFor(() => expect(screen.getByRole('button', { name: 'Create project' })).toBeEnabled());
+		await user.click(screen.getByRole('button', { name: 'Create project' }));
+
+		await waitFor(() => expect(mockCreateProject).toHaveBeenCalledWith({
+			name: 'Shared campaign',
+			description: '',
+			manager_id: designerA.id,
+			start_date: null,
+			target_end_date: null,
+			priority: 'medium',
+			status: 'planned',
+			archived: false,
+		}));
+
+		rerender(<DesignWorkflowShell title="Project" variant="project-detail" projectId={projectDetail.id} />);
+		await user.type(screen.getByLabelText('Task title'), 'Prepare shared delivery');
+		await selectMuiOption(user, 'Assignee', `${designerB.first_name} ${designerB.last_name}`);
+		await user.clear(screen.getByLabelText('Planned days'));
+		await user.type(screen.getByLabelText('Planned days'), '2');
+		await user.click(screen.getByRole('button', { name: 'Create task' }));
+
+		await waitFor(() => expect(mockCreateTask).toHaveBeenCalledWith({
+			project_id: projectDetail.id,
+			title: 'Prepare shared delivery',
+			description: '',
+			current_assignee_id: designerB.id,
+			status: 'backlog',
+			priority: 'medium',
+			due_date: null,
+			estimated_minutes: 960,
+			blocked_reason: '',
+			sort_order: 0,
+		}));
+	});
+
+	it('filters reports by project and user', async () => {
+		const user = userEvent.setup();
+		mockProfile(manager);
+
+		render(<DesignWorkflowShell title="Time report" variant="report-time" />);
+		await selectMuiOption(user, 'Project', projectSummary.name);
+		await selectMuiOption(user, 'Assignee', `${designerA.first_name} ${designerA.last_name}`);
+
+		await waitFor(() => {
+			expect(mockUseGetTimeReportQuery).toHaveBeenCalledWith(
+				expect.objectContaining({ project: projectSummary.id, user: designerA.id }),
+				expect.objectContaining({ skip: false }),
+			);
+			expect(mockUseGetWorkflowReportQuery).toHaveBeenCalledWith(
+				expect.objectContaining({ project: projectSummary.id, user: designerA.id }),
+				expect.objectContaining({ skip: false }),
+			);
+		});
+	});
+
+	it('filters the board with one of the current user labels', async () => {
+		const user = userEvent.setup();
+		mockProfile(manager);
+		const ownLabel = {
+			id: 41,
+			name: 'Beta review',
+			color: '#6366f1',
+			created_by: manager,
+			created_at: '2026-04-20T08:00:00Z',
+			updated_at: '2026-04-20T08:00:00Z',
+		};
+		mockUseGetLabelsQuery.mockReturnValue({ data: [ownLabel] });
+
+		render(<DesignWorkflowShell title="Board" variant="board" />);
+		await selectMuiOption(user, 'Label', ownLabel.name);
+
+		await waitFor(() => expect(mockUseGetTasksQuery).toHaveBeenCalledWith(
+			expect.objectContaining({ label: ownLabel.id }),
+			expect.objectContaining({ skip: false }),
+		));
 	});
 
 	it('covers designer status update, comment, time log, and manager-only restrictions', async () => {
@@ -820,6 +945,34 @@ describe('Design workflow acceptance flows', () => {
 				resolved: false,
 			});
 		});
+	});
+
+	it('lets review and approval actions toggle repeatedly without getting stuck', async () => {
+		const user = userEvent.setup();
+		mockProfile(manager);
+		mockUpdateTaskReview.mockImplementation(({ review_state }: { review_state: TaskDetail['review_state'] }) =>
+			makeMutationResult({ ...taskDetail, review_state }),
+		);
+
+		render(<DesignWorkflowShell title="Board" variant="board" taskId={taskDetail.id} />);
+		const dialog = await screen.findByRole('dialog', { name: taskDetail.title });
+
+		await user.click(within(dialog).getByRole('button', { name: 'Request changes' }));
+		expect(await within(dialog).findByRole('button', { name: 'Request review' })).toBeEnabled();
+		await user.click(within(dialog).getByRole('button', { name: 'Request review' }));
+		expect(await within(dialog).findByRole('button', { name: 'Request changes' })).toBeEnabled();
+
+		await user.click(within(dialog).getByRole('button', { name: 'Approve' }));
+		expect(await within(dialog).findByRole('button', { name: 'Undo approval' })).toBeEnabled();
+		await user.click(within(dialog).getByRole('button', { name: 'Undo approval' }));
+		expect(await within(dialog).findByRole('button', { name: 'Approve' })).toBeEnabled();
+
+		expect(mockUpdateTaskReview.mock.calls.map(([payload]) => payload.review_state)).toEqual([
+			'changes_requested',
+			'needs_review',
+			'approved',
+			'not_submitted',
+		]);
 	});
 
 	it('surfaces source chat links on task detail', async () => {
@@ -980,6 +1133,7 @@ describe('Design workflow acceptance flows', () => {
 			id: 41,
 			name: 'Beta review',
 			color: '#6366f1',
+			created_by: manager,
 			created_at: '2026-04-20T08:00:00Z',
 			updated_at: '2026-04-20T08:00:00Z',
 		};
@@ -1019,6 +1173,8 @@ describe('Design workflow acceptance flows', () => {
 		await user.click(checklistRow);
 		expect(mockUpdateChecklistItem).toHaveBeenCalledWith({ id: enrichedTask.id, itemId: checklistItem.id, data: { done: true } });
 
+		await user.click(within(dialog).getByText('Beta review'));
+		expect(mockUpdateTask).not.toHaveBeenCalled();
 		await user.click(within(dialog).getByRole('button', { name: 'Remove label: Beta review' }));
 		expect(mockUpdateTask).toHaveBeenCalledWith({ id: enrichedTask.id, data: { label_ids: [] } });
 

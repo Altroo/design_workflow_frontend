@@ -15,6 +15,7 @@ import type {
 	ProjectDetail,
 	ProjectInput,
 	ProjectSummary,
+	ReportFilters,
 	SavedView,
 	SavedViewInput,
 	TaskArtifactVersion,
@@ -377,7 +378,7 @@ export const designWorkflowApi = createApi({
 			query: () => ({ url: `${DESIGN_WORKFLOW_ROOT}workload/`, method: 'GET' }),
 			providesTags: ['Workload'],
 		}),
-		getTimeReport: builder.query<TimeReportRow[], { start_date?: string; end_date?: string } | void>({
+		getTimeReport: builder.query<TimeReportRow[], ReportFilters | void>({
 			query: (params) => ({
 				url: `${DESIGN_WORKFLOW_ROOT}reports/time/`,
 				method: 'GET',
@@ -385,7 +386,7 @@ export const designWorkflowApi = createApi({
 			}),
 			providesTags: ['Report'],
 		}),
-		getWorkflowReport: builder.query<WorkflowAnalyticsReport, { start_date?: string; end_date?: string } | void>({
+		getWorkflowReport: builder.query<WorkflowAnalyticsReport, ReportFilters | void>({
 			query: (params) => ({
 				url: `${DESIGN_WORKFLOW_ROOT}reports/workflow/`,
 				method: 'GET',

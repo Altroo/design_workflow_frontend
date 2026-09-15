@@ -123,7 +123,7 @@
 .workflow-chat-direct-button.is-unread {
 	border-color: transparent !important;
 	background: #f8fafc !important;
-	box-shadow: inset 0.25rem 0 0 #111827 !important;
+	box-shadow: inset 0.25rem 0 0 #4f46e5 !important;
 	transform: none !important;
 }
 
@@ -154,7 +154,7 @@
 
 .workflow-chat-context-button.is-active .workflow-chat-context-icon,
 .workflow-chat-direct-button.is-active .workflow-chat-context-icon {
-	background: linear-gradient(135deg, #dbf8ee 0%, #eef2ff 100%) !important;
+	background: #eef2ff !important;
 	color: #020617 !important;
 }
 
@@ -253,7 +253,7 @@
 .workflow-chat-bubble.workflow-chat-bubble-mine {
 	border: 0 !important;
 	border-radius: 1rem 1rem 0.25rem 1rem !important;
-	background: #111827 !important;
+	background: #4f46e5 !important;
 	color: #ffffff !important;
 }
 
@@ -307,8 +307,8 @@
 }
 
 .workflow-chat-composer .app-button:not(.app-button-ghost) {
-	border-color: #111827 !important;
-	background: #111827 !important;
+	border-color: #4f46e5 !important;
+	background: #4f46e5 !important;
 	color: #ffffff !important;
 }
 
