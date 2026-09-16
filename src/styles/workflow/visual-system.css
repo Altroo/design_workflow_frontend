@@ -1182,6 +1182,16 @@
 	}
 }
 
+.workflow-nav-badge[data-tone='chat'] {
+	border-color: #e11d48 !important;
+	background: #e11d48 !important;
+}
+
+.workflow-nav-badge[data-tone='notification'] {
+	border-color: #4f46e5 !important;
+	background: #4f46e5 !important;
+}
+
 /* Task modal and chat final polish. */
 .workflow-task-modal .workflow-trello-modal-status-row {
 	display: flex !important;

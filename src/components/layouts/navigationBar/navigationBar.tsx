@@ -296,10 +296,8 @@ const NavigationBar = ({ title, children, hideTopbar = false }: Props) => {
 				{item.badge ? (
 					<span
 						aria-label={`${item.badge} ${item.label}`}
-						className={[
-							'workflow-nav-badge inline-flex size-6 shrink-0 items-center justify-center rounded-full p-0 text-[11px] font-semibold leading-none text-white',
-							item.path === DASHBOARD_CHAT ? 'bg-rose-600' : 'bg-(--accent-strong)',
-						].join(' ')}
+						data-tone={item.path === DASHBOARD_CHAT ? 'chat' : 'notification'}
+						className="workflow-nav-badge inline-flex size-[24px] shrink-0 items-center justify-center rounded-full p-0 text-[11px] font-semibold leading-none text-white"
 					>
 						{item.badge > 99 ? '99+' : item.badge}
 					</span>
