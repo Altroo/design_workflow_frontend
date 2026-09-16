@@ -502,6 +502,9 @@ const NavigationBar = ({ title, children, hideTopbar = false }: Props) => {
 									<button
 										type="button"
 										onClick={() => setProfileMenuOpen((current) => !current)}
+										aria-label={`${profile.first_name} ${profile.last_name}`.trim() || profile.email}
+										aria-expanded={profileMenuOpen}
+										aria-haspopup="menu"
 										className="workflow-topbar-profile workflow-focus-ring flex items-center gap-3 px-3 py-2 text-left"
 									>
 										{profileAvatar}
@@ -511,7 +514,7 @@ const NavigationBar = ({ title, children, hideTopbar = false }: Props) => {
 												{profile.first_name} {profile.last_name}
 											</p>
 										</div>
-										<ChevronDown size={16} className="text-(--ink-soft)" />
+										<ChevronDown size={16} className="workflow-topbar-profile-chevron text-(--ink-soft)" />
 									</button>
 
 									{profileMenuOpen ? (
@@ -546,19 +549,25 @@ const NavigationBar = ({ title, children, hideTopbar = false }: Props) => {
 				</div>
 			</div>
 
-			{isMobile && mobileMenuOpen ? (
-				<div className="workflow-mobile-drawer-layer lg:hidden">
+			{isMobile ? (
+				<div
+					className="workflow-mobile-drawer-layer lg:hidden"
+					data-open={mobileMenuOpen}
+					aria-hidden={!mobileMenuOpen}
+				>
 					<button
 						type="button"
 						className="workflow-mobile-drawer-backdrop"
 						aria-label={t.common.close}
+						tabIndex={mobileMenuOpen ? 0 : -1}
 						onClick={() => setMobileMenuOpen(false)}
 					/>
 					<aside
 						className="workflow-mobile-drawer-panel"
 						role="dialog"
-						aria-modal="true"
+						aria-modal={mobileMenuOpen}
 						aria-label={t.accessibility.toggleDrawer}
+						inert={!mobileMenuOpen}
 					>
 						<div className="workflow-mobile-drawer-head">
 							<div className="min-w-0 flex-1">

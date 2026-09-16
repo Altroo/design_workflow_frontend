@@ -582,6 +582,7 @@ const DesignWorkflowChat = () => {
 	const [reactChatMessage] = useReactChatMessageMutation();
 	const [addChatReminder] = useAddChatReminderMutation();
 	const { data: projects = [] } = useGetProjectsQuery(undefined, { skip: !chatDataReady });
+	const writableProjects = projects.filter((project) => project.can_work && !project.archived);
 	const { data: activeTasks = [] } = useGetTasksQuery({ archived: false }, { skip: !chatDataReady });
 	const { data: archivedTasks = [] } = useGetTasksQuery({ archived: true }, { skip: !chatDataReady });
 	const tasks = useMemo(() => {
@@ -1277,6 +1278,7 @@ const DesignWorkflowChat = () => {
 	};
 
 	const openCreateTaskFromMessage = (message: ChatMessage) => {
+		if (writableProjects.length === 0) return;
 		setTaskSourceMessage(message);
 		setTaskDraft({
 			title: '',
@@ -1288,7 +1290,7 @@ const DesignWorkflowChat = () => {
 
 	const openCreateTaskFromSelection = () => {
 		const selectedText = selectedComposerText.trim();
-		if (!selectedText) return;
+		if (!selectedText || writableProjects.length === 0) return;
 		setTaskSourceMessage(null);
 		setTaskDraft({
 			title: '',
@@ -1300,7 +1302,7 @@ const DesignWorkflowChat = () => {
 
 	const submitTaskFromMessage = async () => {
 		const projectId = Number(taskDraft.projectId);
-		if (!projectId || !taskDraft.title.trim()) return;
+		if (!projectId || !taskDraft.title.trim() || !writableProjects.some((project) => project.id === projectId)) return;
 		const createdTask = await createTask({
 			project_id: projectId,
 			title: taskDraft.title.trim(),
@@ -1845,7 +1847,7 @@ const DesignWorkflowChat = () => {
 																	>
 																		<Reply size={15} />
 																	</button>
-																	{!message.is_deleted ? (
+																{!message.is_deleted ? (
 																		<span className="workflow-chat-reaction-menu">
 																			<button
 																				type="button"
@@ -1910,10 +1912,10 @@ const DesignWorkflowChat = () => {
 																			<Forward size={15} />
 																		</button>
 																	) : null}
-																	{!message.is_deleted ? (
-																		<button
-																			type="button"
-																			onClick={() => openCreateTaskFromMessage(message)}
+																{!message.is_deleted && writableProjects.length > 0 ? (
+																	<button
+																		type="button"
+																		onClick={() => openCreateTaskFromMessage(message)}
 																			className="workflow-chat-create-task-action hover:text-(--accent-strong)"
 																			data-action="task"
 																			aria-label={
@@ -2390,7 +2392,7 @@ const DesignWorkflowChat = () => {
 									</div>
 								) : null}
 							</div>
-							{selectedComposerText.trim() ? (
+							{selectedComposerText.trim() && writableProjects.length > 0 ? (
 								<button
 									type="button"
 									onClick={openCreateTaskFromSelection}
@@ -2792,7 +2794,7 @@ const DesignWorkflowChat = () => {
 								onChange={(value) => setTaskDraft((current) => ({ ...current, projectId: value }))}
 								options={[
 									{ value: '', label: t.workflow.labels.selectProject ?? 'Select a project' },
-									...projects.map((project) => ({ value: project.id, label: project.name })),
+									...writableProjects.map((project) => ({ value: project.id, label: project.name })),
 								]}
 								startIcon={<BriefcaseBusiness size={16} />}
 								ariaLabel={t.workflow.labels.project}
@@ -2814,7 +2816,12 @@ const DesignWorkflowChat = () => {
 							<button
 								type="submit"
 								className="app-button"
-								disabled={createTaskState.isLoading || !taskDraft.title.trim() || !taskDraft.projectId}
+								disabled={
+									createTaskState.isLoading ||
+									!taskDraft.title.trim() ||
+									!taskDraft.projectId ||
+									!writableProjects.some((project) => String(project.id) === taskDraft.projectId)
+								}
 							>
 								<CheckSquare2 size={16} />
 								{t.workflow.buttons.createTask ?? 'Create task'}

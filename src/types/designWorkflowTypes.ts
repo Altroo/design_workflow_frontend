@@ -110,6 +110,7 @@ export type ProjectActivity = TaskActivity & {
 
 export type TaskCard = {
 	id: number;
+	can_edit: boolean;
 	project: ProjectSummary;
 	title: string;
 	description: string;
@@ -414,6 +415,7 @@ export type WorkflowAnalyticsReport = {
 
 export type TaskFilters = {
 	mine?: boolean;
+	my_projects?: boolean;
 	project?: number;
 	status?: string;
 	priority?: string;

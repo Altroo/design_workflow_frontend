@@ -271,6 +271,7 @@ const projectSummary: ProjectSummary = {
 
 const boardTask: TaskCard = {
 	id: 501,
+	can_edit: true,
 	project: projectSummary,
 	title: 'Finalize material board',
 	description: 'Prepare revision before client review.',
@@ -821,7 +822,109 @@ describe('Design workflow acceptance flows', () => {
 		const readOnlyCard = screen.getByText(readOnlyProject.name).closest('article');
 		expect(readOnlyCard).not.toBeNull();
 		expect(within(readOnlyCard as HTMLElement).getByText('Read only')).toBeInTheDocument();
-		expect(within(readOnlyCard as HTMLElement).queryByRole('link')).not.toBeInTheDocument();
+		expect(within(readOnlyCard as HTMLElement).getByRole('link', { name: /open/i })).toHaveAttribute(
+			'href',
+			'/dashboard/projects/202',
+		);
+	});
+
+	it('requires an explicit project when quick-adding with multiple writable projects', async () => {
+		const user = userEvent.setup();
+		mockProfile(manager);
+		const secondProject: ProjectSummary = {
+			...projectSummary,
+			id: 202,
+			name: 'Retail launch',
+		};
+		mockUseGetProjectsQuery.mockReturnValue({ data: [projectSummary, secondProject], isLoading: false });
+
+		render(<DesignWorkflowShell title="Board" variant="board" />);
+		await selectMuiOption(user, 'Project', 'My projects');
+		await waitFor(() =>
+			expect(mockUseGetTasksQuery).toHaveBeenCalledWith(
+				expect.objectContaining({ my_projects: true, project: undefined }),
+				expect.objectContaining({ skip: false }),
+			),
+		);
+
+		await user.click(screen.getAllByRole('button', { name: 'Add a card' })[0]);
+		const quickAdd = document.querySelector('.workflow-quick-add-card');
+		expect(quickAdd).not.toBeNull();
+		const addButton = within(quickAdd as HTMLElement).getByRole('button', { name: 'Add' });
+		expect(addButton).toBeDisabled();
+		await user.type(
+			within(quickAdd as HTMLElement).getByPlaceholderText('Enter a title or paste a link'),
+			'Launch card',
+		);
+		expect(addButton).toBeDisabled();
+		await selectMuiOption(user, 'Project', secondProject.name, quickAdd as HTMLElement);
+		expect(addButton).toBeEnabled();
+		await user.click(addButton);
+
+		await waitFor(() =>
+			expect(mockCreateTask).toHaveBeenCalledWith(
+				expect.objectContaining({ project_id: secondProject.id, title: 'Launch card' }),
+			),
+		);
+	});
+
+	it('keeps unassigned cards visible but removes their edit and drag controls', async () => {
+		const user = userEvent.setup();
+		mockProfile(designerB);
+		const readOnlyTask = { ...boardTask, can_edit: false };
+		mockUseGetTasksQuery.mockReturnValue({ data: [readOnlyTask], isLoading: false });
+		mockUseGetTaskQuery.mockReturnValue({ data: { ...taskDetail, can_edit: false }, isLoading: false });
+
+		render(<DesignWorkflowShell title="Board" variant="board" />);
+
+		expect(document.querySelector('.workflow-board-drag-handle')).toBeNull();
+		await user.click(screen.getByText(boardTask.title));
+		const dialog = await screen.findByRole('dialog', { name: boardTask.title });
+		expect(within(dialog).queryByRole('button', { name: 'Labels' })).not.toBeInTheDocument();
+		expect(within(dialog).queryByPlaceholderText('Write a comment…')).not.toBeInTheDocument();
+	});
+
+	it('opens another owner project tasks in read-only mode', async () => {
+		const user = userEvent.setup();
+		mockProfile(designerB);
+		const readOnlyTask = { ...boardTask, can_edit: false };
+		const readOnlyProject: ProjectDetail = {
+			...projectDetail,
+			manager,
+			can_work: false,
+			tasks: [readOnlyTask],
+		};
+		mockUseGetProjectQuery.mockReturnValue({ data: readOnlyProject, isLoading: false });
+		mockUseGetTaskQuery.mockReturnValue({ data: { ...taskDetail, can_edit: false }, isLoading: false });
+
+		render(<DesignWorkflowShell title="Project" variant="project-detail" projectId={readOnlyProject.id} />);
+
+		expect(document.querySelector('.workflow-project-detail-create')).toBeNull();
+		await user.click(screen.getByRole('button', { name: new RegExp(boardTask.title, 'i') }));
+		const dialog = await screen.findByRole('dialog', { name: boardTask.title });
+		expect(within(dialog).getByText(boardTask.description)).toBeInTheDocument();
+		expect(within(dialog).queryByRole('button', { name: 'Labels' })).not.toBeInTheDocument();
+	});
+
+	it('toggles a card action panel with the same button and suggests @mentions', async () => {
+		const user = userEvent.setup();
+		mockProfile(manager);
+
+		render(<DesignWorkflowShell title="Board" variant="board" />);
+		await user.click(screen.getByText(boardTask.title));
+		const dialog = await screen.findByRole('dialog', { name: boardTask.title });
+		const labelsButton = within(dialog).getByRole('button', { name: 'Labels' });
+		await user.click(labelsButton);
+		expect(within(dialog).getByRole('region', { name: 'Labels' })).toBeInTheDocument();
+		await user.click(labelsButton);
+		expect(within(dialog).queryByRole('region', { name: 'Labels' })).not.toBeInTheDocument();
+
+		await user.click(within(dialog).getByText(taskDetail.description));
+		const description = within(dialog).getByPlaceholderText('Short description');
+		await user.clear(description);
+		await user.type(description, '@ram');
+		await user.click(await screen.findByRole('option', { name: /Rami Reviewer.*@rami\.reviewer/i }));
+		expect(description).toHaveValue('@rami.reviewer ');
 	});
 
 	it('filters reports by project and user', async () => {

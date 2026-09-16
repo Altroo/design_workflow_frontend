@@ -622,6 +622,7 @@ export const en: TranslationDictionary = {
 			task_due_soon: 'Target date soon',
 			task_overdue: 'Task overdue',
 			task_comment: 'New comment',
+			task_mention: 'You were mentioned',
 			task_status: 'Status update',
 			chat_message: 'New chat message',
 			workflow_digest: 'Workflow digest',

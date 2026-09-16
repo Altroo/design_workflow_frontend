@@ -1115,6 +1115,15 @@ const Field = ({
 	</div>
 );
 
+const mentionTokenForUser = (user: WorkflowUser) => {
+	const fullName = `${user.first_name}.${user.last_name}`
+		.toLowerCase()
+		.normalize('NFD')
+		.replace(/[\u0300-\u036f]/g, '')
+		.replace(/[^a-z0-9._-]+/g, '.');
+	return fullName.replace(/^\.+|\.+$/g, '') || user.email.split('@')[0];
+};
+
 const Area = ({
 	id,
 	value,
@@ -1122,6 +1131,7 @@ const Area = ({
 	rows = 4,
 	placeholder,
 	startIcon,
+	mentionUsers,
 }: {
 	id?: string;
 	value: string;
@@ -1129,21 +1139,114 @@ const Area = ({
 	rows?: number;
 	placeholder?: string;
 	startIcon?: ReactNode;
-}) => (
-	<div className="relative">
-		{startIcon ? (
-			<span className="pointer-events-none absolute left-3 top-5 z-10 text-(--ink-soft)">{startIcon}</span>
-		) : null}
-		<textarea
-			id={id}
-			rows={rows}
-			value={value}
-			onChange={(event) => onChange(event.target.value)}
-			placeholder={placeholder}
-			className={cn('app-input min-h-[110px] resize-y', startIcon ? 'pl-14' : '')}
-		/>
-	</div>
-);
+	mentionUsers?: WorkflowUser[];
+}) => {
+	const inputRef = useRef<HTMLTextAreaElement | null>(null);
+	const [mentionMatch, setMentionMatch] = useState<{ start: number; end: number; query: string } | null>(null);
+	const [activeMentionIndex, setActiveMentionIndex] = useState(0);
+	const suggestions = mentionMatch
+		? (mentionUsers ?? [])
+				.filter((user) => {
+					const needle = mentionMatch.query.toLowerCase();
+					const haystack =
+						`${user.first_name} ${user.last_name} ${user.email} ${mentionTokenForUser(user)}`.toLowerCase();
+					return !needle || haystack.includes(needle);
+				})
+				.slice(0, 5)
+		: [];
+
+	const refreshMention = (nextValue: string, caret: number | null) => {
+		if (!mentionUsers?.length || caret === null) {
+			setMentionMatch(null);
+			return;
+		}
+		const match = nextValue.slice(0, caret).match(/(?:^|\s)@([\p{L}\p{N}._-]*)$/u);
+		if (!match) {
+			setMentionMatch(null);
+			return;
+		}
+		const tokenLength = match[1].length + 1;
+		setMentionMatch({ start: caret - tokenLength, end: caret, query: match[1] });
+		setActiveMentionIndex(0);
+	};
+
+	const chooseMention = (user: WorkflowUser) => {
+		if (!mentionMatch) return;
+		const token = `@${mentionTokenForUser(user)} `;
+		const nextValue = `${value.slice(0, mentionMatch.start)}${token}${value.slice(mentionMatch.end)}`;
+		const nextCaret = mentionMatch.start + token.length;
+		onChange(nextValue);
+		setMentionMatch(null);
+		window.requestAnimationFrame(() => {
+			inputRef.current?.focus();
+			inputRef.current?.setSelectionRange(nextCaret, nextCaret);
+		});
+	};
+
+	return (
+		<div className="relative">
+			{startIcon ? (
+				<span className="pointer-events-none absolute left-3 top-5 z-10 text-(--ink-soft)">{startIcon}</span>
+			) : null}
+			<textarea
+				ref={inputRef}
+				id={id}
+				rows={rows}
+				value={value}
+				onChange={(event) => {
+					onChange(event.target.value);
+					refreshMention(event.target.value, event.target.selectionStart);
+				}}
+				onClick={(event) => refreshMention(event.currentTarget.value, event.currentTarget.selectionStart)}
+				onKeyDown={(event) => {
+					if (!mentionMatch || suggestions.length === 0) return;
+					if (event.key === 'ArrowDown' || event.key === 'ArrowUp') {
+						event.preventDefault();
+						setActiveMentionIndex((current) =>
+							event.key === 'ArrowDown'
+								? (current + 1) % suggestions.length
+								: (current - 1 + suggestions.length) % suggestions.length,
+						);
+					}
+					if (event.key === 'Enter' || event.key === 'Tab') {
+						event.preventDefault();
+						chooseMention(suggestions[activeMentionIndex] ?? suggestions[0]);
+					}
+					if (event.key === 'Escape') {
+						event.preventDefault();
+						event.stopPropagation();
+						setMentionMatch(null);
+					}
+				}}
+				placeholder={placeholder}
+				className={cn('app-input min-h-[110px] resize-y', startIcon ? 'pl-14' : '')}
+			/>
+			{mentionMatch && suggestions.length > 0 ? (
+				<div className="workflow-mention-menu" role="listbox">
+					{suggestions.map((user, index) => (
+						<button
+							key={user.id}
+							type="button"
+							role="option"
+							aria-selected={index === activeMentionIndex}
+							data-active={index === activeMentionIndex}
+							onMouseDown={(event) => event.preventDefault()}
+							onClick={() => chooseMention(user)}
+						>
+							<AvatarBadge user={user} size={30} showPresence={false} />
+							<span>
+								<b>
+									{user.first_name} {user.last_name}
+								</b>
+								<small>@{mentionTokenForUser(user)}</small>
+							</span>
+						</button>
+					))}
+				</div>
+			) : null}
+		</div>
+	);
+};
 
 const labelColorStyle = (color: string) => {
 	const safeColor = /^#[0-9a-f]{6}$/i.test(color) ? color : '#4f46e5';
@@ -1595,6 +1698,7 @@ const BoardTaskCard = ({
 	dateFor,
 	onOpen,
 	onArchive,
+	canDrag,
 	showTime = false,
 }: {
 	task: TaskCard;
@@ -1603,10 +1707,12 @@ const BoardTaskCard = ({
 	dateFor: (value?: string | null) => string;
 	onOpen?: (taskId: number) => void;
 	onArchive?: (task: TaskCard) => void;
+	canDrag: boolean;
 	showTime?: boolean;
 }) => {
 	const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
 		id: getTaskDragId(task.id),
+		disabled: !canDrag,
 		data: {
 			type: 'task',
 			task,
@@ -1618,9 +1724,10 @@ const BoardTaskCard = ({
 			ref={setNodeRef}
 			data-task-id={task.id}
 			data-testid={`board-task-${task.id}`}
-			{...attributes}
-			{...listeners}
+			{...(canDrag ? attributes : {})}
+			{...(canDrag ? listeners : {})}
 			onPointerDown={(event) => {
+				if (!canDrag) return;
 				const target = event.target instanceof Element ? event.target : null;
 				if (target && isCardInteractiveTarget(target) && !target.closest('.workflow-board-drag-handle')) return;
 				listeners?.onPointerDown?.(event);
@@ -1636,7 +1743,7 @@ const BoardTaskCard = ({
 					onOpen(task.id);
 					return;
 				}
-				listeners?.onKeyDown?.(event);
+				if (canDrag) listeners?.onKeyDown?.(event);
 			}}
 			style={
 				{
@@ -1655,11 +1762,13 @@ const BoardTaskCard = ({
 						copy={copy}
 						labelFor={labelFor}
 						dateFor={dateFor}
-						onArchive={onArchive}
+						onArchive={task.can_edit ? onArchive : undefined}
 						dragHandle={
-							<span data-no-card-open aria-hidden="true" className="workflow-board-drag-handle">
-								<GripVertical size={15} />
-							</span>
+							canDrag ? (
+								<span data-no-card-open aria-hidden="true" className="workflow-board-drag-handle">
+									<GripVertical size={15} />
+								</span>
+							) : undefined
 						}
 						variant="board"
 						showTime={showTime}
@@ -1681,10 +1790,13 @@ const BoardColumn = ({
 	quickAddOpen,
 	quickAddTitle,
 	quickAddProjectName,
+	quickAddProjects,
+	quickAddProjectId,
 	quickAddLoading,
 	canQuickAdd,
 	onQuickAddOpen,
 	onQuickAddTitleChange,
+	onQuickAddProjectChange,
 	onQuickAddSubmit,
 	onQuickAddCancel,
 	showTime = false,
@@ -1699,10 +1811,13 @@ const BoardColumn = ({
 	quickAddOpen?: boolean;
 	quickAddTitle?: string;
 	quickAddProjectName?: string;
+	quickAddProjects?: ProjectSummary[];
+	quickAddProjectId?: string;
 	quickAddLoading?: boolean;
 	canQuickAdd?: boolean;
 	onQuickAddOpen?: (status: TaskStatus) => void;
 	onQuickAddTitleChange?: (value: string) => void;
+	onQuickAddProjectChange?: (value: string) => void;
 	onQuickAddSubmit?: (status: TaskStatus) => void;
 	onQuickAddCancel?: () => void;
 	showTime?: boolean;
@@ -1778,6 +1893,7 @@ const BoardColumn = ({
 							dateFor={dateFor}
 							onOpen={onOpen}
 							onArchive={onArchive}
+							canDrag={task.can_edit}
 							showTime={showTime}
 						/>
 					))}
@@ -1815,7 +1931,21 @@ const BoardColumn = ({
 									}}
 									placeholder={copy.labels.quickAddPlaceholder ?? 'Enter a title or paste a link'}
 								/>
-								{quickAddProjectName ? (
+								{(quickAddProjects?.length ?? 0) > 1 ? (
+									<div className="workflow-quick-add-project-select">
+										<label>{copy.labels.project}</label>
+										<SelectField
+											value={quickAddProjectId ?? ''}
+											onChange={(value) => onQuickAddProjectChange?.(value)}
+											ariaLabel={copy.labels.project}
+											options={[
+												{ value: '', label: copy.labels.selectProject ?? 'Select a project' },
+												...quickAddProjects!.map((project) => ({ value: project.id, label: project.name })),
+											]}
+											startIcon={<FolderKanban size={14} />}
+										/>
+									</div>
+								) : quickAddProjectName ? (
 									<div className="workflow-quick-add-project">
 										<FolderKanban size={13} />
 										<span>{quickAddProjectName}</span>
@@ -1825,7 +1955,7 @@ const BoardColumn = ({
 									<button
 										type="submit"
 										className="workflow-quick-add-submit"
-										disabled={!quickAddTitle?.trim() || quickAddLoading}
+										disabled={!quickAddTitle?.trim() || !quickAddProjectId || quickAddLoading}
 									>
 										{quickAddLoading ? copy.buttons.creating : copy.labels.addCardSubmit}
 									</button>
@@ -1995,6 +2125,7 @@ const DesignWorkflowShell = ({ title, variant, projectId, taskId }: Props) => {
 	const [draggedTaskId, setDraggedTaskId] = useState<number | null>(null);
 	const [quickAddColumn, setQuickAddColumn] = useState<TaskStatus | null>(null);
 	const [quickAddTitle, setQuickAddTitle] = useState('');
+	const [quickAddProjectId, setQuickAddProjectId] = useState('');
 	const pendingReviewMutationRef = useRef<number | null>(null);
 	const [selectedTaskId, setSelectedTaskId] = useState<number | null>(null);
 	const [projectTaskEditId, setProjectTaskEditId] = useState<number | null>(null);
@@ -2040,6 +2171,11 @@ const DesignWorkflowShell = ({ title, variant, projectId, taskId }: Props) => {
 		}
 	}, [router, taskId, variant]);
 	const closeProjectTaskEdit = useCallback(() => setProjectTaskEditId(null), []);
+	const toggleTaskAddPanel = (panel: NonNullable<typeof taskAddPanel>) => {
+		setTaskAddPanel((current) => (current === panel ? null : panel));
+		setModalLabelComposerOpen(false);
+		setEditingLabelId(null);
+	};
 
 	useEffect(() => {
 		if (variant === 'board' && taskId) {
@@ -2070,12 +2206,13 @@ const DesignWorkflowShell = ({ title, variant, projectId, taskId }: Props) => {
 		...(currentUserOption ? [currentUserOption] : []),
 		...users.filter((user) => user.id !== currentUserOption?.id),
 	];
+	const mentionableUsers = assignableUsers.filter((user) => user.id !== profile.id);
 	const managerUsers = assignableUsers;
 	const userOptionLabel = (user: WorkflowUser) =>
 		`${user.first_name} ${user.last_name}${user.id === profile.id ? ` (${workflow.labels.you})` : ''}`;
 	const validReassignAssigneeSelected = assignableUsers.some((user) => String(user.id) === reassignForm.assignee_id);
 	const { data: projectsData, isLoading: projectsLoading } = useGetProjectsQuery(
-		variant === 'projects' ? { all: true } : undefined,
+		{ all: true },
 		{
 			skip:
 				!workflowDataReady ||
@@ -2083,6 +2220,7 @@ const DesignWorkflowShell = ({ title, variant, projectId, taskId }: Props) => {
 		},
 	);
 	const projects = projectsData ?? EMPTY_PROJECTS;
+	const writableProjects = projects.filter((item) => item.can_work && !item.archived);
 	const { data: savedViews = [] } = useGetSavedViewsQuery(undefined, {
 		skip: !workflowDataReady || variant !== 'board',
 	});
@@ -2097,7 +2235,8 @@ const DesignWorkflowShell = ({ title, variant, projectId, taskId }: Props) => {
 		variant === 'overview'
 			? { overdue: true }
 			: {
-					project: boardFilters.project ? Number(boardFilters.project) : undefined,
+					project: boardFilters.project && boardFilters.project !== 'mine' ? Number(boardFilters.project) : undefined,
+					my_projects: boardFilters.project === 'mine' || undefined,
 					status: boardFilters.status || undefined,
 					priority: boardFilters.priority || undefined,
 					assignee: boardFilters.assignee ? Number(boardFilters.assignee) : undefined,
@@ -2528,14 +2667,22 @@ const DesignWorkflowShell = ({ title, variant, projectId, taskId }: Props) => {
 			`${taskItem.title} ${taskItem.project.name} ${taskItem.description} ${taskItem.labels.map((label) => label.name).join(' ')}`.toLowerCase();
 		return haystack.includes(boardFilters.search.trim().toLowerCase());
 	});
+	const filteredProject =
+		boardFilters.project && boardFilters.project !== 'mine'
+			? (projects.find((item) => item.id === Number(boardFilters.project)) ?? null)
+			: null;
+	const availableQuickAddProjects = filteredProject
+		? filteredProject.can_work && !filteredProject.archived
+			? [filteredProject]
+			: []
+		: writableProjects;
 	const quickAddProject =
-		(boardFilters.project ? projects.find((item) => item.id === Number(boardFilters.project)) : null) ??
-		projects.find((item) => item.status === 'active') ??
-		projects[0];
+		availableQuickAddProjects.find((item) => String(item.id) === quickAddProjectId) ??
+		(availableQuickAddProjects.length === 1 ? availableQuickAddProjects[0] : null);
 
 	const handleQuickAddTask = async (status: TaskStatus) => {
 		const title = quickAddTitle.trim();
-		if (!title || !quickAddProject) return;
+		if (!title || !quickAddProject?.can_work) return;
 		const columnTasks = boardDraft.filter((item) => item.status === status);
 		await createTask(
 			buildTaskPayload(
@@ -2563,9 +2710,8 @@ const DesignWorkflowShell = ({ title, variant, projectId, taskId }: Props) => {
 
 	const busiestUsers = [...designerWorkload].sort((left, right) => right.open_tasks - left.open_tasks).slice(0, 4);
 	const isUserOnline = (userId: number) => onlineUserIds.includes(userId);
-	const taskMutable = !!task && (isManager || task.current_assignee?.id === profile.id);
-	const taskMediaMutable =
-		!!task && (isManager || task.current_assignee?.id === profile.id || task.project.manager.id === profile.id);
+	const taskMutable = Boolean(task?.can_edit);
+	const taskMediaMutable = taskMutable;
 	const pageHeading =
 		variant === 'project-detail' && project
 			? project.name
@@ -2654,6 +2800,8 @@ const DesignWorkflowShell = ({ title, variant, projectId, taskId }: Props) => {
 	};
 
 	const applyBoardMove = async (movingTaskId: number, placement: { status: TaskStatus; index: number }) => {
+		const movingTask = boardDraft.find((item) => item.id === movingTaskId);
+		if (!movingTask?.can_edit) return false;
 		const nextState = moveTaskToBoardIndex(boardDraft, movingTaskId, placement.status, placement.index);
 		if (!nextState) {
 			return false;
@@ -2735,6 +2883,7 @@ const DesignWorkflowShell = ({ title, variant, projectId, taskId }: Props) => {
 	const handleDragStart = (event: DragStartEvent) => {
 		if (typeof event.active.id !== 'string' || !isTaskDragId(event.active.id)) return;
 		const taskId = getTaskIdFromDragId(event.active.id);
+		if (!boardDraft.find((item) => item.id === taskId)?.can_edit) return;
 		const initialRect = event.active.rect.current.initial;
 		boardDragPointerX = initialRect ? initialRect.left + initialRect.width / 2 : null;
 		boardDragPointerY = initialRect ? initialRect.top + initialRect.height / 2 : null;
@@ -2747,6 +2896,7 @@ const DesignWorkflowShell = ({ title, variant, projectId, taskId }: Props) => {
 		if (typeof activeId !== 'string' || !isTaskDragId(activeId)) return;
 
 		const movingTaskId = getTaskIdFromDragId(activeId);
+		if (!boardDraft.find((item) => item.id === movingTaskId)?.can_edit) return;
 		const placement = getDropPlacement(event, movingTaskId);
 		if (placement) {
 			await applyBoardMove(movingTaskId, placement);
@@ -3186,6 +3336,7 @@ const DesignWorkflowShell = ({ title, variant, projectId, taskId }: Props) => {
 												);
 											}}
 											options={STATUS_COLUMNS.map((status) => ({ value: status, label: labelFor(status) }))}
+											disabled={!taskItem.can_edit}
 										/>
 									</td>
 									<td>
@@ -3340,6 +3491,7 @@ const DesignWorkflowShell = ({ title, variant, projectId, taskId }: Props) => {
 			boardFilters.overdueOnly ||
 			boardFilters.archivedOnly;
 		const showBoardTools = hasBoardSetup || hasActiveFilters || boardFiltersOpen;
+		const readOnlyProjectSelected = Boolean(filteredProject && !filteredProject.can_work);
 
 		return (
 			<div className="workflow-kanban-page">
@@ -3438,15 +3590,40 @@ const DesignWorkflowShell = ({ title, variant, projectId, taskId }: Props) => {
 							description={workflow.emptyStates.noProjects.description}
 							icon={<FolderKanban size={18} />}
 							action={
-								isManager ? (
-									<Link href={DASHBOARD_PROJECTS} className="app-button">
-										<Plus size={15} />
-										<span>{workflow.buttons.createProject ?? workflow.sections.createProject.title}</span>
-									</Link>
-								) : null
+								<Link href={DASHBOARD_PROJECTS} className="app-button">
+									<Plus size={15} />
+									<span>{workflow.buttons.createProject ?? workflow.sections.createProject.title}</span>
+								</Link>
 							}
 						/>
 					</section>
+				) : null}
+				{projects.length > 0 && writableProjects.length === 0 ? (
+					<div className="workflow-board-view-notice" role="status">
+						<Eye size={16} />
+						<span className="workflow-board-view-notice-copy">
+							<b>{messageFor('Vue en lecture seule', 'Read-only workspace')}</b>
+							<small>
+								{messageFor(
+									'Vous pouvez consulter tous les projets et leurs tâches. Créez un projet pour pouvoir y ajouter des cartes.',
+									'You can view every project and its tasks. Create a project before adding cards.',
+								)}
+							</small>
+						</span>
+					</div>
+				) : readOnlyProjectSelected ? (
+					<div className="workflow-board-view-notice" role="status">
+						<Eye size={16} />
+						<span className="workflow-board-view-notice-copy">
+							<b>{messageFor('Projet en lecture seule', 'Read-only project')}</b>
+							<small>
+								{messageFor(
+									'Vous pouvez consulter toutes les cartes. Seules les tâches qui vous sont assignées peuvent être modifiées ou déplacées.',
+									'You can view every card. Only tasks assigned to you can be edited or moved.',
+								)}
+							</small>
+						</span>
+					</div>
 				) : null}
 
 				{showBoardTools ? (
@@ -3469,6 +3646,7 @@ const DesignWorkflowShell = ({ title, variant, projectId, taskId }: Props) => {
 								ariaLabel={workflow.labels.project}
 								options={[
 									{ value: '', label: workflow.labels.allProjects },
+									{ value: 'mine', label: messageFor('Mes projets', 'My projects') },
 									...projects.map((item) => ({ value: item.id, label: item.name })),
 								]}
 								startIcon={<FolderKanban size={16} />}
@@ -3652,17 +3830,24 @@ const DesignWorkflowShell = ({ title, variant, projectId, taskId }: Props) => {
 											quickAddOpen={quickAddColumn === column.status}
 											quickAddTitle={quickAddColumn === column.status ? quickAddTitle : ''}
 											quickAddProjectName={quickAddProject?.name}
+											quickAddProjects={availableQuickAddProjects}
+											quickAddProjectId={quickAddProject ? String(quickAddProject.id) : quickAddProjectId}
 											quickAddLoading={createTaskState.isLoading && quickAddColumn === column.status}
-											canQuickAdd={variant === 'board' && Boolean(quickAddProject)}
+											canQuickAdd={variant === 'board' && availableQuickAddProjects.length > 0}
 											onQuickAddOpen={(nextStatus) => {
 												setQuickAddColumn(nextStatus);
 												setQuickAddTitle('');
+												setQuickAddProjectId(
+													availableQuickAddProjects.length === 1 ? String(availableQuickAddProjects[0].id) : '',
+												);
 											}}
 											onQuickAddTitleChange={setQuickAddTitle}
+											onQuickAddProjectChange={setQuickAddProjectId}
 											onQuickAddSubmit={handleQuickAddTask}
 											onQuickAddCancel={() => {
 												setQuickAddColumn(null);
 												setQuickAddTitle('');
+												setQuickAddProjectId('');
 											}}
 											showTime={isManager}
 										/>
@@ -3918,17 +4103,18 @@ const DesignWorkflowShell = ({ title, variant, projectId, taskId }: Props) => {
 										</div>
 										<div className="mt-4 flex items-center justify-between gap-3">
 											<Chip>{labelFor(item.priority)}</Chip>
-											{item.can_work ? (
+											<div className="flex min-w-0 items-center gap-2">
+												{!item.can_work ? (
+													<span className="workflow-project-card-readonly">
+														<Eye size={14} />
+														{workflow.emptyStates.readOnly.title}
+													</span>
+												) : null}
 												<Link href={DASHBOARD_PROJECT_VIEW(item.id)} className="workflow-project-card-open">
 													<span>{workflow.buttons.open}</span>
 													<ArrowRight size={14} />
 												</Link>
-											) : (
-												<span className="workflow-project-card-readonly">
-													<Eye size={14} />
-													{workflow.emptyStates.readOnly.title}
-												</span>
-											)}
+											</div>
 										</div>
 									</article>
 								))}
@@ -3972,7 +4158,7 @@ const DesignWorkflowShell = ({ title, variant, projectId, taskId }: Props) => {
 		const projectStatusOptions = project.archived
 			? [...PROJECT_STATUS_OPTIONS, 'archived' as const]
 			: PROJECT_STATUS_OPTIONS;
-		const canManageProject = isManager || project.manager.id === profile.id;
+		const canManageProject = project.can_work;
 
 		return (
 			<div className="workflow-project-detail-page">
@@ -4156,8 +4342,11 @@ const DesignWorkflowShell = ({ title, variant, projectId, taskId }: Props) => {
 									copy={workflow}
 									labelFor={labelFor}
 									dateFor={dateFor}
-									onOpen={setProjectTaskEditId}
-									onArchive={handleArchiveTask}
+									onOpen={(openedTaskId) => {
+										if (taskItem.can_edit) setProjectTaskEditId(openedTaskId);
+										else setSelectedTaskId(openedTaskId);
+									}}
+									onArchive={taskItem.can_edit ? handleArchiveTask : undefined}
 									showTime={isManager}
 								/>
 							))}
@@ -4188,109 +4377,112 @@ const DesignWorkflowShell = ({ title, variant, projectId, taskId }: Props) => {
 						) : null}
 					</section>
 
-					<section className="workflow-project-detail-panel workflow-project-detail-create" data-tone="cyan">
-						<div className="workflow-overview-panel-pill">
-							<b>{workflow.sections.createTask.title}</b>
-							<em>+</em>
-						</div>
-						<div className="mt-4 grid gap-4 md:grid-cols-2">
-							<div>
-								<FieldLabel htmlFor="task-title">{workflow.labels.taskTitle}</FieldLabel>
-								<Field
-									id="task-title"
-									value={taskForm.title}
-									onChange={(value) => setTaskForm((current) => ({ ...current, title: value }))}
-									placeholder={workflow.labels.taskTitlePlaceholder}
-									startIcon={<ListTodo size={18} />}
-								/>
+					{canManageProject ? (
+						<section className="workflow-project-detail-panel workflow-project-detail-create" data-tone="cyan">
+							<div className="workflow-overview-panel-pill">
+								<b>{workflow.sections.createTask.title}</b>
+								<em>+</em>
 							</div>
-							<div>
-								<FieldLabel htmlFor="task-assignee">{workflow.labels.assignee}</FieldLabel>
-								<SelectField
-									id="task-assignee"
-									value={taskForm.current_assignee_id}
-									onChange={(value) => setTaskForm((current) => ({ ...current, current_assignee_id: value }))}
-									options={[
-										{ value: '', label: usersLoading ? workflow.labels.loading : workflow.labels.unassigned },
-										...assignableUsers.map((user) => ({
-											value: user.id,
-											label: `${user.first_name} ${user.last_name}`,
-										})),
-									]}
-									startIcon={<Users size={18} />}
-								/>
-							</div>
-							<div className="md:col-span-2">
-								<FieldLabel htmlFor="task-description">{workflow.labels.description}</FieldLabel>
-								<Area
-									id="task-description"
-									value={taskForm.description}
-									onChange={(value) => setTaskForm((current) => ({ ...current, description: value }))}
-									startIcon={<MessagesSquare size={18} />}
-								/>
-							</div>
-							<div>
-								<FieldLabel htmlFor="task-status">{workflow.labels.status}</FieldLabel>
-								<SelectField
-									id="task-status"
-									value={taskForm.status}
-									onChange={(value) => setTaskForm((current) => ({ ...current, status: value as TaskStatus }))}
-									options={STATUS_COLUMNS.map((item) => ({ value: item, label: labelFor(item) }))}
-									startIcon={<ListTodo size={18} />}
-								/>
-							</div>
-							<div>
-								<FieldLabel htmlFor="task-priority">{workflow.labels.priority}</FieldLabel>
-								<SelectField
-									id="task-priority"
-									value={taskForm.priority}
-									onChange={(value) =>
-										setTaskForm((current) => ({ ...current, priority: value as TaskCard['priority'] }))
-									}
-									options={PRIORITY_OPTIONS.map((item) => ({ value: item, label: labelFor(item) }))}
-									startIcon={<CircleAlert size={18} />}
-								/>
-							</div>
-							<div>
-								<FieldLabel htmlFor="task-due-date">{workflow.labels.dueDate}</FieldLabel>
-								<DateField
-									id="task-due-date"
-									value={taskForm.due_date}
-									onChange={(value) => setTaskForm((current) => ({ ...current, due_date: value }))}
-								/>
-							</div>
-							{workflowDataReady ? (
+							<div className="mt-4 grid gap-4 md:grid-cols-2">
 								<div>
-									<FieldLabel htmlFor="task-estimate">{workflow.labels.estimatedMinutes}</FieldLabel>
-									<WorkDaysField
-										id="task-estimate"
-										value={taskForm.estimated_minutes}
-										onChange={(value) => setTaskForm((current) => ({ ...current, estimated_minutes: value }))}
+									<FieldLabel htmlFor="task-title">{workflow.labels.taskTitle}</FieldLabel>
+									<Field
+										id="task-title"
+										value={taskForm.title}
+										onChange={(value) => setTaskForm((current) => ({ ...current, title: value }))}
+										placeholder={workflow.labels.taskTitlePlaceholder}
+										startIcon={<ListTodo size={18} />}
 									/>
 								</div>
-							) : null}
-						</div>
-						<div className="mt-5">
-							<button
-								type="button"
-								onClick={() =>
-									void runPrimaryAction(
-										async () => {
-											await createTask(buildTaskPayload(project.id, taskForm, { includeTime: true })).unwrap();
-											setTaskForm(emptyTaskForm());
-										},
-										messageFor('Tâche créée avec succès.', 'Task created successfully.'),
-										messageFor('Impossible de créer la tâche.', 'Could not create the task.'),
-									)
-								}
-								disabled={!taskForm.title.trim()}
-								className="app-button"
-							>
-								<Plus size={16} />
-								<span>{createTaskState.isLoading ? workflow.buttons.creating : workflow.buttons.createTask}</span>
-							</button>
-						</div>
-					</section>
+								<div>
+									<FieldLabel htmlFor="task-assignee">{workflow.labels.assignee}</FieldLabel>
+									<SelectField
+										id="task-assignee"
+										value={taskForm.current_assignee_id}
+										onChange={(value) => setTaskForm((current) => ({ ...current, current_assignee_id: value }))}
+										options={[
+											{ value: '', label: usersLoading ? workflow.labels.loading : workflow.labels.unassigned },
+											...assignableUsers.map((user) => ({
+												value: user.id,
+												label: `${user.first_name} ${user.last_name}`,
+											})),
+										]}
+										startIcon={<Users size={18} />}
+									/>
+								</div>
+								<div className="md:col-span-2">
+									<FieldLabel htmlFor="task-description">{workflow.labels.description}</FieldLabel>
+									<Area
+										id="task-description"
+										value={taskForm.description}
+										onChange={(value) => setTaskForm((current) => ({ ...current, description: value }))}
+										mentionUsers={mentionableUsers}
+										startIcon={<MessagesSquare size={18} />}
+									/>
+								</div>
+								<div>
+									<FieldLabel htmlFor="task-status">{workflow.labels.status}</FieldLabel>
+									<SelectField
+										id="task-status"
+										value={taskForm.status}
+										onChange={(value) => setTaskForm((current) => ({ ...current, status: value as TaskStatus }))}
+										options={STATUS_COLUMNS.map((item) => ({ value: item, label: labelFor(item) }))}
+										startIcon={<ListTodo size={18} />}
+									/>
+								</div>
+								<div>
+									<FieldLabel htmlFor="task-priority">{workflow.labels.priority}</FieldLabel>
+									<SelectField
+										id="task-priority"
+										value={taskForm.priority}
+										onChange={(value) =>
+											setTaskForm((current) => ({ ...current, priority: value as TaskCard['priority'] }))
+										}
+										options={PRIORITY_OPTIONS.map((item) => ({ value: item, label: labelFor(item) }))}
+										startIcon={<CircleAlert size={18} />}
+									/>
+								</div>
+								<div>
+									<FieldLabel htmlFor="task-due-date">{workflow.labels.dueDate}</FieldLabel>
+									<DateField
+										id="task-due-date"
+										value={taskForm.due_date}
+										onChange={(value) => setTaskForm((current) => ({ ...current, due_date: value }))}
+									/>
+								</div>
+								{workflowDataReady ? (
+									<div>
+										<FieldLabel htmlFor="task-estimate">{workflow.labels.estimatedMinutes}</FieldLabel>
+										<WorkDaysField
+											id="task-estimate"
+											value={taskForm.estimated_minutes}
+											onChange={(value) => setTaskForm((current) => ({ ...current, estimated_minutes: value }))}
+										/>
+									</div>
+								) : null}
+							</div>
+							<div className="mt-5">
+								<button
+									type="button"
+									onClick={() =>
+										void runPrimaryAction(
+											async () => {
+												await createTask(buildTaskPayload(project.id, taskForm, { includeTime: true })).unwrap();
+												setTaskForm(emptyTaskForm());
+											},
+											messageFor('Tâche créée avec succès.', 'Task created successfully.'),
+											messageFor('Impossible de créer la tâche.', 'Could not create the task.'),
+										)
+									}
+									disabled={!taskForm.title.trim()}
+									className="app-button"
+								>
+									<Plus size={16} />
+									<span>{createTaskState.isLoading ? workflow.buttons.creating : workflow.buttons.createTask}</span>
+								</button>
+							</div>
+						</section>
+					) : null}
 
 					<section className="workflow-project-detail-panel workflow-project-detail-comments" data-tone="amber">
 						<div className="workflow-overview-panel-pill">
@@ -4737,92 +4929,80 @@ const DesignWorkflowShell = ({ title, variant, projectId, taskId }: Props) => {
 									</button>
 								</>
 							) : null}
-							<button
-								type="button"
-								onClick={() => {
-									setTaskAddPanel('labels');
-									setModalLabelComposerOpen(false);
-									setEditingLabelId(null);
-								}}
-								className="workflow-trello-modal-action"
-								data-tone="violet"
-								data-active={taskAddPanel === 'labels'}
-							>
-								<Tag size={17} />
-								<span>{workflow.labels.labelsPanel ?? 'Étiquettes'}</span>
-							</button>
-							<button
-								type="button"
-								onClick={() => {
-									setTaskAddPanel('cover');
-									setModalLabelComposerOpen(false);
-								}}
-								className="workflow-trello-modal-action"
-								data-tone="violet"
-								data-active={taskAddPanel === 'cover'}
-							>
-								<ImagePlus size={17} />
-								<span>{workflow.labels.cardImage ?? 'Image de carte'}</span>
-							</button>
-							<button
-								type="button"
-								onClick={() => {
-									setTaskAddPanel('attachments');
-									setModalLabelComposerOpen(false);
-								}}
-								className="workflow-trello-modal-action"
-								data-tone="blue"
-								data-active={taskAddPanel === 'attachments'}
-							>
-								<Paperclip size={17} />
-								<span>{workflow.labels.attachmentsPanel ?? 'Pièces jointes'}</span>
-							</button>
-							<button
-								type="button"
-								onClick={() => {
-									setTaskAddPanel('checklist');
-									setModalLabelComposerOpen(false);
-								}}
-								className="workflow-trello-modal-action"
-								data-tone="blue"
-								data-active={taskAddPanel === 'checklist'}
-							>
-								<CheckCircle2 size={17} />
-								<span>{workflow.labels.checklistPanel ?? 'Checklist'}</span>
-							</button>
-							<button
-								type="button"
-								onClick={() => {
-									setTaskAddPanel('members');
-									setModalLabelComposerOpen(false);
-								}}
-								className="workflow-trello-modal-action"
-								data-tone="blue"
-								data-active={taskAddPanel === 'members'}
-							>
-								<Users size={17} />
-								<span>{workflow.labels.membersPanel ?? 'Members'}</span>
-							</button>
-							<button
-								type="button"
-								disabled={taskRestoreLocked}
-								title={taskRestoreLocked ? workflow.labels.unarchiveProjectFirst : undefined}
-								onClick={() => archiveTask({ id: task.id, archived: !task.archived })}
-								className="workflow-trello-modal-action"
-								data-tone={task.archived ? 'blue' : 'rose'}
-							>
-								<Archive size={17} />
-								<span>
-									{taskRestoreLocked
-										? workflow.labels.unarchiveProjectFirst
-										: task.archived
-											? (workflow.buttons.restore ?? 'Restore')
-											: (workflow.buttons.archive ?? 'Archive')}
-								</span>
-							</button>
+							{taskMutable ? (
+								<>
+									<button
+										type="button"
+										onClick={() => toggleTaskAddPanel('labels')}
+										className="workflow-trello-modal-action"
+										data-tone="violet"
+										data-active={taskAddPanel === 'labels'}
+									>
+										<Tag size={17} />
+										<span>{workflow.labels.labelsPanel ?? 'Étiquettes'}</span>
+									</button>
+									<button
+										type="button"
+										onClick={() => toggleTaskAddPanel('cover')}
+										className="workflow-trello-modal-action"
+										data-tone="violet"
+										data-active={taskAddPanel === 'cover'}
+									>
+										<ImagePlus size={17} />
+										<span>{workflow.labels.cardImage ?? 'Image de carte'}</span>
+									</button>
+									<button
+										type="button"
+										onClick={() => toggleTaskAddPanel('attachments')}
+										className="workflow-trello-modal-action"
+										data-tone="blue"
+										data-active={taskAddPanel === 'attachments'}
+									>
+										<Paperclip size={17} />
+										<span>{workflow.labels.attachmentsPanel ?? 'Pièces jointes'}</span>
+									</button>
+									<button
+										type="button"
+										onClick={() => toggleTaskAddPanel('checklist')}
+										className="workflow-trello-modal-action"
+										data-tone="blue"
+										data-active={taskAddPanel === 'checklist'}
+									>
+										<CheckCircle2 size={17} />
+										<span>{workflow.labels.checklistPanel ?? 'Checklist'}</span>
+									</button>
+									<button
+										type="button"
+										onClick={() => toggleTaskAddPanel('members')}
+										className="workflow-trello-modal-action"
+										data-tone="blue"
+										data-active={taskAddPanel === 'members'}
+									>
+										<Users size={17} />
+										<span>{workflow.labels.membersPanel ?? 'Members'}</span>
+									</button>
+									<button
+										type="button"
+										disabled={taskRestoreLocked}
+										title={taskRestoreLocked ? workflow.labels.unarchiveProjectFirst : undefined}
+										onClick={() => archiveTask({ id: task.id, archived: !task.archived })}
+										className="workflow-trello-modal-action"
+										data-tone={task.archived ? 'blue' : 'rose'}
+									>
+										<Archive size={17} />
+										<span>
+											{taskRestoreLocked
+												? workflow.labels.unarchiveProjectFirst
+												: task.archived
+													? (workflow.buttons.restore ?? 'Restore')
+													: (workflow.buttons.archive ?? 'Archive')}
+										</span>
+									</button>
+								</>
+							) : null}
 						</div>
 
-						{taskAddPanel ? (
+						{taskMutable && taskAddPanel ? (
 							<div
 								className="workflow-trello-modal-floating-panel"
 								data-panel={taskAddPanel}
@@ -5164,25 +5344,29 @@ const DesignWorkflowShell = ({ title, variant, projectId, taskId }: Props) => {
 											style={labelColorStyle(label.color)}
 										>
 											<span>{label.name}</span>
-											<button
-												type="button"
-												aria-label={`${workflow.buttons.removeLabel}: ${label.name}`}
-												onClick={() =>
-													void updateTask({
-														id: task.id,
-														data: {
-															label_ids: task.labels.filter((item) => item.id !== label.id).map((item) => item.id),
-														},
-													})
-												}
-											>
-												<X size={14} />
-											</button>
+											{taskMutable ? (
+												<button
+													type="button"
+													aria-label={`${workflow.buttons.removeLabel}: ${label.name}`}
+													onClick={() =>
+														void updateTask({
+															id: task.id,
+															data: {
+																label_ids: task.labels.filter((item) => item.id !== label.id).map((item) => item.id),
+															},
+														})
+													}
+												>
+													<X size={14} />
+												</button>
+											) : null}
 										</span>
 									))}
-									<button type="button" onClick={() => setTaskAddPanel('labels')} aria-label={t.common.add}>
-										<Plus size={17} />
-									</button>
+									{taskMutable ? (
+										<button type="button" onClick={() => toggleTaskAddPanel('labels')} aria-label={t.common.add}>
+											<Plus size={17} />
+										</button>
+									) : null}
 								</div>
 							</section>
 						) : null}
@@ -5198,6 +5382,7 @@ const DesignWorkflowShell = ({ title, variant, projectId, taskId }: Props) => {
 										<Area
 											value={taskEditForm.description}
 											onChange={(value) => setTaskEditForm((current) => ({ ...current, description: value }))}
+											mentionUsers={mentionableUsers}
 											rows={4}
 											placeholder={workflow.labels.descriptionPlaceholder ?? workflow.labels.noDescription}
 										/>
@@ -5270,42 +5455,46 @@ const DesignWorkflowShell = ({ title, variant, projectId, taskId }: Props) => {
 									<Clock3 size={20} />
 									<h3>{workflow.labels.dueDate}</h3>
 								</div>
-								<div className="workflow-trello-modal-control-grid" data-single-field={!isManager}>
-									<div>
-										<FieldLabel>{workflow.labels.dueDate}</FieldLabel>
-										<DateField
-											value={taskEditForm.due_date}
-											onChange={(value) => setTaskEditForm((current) => ({ ...current, due_date: value }))}
-										/>
-									</div>
-									{isManager ? (
+								{taskMutable ? (
+									<div className="workflow-trello-modal-control-grid" data-single-field={!isManager}>
 										<div>
-											<FieldLabel>{workflow.labels.estimatedMinutes}</FieldLabel>
-											<WorkDaysField
-												value={taskEditForm.estimated_minutes}
-												onChange={(value) => setTaskEditForm((current) => ({ ...current, estimated_minutes: value }))}
+											<FieldLabel>{workflow.labels.dueDate}</FieldLabel>
+											<DateField
+												value={taskEditForm.due_date}
+												onChange={(value) => setTaskEditForm((current) => ({ ...current, due_date: value }))}
 											/>
 										</div>
-									) : null}
-									<button
-										type="button"
-										className="workflow-trello-modal-save"
-										onClick={() =>
-											void runPrimaryAction(
-												async () => {
-													await updateTask({
-														id: task.id,
-														data: buildTaskPayload(task.project.id, taskEditForm, { includeTime: isManager }),
-													}).unwrap();
-												},
-												messageFor('Tâche enregistrée avec succès.', 'Task saved successfully.'),
-												messageFor('Impossible d’enregistrer la tâche.', 'Could not save the task.'),
-											)
-										}
-									>
-										{updateTaskState.isLoading ? workflow.buttons.saving : t.common.save}
-									</button>
-								</div>
+										{isManager ? (
+											<div>
+												<FieldLabel>{workflow.labels.estimatedMinutes}</FieldLabel>
+												<WorkDaysField
+													value={taskEditForm.estimated_minutes}
+													onChange={(value) => setTaskEditForm((current) => ({ ...current, estimated_minutes: value }))}
+												/>
+											</div>
+										) : null}
+										<button
+											type="button"
+											className="workflow-trello-modal-save"
+											onClick={() =>
+												void runPrimaryAction(
+													async () => {
+														await updateTask({
+															id: task.id,
+															data: buildTaskPayload(task.project.id, taskEditForm, { includeTime: isManager }),
+														}).unwrap();
+													},
+													messageFor('Tâche enregistrée avec succès.', 'Task saved successfully.'),
+													messageFor('Impossible d’enregistrer la tâche.', 'Could not save the task.'),
+												)
+											}
+										>
+											{updateTaskState.isLoading ? workflow.buttons.saving : t.common.save}
+										</button>
+									</div>
+								) : (
+									<p className="workflow-trello-modal-description-text">{dateFor(task.due_date)}</p>
+								)}
 							</section>
 						) : null}
 
@@ -5358,14 +5547,16 @@ const DesignWorkflowShell = ({ title, variant, projectId, taskId }: Props) => {
 														key={item.id}
 														className="workflow-trello-modal-checklist-item"
 														data-done={item.done}
-														role="checkbox"
+														role={taskMutable ? 'checkbox' : undefined}
 														aria-checked={item.done}
-														tabIndex={0}
+														tabIndex={taskMutable ? 0 : -1}
 														onClick={(event) => {
+															if (!taskMutable) return;
 															if ((event.target as Element).closest('button')) return;
 															void updateChecklistItem({ id: task.id, itemId: item.id, data: { done: !item.done } });
 														}}
 														onKeyDown={(event) => {
+															if (!taskMutable) return;
 															if (event.target !== event.currentTarget || (event.key !== 'Enter' && event.key !== ' '))
 																return;
 															event.preventDefault();
@@ -5608,6 +5799,7 @@ const DesignWorkflowShell = ({ title, variant, projectId, taskId }: Props) => {
 								<Area
 									value={commentBody}
 									onChange={setCommentBody}
+									mentionUsers={mentionableUsers}
 									rows={3}
 									placeholder={workflow.labels.commentPlaceholder}
 								/>
@@ -6151,622 +6343,629 @@ const DesignWorkflowShell = ({ title, variant, projectId, taskId }: Props) => {
 					</Surface>
 				) : null}
 
-				<Surface
-					className="workflow-task-detail-panel workflow-task-tools-panel workflow-trello-tools-panel"
-					title={workflow.labels.cardActions ?? 'Card actions'}
-				>
-					<div className="workflow-trello-action-row">
-						<button
-							type="button"
-							onClick={() => setTaskAddPanel((current) => (current === 'labels' ? null : 'labels'))}
-							className="workflow-trello-action-button workflow-trello-action-button-primary"
-							data-active={taskAddPanel === 'labels'}
-						>
-							<Tag size={16} />
-							<span>{workflow.labels.labelsPanel ?? 'Étiquettes'}</span>
-						</button>
-						<button
-							type="button"
-							onClick={() => setTaskAddPanel((current) => (current === 'cover' ? null : 'cover'))}
-							className="workflow-trello-action-button"
-							data-active={taskAddPanel === 'cover'}
-						>
-							<ImagePlus size={16} />
-							<span>{workflow.labels.cardImage ?? 'Image de carte'}</span>
-						</button>
-						<button
-							type="button"
-							onClick={() => setTaskAddPanel((current) => (current === 'attachments' ? null : 'attachments'))}
-							className="workflow-trello-action-button"
-							data-active={taskAddPanel === 'attachments'}
-						>
-							<Paperclip size={16} />
-							<span>{workflow.labels.attachmentsPanel ?? 'Pièces jointes'}</span>
-						</button>
-						<button
-							type="button"
-							onClick={() => setTaskAddPanel((current) => (current === 'checklist' ? null : 'checklist'))}
-							className="workflow-trello-action-button"
-							data-active={taskAddPanel === 'checklist'}
-						>
-							<CheckCircle2 size={16} />
-							<span>{workflow.labels.checklistPanel ?? 'Checklist'}</span>
-						</button>
-						<button
-							type="button"
-							onClick={() => setTaskAddPanel((current) => (current === 'members' ? null : 'members'))}
-							className="workflow-trello-action-button"
-							data-active={taskAddPanel === 'members'}
-						>
-							<Users size={16} />
-							<span>{workflow.labels.membersPanel ?? 'Members'}</span>
-						</button>
-					</div>
-					<div className="workflow-task-tools-board">
-						{showChecklistPanel ? (
-							<div className="app-card-muted workflow-checklist-card workflow-tool-card-primary">
-								<div className="workflow-tool-card-heading workflow-tool-card-heading-large">
-									<div className="flex min-w-0 items-center gap-3">
-										<span className="workflow-tool-icon workflow-tool-icon-green">
-											<CheckCircle2 size={17} />
-										</span>
-										<div className="min-w-0">
-											<p>{workflow.labels.checklistPanel ?? 'Checklist'}</p>
-											<span>
-												{Math.round(checklistProgress)}% · {checklistDoneCount}/{task.checklist_items.length}
+				{taskMutable ? (
+					<Surface
+						className="workflow-task-detail-panel workflow-task-tools-panel workflow-trello-tools-panel"
+						title={workflow.labels.cardActions ?? 'Card actions'}
+					>
+						<div className="workflow-trello-action-row">
+							<button
+								type="button"
+								onClick={() => toggleTaskAddPanel('labels')}
+								className="workflow-trello-action-button workflow-trello-action-button-primary"
+								data-active={taskAddPanel === 'labels'}
+							>
+								<Tag size={16} />
+								<span>{workflow.labels.labelsPanel ?? 'Étiquettes'}</span>
+							</button>
+							<button
+								type="button"
+								onClick={() => toggleTaskAddPanel('cover')}
+								className="workflow-trello-action-button"
+								data-active={taskAddPanel === 'cover'}
+							>
+								<ImagePlus size={16} />
+								<span>{workflow.labels.cardImage ?? 'Image de carte'}</span>
+							</button>
+							<button
+								type="button"
+								onClick={() => toggleTaskAddPanel('attachments')}
+								className="workflow-trello-action-button"
+								data-active={taskAddPanel === 'attachments'}
+							>
+								<Paperclip size={16} />
+								<span>{workflow.labels.attachmentsPanel ?? 'Pièces jointes'}</span>
+							</button>
+							<button
+								type="button"
+								onClick={() => toggleTaskAddPanel('checklist')}
+								className="workflow-trello-action-button"
+								data-active={taskAddPanel === 'checklist'}
+							>
+								<CheckCircle2 size={16} />
+								<span>{workflow.labels.checklistPanel ?? 'Checklist'}</span>
+							</button>
+							<button
+								type="button"
+								onClick={() => toggleTaskAddPanel('members')}
+								className="workflow-trello-action-button"
+								data-active={taskAddPanel === 'members'}
+							>
+								<Users size={16} />
+								<span>{workflow.labels.membersPanel ?? 'Members'}</span>
+							</button>
+						</div>
+						<div className="workflow-task-tools-board">
+							{showChecklistPanel ? (
+								<div className="app-card-muted workflow-checklist-card workflow-tool-card-primary">
+									<div className="workflow-tool-card-heading workflow-tool-card-heading-large">
+										<div className="flex min-w-0 items-center gap-3">
+											<span className="workflow-tool-icon workflow-tool-icon-green">
+												<CheckCircle2 size={17} />
 											</span>
-										</div>
-									</div>
-									<Chip>{checklistGroups.length}</Chip>
-								</div>
-								{taskAddPanel === 'checklist' ? (
-									<div className="workflow-trello-checklist-create">
-										<FieldLabel>{workflow.labels.checklistTitle ?? 'Checklist title'}</FieldLabel>
-										<Field
-											value={newChecklistGroupTitle}
-											onChange={setNewChecklistGroupTitle}
-											placeholder={workflow.labels.checklistPanel ?? 'Checklist'}
-											startIcon={<ListTodo size={16} />}
-										/>
-										<div className="workflow-checklist-template-picker">
-											<p>{workflow.labels.checklistTemplates ?? 'Templates'}</p>
-											<div>
-												{checklistTemplates.map((template) => (
-													<button
-														key={template.key}
-														type="button"
-														data-active={selectedChecklistTemplate === template.key}
-														onClick={() => selectChecklistTemplate(template)}
-													>
-														<b>{template.title}</b>
-														<small>{template.description}</small>
-													</button>
-												))}
-											</div>
-											{activeChecklistTemplate ? (
-												<ul>
-													{activeChecklistTemplate.items.map((item) => (
-														<li key={item}>{item}</li>
-													))}
-												</ul>
-											) : null}
-										</div>
-										<button type="button" className="app-button px-4" onClick={createChecklistForTask}>
-											{addChecklistState.isLoading ? workflow.buttons.saving : t.common.add}
-										</button>
-									</div>
-								) : null}
-								<div className="workflow-checklist-progress workflow-checklist-progress-large" aria-hidden="true">
-									<span style={{ width: `${checklistProgress}%` }} />
-								</div>
-								<div className="workflow-checklist-list">
-									{checklistGroups.map((group) => {
-										const groupDoneCount = group.items.filter((item) => item.done).length;
-										const groupProgress = group.items.length ? (groupDoneCount / group.items.length) * 100 : 0;
-										const groupKey = String(group.id);
-										const groupNewItem = newChecklistItemsByChecklist[groupKey] ?? '';
-										return (
-											<div key={group.id || `legacy-${task.id}`} className="workflow-checklist-group">
-												<div className="workflow-checklist-group-head">
-													<p>{group.title}</p>
-													<div className="workflow-checklist-group-actions">
-														<span>
-															{Math.round(groupProgress)}% - {groupDoneCount}/{group.items.length}
-														</span>
-														{taskMutable && group.id > 0 ? (
-															<button
-																type="button"
-																className="workflow-tool-icon-button workflow-tool-icon-button-danger workflow-checklist-delete-button"
-																onClick={() =>
-																	void runPrimaryAction(
-																		async () => {
-																			await deleteChecklist({ id: task.id, checklistId: group.id }).unwrap();
-																			setNewChecklistItemsByChecklist((current) => {
-																				const next = { ...current };
-																				delete next[String(group.id)];
-																				return next;
-																			});
-																		},
-																		messageFor('Liste supprimée avec succès.', 'Checklist deleted successfully.'),
-																		messageFor('Impossible de supprimer la liste.', 'Could not delete the checklist.'),
-																	)
-																}
-																aria-label={t.common.delete}
-															>
-																<Trash2 size={15} />
-															</button>
-														) : null}
-													</div>
-												</div>
-												<div className="workflow-checklist-progress" aria-hidden="true">
-													<span style={{ width: `${groupProgress}%` }} />
-												</div>
-												{group.items.map((item) => (
-													<div
-														key={item.id}
-														className={cn(
-															'workflow-checklist-row workflow-checklist-row-modern',
-															item.done && 'is-done',
-														)}
-													>
-														<button
-															type="button"
-															onClick={() =>
-																updateChecklistItem({ id: task.id, itemId: item.id, data: { done: !item.done } })
-															}
-															className="workflow-checklist-toggle"
-															aria-label={item.done ? workflow.buttons.updateStatus : workflow.buttons.updateStatus}
-														>
-															<CheckCircle2 size={16} />
-														</button>
-														<span>{item.title}</span>
-														<button
-															type="button"
-															onClick={() => deleteChecklistItem({ id: task.id, itemId: item.id })}
-															className="workflow-tool-icon-button workflow-tool-icon-button-danger"
-															aria-label={t.common.delete}
-														>
-															<Trash2 size={15} />
-														</button>
-													</div>
-												))}
-												{taskMutable ? (
-													<div className="workflow-checklist-add workflow-checklist-add-modern">
-														<Field
-															value={groupNewItem}
-															onChange={(value) =>
-																setNewChecklistItemsByChecklist((current) => ({ ...current, [groupKey]: value }))
-															}
-															placeholder={workflow.labels.addChecklistPlaceholder ?? 'Add checklist item'}
-															startIcon={<Plus size={16} />}
-														/>
-														<button
-															type="button"
-															disabled={!groupNewItem.trim()}
-															onClick={() => addChecklistItemToGroup(group)}
-															className="app-button px-4"
-														>
-															{addChecklistItemState.isLoading ? workflow.buttons.saving : t.common.add}
-														</button>
-													</div>
-												) : null}
-											</div>
-										);
-									})}
-									{checklistGroups.length === 0 ? (
-										<div className="workflow-tool-empty-box">
-											{workflow.emptyStates.noChecklist?.description ?? workflow.labels.addChecklistPlaceholder}
-										</div>
-									) : null}
-								</div>
-							</div>
-						) : null}
-
-						<div className="workflow-task-tools-side">
-							{showLabelsPanel ? (
-								<div className="app-card-muted workflow-labels-card workflow-tool-card-compact">
-									<div className="workflow-tool-card-heading">
-										<div className="flex items-center gap-2">
-											<span className="workflow-tool-icon">
-												<Tag size={15} />
-											</span>
-											<p>{workflow.labels.labelsPanel ?? 'Etiquettes'}</p>
-										</div>
-										<Chip>{task.labels.length}</Chip>
-									</div>
-									<div className="workflow-label-zone workflow-label-zone-modern">
-										<p>{workflow.labels.activeLabels ?? 'Actives'}</p>
-										<div className="workflow-label-chip-row">
-											{task.labels.map((label) => (
-												<span
-													key={label.id}
-													className="workflow-label-chip"
-													style={{ borderColor: label.color, color: label.color }}
-												>
-													<span className="h-2.5 w-2.5 rounded-full" style={{ backgroundColor: label.color }} />
-													<span>{label.name}</span>
-													{workflowDataReady ? (
-														<button
-															type="button"
-															onClick={() =>
-																updateTask({
-																	id: task.id,
-																	data: {
-																		label_ids: task.labels
-																			.filter((item) => item.id !== label.id)
-																			.map((item) => item.id),
-																	},
-																})
-															}
-															className="text-current opacity-70 transition hover:opacity-100"
-															aria-label={`Remove ${label.name}`}
-														>
-															<X size={12} />
-														</button>
-													) : null}
+											<div className="min-w-0">
+												<p>{workflow.labels.checklistPanel ?? 'Checklist'}</p>
+												<span>
+													{Math.round(checklistProgress)}% · {checklistDoneCount}/{task.checklist_items.length}
 												</span>
-											))}
-											{task.labels.length === 0 ? (
-												<p className="workflow-tool-empty-line">{workflow.labels.noLabelYet ?? 'Aucune etiquette'}</p>
-											) : null}
-										</div>
-									</div>
-									<div className="workflow-label-zone workflow-label-zone-modern">
-										<p>{workflow.labels.availableLabels ?? 'Disponibles'}</p>
-										<div className="workflow-label-chip-row">
-											{labels
-												.filter((label) => !task.labels.some((item) => item.id === label.id))
-												.map((label) => (
-													<button
-														key={label.id}
-														type="button"
-														onClick={() =>
-															updateTask({
-																id: task.id,
-																data: { label_ids: [...task.labels.map((item) => item.id), label.id] },
-															})
-														}
-														className="workflow-label-chip workflow-label-chip-action"
-														style={{ borderColor: label.color, color: label.color }}
-													>
-														<span className="h-2.5 w-2.5 rounded-full" style={{ backgroundColor: label.color }} />
-														{label.name}
-													</button>
-												))}
-											{labels.filter((label) => !task.labels.some((item) => item.id === label.id)).length === 0 ? (
-												<p className="workflow-tool-empty-line">{workflow.labels.noLabelYet ?? 'Aucune etiquette'}</p>
-											) : null}
-										</div>
-									</div>
-									{workflowDataReady ? (
-										<div className="workflow-label-composer workflow-label-composer-modern">
-											<div className="workflow-label-composer-head">
-												<div className="flex items-center gap-2">
-													<Palette size={15} />
-													<p>{workflow.labels.newLabel ?? 'Nouvelle etiquette'}</p>
-												</div>
-												<div
-													className="workflow-label-preview"
-													style={{ borderColor: newLabelColor, color: newLabelColor }}
-												>
-													<span className="inline-flex items-center gap-2">
-														<span className="h-2.5 w-2.5 rounded-full" style={{ backgroundColor: newLabelColor }} />
-														{newLabelName.trim() || (workflow.labels.preview ?? 'Apercu')}
-													</span>
-												</div>
 											</div>
+										</div>
+										<Chip>{checklistGroups.length}</Chip>
+									</div>
+									{taskAddPanel === 'checklist' ? (
+										<div className="workflow-trello-checklist-create">
+											<FieldLabel>{workflow.labels.checklistTitle ?? 'Checklist title'}</FieldLabel>
 											<Field
-												value={newLabelName}
-												onChange={setNewLabelName}
-												placeholder={workflow.labels.newLabelPlaceholder ?? 'New label'}
-												startIcon={<Tag size={16} />}
+												value={newChecklistGroupTitle}
+												onChange={setNewChecklistGroupTitle}
+												placeholder={workflow.labels.checklistPanel ?? 'Checklist'}
+												startIcon={<ListTodo size={16} />}
 											/>
-											<div className="workflow-label-composer-grid">
-												<div className="workflow-label-color-picker">
-													<DeferredHexColorPicker
-														key={`task-label-${newLabelColor}`}
-														value={newLabelColor}
-														onCommit={setNewLabelColor}
-													/>
-												</div>
-												<button
-													type="button"
-													disabled={!newLabelName.trim()}
-													onClick={() =>
-														void runPrimaryAction(
-															async () => {
-																const label = await createLabel({
-																	name: newLabelName.trim(),
-																	color: newLabelColor,
-																}).unwrap();
-																await updateTask({
-																	id: task.id,
-																	data: { label_ids: [...task.labels.map((item) => item.id), label.id] },
-																}).unwrap();
-																setNewLabelName('');
-															},
-															messageFor('Étiquette ajoutée avec succès.', 'Label added successfully.'),
-															messageFor('Impossible d’ajouter l’étiquette.', 'Could not add the label.'),
-														)
-													}
-													className="app-button workflow-label-create-button"
-												>
-													<Plus size={16} />
-													<span>{t.common.add}</span>
-												</button>
-											</div>
-										</div>
-									) : null}
-								</div>
-							) : null}
-
-							{showAttachmentsPanel ? (
-								<div className="app-card-muted workflow-attachments-card workflow-tool-card-compact">
-									<div className="workflow-tool-card-heading">
-										<div className="flex items-center gap-2">
-											<span className="workflow-tool-icon workflow-tool-icon-cyan">
-												<Paperclip size={15} />
-											</span>
-											<p>{workflow.labels.attachmentsPanel ?? 'Attachments'}</p>
-										</div>
-										<Chip>{task.attachments.length}</Chip>
-									</div>
-									<div className="workflow-cover-control">
-										<div className="workflow-cover-preview">
-											{task.cover_image_url ? (
-												<Image
-													src={resolveMediaUrl(task.cover_image_url)}
-													alt={task.cover_image_label || task.title}
-													width={520}
-													height={180}
-													unoptimized
-													loading="eager"
-													className="h-full w-full object-cover"
-												/>
-											) : (
+											<div className="workflow-checklist-template-picker">
+												<p>{workflow.labels.checklistTemplates ?? 'Templates'}</p>
 												<div>
-													<ImagePlus size={20} />
-													<span>{workflow.labels.noCardImage ?? 'Aucune image de carte'}</span>
+													{checklistTemplates.map((template) => (
+														<button
+															key={template.key}
+															type="button"
+															data-active={selectedChecklistTemplate === template.key}
+															onClick={() => selectChecklistTemplate(template)}
+														>
+															<b>{template.title}</b>
+															<small>{template.description}</small>
+														</button>
+													))}
 												</div>
-											)}
-										</div>
-										{task.cover_image_label ? <p className="workflow-cover-label">{task.cover_image_label}</p> : null}
-										{taskMediaMutable ? (
-											<div className="workflow-upload-actions">
-												<div className="workflow-media-label-field">
-													<Field
-														value={taskCoverLabel}
-														onChange={setTaskCoverLabel}
-														placeholder={workflow.labels.coverImageLabelPlaceholder ?? 'Décrivez cette image'}
-													/>
-												</div>
-												<input
-													id={coverInputId}
-													type="file"
-													accept="image/*"
-													onChange={(event) => setTaskCoverFile(event.target.files?.[0] ?? null)}
-													className="workflow-hidden-file-input"
-												/>
-												<label htmlFor={coverInputId} className="workflow-upload-picker">
-													<ImagePlus size={15} />
-													<span>{taskCoverFile?.name ?? workflow.labels.cardImage ?? 'Image de carte'}</span>
-												</label>
-												<button
-													type="button"
-													disabled={!taskCoverFile || !taskCoverLabel.trim()}
-													onClick={() => void handleUploadTaskCover(task.id)}
-													className="app-button workflow-upload-submit"
-												>
-													<ImagePlus size={16} />
-													<span>
-														{uploadTaskCoverState.isLoading
-															? workflow.buttons.saving
-															: (workflow.labels.setCardImage ?? "Modifier l'image")}
-													</span>
-												</button>
-												{task.cover_image_url ? (
-													<button
-														type="button"
-														onClick={() =>
-															setMediaDeleteTarget({
-																kind: 'cover',
-																taskId: task.id,
-																name: workflow.labels.cardImage ?? 'Card image',
-															})
-														}
-														className="workflow-tool-icon-button workflow-tool-icon-button-danger"
-														aria-label={t.common.delete}
-													>
-														<X size={16} />
-													</button>
+												{activeChecklistTemplate ? (
+													<ul>
+														{activeChecklistTemplate.items.map((item) => (
+															<li key={item}>{item}</li>
+														))}
+													</ul>
 												) : null}
 											</div>
-										) : null}
+											<button type="button" className="app-button px-4" onClick={createChecklistForTask}>
+												{addChecklistState.isLoading ? workflow.buttons.saving : t.common.add}
+											</button>
+										</div>
+									) : null}
+									<div className="workflow-checklist-progress workflow-checklist-progress-large" aria-hidden="true">
+										<span style={{ width: `${checklistProgress}%` }} />
 									</div>
-									<div className="workflow-attachment-list">
-										{task.attachments.map((attachment) => {
-											const attachmentUrl = resolveMediaUrl(attachment.file_url ?? attachment.file);
-											const isImage = isImageAttachment(attachment);
-											const fileMeta = [
-												attachment.mime_type || workflow.labels.uploadFile,
-												formatFileSize(attachment.size),
-											]
-												.filter(Boolean)
-												.join(' - ');
+									<div className="workflow-checklist-list">
+										{checklistGroups.map((group) => {
+											const groupDoneCount = group.items.filter((item) => item.done).length;
+											const groupProgress = group.items.length ? (groupDoneCount / group.items.length) * 100 : 0;
+											const groupKey = String(group.id);
+											const groupNewItem = newChecklistItemsByChecklist[groupKey] ?? '';
 											return (
-												<div key={attachment.id} className="workflow-attachment-item">
-													{isImage ? (
-														<button
-															type="button"
-															className="workflow-attachment-preview-trigger"
-															onClick={() => openAttachmentPreview(attachment, attachmentUrl, fileMeta)}
-															aria-label={`${workflow.labels.preview ?? 'Preview'} ${attachment.name}`}
-														>
-															<Image
-																src={attachmentUrl}
-																alt={attachment.name}
-																width={72}
-																height={52}
-																unoptimized
-																loading="eager"
-																className="workflow-attachment-thumb h-auto w-auto"
-																style={{ width: 'auto', height: 'auto' }}
-															/>
-														</button>
-													) : (
-														<span className="workflow-attachment-file-icon">
-															<Paperclip size={16} />
-														</span>
-													)}
-													<div className="workflow-attachment-copy">
-														<a href={attachmentUrl} target="_blank" rel="noreferrer">
-															{attachment.name}
-														</a>
-														<small>{fileMeta}</small>
-													</div>
-													{taskMediaMutable ? (
-														<div className="workflow-attachment-actions">
-															{isImage ? (
+												<div key={group.id || `legacy-${task.id}`} className="workflow-checklist-group">
+													<div className="workflow-checklist-group-head">
+														<p>{group.title}</p>
+														<div className="workflow-checklist-group-actions">
+															<span>
+																{Math.round(groupProgress)}% - {groupDoneCount}/{group.items.length}
+															</span>
+															{taskMutable && group.id > 0 ? (
 																<button
 																	type="button"
-																	className="workflow-attachment-cover-button"
-																	onClick={() => handleSetAttachmentAsCover(task, attachment)}
-																	disabled={setTaskCoverFromAttachmentState.isLoading}
+																	className="workflow-tool-icon-button workflow-tool-icon-button-danger workflow-checklist-delete-button"
+																	onClick={() =>
+																		void runPrimaryAction(
+																			async () => {
+																				await deleteChecklist({ id: task.id, checklistId: group.id }).unwrap();
+																				setNewChecklistItemsByChecklist((current) => {
+																					const next = { ...current };
+																					delete next[String(group.id)];
+																					return next;
+																				});
+																			},
+																			messageFor('Liste supprimée avec succès.', 'Checklist deleted successfully.'),
+																			messageFor(
+																				'Impossible de supprimer la liste.',
+																				'Could not delete the checklist.',
+																			),
+																		)
+																	}
+																	aria-label={t.common.delete}
 																>
-																	<ImagePlus size={14} />
-																	<span>{workflow.labels.setAsCover ?? 'Set as cover'}</span>
+																	<Trash2 size={15} />
 																</button>
 															) : null}
+														</div>
+													</div>
+													<div className="workflow-checklist-progress" aria-hidden="true">
+														<span style={{ width: `${groupProgress}%` }} />
+													</div>
+													{group.items.map((item) => (
+														<div
+															key={item.id}
+															className={cn(
+																'workflow-checklist-row workflow-checklist-row-modern',
+																item.done && 'is-done',
+															)}
+														>
 															<button
 																type="button"
 																onClick={() =>
-																	setMediaDeleteTarget({
-																		kind: 'attachment',
-																		taskId: task.id,
-																		attachmentId: attachment.id,
-																		name: attachment.name,
-																	})
+																	updateChecklistItem({ id: task.id, itemId: item.id, data: { done: !item.done } })
 																}
+																className="workflow-checklist-toggle"
+																aria-label={item.done ? workflow.buttons.updateStatus : workflow.buttons.updateStatus}
+															>
+																<CheckCircle2 size={16} />
+															</button>
+															<span>{item.title}</span>
+															<button
+																type="button"
+																onClick={() => deleteChecklistItem({ id: task.id, itemId: item.id })}
 																className="workflow-tool-icon-button workflow-tool-icon-button-danger"
 																aria-label={t.common.delete}
 															>
 																<Trash2 size={15} />
 															</button>
 														</div>
+													))}
+													{taskMutable ? (
+														<div className="workflow-checklist-add workflow-checklist-add-modern">
+															<Field
+																value={groupNewItem}
+																onChange={(value) =>
+																	setNewChecklistItemsByChecklist((current) => ({ ...current, [groupKey]: value }))
+																}
+																placeholder={workflow.labels.addChecklistPlaceholder ?? 'Add checklist item'}
+																startIcon={<Plus size={16} />}
+															/>
+															<button
+																type="button"
+																disabled={!groupNewItem.trim()}
+																onClick={() => addChecklistItemToGroup(group)}
+																className="app-button px-4"
+															>
+																{addChecklistItemState.isLoading ? workflow.buttons.saving : t.common.add}
+															</button>
+														</div>
 													) : null}
 												</div>
 											);
 										})}
-										{task.attachments.length === 0 ? (
-											<div className="workflow-tool-empty-box">{workflow.labels.attachmentsPanel ?? 'Attachments'}</div>
+										{checklistGroups.length === 0 ? (
+											<div className="workflow-tool-empty-box">
+												{workflow.emptyStates.noChecklist?.description ?? workflow.labels.addChecklistPlaceholder}
+											</div>
 										) : null}
 									</div>
-									{taskMediaMutable ? (
-										<div className="workflow-upload-actions workflow-upload-actions-flat">
-											<div className="workflow-media-label-field">
-												<Field
-													value={taskAttachmentLabel}
-													onChange={setTaskAttachmentLabel}
-													placeholder={workflow.labels.attachmentLabelPlaceholder ?? 'Décrivez ce fichier'}
-												/>
+								</div>
+							) : null}
+
+							<div className="workflow-task-tools-side">
+								{showLabelsPanel ? (
+									<div className="app-card-muted workflow-labels-card workflow-tool-card-compact">
+										<div className="workflow-tool-card-heading">
+											<div className="flex items-center gap-2">
+												<span className="workflow-tool-icon">
+													<Tag size={15} />
+												</span>
+												<p>{workflow.labels.labelsPanel ?? 'Etiquettes'}</p>
 											</div>
-											<input
-												id={attachmentInputId}
-												type="file"
-												onChange={(event) => setTaskAttachmentFile(event.target.files?.[0] ?? null)}
-												className="workflow-hidden-file-input"
+											<Chip>{task.labels.length}</Chip>
+										</div>
+										<div className="workflow-label-zone workflow-label-zone-modern">
+											<p>{workflow.labels.activeLabels ?? 'Actives'}</p>
+											<div className="workflow-label-chip-row">
+												{task.labels.map((label) => (
+													<span
+														key={label.id}
+														className="workflow-label-chip"
+														style={{ borderColor: label.color, color: label.color }}
+													>
+														<span className="h-2.5 w-2.5 rounded-full" style={{ backgroundColor: label.color }} />
+														<span>{label.name}</span>
+														{workflowDataReady ? (
+															<button
+																type="button"
+																onClick={() =>
+																	updateTask({
+																		id: task.id,
+																		data: {
+																			label_ids: task.labels
+																				.filter((item) => item.id !== label.id)
+																				.map((item) => item.id),
+																		},
+																	})
+																}
+																className="text-current opacity-70 transition hover:opacity-100"
+																aria-label={`Remove ${label.name}`}
+															>
+																<X size={12} />
+															</button>
+														) : null}
+													</span>
+												))}
+												{task.labels.length === 0 ? (
+													<p className="workflow-tool-empty-line">{workflow.labels.noLabelYet ?? 'Aucune etiquette'}</p>
+												) : null}
+											</div>
+										</div>
+										<div className="workflow-label-zone workflow-label-zone-modern">
+											<p>{workflow.labels.availableLabels ?? 'Disponibles'}</p>
+											<div className="workflow-label-chip-row">
+												{labels
+													.filter((label) => !task.labels.some((item) => item.id === label.id))
+													.map((label) => (
+														<button
+															key={label.id}
+															type="button"
+															onClick={() =>
+																updateTask({
+																	id: task.id,
+																	data: { label_ids: [...task.labels.map((item) => item.id), label.id] },
+																})
+															}
+															className="workflow-label-chip workflow-label-chip-action"
+															style={{ borderColor: label.color, color: label.color }}
+														>
+															<span className="h-2.5 w-2.5 rounded-full" style={{ backgroundColor: label.color }} />
+															{label.name}
+														</button>
+													))}
+												{labels.filter((label) => !task.labels.some((item) => item.id === label.id)).length === 0 ? (
+													<p className="workflow-tool-empty-line">{workflow.labels.noLabelYet ?? 'Aucune etiquette'}</p>
+												) : null}
+											</div>
+										</div>
+										{workflowDataReady ? (
+											<div className="workflow-label-composer workflow-label-composer-modern">
+												<div className="workflow-label-composer-head">
+													<div className="flex items-center gap-2">
+														<Palette size={15} />
+														<p>{workflow.labels.newLabel ?? 'Nouvelle etiquette'}</p>
+													</div>
+													<div
+														className="workflow-label-preview"
+														style={{ borderColor: newLabelColor, color: newLabelColor }}
+													>
+														<span className="inline-flex items-center gap-2">
+															<span className="h-2.5 w-2.5 rounded-full" style={{ backgroundColor: newLabelColor }} />
+															{newLabelName.trim() || (workflow.labels.preview ?? 'Apercu')}
+														</span>
+													</div>
+												</div>
+												<Field
+													value={newLabelName}
+													onChange={setNewLabelName}
+													placeholder={workflow.labels.newLabelPlaceholder ?? 'New label'}
+													startIcon={<Tag size={16} />}
+												/>
+												<div className="workflow-label-composer-grid">
+													<div className="workflow-label-color-picker">
+														<DeferredHexColorPicker
+															key={`task-label-${newLabelColor}`}
+															value={newLabelColor}
+															onCommit={setNewLabelColor}
+														/>
+													</div>
+													<button
+														type="button"
+														disabled={!newLabelName.trim()}
+														onClick={() =>
+															void runPrimaryAction(
+																async () => {
+																	const label = await createLabel({
+																		name: newLabelName.trim(),
+																		color: newLabelColor,
+																	}).unwrap();
+																	await updateTask({
+																		id: task.id,
+																		data: { label_ids: [...task.labels.map((item) => item.id), label.id] },
+																	}).unwrap();
+																	setNewLabelName('');
+																},
+																messageFor('Étiquette ajoutée avec succès.', 'Label added successfully.'),
+																messageFor('Impossible d’ajouter l’étiquette.', 'Could not add the label.'),
+															)
+														}
+														className="app-button workflow-label-create-button"
+													>
+														<Plus size={16} />
+														<span>{t.common.add}</span>
+													</button>
+												</div>
+											</div>
+										) : null}
+									</div>
+								) : null}
+
+								{showAttachmentsPanel ? (
+									<div className="app-card-muted workflow-attachments-card workflow-tool-card-compact">
+										<div className="workflow-tool-card-heading">
+											<div className="flex items-center gap-2">
+												<span className="workflow-tool-icon workflow-tool-icon-cyan">
+													<Paperclip size={15} />
+												</span>
+												<p>{workflow.labels.attachmentsPanel ?? 'Attachments'}</p>
+											</div>
+											<Chip>{task.attachments.length}</Chip>
+										</div>
+										<div className="workflow-cover-control">
+											<div className="workflow-cover-preview">
+												{task.cover_image_url ? (
+													<Image
+														src={resolveMediaUrl(task.cover_image_url)}
+														alt={task.cover_image_label || task.title}
+														width={520}
+														height={180}
+														unoptimized
+														loading="eager"
+														className="h-full w-full object-cover"
+													/>
+												) : (
+													<div>
+														<ImagePlus size={20} />
+														<span>{workflow.labels.noCardImage ?? 'Aucune image de carte'}</span>
+													</div>
+												)}
+											</div>
+											{task.cover_image_label ? <p className="workflow-cover-label">{task.cover_image_label}</p> : null}
+											{taskMediaMutable ? (
+												<div className="workflow-upload-actions">
+													<div className="workflow-media-label-field">
+														<Field
+															value={taskCoverLabel}
+															onChange={setTaskCoverLabel}
+															placeholder={workflow.labels.coverImageLabelPlaceholder ?? 'Décrivez cette image'}
+														/>
+													</div>
+													<input
+														id={coverInputId}
+														type="file"
+														accept="image/*"
+														onChange={(event) => setTaskCoverFile(event.target.files?.[0] ?? null)}
+														className="workflow-hidden-file-input"
+													/>
+													<label htmlFor={coverInputId} className="workflow-upload-picker">
+														<ImagePlus size={15} />
+														<span>{taskCoverFile?.name ?? workflow.labels.cardImage ?? 'Image de carte'}</span>
+													</label>
+													<button
+														type="button"
+														disabled={!taskCoverFile || !taskCoverLabel.trim()}
+														onClick={() => void handleUploadTaskCover(task.id)}
+														className="app-button workflow-upload-submit"
+													>
+														<ImagePlus size={16} />
+														<span>
+															{uploadTaskCoverState.isLoading
+																? workflow.buttons.saving
+																: (workflow.labels.setCardImage ?? "Modifier l'image")}
+														</span>
+													</button>
+													{task.cover_image_url ? (
+														<button
+															type="button"
+															onClick={() =>
+																setMediaDeleteTarget({
+																	kind: 'cover',
+																	taskId: task.id,
+																	name: workflow.labels.cardImage ?? 'Card image',
+																})
+															}
+															className="workflow-tool-icon-button workflow-tool-icon-button-danger"
+															aria-label={t.common.delete}
+														>
+															<X size={16} />
+														</button>
+													) : null}
+												</div>
+											) : null}
+										</div>
+										<div className="workflow-attachment-list">
+											{task.attachments.map((attachment) => {
+												const attachmentUrl = resolveMediaUrl(attachment.file_url ?? attachment.file);
+												const isImage = isImageAttachment(attachment);
+												const fileMeta = [
+													attachment.mime_type || workflow.labels.uploadFile,
+													formatFileSize(attachment.size),
+												]
+													.filter(Boolean)
+													.join(' - ');
+												return (
+													<div key={attachment.id} className="workflow-attachment-item">
+														{isImage ? (
+															<button
+																type="button"
+																className="workflow-attachment-preview-trigger"
+																onClick={() => openAttachmentPreview(attachment, attachmentUrl, fileMeta)}
+																aria-label={`${workflow.labels.preview ?? 'Preview'} ${attachment.name}`}
+															>
+																<Image
+																	src={attachmentUrl}
+																	alt={attachment.name}
+																	width={72}
+																	height={52}
+																	unoptimized
+																	loading="eager"
+																	className="workflow-attachment-thumb h-auto w-auto"
+																	style={{ width: 'auto', height: 'auto' }}
+																/>
+															</button>
+														) : (
+															<span className="workflow-attachment-file-icon">
+																<Paperclip size={16} />
+															</span>
+														)}
+														<div className="workflow-attachment-copy">
+															<a href={attachmentUrl} target="_blank" rel="noreferrer">
+																{attachment.name}
+															</a>
+															<small>{fileMeta}</small>
+														</div>
+														{taskMediaMutable ? (
+															<div className="workflow-attachment-actions">
+																{isImage ? (
+																	<button
+																		type="button"
+																		className="workflow-attachment-cover-button"
+																		onClick={() => handleSetAttachmentAsCover(task, attachment)}
+																		disabled={setTaskCoverFromAttachmentState.isLoading}
+																	>
+																		<ImagePlus size={14} />
+																		<span>{workflow.labels.setAsCover ?? 'Set as cover'}</span>
+																	</button>
+																) : null}
+																<button
+																	type="button"
+																	onClick={() =>
+																		setMediaDeleteTarget({
+																			kind: 'attachment',
+																			taskId: task.id,
+																			attachmentId: attachment.id,
+																			name: attachment.name,
+																		})
+																	}
+																	className="workflow-tool-icon-button workflow-tool-icon-button-danger"
+																	aria-label={t.common.delete}
+																>
+																	<Trash2 size={15} />
+																</button>
+															</div>
+														) : null}
+													</div>
+												);
+											})}
+											{task.attachments.length === 0 ? (
+												<div className="workflow-tool-empty-box">
+													{workflow.labels.attachmentsPanel ?? 'Attachments'}
+												</div>
+											) : null}
+										</div>
+										{taskMediaMutable ? (
+											<div className="workflow-upload-actions workflow-upload-actions-flat">
+												<div className="workflow-media-label-field">
+													<Field
+														value={taskAttachmentLabel}
+														onChange={setTaskAttachmentLabel}
+														placeholder={workflow.labels.attachmentLabelPlaceholder ?? 'Décrivez ce fichier'}
+													/>
+												</div>
+												<input
+													id={attachmentInputId}
+													type="file"
+													onChange={(event) => setTaskAttachmentFile(event.target.files?.[0] ?? null)}
+													className="workflow-hidden-file-input"
+												/>
+												<label htmlFor={attachmentInputId} className="workflow-upload-picker">
+													<Paperclip size={15} />
+													<span>{taskAttachmentFile?.name ?? workflow.labels.uploadFile ?? 'Importer un fichier'}</span>
+												</label>
+												<button
+													type="button"
+													disabled={!taskAttachmentFile || !taskAttachmentLabel.trim()}
+													onClick={() => void handleUploadTaskAttachment(task.id)}
+													className="app-button workflow-upload-submit"
+												>
+													<Paperclip size={16} />
+													<span>{uploadTaskAttachmentState.isLoading ? workflow.buttons.saving : t.common.add}</span>
+												</button>
+											</div>
+										) : null}
+									</div>
+								) : null}
+								{taskAddPanel === 'members' && isManager ? (
+									<div className="app-card-muted workflow-trello-member-panel">
+										<div className="workflow-tool-card-heading">
+											<div className="flex items-center gap-2">
+												<span className="workflow-tool-icon">
+													<Users size={15} />
+												</span>
+												<p>{workflow.labels.membersPanel ?? 'Members'}</p>
+											</div>
+										</div>
+										<div className="grid gap-3 md:grid-cols-[minmax(0,0.45fr)_minmax(0,1fr)_auto]">
+											<SelectField
+												value={reassignForm.assignee_id}
+												onChange={(value) => setReassignForm((current) => ({ ...current, assignee_id: value }))}
+												ariaLabel={workflow.labels.assignee}
+												options={assignableUsers.map((user) => ({
+													value: user.id,
+													label: `${user.first_name} ${user.last_name}`,
+												}))}
+												startIcon={<Users size={18} />}
+												placeholder={workflow.labels.assignee}
 											/>
-											<label htmlFor={attachmentInputId} className="workflow-upload-picker">
-												<Paperclip size={15} />
-												<span>{taskAttachmentFile?.name ?? workflow.labels.uploadFile ?? 'Importer un fichier'}</span>
-											</label>
+											<Field
+												value={reassignForm.reason}
+												onChange={(value) => setReassignForm((current) => ({ ...current, reason: value }))}
+												placeholder={workflow.labels.reassignReasonPlaceholder}
+												startIcon={<MessagesSquare size={18} />}
+											/>
 											<button
 												type="button"
-												disabled={!taskAttachmentFile || !taskAttachmentLabel.trim()}
-												onClick={() => void handleUploadTaskAttachment(task.id)}
-												className="app-button workflow-upload-submit"
+												onClick={() =>
+													void runPrimaryAction(
+														async () => {
+															await reassignTask({
+																id: task.id,
+																assignee_id: Number(reassignForm.assignee_id),
+																reason: reassignForm.reason.trim(),
+															}).unwrap();
+															setReassignForm((current) => ({ ...current, reason: '' }));
+														},
+														messageFor('Tâche réassignée avec succès.', 'Task reassigned successfully.'),
+														messageFor('Impossible de réassigner la tâche.', 'Could not reassign the task.'),
+													)
+												}
+												disabled={!validReassignAssigneeSelected || !reassignForm.reason.trim()}
+												className="app-button"
 											>
-												<Paperclip size={16} />
-												<span>{uploadTaskAttachmentState.isLoading ? workflow.buttons.saving : t.common.add}</span>
+												<ArrowRight size={16} />
+												<span>{reassignTaskState.isLoading ? workflow.buttons.moving : workflow.buttons.reassign}</span>
 											</button>
 										</div>
-									) : null}
-								</div>
-							) : null}
-							{taskAddPanel === 'members' && isManager ? (
-								<div className="app-card-muted workflow-trello-member-panel">
-									<div className="workflow-tool-card-heading">
-										<div className="flex items-center gap-2">
-											<span className="workflow-tool-icon">
-												<Users size={15} />
-											</span>
-											<p>{workflow.labels.membersPanel ?? 'Members'}</p>
-										</div>
 									</div>
-									<div className="grid gap-3 md:grid-cols-[minmax(0,0.45fr)_minmax(0,1fr)_auto]">
-										<SelectField
-											value={reassignForm.assignee_id}
-											onChange={(value) => setReassignForm((current) => ({ ...current, assignee_id: value }))}
-											ariaLabel={workflow.labels.assignee}
-											options={assignableUsers.map((user) => ({
-												value: user.id,
-												label: `${user.first_name} ${user.last_name}`,
-											}))}
-											startIcon={<Users size={18} />}
-											placeholder={workflow.labels.assignee}
-										/>
-										<Field
-											value={reassignForm.reason}
-											onChange={(value) => setReassignForm((current) => ({ ...current, reason: value }))}
-											placeholder={workflow.labels.reassignReasonPlaceholder}
-											startIcon={<MessagesSquare size={18} />}
-										/>
-										<button
-											type="button"
-											onClick={() =>
-												void runPrimaryAction(
-													async () => {
-														await reassignTask({
-															id: task.id,
-															assignee_id: Number(reassignForm.assignee_id),
-															reason: reassignForm.reason.trim(),
-														}).unwrap();
-														setReassignForm((current) => ({ ...current, reason: '' }));
-													},
-													messageFor('Tâche réassignée avec succès.', 'Task reassigned successfully.'),
-													messageFor('Impossible de réassigner la tâche.', 'Could not reassign the task.'),
-												)
-											}
-											disabled={!validReassignAssigneeSelected || !reassignForm.reason.trim()}
-											className="app-button"
-										>
-											<ArrowRight size={16} />
-											<span>{reassignTaskState.isLoading ? workflow.buttons.moving : workflow.buttons.reassign}</span>
-										</button>
-									</div>
-								</div>
-							) : null}
+								) : null}
+							</div>
 						</div>
-					</div>
-					<div className="mt-4">
-						<button
-							type="button"
-							disabled={taskRestoreLocked}
-							title={taskRestoreLocked ? workflow.labels.unarchiveProjectFirst : undefined}
-							onClick={() => archiveTask({ id: task.id, archived: !task.archived })}
-							className="app-button app-button-secondary"
-						>
-							<Archive size={16} />
-							<span>
-								{taskRestoreLocked
-									? workflow.labels.unarchiveProjectFirst
-									: task.archived
-										? (workflow.buttons.restore ?? 'Restore')
-										: (workflow.buttons.archive ?? 'Archive')}
-							</span>
-						</button>
-					</div>
-				</Surface>
+						<div className="mt-4">
+							<button
+								type="button"
+								disabled={taskRestoreLocked}
+								title={taskRestoreLocked ? workflow.labels.unarchiveProjectFirst : undefined}
+								onClick={() => archiveTask({ id: task.id, archived: !task.archived })}
+								className="app-button app-button-secondary"
+							>
+								<Archive size={16} />
+								<span>
+									{taskRestoreLocked
+										? workflow.labels.unarchiveProjectFirst
+										: task.archived
+											? (workflow.buttons.restore ?? 'Restore')
+											: (workflow.buttons.archive ?? 'Archive')}
+								</span>
+							</button>
+						</div>
+					</Surface>
+				) : null}
 
 				{isManager || taskMutable ? (
 					<Surface
@@ -6803,6 +7002,7 @@ const DesignWorkflowShell = ({ title, variant, projectId, taskId }: Props) => {
 								<Area
 									value={taskEditForm.description}
 									onChange={(value) => setTaskEditForm((current) => ({ ...current, description: value }))}
+									mentionUsers={mentionableUsers}
 									startIcon={<MessagesSquare size={18} />}
 								/>
 							</div>
@@ -6985,6 +7185,7 @@ const DesignWorkflowShell = ({ title, variant, projectId, taskId }: Props) => {
 									id="add-comment"
 									value={commentBody}
 									onChange={setCommentBody}
+									mentionUsers={mentionableUsers}
 									rows={3}
 									placeholder={workflow.labels.commentPlaceholder}
 									startIcon={<MessagesSquare size={18} />}
@@ -8620,6 +8821,7 @@ const DesignWorkflowShell = ({ title, variant, projectId, taskId }: Props) => {
 											id="workflow-project-task-description"
 											value={taskEditForm.description}
 											onChange={(value) => setTaskEditForm((current) => ({ ...current, description: value }))}
+											mentionUsers={mentionableUsers}
 											rows={4}
 											startIcon={<MessagesSquare size={18} />}
 										/>

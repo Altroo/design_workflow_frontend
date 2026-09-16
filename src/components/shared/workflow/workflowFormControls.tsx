@@ -7,6 +7,8 @@ import * as Select from '@radix-ui/react-select';
 import { format, isValid, parseISO } from 'date-fns';
 import { CalendarDays, ChevronDown, X } from 'lucide-react';
 import { DayPicker } from 'react-day-picker';
+import { enUS, fr } from 'react-day-picker/locale';
+import { useLanguage } from '@/utils/hooks';
 import 'react-day-picker/style.css';
 
 const EMPTY_SELECT_VALUE = '__empty__';
@@ -39,7 +41,11 @@ export const WorkflowSelectField = ({
 	const normalizedValue = value === '' || !hasMatchingOption ? EMPTY_SELECT_VALUE : String(value);
 
 	return (
-		<Select.Root disabled={disabled} value={normalizedValue} onValueChange={(nextValue) => onChange(nextValue === EMPTY_SELECT_VALUE ? '' : nextValue)}>
+		<Select.Root
+			disabled={disabled}
+			value={normalizedValue}
+			onValueChange={(nextValue) => onChange(nextValue === EMPTY_SELECT_VALUE ? '' : nextValue)}
+		>
 			<Select.Trigger
 				id={id}
 				aria-label={ariaLabel}
@@ -89,15 +95,25 @@ export const WorkflowDateField = ({
 	id,
 	value,
 	onChange,
-	placeholder = 'YYYY-MM-DD',
+	placeholder,
 	ariaLabel,
-	clearLabel = 'Clear date',
+	clearLabel,
 	wrapperClassName,
 	triggerClassName,
 }: WorkflowDateFieldProps) => {
+	const { language } = useLanguage();
 	const parsed = value ? parseISO(value) : null;
 	const selectedDate = parsed && isValid(parsed) ? parsed : null;
 	const [open, setOpen] = useState(false);
+	const resolvedPlaceholder = placeholder ?? (language === 'fr' ? 'JJ/MM/AAAA' : 'MM/DD/YYYY');
+	const resolvedClearLabel = clearLabel ?? (language === 'fr' ? 'Effacer la date' : 'Clear date');
+	const displayValue = selectedDate
+		? new Intl.DateTimeFormat(language === 'fr' ? 'fr-FR' : 'en-US', {
+				day: '2-digit',
+				month: '2-digit',
+				year: 'numeric',
+			}).format(selectedDate)
+		: '';
 
 	return (
 		<Popover.Root open={open} onOpenChange={setOpen}>
@@ -108,14 +124,18 @@ export const WorkflowDateField = ({
 				<Popover.Trigger
 					id={id}
 					aria-label={ariaLabel}
-					className={cx('app-input app-date-trigger pl-14 pr-14 text-left', !value && 'text-(--ink-muted)', triggerClassName)}
+					className={cx(
+						'app-input app-date-trigger pl-14 pr-14 text-left',
+						!value && 'text-(--ink-muted)',
+						triggerClassName,
+					)}
 				>
-					{value || placeholder}
+					{displayValue || resolvedPlaceholder}
 				</Popover.Trigger>
 				{value ? (
 					<button
 						type="button"
-						aria-label={clearLabel}
+						aria-label={resolvedClearLabel}
 						className="absolute right-4 top-1/2 z-10 -translate-y-1/2 text-(--ink-soft)"
 						onClick={() => onChange('')}
 					>
@@ -126,6 +146,7 @@ export const WorkflowDateField = ({
 			<Popover.Portal>
 				<Popover.Content className="app-day-picker-popover" sideOffset={8} align="start">
 					<DayPicker
+						locale={language === 'fr' ? fr : enUS}
 						mode="single"
 						selected={selectedDate ?? undefined}
 						onSelect={(date) => {
