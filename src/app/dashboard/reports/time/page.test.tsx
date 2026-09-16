@@ -34,11 +34,11 @@ jest.mock('@/components/pages/design-workflow/designWorkflowShell', () => ({
 }));
 
 const AUTH_LOGIN = '/login';
-const DASHBOARD_MY_WORK = '/dashboard/my-work';
+const DASHBOARD_BOARD = '/dashboard/board';
 jest.mock('@/utils/routes', () => ({
 	__esModule: true,
 	AUTH_LOGIN,
-	DASHBOARD_MY_WORK,
+	DASHBOARD_BOARD,
 }));
 
 beforeEach(() => {
@@ -57,15 +57,15 @@ describe('DashboardReportsTimePage server component', () => {
 		expect(mockRedirect).toHaveBeenCalledWith(AUTH_LOGIN);
 	});
 
-	it('redirects non-managers to my work', async () => {
+	it('redirects non-managers to the board', async () => {
 		mockAuth.mockResolvedValueOnce({ user: { pk: 1, email: 'user@example.com' } });
 		mockHasWorkflowManagerAccess.mockReturnValueOnce(false);
 
 		// eslint-disable-next-line @typescript-eslint/no-require-imports
 		const Page = require('./page').default as () => Promise<unknown>;
 
-		await expect(Page()).rejects.toThrow(`redirect:${DASHBOARD_MY_WORK}`);
-		expect(mockRedirect).toHaveBeenCalledWith(DASHBOARD_MY_WORK);
+		await expect(Page()).rejects.toThrow(`redirect:${DASHBOARD_BOARD}`);
+		expect(mockRedirect).toHaveBeenCalledWith(DASHBOARD_BOARD);
 	});
 
 	it('renders time reports shell for managers', async () => {

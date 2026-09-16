@@ -4,7 +4,39 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { AlarmClock, AlertTriangle, ArrowDown, BadgeCheck, BriefcaseBusiness, CheckCheck, CheckSquare2, ChevronDown, CircleCheckBig, Clock3, Edit3, Eye, FileText, Forward, ImageIcon, Images, ListTodo, MessagesSquare, Mic, MoreHorizontal, Paperclip, Pause, Play, Reply, Search, Send, SlidersHorizontal, SmilePlus, Square, ThumbsUp, Trash2, Users, X } from 'lucide-react';
+import {
+	AlarmClock,
+	AlertTriangle,
+	ArrowDown,
+	BriefcaseBusiness,
+	CheckSquare2,
+	ChevronDown,
+	CircleCheckBig,
+	Clock3,
+	Edit3,
+	Eye,
+	FileText,
+	Forward,
+	ImageIcon,
+	Images,
+	ListTodo,
+	MessagesSquare,
+	Mic,
+	MoreHorizontal,
+	Paperclip,
+	Pause,
+	Play,
+	Reply,
+	Search,
+	Send,
+	SlidersHorizontal,
+	SmilePlus,
+	Square,
+	ThumbsUp,
+	Trash2,
+	Users,
+	X,
+} from 'lucide-react';
 import {
 	useAddChatReminderMutation,
 	useCreateChatThreadMutation,
@@ -16,7 +48,6 @@ import {
 	useGetChatThreadsQuery,
 	useGetTasksQuery,
 	useLazyGetChatMessagesQuery,
-	useMarkChatDecisionMutation,
 	useMarkChatMessageReadMutation,
 	useReactChatMessageMutation,
 	useSendChatMessageMutation,
@@ -44,7 +75,9 @@ const REACTION_OPTIONS = [
 	{ emoji: '\u26a0\ufe0f', label: 'Attention', Icon: AlertTriangle },
 ] as const;
 const REMINDER_TIME_OPTIONS = Array.from({ length: 48 }, (_, index) => {
-	const hour = Math.floor(index / 2).toString().padStart(2, '0');
+	const hour = Math.floor(index / 2)
+		.toString()
+		.padStart(2, '0');
 	const minute = index % 2 === 0 ? '00' : '30';
 	const value = `${hour}:${minute}`;
 	return { value, label: value };
@@ -62,7 +95,9 @@ const formatTime = (value: string, locale: string) =>
 const formatAudioDuration = (value: number) => {
 	if (!Number.isFinite(value) || value <= 0) return '0:00';
 	const minutes = Math.floor(value / 60);
-	const seconds = Math.floor(value % 60).toString().padStart(2, '0');
+	const seconds = Math.floor(value % 60)
+		.toString()
+		.padStart(2, '0');
 	return `${minutes}:${seconds}`;
 };
 
@@ -94,7 +129,9 @@ const extractReferenceIds = (body: string, tasks: TaskCard[] = [], projects: Pro
 	const taskIds = Array.from(body.matchAll(/#T(\d+)/gi), (match) => Number(match[1])).filter(Number.isFinite);
 	const projectIds = Array.from(body.matchAll(/#P(\d+)/gi), (match) => Number(match[1])).filter(Number.isFinite);
 	const taskByToken = new Map(tasks.map((task) => [referenceTokenFor(task.title).toLowerCase(), task.id]));
-	const projectByToken = new Map(projects.map((project) => [referenceTokenFor(project.name).toLowerCase(), project.id]));
+	const projectByToken = new Map(
+		projects.map((project) => [referenceTokenFor(project.name).toLowerCase(), project.id]),
+	);
 	Array.from(body.matchAll(/#[\w-]+/g), (match) => match[0].toLowerCase()).forEach((token) => {
 		if (/^#(?:t|p)\d+$/i.test(token)) return;
 		const taskId = taskByToken.get(token);
@@ -140,12 +177,11 @@ const linkedReferencesForBody = (body: string, tasks: TaskCard[], projects: Proj
 	};
 };
 
-type ChatDrawerMode = 'references' | 'decisions' | 'media';
+type ChatDrawerMode = 'references' | 'media';
 type ChatSidebarSection = 'studio' | 'projects' | 'direct';
 type ChatSearchFilters = {
 	has_files?: boolean;
 	has_images?: boolean;
-	decisions?: boolean;
 	sender_id?: number;
 	date_from?: string;
 	date_to?: string;
@@ -172,23 +208,33 @@ const sectionForThread = (thread?: ChatThread | null): ChatSidebarSection => {
 	return 'studio';
 };
 
-const threadPreview = (thread: ChatThread, currentUserId: number, labels: {
-	deleted: string;
-	photo: string;
-	attachment: string;
-	noMessage: string;
-	you: string;
-}, tasks: TaskCard[] = [], projects: ProjectSummary[] = []) => {
+const threadPreview = (
+	thread: ChatThread,
+	currentUserId: number,
+	labels: {
+		deleted: string;
+		photo: string;
+		attachment: string;
+		noMessage: string;
+		you: string;
+	},
+	tasks: TaskCard[] = [],
+	projects: ProjectSummary[] = [],
+) => {
 	const message = thread.last_message;
 	if (!message) return { text: labels.noMessage, kind: 'text' as const };
 	const prefix = message.sender.id === currentUserId ? `${labels.you}: ` : '';
 	if (message.is_deleted) return { text: `${prefix}${labels.deleted}`, kind: 'text' as const };
 	const firstAttachment = message.attachments[0];
 	if (firstAttachment) {
-		const isImage = isImageAttachment(firstAttachment.mime_type, firstAttachment.name, firstAttachment.file_url ?? firstAttachment.file);
+		const isImage = isImageAttachment(
+			firstAttachment.mime_type,
+			firstAttachment.name,
+			firstAttachment.file_url ?? firstAttachment.file,
+		);
 		return {
 			text: `${prefix}${isImage ? labels.photo : labels.attachment}`,
-			kind: isImage ? 'photo' as const : 'attachment' as const,
+			kind: isImage ? ('photo' as const) : ('attachment' as const),
 		};
 	}
 	const readableBody = readableReferenceText(message.body, tasks, projects);
@@ -205,7 +251,17 @@ const formatDayLabel = (value: string, todayLabel: string, yesterdayLabel: strin
 	return new Intl.DateTimeFormat(locale, { weekday: 'long', day: 'numeric', month: 'long' }).format(date);
 };
 
-const VoiceMessagePlayer = ({ src, label, seed, compact = false }: { src: string; label: string; seed: string; compact?: boolean }) => {
+const VoiceMessagePlayer = ({
+	src,
+	label,
+	seed,
+	compact = false,
+}: {
+	src: string;
+	label: string;
+	seed: string;
+	compact?: boolean;
+}) => {
 	const audioRef = useRef<HTMLAudioElement | null>(null);
 	const [playing, setPlaying] = useState(false);
 	const [duration, setDuration] = useState(0);
@@ -270,11 +326,7 @@ const VoiceMessagePlayer = ({ src, label, seed, compact = false }: { src: string
 			<div className="workflow-chat-voice-track">
 				<div className="workflow-chat-voice-waveform" aria-hidden="true">
 					{bars.map((height, index) => (
-						<span
-							key={`${seed}-${index}`}
-							data-active={index < activeBars}
-							style={{ height }}
-						/>
+						<span key={`${seed}-${index}`} data-active={index < activeBars} style={{ height }} />
 					))}
 				</div>
 				<input
@@ -299,14 +351,18 @@ const renderLinkedMessageBody = (
 	tasks: TaskCard[],
 	projects: ProjectSummary[],
 ) => {
-	const taskByToken = new Map(tasks.flatMap((task) => [
-		[`#T${task.id}`.toLowerCase(), task] as const,
-		[referenceTokenFor(task.title).toLowerCase(), task] as const,
-	]));
-	const projectByToken = new Map(projects.flatMap((project) => [
-		[`#P${project.id}`.toLowerCase(), project] as const,
-		[referenceTokenFor(project.name).toLowerCase(), project] as const,
-	]));
+	const taskByToken = new Map(
+		tasks.flatMap((task) => [
+			[`#T${task.id}`.toLowerCase(), task] as const,
+			[referenceTokenFor(task.title).toLowerCase(), task] as const,
+		]),
+	);
+	const projectByToken = new Map(
+		projects.flatMap((project) => [
+			[`#P${project.id}`.toLowerCase(), project] as const,
+			[referenceTokenFor(project.name).toLowerCase(), project] as const,
+		]),
+	);
 	const userByToken = new Map(users.map((user) => [`@${mentionTokenFor(user)}`, user]));
 	const parts = body.split(/(@[\w.-]+|#(?:T\d+|P\d+|[\w-]+))/gi);
 
@@ -325,7 +381,12 @@ const renderLinkedMessageBody = (
 		const task = taskByToken.get(lower);
 		if (task) {
 			return (
-				<Link key={key} href={DASHBOARD_TASK_VIEW(task.id)} className="workflow-chat-inline-tag workflow-chat-inline-tag-task" data-testid={`workflow-chat-task-link-${task.id}`}>
+				<Link
+					key={key}
+					href={DASHBOARD_TASK_VIEW(task.id)}
+					className="workflow-chat-inline-tag workflow-chat-inline-tag-task"
+					data-testid={`workflow-chat-task-link-${task.id}`}
+				>
 					#{task.title}
 				</Link>
 			);
@@ -333,7 +394,11 @@ const renderLinkedMessageBody = (
 		const project = projectByToken.get(lower);
 		if (project) {
 			return (
-				<Link key={key} href={DASHBOARD_PROJECT_VIEW(project.id)} className="workflow-chat-inline-tag workflow-chat-inline-tag-project">
+				<Link
+					key={key}
+					href={DASHBOARD_PROJECT_VIEW(project.id)}
+					className="workflow-chat-inline-tag workflow-chat-inline-tag-project"
+				>
 					#{project.name}
 				</Link>
 			);
@@ -356,9 +421,10 @@ const DesignWorkflowChat = () => {
 	const searchParams = useSearchParams();
 	const requestedThreadId = Number(searchParams.get('thread') ?? 0) || null;
 	const requestedMessageId = Number(searchParams.get('message') ?? 0) || null;
-	const requestedMessageKey = requestedThreadId && requestedMessageId ? `${requestedThreadId}:${requestedMessageId}` : '';
+	const requestedMessageKey =
+		requestedThreadId && requestedMessageId ? `${requestedThreadId}:${requestedMessageId}` : '';
 	const locale = language === 'en' ? 'en-US' : 'fr-FR';
-	const statusLabelFor = (value?: string | null) => value ? (t.workflow.statuses[value] ?? value) : '';
+	const statusLabelFor = (value?: string | null) => (value ? (t.workflow.statuses[value] ?? value) : '');
 	const profile = useAppSelector(getProfilState);
 	const token = useAppSelector(getAccessToken);
 	const chatDataReady = Boolean(token && (typeof profile.id === 'number' || profile.email));
@@ -410,8 +476,15 @@ const DesignWorkflowChat = () => {
 	const discardRecordingRef = useRef(false);
 	const autoStartedProjectThreadRef = useRef(false);
 	const highlightedMessageKeyRef = useRef<string | null>(null);
+	const threadSectionsRef = useRef<Map<number, ChatSidebarSection>>(new Map());
+	const pendingIncomingThreadIdRef = useRef<number | null>(null);
 
-	const { data: threads = [], isLoading: threadsLoading, isFetching: threadsFetching, refetch: refetchThreads } = useGetChatThreadsQuery(undefined, { skip: !chatDataReady });
+	const {
+		data: threads = [],
+		isLoading: threadsLoading,
+		isFetching: threadsFetching,
+		refetch: refetchThreads,
+	} = useGetChatThreadsQuery(undefined, { skip: !chatDataReady });
 	const chatThreads = useMemo(() => threads.filter((thread) => thread.kind !== 'task'), [threads]);
 	const requestedThreadAvailable = useMemo(
 		() => Boolean(requestedThreadId && chatThreads.some((thread) => thread.id === requestedThreadId)),
@@ -432,18 +505,31 @@ const DesignWorkflowChat = () => {
 			preferredThread,
 		[chatThreads, optimisticSelectedThread, preferredThread, selectedThreadId],
 	);
+	const selectedThreadSection = sectionForThread(selectedThread);
 	useEffect(() => {
-		if (!selectedThread) return;
-		setOpenSidebarSection(sectionForThread(selectedThread));
-	}, [selectedThread]);
+		if (!selectedThread?.id) return;
+		setOpenSidebarSection(selectedThreadSection);
+	}, [selectedThread?.id, selectedThreadSection]);
+	useEffect(() => {
+		threadSectionsRef.current = new Map(chatThreads.map((thread) => [thread.id, sectionForThread(thread)]));
+		const pendingThreadId = pendingIncomingThreadIdRef.current;
+		if (!pendingThreadId) return;
+		const pendingSection = threadSectionsRef.current.get(pendingThreadId);
+		if (!pendingSection) return;
+		setOpenSidebarSection(pendingSection);
+		pendingIncomingThreadIdRef.current = null;
+	}, [chatThreads]);
 	const chatInitialLoading = chatDataReady && chatThreads.length === 0 && (threadsLoading || threadsFetching);
-	const threadPreviewLabels = useMemo(() => ({
-		deleted: t.workflow.labels.messageDeleted ?? 'Message deleted',
-		photo: t.workflow.labels.photoMessage ?? 'Photo',
-		attachment: t.workflow.labels.attachmentMessage ?? 'Attachment',
-		noMessage: t.workflow.labels.noMessageYet ?? 'No message yet',
-		you: t.workflow.labels.you ?? 'You',
-	}), [t]);
+	const threadPreviewLabels = useMemo(
+		() => ({
+			deleted: t.workflow.labels.messageDeleted ?? 'Message deleted',
+			photo: t.workflow.labels.photoMessage ?? 'Photo',
+			attachment: t.workflow.labels.attachmentMessage ?? 'Attachment',
+			noMessage: t.workflow.labels.noMessageYet ?? 'No message yet',
+			you: t.workflow.labels.you ?? 'You',
+		}),
+		[t],
+	);
 	const privateThreadByUserId = useMemo(() => {
 		const byUserId = new Map<number, ChatThread>();
 		chatThreads
@@ -455,6 +541,17 @@ const DesignWorkflowChat = () => {
 		return byUserId;
 	}, [chatThreads, profile.id]);
 	const publicThreads = useMemo(() => chatThreads.filter((thread) => thread.kind === 'public'), [chatThreads]);
+	const unreadBySection = useMemo(
+		() =>
+			chatThreads.reduce<Record<ChatSidebarSection, number>>(
+				(counts, thread) => {
+					counts[sectionForThread(thread)] += Math.max(0, thread.unread_count);
+					return counts;
+				},
+				{ studio: 0, projects: 0, direct: 0 },
+			),
+		[chatThreads],
+	);
 	const projectThreadByProjectId = useMemo(() => {
 		const byProjectId = new Map<number, ChatThread>();
 		chatThreads
@@ -464,14 +561,16 @@ const DesignWorkflowChat = () => {
 			});
 		return byProjectId;
 	}, [chatThreads]);
-	const { currentData: currentThreadMessages, isLoading: messagesLoading, isFetching: messagesFetching, refetch: refetchMessages } = useGetChatMessagesQuery(
+	const {
+		currentData: currentThreadMessages,
+		isLoading: messagesLoading,
+		isFetching: messagesFetching,
+		refetch: refetchMessages,
+	} = useGetChatMessagesQuery(
 		{ threadId: selectedThread?.id ?? 0, limit: PAGE_SIZE, q: searchTerm || undefined, ...searchFilters },
 		{ skip: !chatDataReady || !selectedThread?.id },
 	);
-	const currentMessages = useMemo(
-		() => currentThreadMessages ?? EMPTY_CHAT_MESSAGES,
-		[currentThreadMessages],
-	);
+	const currentMessages = useMemo(() => currentThreadMessages ?? EMPTY_CHAT_MESSAGES, [currentThreadMessages]);
 	const [loadOlderMessages] = useLazyGetChatMessagesQuery();
 	const [createThread] = useCreateChatThreadMutation();
 	const [sendMessage, sendMessageState] = useSendChatMessageMutation();
@@ -480,7 +579,6 @@ const DesignWorkflowChat = () => {
 	const [deleteChatMessage] = useDeleteChatMessageMutation();
 	const [editChatMessage] = useEditChatMessageMutation();
 	const [reactChatMessage] = useReactChatMessageMutation();
-	const [markChatDecision] = useMarkChatDecisionMutation();
 	const [addChatReminder] = useAddChatReminderMutation();
 	const { data: projects = [] } = useGetProjectsQuery(undefined, { skip: !chatDataReady });
 	const { data: activeTasks = [] } = useGetTasksQuery({ archived: false }, { skip: !chatDataReady });
@@ -493,7 +591,14 @@ const DesignWorkflowChat = () => {
 
 	useEffect(() => {
 		if (requestedThreadId && (threadsLoading || threadsFetching || requestedThreadAvailable)) return;
-		if (selectedThread || selectedThreadId || chatInitialLoading || projects.length === 0 || autoStartedProjectThreadRef.current) return;
+		if (
+			selectedThread ||
+			selectedThreadId ||
+			chatInitialLoading ||
+			projects.length === 0 ||
+			autoStartedProjectThreadRef.current
+		)
+			return;
 		const firstProject = projects[0];
 		if (!firstProject) return;
 		autoStartedProjectThreadRef.current = true;
@@ -506,7 +611,17 @@ const DesignWorkflowChat = () => {
 			.catch(() => {
 				autoStartedProjectThreadRef.current = false;
 			});
-	}, [chatInitialLoading, createThread, projects, requestedThreadAvailable, requestedThreadId, selectedThread, selectedThreadId, threadsFetching, threadsLoading]);
+	}, [
+		chatInitialLoading,
+		createThread,
+		projects,
+		requestedThreadAvailable,
+		requestedThreadId,
+		selectedThread,
+		selectedThreadId,
+		threadsFetching,
+		threadsLoading,
+	]);
 
 	useEffect(() => {
 		if (!optimisticSelectedThread) return;
@@ -523,14 +638,16 @@ const DesignWorkflowChat = () => {
 	}, [chatThreads, requestedThreadId, selectedThreadId]);
 
 	const usersResponse = useGetUsersListQuery({ with_pagination: false, is_active: true }, { skip: !chatDataReady });
-	const usersRaw = (usersResponse.data ?? []) as Array<Partial<UserClass>> | { results?: Array<Partial<UserClass>>; data?: Array<Partial<UserClass>> };
-	const users = (Array.isArray(usersRaw) ? usersRaw : usersRaw.results ?? usersRaw.data ?? [])
+	const usersRaw = (usersResponse.data ?? []) as
+		Array<Partial<UserClass>> | { results?: Array<Partial<UserClass>>; data?: Array<Partial<UserClass>> };
+	const users = (Array.isArray(usersRaw) ? usersRaw : (usersRaw.results ?? usersRaw.data ?? []))
 		.filter(
 			(user): user is WorkflowUser =>
 				user.is_active === true && typeof user.id === 'number' && Boolean(user.email) && user.id !== profile.id,
 		)
 		.map((user) => {
-			const croppedAvatar = 'avatar_cropped' in user && typeof user.avatar_cropped === 'string' ? user.avatar_cropped : null;
+			const croppedAvatar =
+				'avatar_cropped' in user && typeof user.avatar_cropped === 'string' ? user.avatar_cropped : null;
 			return {
 				id: user.id,
 				first_name: user.first_name ?? '',
@@ -540,23 +657,34 @@ const DesignWorkflowChat = () => {
 				avatar: croppedAvatar || (typeof user.avatar === 'string' ? user.avatar : null),
 			};
 		});
-	const currentWorkflowUser: WorkflowUser = useMemo(() => ({
-		id: profile.id,
-		first_name: profile.first_name ?? '',
-		last_name: profile.last_name ?? '',
-		email: profile.email ?? '',
-		role: profile.role ?? 'designer',
-		avatar: (typeof profile.avatar_cropped === 'string' && profile.avatar_cropped)
-			|| (typeof profile.avatar === 'string' ? profile.avatar : null),
-	}), [profile.avatar, profile.avatar_cropped, profile.email, profile.first_name, profile.id, profile.last_name, profile.role]);
+	const currentWorkflowUser: WorkflowUser = useMemo(
+		() => ({
+			id: profile.id,
+			first_name: profile.first_name ?? '',
+			last_name: profile.last_name ?? '',
+			email: profile.email ?? '',
+			role: profile.role ?? 'designer',
+			avatar:
+				(typeof profile.avatar_cropped === 'string' && profile.avatar_cropped) ||
+				(typeof profile.avatar === 'string' ? profile.avatar : null),
+		}),
+		[
+			profile.avatar,
+			profile.avatar_cropped,
+			profile.email,
+			profile.first_name,
+			profile.id,
+			profile.last_name,
+			profile.role,
+		],
+	);
 	const activeUserById = new Map(users.map((user) => [user.id, user]));
-	const forwardThreads = chatThreads.filter((thread) => (
-		thread.id !== selectedThreadId
-		&& (
-			thread.kind !== 'private'
-			|| thread.participants.some((participant) => participant.id !== profile.id && activeUserById.has(participant.id))
-		)
-	));
+	const forwardThreads = chatThreads.filter(
+		(thread) =>
+			thread.id !== selectedThreadId &&
+			(thread.kind !== 'private' ||
+				thread.participants.some((participant) => participant.id !== profile.id && activeUserById.has(participant.id))),
+	);
 
 	useEffect(() => {
 		const pendingRequestedThread = requestedThreadId && (threadsLoading || threadsFetching || requestedThreadAvailable);
@@ -615,11 +743,30 @@ const DesignWorkflowChat = () => {
 			try {
 				const payload = JSON.parse(event.data);
 				const signalType = payload.type ?? payload.message?.type;
+				const incomingMessage = payload.message?.message ?? payload.message;
+				const incomingThreadId = Number(payload.thread_id ?? incomingMessage?.thread ?? 0);
+				const incomingSenderId = Number(incomingMessage?.sender?.id ?? 0);
+				if (
+					(signalType === 'chat.message' || signalType === 'chat_message') &&
+					incomingThreadId &&
+					incomingSenderId !== profile.id
+				) {
+					pendingIncomingThreadIdRef.current = incomingThreadId;
+					const incomingSection = threadSectionsRef.current.get(incomingThreadId);
+					if (incomingSection) {
+						setOpenSidebarSection(incomingSection);
+						pendingIncomingThreadIdRef.current = null;
+					}
+				}
 				if (payload.message?.type === 'USER_PRESENCE') {
 					setOnlineUserIds(payload.message.online_user_ids ?? []);
 					return;
 				}
-				if ((signalType === 'chat.typing' || signalType === 'chat_typing') && payload.thread_id === selectedThread?.id && payload.user?.id !== profile.id) {
+				if (
+					(signalType === 'chat.typing' || signalType === 'chat_typing') &&
+					payload.thread_id === selectedThread?.id &&
+					payload.user?.id !== profile.id
+				) {
 					if (payload.is_typing) {
 						setTypingUsers((current) => ({ ...current, [payload.user.id]: payload.user }));
 						window.setTimeout(() => {
@@ -638,7 +785,11 @@ const DesignWorkflowChat = () => {
 					}
 					return;
 				}
-				if ((signalType === 'chat.recording' || signalType === 'chat_recording') && payload.thread_id === selectedThread?.id && payload.user?.id !== profile.id) {
+				if (
+					(signalType === 'chat.recording' || signalType === 'chat_recording') &&
+					payload.thread_id === selectedThread?.id &&
+					payload.user?.id !== profile.id
+				) {
 					const recordingUser = payload.user as WorkflowUser | undefined;
 					if (!recordingUser?.id) return;
 					if (payload.is_recording) {
@@ -665,7 +816,24 @@ const DesignWorkflowChat = () => {
 					}
 					return;
 				}
-				if (['chat.message', 'chat.read', 'chat.deleted', 'chat.updated', 'chat.reaction', 'chat.decision', 'chat.reminder', 'chat_message', 'chat_read', 'chat_deleted', 'chat_updated', 'chat_reaction', 'chat_decision', 'chat_reminder'].includes(signalType)) {
+				if (
+					[
+						'chat.message',
+						'chat.read',
+						'chat.deleted',
+						'chat.updated',
+						'chat.reaction',
+						'chat.decision',
+						'chat.reminder',
+						'chat_message',
+						'chat_read',
+						'chat_deleted',
+						'chat_updated',
+						'chat_reaction',
+						'chat_decision',
+						'chat_reminder',
+					].includes(signalType)
+				) {
 					refetchThreads();
 					refetchMessages();
 				}
@@ -679,16 +847,24 @@ const DesignWorkflowChat = () => {
 		};
 	}, [profile.id, refetchMessages, refetchThreads, selectedThread?.id, token]);
 
-	useEffect(() => () => {
-		Object.values(recordingPresenceTimeoutsRef.current).forEach((timeout) => window.clearTimeout(timeout));
-		if (messagesBusyTimeoutRef.current) window.clearTimeout(messagesBusyTimeoutRef.current);
-	}, []);
+	useEffect(
+		() => () => {
+			Object.values(recordingPresenceTimeoutsRef.current).forEach((timeout) => window.clearTimeout(timeout));
+			if (messagesBusyTimeoutRef.current) window.clearTimeout(messagesBusyTimeoutRef.current);
+		},
+		[],
+	);
 
 	const messageList = useMemo(
 		() => dedupeMessages([...olderMessages, ...currentMessages]),
 		[olderMessages, currentMessages],
 	);
-	const immediateMessagesBusy = Boolean(selectedThread?.id && currentThreadMessages === undefined && (messagesLoading || messagesFetching) && messageList.length === 0);
+	const immediateMessagesBusy = Boolean(
+		selectedThread?.id &&
+		currentThreadMessages === undefined &&
+		(messagesLoading || messagesFetching) &&
+		messageList.length === 0,
+	);
 	useEffect(() => {
 		if (messagesBusyTimeoutRef.current) window.clearTimeout(messagesBusyTimeoutRef.current);
 		if (immediateMessagesBusy) {
@@ -715,28 +891,29 @@ const DesignWorkflowChat = () => {
 		};
 	}, [immediateMessagesBusy]);
 	const messagesBusy = messagesBusyVisible && messageList.length === 0;
-	const threadPreviewFor = useCallback((thread: ChatThread) => {
-		const latestSelectedMessage = selectedThread?.id === thread.id ? (messageList[messageList.length - 1] ?? null) : null;
-		return threadPreview(
-			thread.last_message ? thread : { ...thread, last_message: latestSelectedMessage },
-			profile.id,
-			threadPreviewLabels,
-			tasks,
-			projects,
-		);
-	}, [messageList, profile.id, projects, selectedThread?.id, tasks, threadPreviewLabels]);
-	const messageMentionUsers = useMemo(
-		() => {
-			const byId = new Map<number, WorkflowUser>();
-			[currentWorkflowUser, ...users].forEach((user) => byId.set(user.id, user));
-			messageList.forEach((message) => {
-				byId.set(message.sender.id, message.sender);
-				message.mentions.forEach((user) => byId.set(user.id, user));
-			});
-			return Array.from(byId.values());
+	const threadPreviewFor = useCallback(
+		(thread: ChatThread) => {
+			const latestSelectedMessage =
+				selectedThread?.id === thread.id ? (messageList[messageList.length - 1] ?? null) : null;
+			return threadPreview(
+				thread.last_message ? thread : { ...thread, last_message: latestSelectedMessage },
+				profile.id,
+				threadPreviewLabels,
+				tasks,
+				projects,
+			);
 		},
-		[currentWorkflowUser, messageList, users],
+		[messageList, profile.id, projects, selectedThread?.id, tasks, threadPreviewLabels],
 	);
+	const messageMentionUsers = useMemo(() => {
+		const byId = new Map<number, WorkflowUser>();
+		[currentWorkflowUser, ...users].forEach((user) => byId.set(user.id, user));
+		messageList.forEach((message) => {
+			byId.set(message.sender.id, message.sender);
+			message.mentions.forEach((user) => byId.set(user.id, user));
+		});
+		return Array.from(byId.values());
+	}, [currentWorkflowUser, messageList, users]);
 	const linkedReferences = useMemo(() => {
 		const taskIds = new Set<number>();
 		const projectIds = new Set<number>();
@@ -754,19 +931,19 @@ const DesignWorkflowChat = () => {
 	}, [messageList, projects, tasks]);
 	const linkedReferenceCount = linkedReferences.tasks.length + linkedReferences.projects.length;
 	const firstUnreadMessageId = useMemo(
-		() => messageList.find((message) => message.sender.id !== profile.id && !message.read_by.some((user) => user.id === profile.id))?.id ?? null,
+		() =>
+			messageList.find(
+				(message) => message.sender.id !== profile.id && !message.read_by.some((user) => user.id === profile.id),
+			)?.id ?? null,
 		[messageList, profile.id],
-	);
-	const decisionMessages = useMemo(
-		() => messageList.filter((message) => Boolean(message.decision_at) && !message.is_deleted),
-		[messageList],
 	);
 	const mediaAttachments = useMemo(
 		() => messageList.flatMap((message) => message.attachments.map((attachment) => ({ message, attachment }))),
 		[messageList],
 	);
 	const previewTask = previewTarget?.kind === 'task' ? tasks.find((task) => task.id === previewTarget.id) : undefined;
-	const previewProject = previewTarget?.kind === 'project' ? projects.find((project) => project.id === previewTarget.id) : undefined;
+	const previewProject =
+		previewTarget?.kind === 'project' ? projects.find((project) => project.id === previewTarget.id) : undefined;
 	const typingNames = Object.values(typingUsers).map(userLabel).join(', ');
 	const recordingNames = Object.values(recordingUsers).map(userLabel).join(', ');
 	const activeChatFilterCount = [
@@ -775,7 +952,6 @@ const DesignWorkflowChat = () => {
 		searchFilters.date_from,
 		searchFilters.has_files,
 		searchFilters.has_images,
-		searchFilters.decisions,
 	].filter(Boolean).length;
 	useEffect(() => {
 		const unreadMessages = messageList.filter(
@@ -829,7 +1005,12 @@ const DesignWorkflowChat = () => {
 		return users
 			.filter((user) => {
 				const localPart = user.email.split('@', 1)[0].toLowerCase();
-				return !query || user.first_name.toLowerCase().includes(query) || user.last_name.toLowerCase().includes(query) || localPart.includes(query);
+				return (
+					!query ||
+					user.first_name.toLowerCase().includes(query) ||
+					user.last_name.toLowerCase().includes(query) ||
+					localPart.includes(query)
+				);
 			})
 			.slice(0, 6);
 	}, [mentionMatch, users]);
@@ -940,7 +1121,9 @@ const DesignWorkflowChat = () => {
 
 	const emitRecording = (isRecording: boolean) => {
 		if (!selectedThread?.id || !wsRef.current || wsRef.current.readyState !== WebSocket.OPEN) return;
-		wsRef.current.send(JSON.stringify({ type: 'chat.recording', thread_id: selectedThread.id, is_recording: isRecording }));
+		wsRef.current.send(
+			JSON.stringify({ type: 'chat.recording', thread_id: selectedThread.id, is_recording: isRecording }),
+		);
 	};
 
 	const submitEdit = async () => {
@@ -952,7 +1135,8 @@ const DesignWorkflowChat = () => {
 
 	const forwardToThread = async (thread: ChatThread) => {
 		if (!forwardMessage) return;
-		const readableBody = readableReferenceText(forwardMessage.body, tasks, projects) || forwardMessage.attachments[0]?.name || '';
+		const readableBody =
+			readableReferenceText(forwardMessage.body, tasks, projects) || forwardMessage.attachments[0]?.name || '';
 		const data = new FormData();
 		data.append('body', readableBody);
 		await sendMessage({ threadId: thread.id, data }).unwrap();
@@ -1024,9 +1208,10 @@ const DesignWorkflowChat = () => {
 		await addChatReminder({
 			id: reminderMessage.id,
 			task_id: reminderDraft.taskId ? Number(reminderDraft.taskId) : null,
-			remind_at: reminderDraft.remindDate && reminderDraft.remindTime
-				? new Date(`${reminderDraft.remindDate}T${reminderDraft.remindTime}`).toISOString()
-				: null,
+			remind_at:
+				reminderDraft.remindDate && reminderDraft.remindTime
+					? new Date(`${reminderDraft.remindDate}T${reminderDraft.remindTime}`).toISOString()
+					: null,
 			note: reminderDraft.note,
 		}).unwrap();
 		setReminderMessage(null);
@@ -1134,956 +1319,1128 @@ const DesignWorkflowChat = () => {
 		<div className="workflow-chat-shell">
 			<div className="workflow-chat-content">
 				<aside className="workflow-chat-sidebar">
-				<WorkflowPageHero
-					element="div"
-					className="workflow-chat-sidebar-head"
-					title={t.workflow.labels.chatTitle ?? 'Chat'}
-					titleElement="h2"
-				/>
-				<div className="workflow-chat-thread-section" data-open={openSidebarSection === 'studio'}>
-					<button
-						type="button"
-						className="workflow-chat-panel-toggle"
-						data-open={openSidebarSection === 'studio'}
-						aria-expanded={openSidebarSection === 'studio'}
-						aria-controls="workflow-chat-studio-list"
-						onClick={() => setOpenSidebarSection('studio')}
-					>
-						<span className="workflow-chat-panel-pill">
-							<span>{t.workflow.labels.chatTitle ?? 'Studio chat'}</span>
-							<em>{publicThreads.length}</em>
-						</span>
-						<ChevronDown size={16} />
-					</button>
-					<div id="workflow-chat-studio-list" className="workflow-chat-section-body" data-open={openSidebarSection === 'studio'}>
-					<div className="workflow-chat-section-inner">
-					{publicThreads.map((thread) => {
-						const preview = threadPreviewFor(thread);
-						return (
-							<button
-								key={thread.id}
-								type="button"
-								onClick={() => {
-									setOpenSidebarSection('studio');
-									setSelectedThreadId(thread.id);
-								}}
-								className={[
-									'workflow-chat-thread-button',
-									selectedThread?.id === thread.id ? 'is-active' : '',
-									thread.unread_count ? 'is-unread' : '',
-								].join(' ')}
-							>
-								<span className="workflow-chat-context-icon workflow-chat-context-icon-studio">
-									<MessagesSquare size={16} />
-								</span>
+					<WorkflowPageHero
+						element="div"
+						className="workflow-chat-sidebar-head"
+						title={t.workflow.labels.chatTitle ?? 'Chat'}
+						titleElement="h2"
+					/>
+					<div className="workflow-chat-thread-section" data-open={openSidebarSection === 'studio'}>
+						<button
+							type="button"
+							className="workflow-chat-panel-toggle"
+							data-open={openSidebarSection === 'studio'}
+							aria-expanded={openSidebarSection === 'studio'}
+							aria-controls="workflow-chat-studio-list"
+							onClick={() => setOpenSidebarSection('studio')}
+						>
+							<span className="workflow-chat-panel-pill">
+								<span>{t.workflow.labels.chatTitle ?? 'Studio chat'}</span>
+								<em>{publicThreads.length}</em>
+							</span>
+							<span className="workflow-chat-panel-status">
+								{unreadBySection.studio ? (
+									<span
+										className="workflow-chat-section-unread"
+										aria-label={`${unreadBySection.studio} ${t.workflow.labels.unreadMessages ?? 'unread messages'}`}
+									>
+										{unreadBySection.studio}
+									</span>
+								) : null}
+								<ChevronDown size={16} />
+							</span>
+						</button>
+						<div
+							id="workflow-chat-studio-list"
+							className="workflow-chat-section-body"
+							data-open={openSidebarSection === 'studio'}
+						>
+							<div className="workflow-chat-section-inner">
+								{publicThreads.map((thread) => {
+									const preview = threadPreviewFor(thread);
+									return (
+										<button
+											key={thread.id}
+											type="button"
+											onClick={() => {
+												setOpenSidebarSection('studio');
+												setSelectedThreadId(thread.id);
+											}}
+											className={[
+												'workflow-chat-thread-button',
+												selectedThread?.id === thread.id ? 'is-active' : '',
+												thread.unread_count ? 'is-unread' : '',
+											].join(' ')}
+										>
+											<span className="workflow-chat-context-icon workflow-chat-context-icon-studio">
+												<MessagesSquare size={16} />
+											</span>
+											<span>
+												<b>
+													{threadTitle(
+														thread,
+														profile.id,
+														t.workflow.labels.publicStudio ?? 'Studio public',
+														t.workflow.labels.privateChat ?? 'Private chat',
+														t.workflow.labels.projectRoom ?? 'Project room',
+														t.workflow.labels.taskRoom ?? 'Task room',
+													)}
+												</b>
+												<small className="workflow-chat-thread-preview">
+													{preview.kind === 'photo' ? <ImageIcon size={13} /> : null}
+													{preview.kind === 'attachment' ? <Paperclip size={13} /> : null}
+													<span>{preview.text}</span>
+												</small>
+											</span>
+											{thread.unread_count ? <i>{thread.unread_count}</i> : null}
+										</button>
+									);
+								})}
+							</div>
+						</div>
+					</div>
+					<div className="workflow-chat-context-section" data-open={openSidebarSection === 'projects'}>
+						<button
+							type="button"
+							className="workflow-chat-panel-toggle"
+							data-open={openSidebarSection === 'projects'}
+							aria-expanded={openSidebarSection === 'projects'}
+							aria-controls="workflow-chat-project-list"
+							onClick={() => setOpenSidebarSection('projects')}
+						>
+							<span className="workflow-chat-panel-pill workflow-chat-panel-pill-amber">
+								<span>{t.workflow.labels.projects ?? 'Projects'}</span>
+								<em>{projects.length}</em>
+							</span>
+							<span className="workflow-chat-panel-status">
+								{unreadBySection.projects ? (
+									<span
+										className="workflow-chat-section-unread"
+										aria-label={`${unreadBySection.projects} ${t.workflow.labels.unreadMessages ?? 'unread messages'}`}
+									>
+										{unreadBySection.projects}
+									</span>
+								) : null}
+								<ChevronDown size={16} />
+							</span>
+						</button>
+						<div
+							id="workflow-chat-project-list"
+							className="workflow-chat-section-body"
+							data-open={openSidebarSection === 'projects'}
+						>
+							<div className="workflow-chat-context-list">
+								{projects.map((project) => {
+									const thread = projectThreadByProjectId.get(project.id);
+									const preview = thread ? threadPreviewFor(thread) : null;
+									return (
+										<button
+											key={project.id}
+											type="button"
+											onClick={() => {
+												setOpenSidebarSection('projects');
+												void startProjectThread(project);
+											}}
+											className={[
+												'workflow-chat-context-button',
+												thread?.unread_count ? 'is-unread' : '',
+												selectedThread?.id === thread?.id ? 'is-active' : '',
+											].join(' ')}
+										>
+											<span className="workflow-chat-context-icon">
+												<BriefcaseBusiness size={15} />
+											</span>
+											<span className="workflow-chat-direct-copy">
+												<b>{project.name}</b>
+												<small className="workflow-chat-thread-preview">
+													{preview?.kind === 'photo' ? <ImageIcon size={13} /> : null}
+													{preview?.kind === 'attachment' ? <Paperclip size={13} /> : null}
+													<span>{preview?.text ?? t.workflow.labels.noMessageYet ?? 'No message yet'}</span>
+												</small>
+											</span>
+											{thread?.unread_count ? <i>{thread.unread_count}</i> : null}
+										</button>
+									);
+								})}
+							</div>
+						</div>
+					</div>
+					<div className="workflow-chat-direct-section" data-open={openSidebarSection === 'direct'}>
+						<button
+							type="button"
+							className="workflow-chat-panel-toggle"
+							data-open={openSidebarSection === 'direct'}
+							aria-expanded={openSidebarSection === 'direct'}
+							aria-controls="workflow-chat-direct-list"
+							onClick={() => setOpenSidebarSection('direct')}
+						>
+							<span className="workflow-chat-panel-pill workflow-chat-panel-pill-green">
+								<span>{t.workflow.labels.privateConversations ?? 'Private'}</span>
+								<em>{users.length}</em>
+							</span>
+							<span className="workflow-chat-panel-status">
+								{unreadBySection.direct ? (
+									<span
+										className="workflow-chat-section-unread"
+										aria-label={`${unreadBySection.direct} ${t.workflow.labels.unreadMessages ?? 'unread messages'}`}
+									>
+										{unreadBySection.direct}
+									</span>
+								) : null}
+								<ChevronDown size={16} />
+							</span>
+						</button>
+						<div
+							id="workflow-chat-direct-list"
+							className="workflow-chat-section-body"
+							data-open={openSidebarSection === 'direct'}
+						>
+							<div className="workflow-chat-direct-list">
+								{users.map((user) => {
+									const thread = privateThreadByUserId.get(user.id);
+									const preview = thread ? threadPreviewFor(thread) : null;
+									return (
+										<button
+											key={user.id}
+											type="button"
+											onClick={async () => {
+												setOpenSidebarSection('direct');
+												const nextThread =
+													thread ?? (await createThread({ kind: 'private', recipient_id: user.id }).unwrap());
+												if (!thread) setOptimisticSelectedThread(nextThread);
+												setSelectedThreadId(nextThread.id);
+											}}
+											className={[
+												'workflow-chat-direct-button',
+												thread?.unread_count ? 'is-unread' : '',
+												selectedThread?.id === thread?.id ? 'is-active' : '',
+											].join(' ')}
+										>
+											<WorkflowAvatar
+												user={user}
+												size={30}
+												online={onlineUserIds.includes(user.id)}
+												showPresence
+												avatarClassName="workflow-chat-avatar"
+												presenceClassName="workflow-chat-presence-wrap"
+												presenceDotClassName="workflow-chat-presence-badge"
+											/>
+											<span className="workflow-chat-direct-copy">
+												<b>{userLabel(user)}</b>
+												<small className="workflow-chat-thread-preview">
+													{preview?.kind === 'photo' ? <ImageIcon size={13} /> : null}
+													{preview?.kind === 'attachment' ? <Paperclip size={13} /> : null}
+													<span>{preview?.text ?? t.workflow.labels.noMessageYet ?? 'No message yet'}</span>
+												</small>
+											</span>
+											{thread?.unread_count ? <i>{thread.unread_count}</i> : null}
+										</button>
+									);
+								})}
+							</div>
+						</div>
+					</div>
+				</aside>
+
+				<section className="workflow-chat-room">
+					<div className="workflow-chat-room-header">
+						<div className="workflow-chat-room-title">
+							<div>
+								<p>
+									{selectedThread
+										? threadTitle(
+												selectedThread,
+												profile.id,
+												t.workflow.labels.publicStudio ?? 'Studio public',
+												t.workflow.labels.privateChat ?? 'Private chat',
+												t.workflow.labels.projectRoom ?? 'Project room',
+												t.workflow.labels.taskRoom ?? 'Task room',
+											)
+										: (t.workflow.labels.chatTitle ?? 'Chat')}
+								</p>
+							</div>
+							<div className="workflow-chat-room-title-actions">
+								<em>
+									{messageList.length} {t.workflow.labels.messagesLabel ?? 'messages'}
+								</em>
+								<button
+									type="button"
+									className={['workflow-chat-tools-toggle', chatToolsOpen ? 'is-open' : ''].join(' ')}
+									onClick={() => setChatToolsOpen((current) => !current)}
+									aria-expanded={chatToolsOpen}
+									aria-label={t.common.filterBy ?? t.workflow.labels.searchMessages ?? 'Filters'}
+								>
+									<SlidersHorizontal size={16} />
+									<span>{t.common.filterBy ?? 'Filtres'}</span>
+									{activeChatFilterCount ? <b>{activeChatFilterCount}</b> : null}
+								</button>
+							</div>
+						</div>
+						{chatToolsOpen ? (
+							<div className="workflow-chat-room-tools">
+								<label className="workflow-chat-search">
+									<Search size={15} />
+									<input
+										value={searchTerm}
+										onChange={(event) => setSearchTerm(event.target.value)}
+										placeholder={t.workflow.labels.searchMessages ?? t.workflow.labels.search}
+										className="min-w-0 flex-1 bg-transparent outline-none"
+									/>
+								</label>
+								<div className="workflow-chat-filter-row">
+									<WorkflowSelectField
+										value={searchFilters.sender_id ? String(searchFilters.sender_id) : ''}
+										onChange={(value) =>
+											setSearchFilters((current) => ({ ...current, sender_id: value ? Number(value) : undefined }))
+										}
+										options={[
+											{ value: '', label: t.workflow.labels.sender ?? 'Sender' },
+											...messageMentionUsers.map((user) => ({
+												value: user.id,
+												label: `${userLabel(user)} — ${user.email}`,
+											})),
+										]}
+										startIcon={<Users size={16} />}
+										ariaLabel={t.workflow.labels.sender ?? 'Sender'}
+										className="workflow-chat-filter-select"
+									/>
+									<WorkflowDateField
+										value={searchFilters.date_from ?? ''}
+										onChange={(value) => setSearchFilters((current) => ({ ...current, date_from: value || undefined }))}
+										placeholder={t.workflow.labels.dateFrom ?? 'From'}
+										ariaLabel={t.workflow.labels.dateFrom ?? 'From'}
+										clearLabel={t.common.clearSelection}
+										wrapperClassName="workflow-chat-filter-date-control"
+										triggerClassName="workflow-chat-filter-date-trigger"
+									/>
+									<button
+										type="button"
+										className={['workflow-chat-mini-toggle', searchFilters.has_files ? 'is-active' : ''].join(' ')}
+										onClick={() =>
+											setSearchFilters((current) => ({ ...current, has_files: !current.has_files || undefined }))
+										}
+										aria-label={t.workflow.labels.attachments ?? 'Attachments'}
+									>
+										<Paperclip size={15} />
+									</button>
+									<button
+										type="button"
+										className={['workflow-chat-mini-toggle', searchFilters.has_images ? 'is-active' : ''].join(' ')}
+										onClick={() =>
+											setSearchFilters((current) => ({ ...current, has_images: !current.has_images || undefined }))
+										}
+										aria-label={t.workflow.labels.images ?? 'Images'}
+									>
+										<Images size={15} />
+									</button>
+									<button
+										type="button"
+										className="workflow-chat-ref-toggle has-tooltip"
+										onClick={() => {
+											setDrawerMode('references');
+											setReferencesOpen(true);
+										}}
+										aria-label={t.workflow.labels.linkedReferences ?? 'Linked references'}
+									>
+										<BriefcaseBusiness size={16} />
+										<span>{linkedReferenceCount}</span>
+										<i>{t.workflow.labels.linkedReferences ?? 'Linked references'}</i>
+									</button>
+									<button
+										type="button"
+										className="workflow-chat-ref-toggle has-tooltip"
+										onClick={() => {
+											setDrawerMode('media');
+											setReferencesOpen(true);
+										}}
+										aria-label={t.workflow.labels.mediaFiles ?? 'Media files'}
+									>
+										<Images size={16} />
+										<span>{mediaAttachments.length}</span>
+										<i>{t.workflow.labels.mediaFiles ?? 'Media files'}</i>
+									</button>
+								</div>
+							</div>
+						) : null}
+					</div>
+					<div ref={scrollRef} className="workflow-chat-stream">
+						{hasOlder ? (
+							<div className="flex justify-center">
+								<button
+									type="button"
+									disabled={loadingOlder}
+									onClick={async () => {
+										const oldest = messageList[0];
+										if (!oldest || !selectedThread?.id) return;
+										setLoadingOlder(true);
+										try {
+											const older = await loadOlderMessages({
+												threadId: selectedThread.id,
+												before_id: oldest.id,
+												limit: PAGE_SIZE,
+											}).unwrap();
+											setOlderMessages((current) => dedupeMessages([...older, ...current]));
+											setHasOlder(older.length >= PAGE_SIZE);
+										} finally {
+											setLoadingOlder(false);
+										}
+									}}
+									className="workflow-chat-load-older"
+								>
+									<ArrowDown size={15} />
+									<span>
+										{loadingOlder
+											? (t.common.loading ?? 'Chargement...')
+											: (t.workflow.buttons.loadOlder ?? 'Load older')}
+									</span>
+								</button>
+							</div>
+						) : null}
+
+						{chatInitialLoading || messagesBusy ? (
+							<div className="workflow-chat-loading-state" role="status" aria-live="polite">
+								<span aria-hidden="true" />
+								<h3>{t.workflow.labels.loading ?? t.common.loading ?? 'Loading...'}</h3>
+								<p>
+									{t.workflow.labels.loadingConversation ??
+										t.workflow.labels.selectConversationHint ??
+										'Loading conversations.'}
+								</p>
+							</div>
+						) : null}
+
+						{!chatInitialLoading && !messagesBusy && !selectedThread ? (
+							<div className="workflow-chat-empty-state">
 								<span>
-									<b>
-										{threadTitle(
-											thread,
+									<MessagesSquare size={22} />
+								</span>
+								<h3>{t.workflow.labels.selectConversation ?? 'Select a conversation'}</h3>
+								<p>{t.workflow.labels.selectConversationHint ?? 'Choose a project or direct message.'}</p>
+							</div>
+						) : null}
+
+						{!chatInitialLoading && !messagesBusy && selectedThread && messageList.length === 0 ? (
+							<div className="workflow-chat-empty-state">
+								<span>
+									<MessagesSquare size={22} />
+								</span>
+								<h3>{t.workflow.labels.emptyConversation ?? t.workflow.labels.noMessageYet ?? 'No message yet'}</h3>
+								<p>
+									{t.workflow.labels.emptyConversationHint ??
+										threadTitle(
+											selectedThread,
 											profile.id,
-											t.workflow.labels.publicStudio ?? 'Studio public',
+											t.workflow.labels.publicStudio ?? 'Public channel',
 											t.workflow.labels.privateChat ?? 'Private chat',
 											t.workflow.labels.projectRoom ?? 'Project room',
 											t.workflow.labels.taskRoom ?? 'Task room',
 										)}
-									</b>
-									<small className="workflow-chat-thread-preview">
-										{preview.kind === 'photo' ? <ImageIcon size={13} /> : null}
-										{preview.kind === 'attachment' ? <Paperclip size={13} /> : null}
-										<span>{preview.text}</span>
-									</small>
-								</span>
-								{thread.unread_count ? (
-									<i>
-										{thread.unread_count}
-									</i>
-								) : null}
-							</button>
-						);
-					})}
-					</div>
-					</div>
-				</div>
-				<div className="workflow-chat-context-section" data-open={openSidebarSection === 'projects'}>
-					<button
-						type="button"
-						className="workflow-chat-panel-toggle"
-						data-open={openSidebarSection === 'projects'}
-						aria-expanded={openSidebarSection === 'projects'}
-						aria-controls="workflow-chat-project-list"
-						onClick={() => setOpenSidebarSection('projects')}
-					>
-						<span className="workflow-chat-panel-pill workflow-chat-panel-pill-amber">
-							<span>{t.workflow.labels.projects ?? 'Projects'}</span>
-							<em>{projects.length}</em>
-						</span>
-						<ChevronDown size={16} />
-					</button>
-					<div id="workflow-chat-project-list" className="workflow-chat-section-body" data-open={openSidebarSection === 'projects'}>
-					<div className="workflow-chat-context-list">
-						{projects.map((project) => {
-							const thread = projectThreadByProjectId.get(project.id);
-							const preview = thread ? threadPreviewFor(thread) : null;
-							return (
-								<button
-									key={project.id}
-									type="button"
-									onClick={() => {
-										setOpenSidebarSection('projects');
-										void startProjectThread(project);
-									}}
-									className={['workflow-chat-context-button', thread?.unread_count ? 'is-unread' : '', selectedThread?.id === thread?.id ? 'is-active' : ''].join(' ')}
-								>
-									<span className="workflow-chat-context-icon"><BriefcaseBusiness size={15} /></span>
-									<span className="workflow-chat-direct-copy">
-										<b>{project.name}</b>
-										<small className="workflow-chat-thread-preview">
-											{preview?.kind === 'photo' ? <ImageIcon size={13} /> : null}
-											{preview?.kind === 'attachment' ? <Paperclip size={13} /> : null}
-											<span>{preview?.text ?? (t.workflow.labels.noMessageYet ?? 'No message yet')}</span>
-										</small>
-									</span>
-									{thread?.unread_count ? <i>{thread.unread_count}</i> : null}
-								</button>
-							);
-						})}
-					</div>
-					</div>
-				</div>
-				<div className="workflow-chat-direct-section" data-open={openSidebarSection === 'direct'}>
-					<button
-						type="button"
-						className="workflow-chat-panel-toggle"
-						data-open={openSidebarSection === 'direct'}
-						aria-expanded={openSidebarSection === 'direct'}
-						aria-controls="workflow-chat-direct-list"
-						onClick={() => setOpenSidebarSection('direct')}
-					>
-						<span className="workflow-chat-panel-pill workflow-chat-panel-pill-green">
-							<span>{t.workflow.labels.privateConversations ?? 'Private'}</span>
-							<em>{users.length}</em>
-						</span>
-						<ChevronDown size={16} />
-					</button>
-					<div id="workflow-chat-direct-list" className="workflow-chat-section-body" data-open={openSidebarSection === 'direct'}>
-					<div className="workflow-chat-direct-list">
-						{users.map((user) => {
-							const thread = privateThreadByUserId.get(user.id);
-							const preview = thread ? threadPreviewFor(thread) : null;
-							return (
-								<button
-									key={user.id}
-									type="button"
-									onClick={async () => {
-										setOpenSidebarSection('direct');
-										const nextThread = thread ?? (await createThread({ kind: 'private', recipient_id: user.id }).unwrap());
-										if (!thread) setOptimisticSelectedThread(nextThread);
-										setSelectedThreadId(nextThread.id);
-									}}
-									className={['workflow-chat-direct-button', thread?.unread_count ? 'is-unread' : '', selectedThread?.id === thread?.id ? 'is-active' : ''].join(' ')}
-								>
-									<WorkflowAvatar
-										user={user}
-										size={30}
-										online={onlineUserIds.includes(user.id)}
-										showPresence
-										avatarClassName="workflow-chat-avatar"
-										presenceClassName="workflow-chat-presence-wrap"
-										presenceDotClassName="workflow-chat-presence-badge"
-									/>
-									<span className="workflow-chat-direct-copy">
-										<b>{userLabel(user)}</b>
-										<small className="workflow-chat-thread-preview">
-											{preview?.kind === 'photo' ? <ImageIcon size={13} /> : null}
-											{preview?.kind === 'attachment' ? <Paperclip size={13} /> : null}
-											<span>{preview?.text ?? (t.workflow.labels.noMessageYet ?? 'No message yet')}</span>
-										</small>
-									</span>
-									{thread?.unread_count ? <i>{thread.unread_count}</i> : null}
-								</button>
-							);
-						})}
-					</div>
-					</div>
-				</div>
-				</aside>
-
-				<section className="workflow-chat-room">
-				<div className="workflow-chat-room-header">
-					<div className="workflow-chat-room-title">
-						<div>
-							<p>
-								{selectedThread
-									? threadTitle(
-											selectedThread,
-											profile.id,
-											t.workflow.labels.publicStudio ?? 'Studio public',
-											t.workflow.labels.privateChat ?? 'Private chat',
-											t.workflow.labels.projectRoom ?? 'Project room',
-											t.workflow.labels.taskRoom ?? 'Task room',
-										)
-									: (t.workflow.labels.chatTitle ?? 'Chat')}
 								</p>
-						</div>
-						<div className="workflow-chat-room-title-actions">
-							<em>{messageList.length} {t.workflow.labels.messagesLabel ?? 'messages'}</em>
-							<button
-								type="button"
-								className={['workflow-chat-tools-toggle', chatToolsOpen ? 'is-open' : ''].join(' ')}
-								onClick={() => setChatToolsOpen((current) => !current)}
-								aria-expanded={chatToolsOpen}
-								aria-label={t.common.filterBy ?? t.workflow.labels.searchMessages ?? 'Filters'}
-							>
-								<SlidersHorizontal size={16} />
-								<span>{t.common.filterBy ?? 'Filtres'}</span>
-								{activeChatFilterCount ? <b>{activeChatFilterCount}</b> : null}
-							</button>
-						</div>
-					</div>
-					{chatToolsOpen ? <div className="workflow-chat-room-tools">
-						<label className="workflow-chat-search">
-							<Search size={15} />
-							<input
-								value={searchTerm}
-								onChange={(event) => setSearchTerm(event.target.value)}
-								placeholder={t.workflow.labels.searchMessages ?? t.workflow.labels.search}
-								className="min-w-0 flex-1 bg-transparent outline-none"
-							/>
-						</label>
-						<div className="workflow-chat-filter-row">
-							<WorkflowSelectField
-								value={searchFilters.sender_id ? String(searchFilters.sender_id) : ''}
-								onChange={(value) => setSearchFilters((current) => ({ ...current, sender_id: value ? Number(value) : undefined }))}
-								options={[
-									{ value: '', label: t.workflow.labels.sender ?? 'Sender' },
-									...messageMentionUsers.map((user) => ({ value: user.id, label: `${userLabel(user)} — ${user.email}` })),
-								]}
-								startIcon={<Users size={16} />}
-								ariaLabel={t.workflow.labels.sender ?? 'Sender'}
-								className="workflow-chat-filter-select"
-							/>
-							<WorkflowDateField
-								value={searchFilters.date_from ?? ''}
-								onChange={(value) => setSearchFilters((current) => ({ ...current, date_from: value || undefined }))}
-								placeholder={t.workflow.labels.dateFrom ?? 'From'}
-								ariaLabel={t.workflow.labels.dateFrom ?? 'From'}
-								clearLabel={t.common.clearSelection}
-								wrapperClassName="workflow-chat-filter-date-control"
-								triggerClassName="workflow-chat-filter-date-trigger"
-							/>
-							<button
-								type="button"
-								className={['workflow-chat-mini-toggle', searchFilters.has_files ? 'is-active' : ''].join(' ')}
-								onClick={() => setSearchFilters((current) => ({ ...current, has_files: !current.has_files || undefined }))}
-								aria-label={t.workflow.labels.attachments ?? 'Attachments'}
-							>
-								<Paperclip size={15} />
-							</button>
-							<button
-								type="button"
-								className={['workflow-chat-mini-toggle', searchFilters.has_images ? 'is-active' : ''].join(' ')}
-								onClick={() => setSearchFilters((current) => ({ ...current, has_images: !current.has_images || undefined }))}
-								aria-label={t.workflow.labels.images ?? 'Images'}
-							>
-								<Images size={15} />
-							</button>
-							<button
-								type="button"
-								className={['workflow-chat-mini-toggle', searchFilters.decisions ? 'is-active' : ''].join(' ')}
-								onClick={() => setSearchFilters((current) => ({ ...current, decisions: !current.decisions || undefined }))}
-								aria-label={t.workflow.labels.decisions ?? 'Decisions'}
-							>
-								<CheckCheck size={15} />
-							</button>
-							<button
-								type="button"
-								className="workflow-chat-ref-toggle has-tooltip"
-								onClick={() => {
-									setDrawerMode('references');
-									setReferencesOpen(true);
-								}}
-								aria-label={t.workflow.labels.linkedReferences ?? 'Linked references'}
-							>
-								<BriefcaseBusiness size={16} />
-								<span>{linkedReferenceCount}</span>
-								<i>{t.workflow.labels.linkedReferences ?? 'Linked references'}</i>
-							</button>
-							<button
-								type="button"
-								className="workflow-chat-ref-toggle has-tooltip"
-								onClick={() => {
-									setDrawerMode('decisions');
-									setReferencesOpen(true);
-								}}
-								aria-label={t.workflow.labels.decisions ?? 'Decisions'}
-							>
-								<CheckCheck size={16} />
-								<span>{decisionMessages.length}</span>
-								<i>{t.workflow.labels.decisions ?? 'Decisions'}</i>
-							</button>
-							<button
-								type="button"
-								className="workflow-chat-ref-toggle has-tooltip"
-								onClick={() => {
-									setDrawerMode('media');
-									setReferencesOpen(true);
-								}}
-								aria-label={t.workflow.labels.mediaFiles ?? 'Media files'}
-							>
-								<Images size={16} />
-								<span>{mediaAttachments.length}</span>
-								<i>{t.workflow.labels.mediaFiles ?? 'Media files'}</i>
-							</button>
-						</div>
-					</div> : null}
-				</div>
-				<div ref={scrollRef} className="workflow-chat-stream">
-					{hasOlder ? (
-						<div className="flex justify-center">
-							<button
-								type="button"
-								disabled={loadingOlder}
-								onClick={async () => {
-									const oldest = messageList[0];
-									if (!oldest || !selectedThread?.id) return;
-									setLoadingOlder(true);
-									try {
-										const older = await loadOlderMessages({
-											threadId: selectedThread.id,
-											before_id: oldest.id,
-											limit: PAGE_SIZE,
-										}).unwrap();
-										setOlderMessages((current) => dedupeMessages([...older, ...current]));
-										setHasOlder(older.length >= PAGE_SIZE);
-									} finally {
-										setLoadingOlder(false);
-									}
-								}}
-								className="workflow-chat-load-older"
-							>
-								<ArrowDown size={15} />
-								<span>{loadingOlder ? (t.common.loading ?? 'Chargement...') : (t.workflow.buttons.loadOlder ?? 'Load older')}</span>
-							</button>
-						</div>
-					) : null}
-
-					{chatInitialLoading || messagesBusy ? (
-						<div className="workflow-chat-loading-state" role="status" aria-live="polite">
-							<span aria-hidden="true" />
-							<h3>{t.workflow.labels.loading ?? t.common.loading ?? 'Loading...'}</h3>
-							<p>{t.workflow.labels.loadingConversation ?? t.workflow.labels.selectConversationHint ?? 'Loading conversations.'}</p>
-						</div>
-					) : null}
-
-					{!chatInitialLoading && !messagesBusy && !selectedThread ? (
-						<div className="workflow-chat-empty-state">
-							<span><MessagesSquare size={22} /></span>
-							<h3>{t.workflow.labels.selectConversation ?? 'Select a conversation'}</h3>
-							<p>{t.workflow.labels.selectConversationHint ?? 'Choose a project or direct message.'}</p>
-						</div>
-					) : null}
-
-					{!chatInitialLoading && !messagesBusy && selectedThread && messageList.length === 0 ? (
-						<div className="workflow-chat-empty-state">
-							<span><MessagesSquare size={22} /></span>
-							<h3>{t.workflow.labels.emptyConversation ?? t.workflow.labels.noMessageYet ?? 'No message yet'}</h3>
-							<p>{t.workflow.labels.emptyConversationHint ?? threadTitle(selectedThread, profile.id, t.workflow.labels.publicStudio ?? 'Public channel', t.workflow.labels.privateChat ?? 'Private chat', t.workflow.labels.projectRoom ?? 'Project room', t.workflow.labels.taskRoom ?? 'Task room')}</p>
-						</div>
-					) : null}
-
-					{messagesBusy ? null : groupedMessages.map((group) => (
-						<div key={group.day} className="space-y-3">
-							<div className="flex justify-center">
-								<span className="workflow-chat-day-chip">
-									{formatDayLabel(
-										group.items[0].created_at,
-										t.workflow.labels.today ?? 'Today',
-										t.workflow.labels.yesterday ?? 'Yesterday',
-										locale,
-									)}
-								</span>
 							</div>
-							{group.items.map((message) => {
-								const mine = message.sender.id === profile.id;
-								const messageReferences = linkedReferencesForBody(message.body, tasks, projects);
-								const senderName = selectedThread?.kind === 'public' ? userLabel(message.sender) : mine ? (t.workflow.labels.you ?? 'You') : userLabel(message.sender);
-								const bubbleTone = mine
-									? 'border-[color:var(--accent)] bg-(--accent-soft)'
-									: OTHER_BUBBLE_COLORS[message.sender.id % OTHER_BUBBLE_COLORS.length];
-								return (
-									<div key={message.id} id={`chat-message-${message.id}`} data-testid={`workflow-chat-message-${message.id}`} data-message-id={message.id} className="workflow-chat-message-row">
-										{firstUnreadMessageId === message.id ? (
-											<div className="workflow-chat-unread-separator">
-												<span>{t.workflow.labels.unreadMessages ?? 'Unread messages'}</span>
-											</div>
-										) : null}
-										<div className={['flex items-end gap-3', mine ? 'justify-end' : 'justify-start'].join(' ')}>
-											{!mine ? (
-											<button
-												type="button"
-												onClick={() => selectedThread?.kind === 'public' && void startPrivateThread(message.sender)}
-												className="workflow-chat-avatar-button"
-												aria-label={userLabel(message.sender)}
-											>
-												<WorkflowAvatar user={message.sender} size={34} avatarClassName="workflow-chat-avatar" />
-											</button>
-										) : null}
-										<div className={['workflow-chat-bubble max-w-[82%] rounded-2xl border px-4 py-3 shadow-(--shadow-sm)', mine ? 'workflow-chat-bubble-mine' : '', bubbleTone].join(' ')}>
-											<div className="workflow-chat-message-head mb-2 flex items-start justify-between gap-3">
-												<button
-													type="button"
-													onClick={() => selectedThread?.kind === 'public' && !mine && void startPrivateThread(message.sender)}
-													className="workflow-chat-sender-name"
-													disabled={selectedThread?.kind !== 'public' || mine}
+						) : null}
+
+						{messagesBusy
+							? null
+							: groupedMessages.map((group) => (
+									<div key={group.day} className="space-y-3">
+										<div className="flex justify-center">
+											<span className="workflow-chat-day-chip">
+												{formatDayLabel(
+													group.items[0].created_at,
+													t.workflow.labels.today ?? 'Today',
+													t.workflow.labels.yesterday ?? 'Yesterday',
+													locale,
+												)}
+											</span>
+										</div>
+										{group.items.map((message) => {
+											const mine = message.sender.id === profile.id;
+											const messageReferences = linkedReferencesForBody(message.body, tasks, projects);
+											const senderName =
+												selectedThread?.kind === 'public'
+													? userLabel(message.sender)
+													: mine
+														? (t.workflow.labels.you ?? 'You')
+														: userLabel(message.sender);
+											const bubbleTone = mine
+												? 'border-[color:var(--accent)] bg-(--accent-soft)'
+												: OTHER_BUBBLE_COLORS[message.sender.id % OTHER_BUBBLE_COLORS.length];
+											return (
+												<div
+													key={message.id}
+													id={`chat-message-${message.id}`}
+													data-testid={`workflow-chat-message-${message.id}`}
+													data-message-id={message.id}
+													className="workflow-chat-message-row"
 												>
-													{senderName}
-												</button>
-												<div className="workflow-chat-message-actions flex items-center gap-2 text-(--ink-soft)">
-													<button
-														type="button"
-														onClick={() => setReplyTarget(message)}
-												className="hover:text-(--ink)"
-												data-action="reply"
-												aria-label={t.workflow.buttons.reply ?? 'Reply'}
-												title={t.workflow.buttons.reply ?? 'Reply'}
-												>
-													<Reply size={15} />
-												</button>
-												{!message.is_deleted ? (
-													<span className="workflow-chat-reaction-menu">
-														<button
-															type="button"
-															onClick={() => setReactionPickerMessageId((current) => current === message.id ? null : message.id)}
-													className="hover:text-(--ink)"
-													data-action="react"
-													aria-label={t.workflow.buttons.react ?? 'React'}
-													title={t.workflow.buttons.react ?? 'React'}
-														>
-															<SmilePlus size={15} />
-														</button>
-														{reactionPickerMessageId === message.id ? (
-															<span className="workflow-chat-reaction-picker">
-																{REACTION_OPTIONS.map(({ emoji, label, Icon }) => {
-																	const active = message.reactions.some((reaction) => reaction.emoji === emoji && reaction.user.id === profile.id);
-																	return (
-																		<button
-																			key={emoji}
-																			type="button"
-																			className={active ? 'is-active' : ''}
-																			onClick={() => {
-																				reactChatMessage({ id: message.id, emoji });
-																				setReactionPickerMessageId(null);
-																			}}
-																			aria-label={label}
-																		>
-																			<Icon size={15} />
-																		</button>
-																	);
-																})}
-															</span>
-														) : null}
-													</span>
-												) : null}
-												{!message.is_deleted ? (
-													<button
-														type="button"
-															onClick={() => markChatDecision({ id: message.id, is_decision: !message.decision_at })}
-													className={message.decision_at ? 'text-emerald-700' : 'hover:text-(--ink)'}
-													data-action="decision"
-													aria-label={t.workflow.buttons.markDecision ?? 'Mark decision'}
-													title={t.workflow.buttons.markDecision ?? 'Mark decision'}
-												>
-													<BadgeCheck size={15} />
-														</button>
-													) : null}
-													{!message.is_deleted ? (
-														<button
-															type="button"
-															onClick={() => openReminder(message)}
-													className="hover:text-(--ink)"
-													data-action="reminder"
-													aria-label={t.workflow.buttons.addReminder ?? 'Add reminder'}
-													title={t.workflow.buttons.addReminder ?? 'Add reminder'}
-														>
-															<AlarmClock size={15} />
-														</button>
-													) : null}
-													{!message.is_deleted ? (
-														<button
-															type="button"
-															onClick={() => setForwardMessage(message)}
-													className="hover:text-(--ink)"
-													data-action="forward"
-													aria-label={t.workflow.buttons.forwardMessage ?? 'Forward'}
-													title={t.workflow.buttons.forwardMessage ?? 'Forward'}
-														>
-															<Forward size={15} />
-														</button>
-													) : null}
-													{!message.is_deleted ? (
-														<button
-															type="button"
-															onClick={() => openCreateTaskFromMessage(message)}
-													className="workflow-chat-create-task-action hover:text-(--accent-strong)"
-													data-action="task"
-													aria-label={t.workflow.buttons.createTaskFromMessage ?? 'Create task from message'}
-													title={t.workflow.buttons.createTaskFromMessage ?? 'Create task from message'}
-												>
-													<ListTodo size={15} />
-														</button>
-													) : null}
-													{mine && !message.is_deleted ? (
-														<button
-															type="button"
-															onClick={() => {
-																setEditingMessage(message);
-																setEditText(message.body);
-															}}
-													className="hover:text-(--ink)"
-													data-action="edit"
-													aria-label={t.workflow.buttons.editMessage ?? 'Edit'}
-													title={t.workflow.buttons.editMessage ?? 'Edit'}
-														>
-															<Edit3 size={15} />
-														</button>
-													) : null}
-													{mine && !message.is_deleted ? (
-														<button
-															type="button"
-															onClick={() => setDeleteTargetMessage(message)}
-													className="hover:text-red-600"
-													data-action="delete"
-													aria-label={t.workflow.buttons.deleteMessage ?? 'Delete message'}
-													title={t.workflow.buttons.deleteMessage ?? 'Delete message'}
-														>
-															<Trash2 size={15} />
-														</button>
-													) : null}
-												</div>
-											</div>
-											{message.reply_to ? (
-												<button
-													type="button"
-													onClick={() => scrollToMessage(message.reply_to!.id)}
-													className="mb-2 w-full rounded-lg border border-black/8 bg-white/70 px-3 py-2 text-left text-xs text-(--ink-soft)"
-												>
-													<p className="font-semibold text-(--ink)">{userLabel(message.reply_to.sender)}</p>
-													<p className="mt-1 line-clamp-2">{readableReferenceText(message.reply_to.body, tasks, projects)}</p>
-												</button>
-											) : null}
-											{editingMessage?.id === message.id ? (
-												<div className="workflow-chat-edit-box">
-													<textarea
-														value={editText}
-														onChange={(event) => setEditText(event.target.value)}
-														rows={3}
-														className="app-input resize-none"
-													/>
-													<div>
-														<button type="button" className="app-button app-button-ghost" onClick={() => setEditingMessage(null)}>
-															{t.common.cancel}
-														</button>
-														<button type="button" className="app-button" onClick={submitEdit}>
-															{t.common.save ?? 'Save'}
-														</button>
-													</div>
-												</div>
-											) : message.body || message.is_deleted ? (
-												<p className="whitespace-pre-wrap text-sm leading-6 text-(--ink)">
-													{message.is_deleted ? (t.workflow.labels.messageDeleted ?? 'Message deleted') : renderLinkedMessageBody(message.body, messageMentionUsers, tasks, projects)}
-												</p>
-											) : null}
-											{message.edited_at && !message.is_deleted ? (
-												<p className="workflow-chat-message-meta">{t.workflow.labels.edited ?? 'Edited'} - {message.edit_count}</p>
-											) : null}
-											{message.decision_at && !message.is_deleted ? (
-												<div className="workflow-chat-decision-chip">
-													<CheckCheck size={13} />
-													<span>{t.workflow.labels.decision ?? 'Decision'}</span>
-												</div>
-											) : null}
-											{!message.is_deleted && (messageReferences.tasks.length || messageReferences.projects.length) ? (
-												<div className="workflow-chat-rich-previews">
-													{messageReferences.tasks.map((task) => (
-														<div key={`task-preview-${message.id}-${task.id}`} className="workflow-chat-rich-card workflow-chat-rich-task">
-															<span><CheckSquare2 size={16} /></span>
-															<div>
-																<button type="button" onClick={() => setPreviewTarget({ kind: 'task', id: task.id })}>{task.title}</button>
-																<small>{task.project.name} - {t.workflow.statuses[task.status] ?? task.status}</small>
-															</div>
+													{firstUnreadMessageId === message.id ? (
+														<div className="workflow-chat-unread-separator">
+															<span>{t.workflow.labels.unreadMessages ?? 'Unread messages'}</span>
 														</div>
-													))}
-													{messageReferences.projects.map((project) => (
-														<div key={`project-preview-${message.id}-${project.id}`} className="workflow-chat-rich-card workflow-chat-rich-project">
-															<span><BriefcaseBusiness size={16} /></span>
-															<div>
-																<button type="button" onClick={() => setPreviewTarget({ kind: 'project', id: project.id })}>{project.name}</button>
-																<small>{t.workflow.statuses[project.status] ?? project.status}</small>
-															</div>
-														</div>
-													))}
-												</div>
-											) : null}
-											{!message.is_deleted && message.reactions.length ? (
-												<div className="workflow-chat-reactions">
-								{REACTION_OPTIONS.map(({ emoji, label, Icon }) => {
-									const matchingReactions = message.reactions.filter((reaction) => reaction.emoji === emoji);
-									const count = matchingReactions.length;
-									if (!count) return null;
-									const active = matchingReactions.some((reaction) => reaction.user.id === profile.id);
-									const participantNames = matchingReactions.map((reaction) => (
-										reaction.user.id === profile.id ? (t.workflow.labels.you ?? 'You') : userLabel(reaction.user)
-									));
-									const participantsLabel = participantNames.join(', ');
-									return (
-										<button
-																key={emoji}
-																type="button"
-																className={active ? 'is-active' : ''}
-																onClick={() => reactChatMessage({ id: message.id, emoji })}
-											aria-label={`${label}: ${participantsLabel}`}
-											title={participantsLabel}
-										>
-											<Icon size={13} />
-											<b className="workflow-chat-reaction-participants">{participantsLabel}</b>
-										</button>
-														);
-													})}
-												</div>
-											) : null}
-											{message.attachments.length ? (
-												<div className="mt-2 space-y-2">
-													{message.attachments.map((attachment) => {
-														const attachmentUrl = resolveMediaUrl(attachment.file_url ?? attachment.file);
-														if (isImageAttachment(attachment.mime_type, attachment.name, attachment.file_url ?? attachment.file)) {
-															return (
+													) : null}
+													<div className={['flex items-end gap-3', mine ? 'justify-end' : 'justify-start'].join(' ')}>
+														{!mine ? (
 															<button
-																key={attachment.id}
 																type="button"
 																onClick={() =>
-																	setSelectedImage({
-																		src: attachmentUrl,
-																		name: attachment.name,
-																	})
+																	selectedThread?.kind === 'public' && void startPrivateThread(message.sender)
 																}
-																className="workflow-chat-image-attachment"
+																className="workflow-chat-avatar-button"
+																aria-label={userLabel(message.sender)}
 															>
-																<Image
-																	src={attachmentUrl}
-																	alt={attachment.name}
-																	width={720}
-																	height={288}
-																	unoptimized
-																	loading="eager"
-																	className="w-full object-cover"
+																<WorkflowAvatar
+																	user={message.sender}
+																	size={34}
+																	avatarClassName="workflow-chat-avatar"
 																/>
-																<div className="workflow-chat-attachment-label">
-																	<ImageIcon size={15} />
-																	<span className="truncate">{attachment.name}</span>
-																</div>
 															</button>
-															);
-														}
-														if (isAudioAttachment(attachment.mime_type, attachment.name, attachment.file_url ?? attachment.file)) {
-															return (
-																<VoiceMessagePlayer
-																	key={attachment.id}
-																	src={attachmentUrl}
-																	seed={`${attachment.id}-${attachment.name}`}
-																	label={t.workflow.buttons.voiceNote ?? 'Voice message'}
-																/>
-															);
-														}
-														return (
-															<a
-																key={attachment.id}
-																href={attachmentUrl}
-																target="_blank"
-																rel="noreferrer"
-																className="flex items-center gap-3 rounded-lg border border-[color:var(--line)] bg-white/70 px-3 py-3 text-sm font-semibold text-(--ink)"
-															>
-																<span className="grid h-9 w-9 place-items-center rounded-lg bg-(--surface-strong) text-[11px] font-bold text-(--ink)">
-																	{fileIconLabel(attachment.name)}
-																</span>
-																<span className="truncate">{attachment.name}</span>
-															</a>
-														);
-													})}
+														) : null}
+														<div
+															className={[
+																'workflow-chat-bubble max-w-[82%] rounded-2xl border px-4 py-3 shadow-(--shadow-sm)',
+																mine ? 'workflow-chat-bubble-mine' : '',
+																bubbleTone,
+															].join(' ')}
+														>
+															<div className="workflow-chat-message-head mb-2 flex items-start justify-between gap-3">
+																<button
+																	type="button"
+																	onClick={() =>
+																		selectedThread?.kind === 'public' &&
+																		!mine &&
+																		void startPrivateThread(message.sender)
+																	}
+																	className="workflow-chat-sender-name"
+																	disabled={selectedThread?.kind !== 'public' || mine}
+																>
+																	{senderName}
+																</button>
+																<div className="workflow-chat-message-actions flex items-center gap-2 text-(--ink-soft)">
+																	<button
+																		type="button"
+																		onClick={() => setReplyTarget(message)}
+																		className="hover:text-(--ink)"
+																		data-action="reply"
+																		aria-label={t.workflow.buttons.reply ?? 'Reply'}
+																		title={t.workflow.buttons.reply ?? 'Reply'}
+																	>
+																		<Reply size={15} />
+																	</button>
+																	{!message.is_deleted ? (
+																		<span className="workflow-chat-reaction-menu">
+																			<button
+																				type="button"
+																				onClick={() =>
+																					setReactionPickerMessageId((current) =>
+																						current === message.id ? null : message.id,
+																					)
+																				}
+																				className="hover:text-(--ink)"
+																				data-action="react"
+																				aria-label={t.workflow.buttons.react ?? 'React'}
+																				title={t.workflow.buttons.react ?? 'React'}
+																			>
+																				<SmilePlus size={15} />
+																			</button>
+																			{reactionPickerMessageId === message.id ? (
+																				<span className="workflow-chat-reaction-picker">
+																					{REACTION_OPTIONS.map(({ emoji, label, Icon }) => {
+																						const active = message.reactions.some(
+																							(reaction) => reaction.emoji === emoji && reaction.user.id === profile.id,
+																						);
+																						return (
+																							<button
+																								key={emoji}
+																								type="button"
+																								className={active ? 'is-active' : ''}
+																								onClick={() => {
+																									reactChatMessage({ id: message.id, emoji });
+																									setReactionPickerMessageId(null);
+																								}}
+																								aria-label={label}
+																							>
+																								<Icon size={15} />
+																							</button>
+																						);
+																					})}
+																				</span>
+																			) : null}
+																		</span>
+																	) : null}
+																	{!message.is_deleted ? (
+																		<button
+																			type="button"
+																			onClick={() => openReminder(message)}
+																			className="hover:text-(--ink)"
+																			data-action="reminder"
+																			aria-label={t.workflow.buttons.addReminder ?? 'Add reminder'}
+																			title={t.workflow.buttons.addReminder ?? 'Add reminder'}
+																		>
+																			<AlarmClock size={15} />
+																		</button>
+																	) : null}
+																	{!message.is_deleted ? (
+																		<button
+																			type="button"
+																			onClick={() => setForwardMessage(message)}
+																			className="hover:text-(--ink)"
+																			data-action="forward"
+																			aria-label={t.workflow.buttons.forwardMessage ?? 'Forward'}
+																			title={t.workflow.buttons.forwardMessage ?? 'Forward'}
+																		>
+																			<Forward size={15} />
+																		</button>
+																	) : null}
+																	{!message.is_deleted ? (
+																		<button
+																			type="button"
+																			onClick={() => openCreateTaskFromMessage(message)}
+																			className="workflow-chat-create-task-action hover:text-(--accent-strong)"
+																			data-action="task"
+																			aria-label={
+																				t.workflow.buttons.createTaskFromMessage ?? 'Create task from message'
+																			}
+																			title={t.workflow.buttons.createTaskFromMessage ?? 'Create task from message'}
+																		>
+																			<ListTodo size={15} />
+																		</button>
+																	) : null}
+																	{mine && !message.is_deleted ? (
+																		<button
+																			type="button"
+																			onClick={() => {
+																				setEditingMessage(message);
+																				setEditText(message.body);
+																			}}
+																			className="hover:text-(--ink)"
+																			data-action="edit"
+																			aria-label={t.workflow.buttons.editMessage ?? 'Edit'}
+																			title={t.workflow.buttons.editMessage ?? 'Edit'}
+																		>
+																			<Edit3 size={15} />
+																		</button>
+																	) : null}
+																	{mine && !message.is_deleted ? (
+																		<button
+																			type="button"
+																			onClick={() => setDeleteTargetMessage(message)}
+																			className="hover:text-red-600"
+																			data-action="delete"
+																			aria-label={t.workflow.buttons.deleteMessage ?? 'Delete message'}
+																			title={t.workflow.buttons.deleteMessage ?? 'Delete message'}
+																		>
+																			<Trash2 size={15} />
+																		</button>
+																	) : null}
+																</div>
+															</div>
+															{message.reply_to ? (
+																<button
+																	type="button"
+																	onClick={() => scrollToMessage(message.reply_to!.id)}
+																	className="mb-2 w-full rounded-lg border border-black/8 bg-white/70 px-3 py-2 text-left text-xs text-(--ink-soft)"
+																>
+																	<p className="font-semibold text-(--ink)">{userLabel(message.reply_to.sender)}</p>
+																	<p className="mt-1 line-clamp-2">
+																		{readableReferenceText(message.reply_to.body, tasks, projects)}
+																	</p>
+																</button>
+															) : null}
+															{editingMessage?.id === message.id ? (
+																<div className="workflow-chat-edit-box">
+																	<textarea
+																		value={editText}
+																		onChange={(event) => setEditText(event.target.value)}
+																		rows={3}
+																		className="app-input resize-none"
+																	/>
+																	<div>
+																		<button
+																			type="button"
+																			className="app-button app-button-ghost"
+																			onClick={() => setEditingMessage(null)}
+																		>
+																			{t.common.cancel}
+																		</button>
+																		<button type="button" className="app-button" onClick={submitEdit}>
+																			{t.common.save ?? 'Save'}
+																		</button>
+																	</div>
+																</div>
+															) : message.body || message.is_deleted ? (
+																<p className="whitespace-pre-wrap text-sm leading-6 text-(--ink)">
+																	{message.is_deleted
+																		? (t.workflow.labels.messageDeleted ?? 'Message deleted')
+																		: renderLinkedMessageBody(message.body, messageMentionUsers, tasks, projects)}
+																</p>
+															) : null}
+															{message.edited_at && !message.is_deleted ? (
+																<p className="workflow-chat-message-meta">
+																	{t.workflow.labels.edited ?? 'Edited'} - {message.edit_count}
+																</p>
+															) : null}
+															{!message.is_deleted &&
+															(messageReferences.tasks.length || messageReferences.projects.length) ? (
+																<div className="workflow-chat-rich-previews">
+																	{messageReferences.tasks.map((task) => (
+																		<div
+																			key={`task-preview-${message.id}-${task.id}`}
+																			className="workflow-chat-rich-card workflow-chat-rich-task"
+																		>
+																			<span>
+																				<CheckSquare2 size={16} />
+																			</span>
+																			<div>
+																				<button
+																					type="button"
+																					onClick={() => setPreviewTarget({ kind: 'task', id: task.id })}
+																				>
+																					{task.title}
+																				</button>
+																				<small>
+																					{task.project.name} - {t.workflow.statuses[task.status] ?? task.status}
+																				</small>
+																			</div>
+																		</div>
+																	))}
+																	{messageReferences.projects.map((project) => (
+																		<div
+																			key={`project-preview-${message.id}-${project.id}`}
+																			className="workflow-chat-rich-card workflow-chat-rich-project"
+																		>
+																			<span>
+																				<BriefcaseBusiness size={16} />
+																			</span>
+																			<div>
+																				<button
+																					type="button"
+																					onClick={() => setPreviewTarget({ kind: 'project', id: project.id })}
+																				>
+																					{project.name}
+																				</button>
+																				<small>{t.workflow.statuses[project.status] ?? project.status}</small>
+																			</div>
+																		</div>
+																	))}
+																</div>
+															) : null}
+															{!message.is_deleted && message.reactions.length ? (
+																<div className="workflow-chat-reactions">
+																	{REACTION_OPTIONS.map(({ emoji, label, Icon }) => {
+																		const matchingReactions = message.reactions.filter(
+																			(reaction) => reaction.emoji === emoji,
+																		);
+																		const count = matchingReactions.length;
+																		if (!count) return null;
+																		const active = matchingReactions.some(
+																			(reaction) => reaction.user.id === profile.id,
+																		);
+																		const participantNames = matchingReactions.map((reaction) =>
+																			reaction.user.id === profile.id
+																				? (t.workflow.labels.you ?? 'You')
+																				: userLabel(reaction.user),
+																		);
+																		const participantsLabel = participantNames.join(', ');
+																		return (
+																			<button
+																				key={emoji}
+																				type="button"
+																				className={active ? 'is-active' : ''}
+																				onClick={() => reactChatMessage({ id: message.id, emoji })}
+																				aria-label={`${label}: ${participantsLabel}`}
+																				title={participantsLabel}
+																			>
+																				<Icon size={13} />
+																				<b className="workflow-chat-reaction-participants">{participantsLabel}</b>
+																			</button>
+																		);
+																	})}
+																</div>
+															) : null}
+															{message.attachments.length ? (
+																<div className="mt-2 space-y-2">
+																	{message.attachments.map((attachment) => {
+																		const attachmentUrl = resolveMediaUrl(attachment.file_url ?? attachment.file);
+																		if (
+																			isImageAttachment(
+																				attachment.mime_type,
+																				attachment.name,
+																				attachment.file_url ?? attachment.file,
+																			)
+																		) {
+																			return (
+																				<button
+																					key={attachment.id}
+																					type="button"
+																					onClick={() =>
+																						setSelectedImage({
+																							src: attachmentUrl,
+																							name: attachment.name,
+																						})
+																					}
+																					className="workflow-chat-image-attachment"
+																				>
+																					<Image
+																						src={attachmentUrl}
+																						alt={attachment.name}
+																						width={720}
+																						height={288}
+																						unoptimized
+																						loading="eager"
+																						className="w-full object-cover"
+																					/>
+																					<div className="workflow-chat-attachment-label">
+																						<ImageIcon size={15} />
+																						<span className="truncate">{attachment.name}</span>
+																					</div>
+																				</button>
+																			);
+																		}
+																		if (
+																			isAudioAttachment(
+																				attachment.mime_type,
+																				attachment.name,
+																				attachment.file_url ?? attachment.file,
+																			)
+																		) {
+																			return (
+																				<VoiceMessagePlayer
+																					key={attachment.id}
+																					src={attachmentUrl}
+																					seed={`${attachment.id}-${attachment.name}`}
+																					label={t.workflow.buttons.voiceNote ?? 'Voice message'}
+																				/>
+																			);
+																		}
+																		return (
+																			<a
+																				key={attachment.id}
+																				href={attachmentUrl}
+																				target="_blank"
+																				rel="noreferrer"
+																				className="flex items-center gap-3 rounded-lg border border-[color:var(--line)] bg-white/70 px-3 py-3 text-sm font-semibold text-(--ink)"
+																			>
+																				<span className="grid h-9 w-9 place-items-center rounded-lg bg-(--surface-strong) text-[11px] font-bold text-(--ink)">
+																					{fileIconLabel(attachment.name)}
+																				</span>
+																				<span className="truncate">{attachment.name}</span>
+																			</a>
+																		);
+																	})}
+																</div>
+															) : null}
+															<p className="mt-2 text-right text-[11px] font-semibold text-(--ink-muted)">
+																{formatTime(message.created_at, locale)}{' '}
+																{mine
+																	? message.is_read
+																		? (t.workflow.labels.read ?? 'Read')
+																		: (t.workflow.labels.sent ?? 'Sent')
+																	: ''}
+															</p>
+														</div>
+														{mine ? (
+															<WorkflowAvatar
+																user={{
+																	...message.sender,
+																	avatar: typeof profile.avatar === 'string' ? profile.avatar : message.sender.avatar,
+																}}
+																size={34}
+																avatarClassName="workflow-chat-avatar"
+															/>
+														) : null}
+													</div>
 												</div>
-											) : null}
-											<p className="mt-2 text-right text-[11px] font-semibold text-(--ink-muted)">
-												{formatTime(message.created_at, locale)} {mine ? (message.is_read ? (t.workflow.labels.read ?? 'Read') : (t.workflow.labels.sent ?? 'Sent')) : ''}
-											</p>
-										</div>
-											{mine ? (
-											<WorkflowAvatar
-												user={{
-													...message.sender,
-													avatar: typeof profile.avatar === 'string' ? profile.avatar : message.sender.avatar,
-												}}
-												size={34}
-												avatarClassName="workflow-chat-avatar"
-											/>
-											) : null}
-										</div>
+											);
+										})}
 									</div>
-								);
-							})}
-						</div>
-					))}
-				</div>
-				{typingNames ? (
-					<div className="workflow-chat-typing">
-						<MoreHorizontal size={15} />
-						<span>{typingNames} {t.workflow.labels.typing ?? 'is typing'}</span>
-					</div>
-				) : null}
-				{recordingNames ? (
-					<div className="workflow-chat-typing workflow-chat-recording-presence">
-						<Mic size={15} />
-						<span>{recordingNames} {t.workflow.labels.recordingVoice ?? 'is recording a voice note'}</span>
-					</div>
-				) : null}
-				<div className="workflow-chat-composer">
-					{replyTarget ? (
-						<div className="mb-3 flex items-start justify-between gap-3 rounded-lg border border-[color:var(--line)] bg-(--surface-muted) px-3 py-2">
-							<div className="min-w-0">
-								<p className="text-xs font-bold uppercase tracking-[0.14em] text-(--accent-strong)">
-									{t.workflow.labels.replyingTo ?? 'Replying to'}
-								</p>
-								<p className="truncate text-sm font-semibold text-(--ink)">{userLabel(replyTarget.sender)}</p>
-								<p className="truncate text-sm text-(--ink-soft)">
-									{readableReferenceText(replyTarget.body, tasks, projects) || (t.workflow.labels.messageDeleted ?? 'Message deleted')}
-								</p>
-							</div>
-							<button type="button" onClick={() => setReplyTarget(null)} className="text-(--ink-soft) hover:text-(--ink)">
-								<X size={16} />
-							</button>
-						</div>
-					) : null}
-					{recording ? (
-						<div className="workflow-chat-recording-strip">
-							<button
-								type="button"
-								onClick={() => stopVoiceRecording(true)}
-								className="workflow-chat-recording-cancel"
-								aria-label={t.common.cancel}
-							>
-								<Trash2 size={16} />
-							</button>
-							<div className="workflow-chat-recording-pulse">
-								<Mic size={16} />
-							</div>
-							<div className="workflow-chat-recording-wave" aria-hidden="true">
-								{Array.from({ length: 28 }, (_, index) => (
-									<span key={`recording-${index}`} style={{ animationDelay: `${index * 42}ms` }} />
 								))}
-							</div>
-							<strong>{formatAudioDuration(recordingSeconds)}</strong>
-							<button
-								type="button"
-								onClick={() => stopVoiceRecording(false)}
-								className="workflow-chat-recording-stop"
-							>
-								<Square size={14} />
-								<span>{t.workflow.buttons.finishRecording ?? 'Finish'}</span>
-							</button>
+					</div>
+					{typingNames ? (
+						<div className="workflow-chat-typing">
+							<MoreHorizontal size={15} />
+							<span>
+								{typingNames} {t.workflow.labels.typing ?? 'is typing'}
+							</span>
 						</div>
 					) : null}
-					<div className="flex items-center gap-2">
-						<input
-							ref={fileInputRef}
-							type="file"
-							multiple
-							accept="image/*,audio/*,.pdf,.doc,.docx,.xls,.xlsx,.zip,.txt"
-							onChange={(event) => {
-								const selectedFiles = Array.from(event.target.files ?? []);
-								resetFiles();
-								setFiles(selectedFiles);
-								setFilePreviewUrls(selectedFiles.map((file) => URL.createObjectURL(file)));
-							}}
-							className="hidden"
-						/>
-						<button
-							type="button"
-							onClick={() => fileInputRef.current?.click()}
-							disabled={!selectedThread?.id}
-							className="app-pill grid h-11 w-11 place-items-center text-(--ink)"
-							aria-label={t.workflow.buttons.shareFiles ?? 'Share files'}
-						>
-							<Paperclip size={18} />
-						</button>
-						<button
-							type="button"
-							onClick={toggleVoiceRecording}
-							disabled={!selectedThread?.id}
-							className={['app-pill grid h-11 w-11 place-items-center text-(--ink)', recording ? 'is-recording' : ''].join(' ')}
-							aria-label={t.workflow.buttons.voiceNote ?? 'Voice note'}
-						>
-							<Mic size={18} />
-						</button>
-						<div className="relative flex-1">
-							<textarea
-								value={body}
-								onChange={(event) => {
-									setBody(event.target.value);
-									emitTyping(Boolean(event.target.value.trim()));
-								}}
-								onSelect={(event) => {
-									const target = event.currentTarget;
-									setSelectedComposerText(target.value.slice(target.selectionStart, target.selectionEnd));
-								}}
-								onKeyDown={(event) => {
-									if (mentionOptions.length) {
-										if (event.key === 'ArrowDown') {
-											event.preventDefault();
-											setMentionActiveIndex((current) => (current + 1) % mentionOptions.length);
-											return;
-										}
-										if (event.key === 'ArrowUp') {
-											event.preventDefault();
-											setMentionActiveIndex((current) => (current - 1 + mentionOptions.length) % mentionOptions.length);
-											return;
-										}
-										if (event.key === 'Enter' && mentionMatch) {
-											event.preventDefault();
-											insertMention(mentionOptions[mentionActiveIndex] ?? mentionOptions[0]);
-											return;
-										}
-									}
-									if (referenceOptions.length) {
-										if (event.key === 'ArrowDown') {
-											event.preventDefault();
-											setReferenceActiveIndex((current) => (current + 1) % referenceOptions.length);
-											return;
-										}
-										if (event.key === 'ArrowUp') {
-											event.preventDefault();
-											setReferenceActiveIndex((current) => (current - 1 + referenceOptions.length) % referenceOptions.length);
-											return;
-										}
-										if (event.key === 'Enter' && referenceMatch) {
-											event.preventDefault();
-											insertReference(referenceOptions[referenceActiveIndex] ?? referenceOptions[0]);
-											return;
-										}
-									}
-									if (event.key === 'Enter' && !event.shiftKey) {
-										event.preventDefault();
-										if (selectedThread?.id && !sendMessageState.isLoading && (body.trim() || files.length > 0)) {
-											void submit();
-										}
-									}
-								}}
-								rows={2}
-								placeholder={t.workflow.labels.messagePlaceholder ?? 'Message'}
-								disabled={!selectedThread?.id}
-								className="app-input min-h-[48px] w-full resize-none"
-							/>
-							{mentionOptions.length ? (
-								<div className="absolute bottom-[calc(100%+8px)] left-0 z-[220] w-full rounded-lg border border-[color:var(--line)] bg-white p-2 shadow-(--shadow-lg)">
-									{mentionOptions.map((user, index) => (
-										<button
-											key={user.id}
-											type="button"
-											onClick={() => insertMention(user)}
-											className={['workflow-chat-mention-option', index === mentionActiveIndex ? 'is-active' : ''].join(' ')}
-										>
-											<WorkflowAvatar user={user} size={30} avatarClassName="workflow-chat-avatar" />
-											<span className="truncate">{userLabel(user)}</span>
-										</button>
-									))}
-								</div>
-							) : null}
-							{referenceOptions.length ? (
-								<div className="absolute bottom-[calc(100%+8px)] left-0 z-[220] w-full rounded-lg border border-[color:var(--line)] bg-white p-2 shadow-(--shadow-lg)">
-									{referenceOptions.map((reference, index) => (
-										<button
-											key={`${reference.kind}-${reference.id}`}
-											type="button"
-											onClick={() => insertReference(reference)}
-											className={['workflow-chat-reference-option', index === referenceActiveIndex ? 'is-active' : ''].join(' ')}
-										>
-											<span>{reference.kind === 'task' ? <CheckSquare2 size={15} /> : <BriefcaseBusiness size={15} />}</span>
-											<span className="min-w-0 flex-1">
-												<b>{reference.title}</b>
-												<small>
-													{reference.kind === 'task' ? (t.workflow.labels.task ?? 'Task') : t.workflow.labels.project}
-													{' - '}
-													{reference.kind === 'project' ? statusLabelFor(reference.meta) : reference.meta}
-												</small>
-											</span>
-										</button>
-									))}
-								</div>
-							) : null}
+					{recordingNames ? (
+						<div className="workflow-chat-typing workflow-chat-recording-presence">
+							<Mic size={15} />
+							<span>
+								{recordingNames} {t.workflow.labels.recordingVoice ?? 'is recording a voice note'}
+							</span>
 						</div>
-						{selectedComposerText.trim() ? (
-							<button
-								type="button"
-								onClick={openCreateTaskFromSelection}
-								className="app-button h-11 px-3"
-								aria-label={t.workflow.buttons.createTaskFromSelection ?? 'Create task from selection'}
-							>
-								<CheckSquare2 size={16} />
-							</button>
+					) : null}
+					<div className="workflow-chat-composer">
+						{replyTarget ? (
+							<div className="mb-3 flex items-start justify-between gap-3 rounded-lg border border-[color:var(--line)] bg-(--surface-muted) px-3 py-2">
+								<div className="min-w-0">
+									<p className="text-xs font-bold uppercase tracking-[0.14em] text-(--accent-strong)">
+										{t.workflow.labels.replyingTo ?? 'Replying to'}
+									</p>
+									<p className="truncate text-sm font-semibold text-(--ink)">{userLabel(replyTarget.sender)}</p>
+									<p className="truncate text-sm text-(--ink-soft)">
+										{readableReferenceText(replyTarget.body, tasks, projects) ||
+											(t.workflow.labels.messageDeleted ?? 'Message deleted')}
+									</p>
+								</div>
+								<button
+									type="button"
+									onClick={() => setReplyTarget(null)}
+									className="text-(--ink-soft) hover:text-(--ink)"
+								>
+									<X size={16} />
+								</button>
+							</div>
 						) : null}
-						<button
-							type="button"
-							onClick={submit}
-							disabled={!selectedThread?.id || sendMessageState.isLoading || (!body.trim() && files.length === 0)}
-							className="app-button h-11 px-4"
-							aria-label={t.common.submit}
-						>
-							<Send size={16} />
-						</button>
-					</div>
-					{files.length ? (
-						<div className="workflow-chat-draft-attachments">
-							<div className="flex flex-wrap gap-2">
-								{files.map((file, index) => (
-									isAudioAttachment(file.type, file.name, filePreviewUrls[index]) ? (
-										<div key={`${file.name}-${index}`} className="workflow-chat-voice-draft">
-											<button
-												type="button"
-												onClick={() => removeSelectedFile(index)}
-												className="workflow-chat-voice-draft-remove"
-												aria-label={t.common.delete}
-											>
-												<Trash2 size={15} />
-											</button>
-											<VoiceMessagePlayer
-												src={filePreviewUrls[index]}
-												seed={`${file.name}-${index}`}
-												label={t.workflow.buttons.voiceNote ?? 'Voice message'}
-												compact
-											/>
-										</div>
-									) : (
-										<div key={`${file.name}-${index}`} className="relative overflow-hidden rounded-lg border border-[color:var(--line)] bg-white">
-											<button
-												type="button"
-												onClick={() => removeSelectedFile(index)}
-												className="absolute right-1 top-1 z-10 rounded-full bg-rose-600/90 p-1 text-white"
-												aria-label={t.common.delete}
-											>
-												<X size={12} />
-											</button>
-											{file.type.startsWith('image/') ? (
-												<Image src={filePreviewUrls[index]} alt={file.name} width={80} height={80} unoptimized className="h-20 w-20 object-cover" />
-											) : (
-												<div className="flex h-20 min-w-[140px] items-center gap-2 px-3 text-xs font-semibold text-(--ink)">
-													<Paperclip size={13} />
-													<span className="line-clamp-2">{file.name}</span>
-												</div>
-											)}
-										</div>
-									)
-								))}
+						{recording ? (
+							<div className="workflow-chat-recording-strip">
+								<button
+									type="button"
+									onClick={() => stopVoiceRecording(true)}
+									className="workflow-chat-recording-cancel"
+									aria-label={t.common.cancel}
+								>
+									<Trash2 size={16} />
+								</button>
+								<div className="workflow-chat-recording-pulse">
+									<Mic size={16} />
+								</div>
+								<div className="workflow-chat-recording-wave" aria-hidden="true">
+									{Array.from({ length: 28 }, (_, index) => (
+										<span key={`recording-${index}`} style={{ animationDelay: `${index * 42}ms` }} />
+									))}
+								</div>
+								<strong>{formatAudioDuration(recordingSeconds)}</strong>
+								<button
+									type="button"
+									onClick={() => stopVoiceRecording(false)}
+									className="workflow-chat-recording-stop"
+								>
+									<Square size={14} />
+									<span>{t.workflow.buttons.finishRecording ?? 'Finish'}</span>
+								</button>
 							</div>
+						) : null}
+						<div className="flex items-center gap-2">
+							<input
+								ref={fileInputRef}
+								type="file"
+								multiple
+								accept="image/*,audio/*,.pdf,.doc,.docx,.xls,.xlsx,.zip,.txt"
+								onChange={(event) => {
+									const selectedFiles = Array.from(event.target.files ?? []);
+									resetFiles();
+									setFiles(selectedFiles);
+									setFilePreviewUrls(selectedFiles.map((file) => URL.createObjectURL(file)));
+								}}
+								className="hidden"
+							/>
+							<button
+								type="button"
+								onClick={() => fileInputRef.current?.click()}
+								disabled={!selectedThread?.id}
+								className="app-pill grid h-11 w-11 place-items-center text-(--ink)"
+								aria-label={t.workflow.buttons.shareFiles ?? 'Share files'}
+							>
+								<Paperclip size={18} />
+							</button>
+							<button
+								type="button"
+								onClick={toggleVoiceRecording}
+								disabled={!selectedThread?.id}
+								className={[
+									'app-pill grid h-11 w-11 place-items-center text-(--ink)',
+									recording ? 'is-recording' : '',
+								].join(' ')}
+								aria-label={t.workflow.buttons.voiceNote ?? 'Voice note'}
+							>
+								<Mic size={18} />
+							</button>
+							<div className="relative flex-1">
+								<textarea
+									value={body}
+									onChange={(event) => {
+										setBody(event.target.value);
+										emitTyping(Boolean(event.target.value.trim()));
+									}}
+									onSelect={(event) => {
+										const target = event.currentTarget;
+										setSelectedComposerText(target.value.slice(target.selectionStart, target.selectionEnd));
+									}}
+									onKeyDown={(event) => {
+										if (mentionOptions.length) {
+											if (event.key === 'ArrowDown') {
+												event.preventDefault();
+												setMentionActiveIndex((current) => (current + 1) % mentionOptions.length);
+												return;
+											}
+											if (event.key === 'ArrowUp') {
+												event.preventDefault();
+												setMentionActiveIndex(
+													(current) => (current - 1 + mentionOptions.length) % mentionOptions.length,
+												);
+												return;
+											}
+											if (event.key === 'Enter' && mentionMatch) {
+												event.preventDefault();
+												insertMention(mentionOptions[mentionActiveIndex] ?? mentionOptions[0]);
+												return;
+											}
+										}
+										if (referenceOptions.length) {
+											if (event.key === 'ArrowDown') {
+												event.preventDefault();
+												setReferenceActiveIndex((current) => (current + 1) % referenceOptions.length);
+												return;
+											}
+											if (event.key === 'ArrowUp') {
+												event.preventDefault();
+												setReferenceActiveIndex(
+													(current) => (current - 1 + referenceOptions.length) % referenceOptions.length,
+												);
+												return;
+											}
+											if (event.key === 'Enter' && referenceMatch) {
+												event.preventDefault();
+												insertReference(referenceOptions[referenceActiveIndex] ?? referenceOptions[0]);
+												return;
+											}
+										}
+										if (event.key === 'Enter' && !event.shiftKey) {
+											event.preventDefault();
+											if (selectedThread?.id && !sendMessageState.isLoading && (body.trim() || files.length > 0)) {
+												void submit();
+											}
+										}
+									}}
+									rows={2}
+									placeholder={t.workflow.labels.messagePlaceholder ?? 'Message'}
+									disabled={!selectedThread?.id}
+									className="app-input min-h-[48px] w-full resize-none"
+								/>
+								{mentionOptions.length ? (
+									<div className="absolute bottom-[calc(100%+8px)] left-0 z-[220] w-full rounded-lg border border-[color:var(--line)] bg-white p-2 shadow-(--shadow-lg)">
+										{mentionOptions.map((user, index) => (
+											<button
+												key={user.id}
+												type="button"
+												onClick={() => insertMention(user)}
+												className={[
+													'workflow-chat-mention-option',
+													index === mentionActiveIndex ? 'is-active' : '',
+												].join(' ')}
+											>
+												<WorkflowAvatar user={user} size={30} avatarClassName="workflow-chat-avatar" />
+												<span className="truncate">{userLabel(user)}</span>
+											</button>
+										))}
+									</div>
+								) : null}
+								{referenceOptions.length ? (
+									<div className="absolute bottom-[calc(100%+8px)] left-0 z-[220] w-full rounded-lg border border-[color:var(--line)] bg-white p-2 shadow-(--shadow-lg)">
+										{referenceOptions.map((reference, index) => (
+											<button
+												key={`${reference.kind}-${reference.id}`}
+												type="button"
+												onClick={() => insertReference(reference)}
+												className={[
+													'workflow-chat-reference-option',
+													index === referenceActiveIndex ? 'is-active' : '',
+												].join(' ')}
+											>
+												<span>
+													{reference.kind === 'task' ? <CheckSquare2 size={15} /> : <BriefcaseBusiness size={15} />}
+												</span>
+												<span className="min-w-0 flex-1">
+													<b>{reference.title}</b>
+													<small>
+														{reference.kind === 'task' ? (t.workflow.labels.task ?? 'Task') : t.workflow.labels.project}
+														{' - '}
+														{reference.kind === 'project' ? statusLabelFor(reference.meta) : reference.meta}
+													</small>
+												</span>
+											</button>
+										))}
+									</div>
+								) : null}
+							</div>
+							{selectedComposerText.trim() ? (
+								<button
+									type="button"
+									onClick={openCreateTaskFromSelection}
+									className="app-button h-11 px-3"
+									aria-label={t.workflow.buttons.createTaskFromSelection ?? 'Create task from selection'}
+								>
+									<CheckSquare2 size={16} />
+								</button>
+							) : null}
+							<button
+								type="button"
+								onClick={submit}
+								disabled={!selectedThread?.id || sendMessageState.isLoading || (!body.trim() && files.length === 0)}
+								className="app-button h-11 px-4"
+								aria-label={t.common.submit}
+							>
+								<Send size={16} />
+							</button>
 						</div>
-					) : null}
-				</div>
+						{files.length ? (
+							<div className="workflow-chat-draft-attachments">
+								<div className="flex flex-wrap gap-2">
+									{files.map((file, index) =>
+										isAudioAttachment(file.type, file.name, filePreviewUrls[index]) ? (
+											<div key={`${file.name}-${index}`} className="workflow-chat-voice-draft">
+												<button
+													type="button"
+													onClick={() => removeSelectedFile(index)}
+													className="workflow-chat-voice-draft-remove"
+													aria-label={t.common.delete}
+												>
+													<Trash2 size={15} />
+												</button>
+												<VoiceMessagePlayer
+													src={filePreviewUrls[index]}
+													seed={`${file.name}-${index}`}
+													label={t.workflow.buttons.voiceNote ?? 'Voice message'}
+													compact
+												/>
+											</div>
+										) : (
+											<div
+												key={`${file.name}-${index}`}
+												className="relative overflow-hidden rounded-lg border border-[color:var(--line)] bg-white"
+											>
+												<button
+													type="button"
+													onClick={() => removeSelectedFile(index)}
+													className="absolute right-1 top-1 z-10 rounded-full bg-rose-600/90 p-1 text-white"
+													aria-label={t.common.delete}
+												>
+													<X size={12} />
+												</button>
+												{file.type.startsWith('image/') ? (
+													<Image
+														src={filePreviewUrls[index]}
+														alt={file.name}
+														width={80}
+														height={80}
+														unoptimized
+														className="h-20 w-20 object-cover"
+													/>
+												) : (
+													<div className="flex h-20 min-w-[140px] items-center gap-2 px-3 text-xs font-semibold text-(--ink)">
+														<Paperclip size={13} />
+														<span className="line-clamp-2">{file.name}</span>
+													</div>
+												)}
+											</div>
+										),
+									)}
+								</div>
+							</div>
+						) : null}
+					</div>
 				</section>
 			</div>
 			{referencesOpen ? (
@@ -2091,21 +2448,15 @@ const DesignWorkflowChat = () => {
 					<aside className="workflow-chat-refs workflow-chat-refs-drawer" onClick={(event) => event.stopPropagation()}>
 						<div className="workflow-chat-ref-drawer-head">
 							<div className="workflow-chat-ref-drawer-title">
-								<span>{drawerMode === 'decisions' ? <CheckCheck size={18} /> : drawerMode === 'media' ? <Images size={18} /> : <BriefcaseBusiness size={18} />}</span>
+								<span>{drawerMode === 'media' ? <Images size={18} /> : <BriefcaseBusiness size={18} />}</span>
 								<div>
 									<p>
-										{drawerMode === 'decisions'
-											? (t.workflow.labels.decisions ?? 'Decisions')
-											: drawerMode === 'media'
-												? (t.workflow.labels.mediaFiles ?? 'Media files')
-												: (t.workflow.labels.linkedReferences ?? 'Linked references')}
+										{drawerMode === 'media'
+											? (t.workflow.labels.mediaFiles ?? 'Media files')
+											: (t.workflow.labels.linkedReferences ?? 'Linked references')}
 									</p>
 									<small>
-										{drawerMode === 'decisions'
-											? decisionMessages.length
-											: drawerMode === 'media'
-												? mediaAttachments.length
-												: linkedReferenceCount}{' '}
+										{drawerMode === 'media' ? mediaAttachments.length : linkedReferenceCount}{' '}
 										{t.workflow.labels.items ?? 'items'}
 									</small>
 								</div>
@@ -2118,45 +2469,71 @@ const DesignWorkflowChat = () => {
 							{drawerMode === 'references' ? (
 								<>
 									{linkedReferences.tasks.map((task) => (
-										<button key={`task-${task.id}`} type="button" onClick={() => setPreviewTarget({ kind: 'task', id: task.id })} className="workflow-chat-ref-card workflow-chat-ref-task">
-											<span><CheckSquare2 size={16} /></span>
+										<button
+											key={`task-${task.id}`}
+											type="button"
+											onClick={() => setPreviewTarget({ kind: 'task', id: task.id })}
+											className="workflow-chat-ref-card workflow-chat-ref-task"
+										>
+											<span>
+												<CheckSquare2 size={16} />
+											</span>
 											<b>{task.title}</b>
 											<small>{task.project.name}</small>
 										</button>
 									))}
 									{linkedReferences.projects.map((project) => (
-										<button key={`project-${project.id}`} type="button" onClick={() => setPreviewTarget({ kind: 'project', id: project.id })} className="workflow-chat-ref-card workflow-chat-ref-project">
-											<span><BriefcaseBusiness size={16} /></span>
+										<button
+											key={`project-${project.id}`}
+											type="button"
+											onClick={() => setPreviewTarget({ kind: 'project', id: project.id })}
+											className="workflow-chat-ref-card workflow-chat-ref-project"
+										>
+											<span>
+												<BriefcaseBusiness size={16} />
+											</span>
 											<b>{project.name}</b>
 											<small>{statusLabelFor(project.status)}</small>
 										</button>
 									))}
 								</>
 							) : null}
-							{drawerMode === 'decisions' ? decisionMessages.map((message) => (
-								<button key={`decision-${message.id}`} type="button" onClick={() => scrollToMessage(message.id)} className="workflow-chat-ref-card workflow-chat-ref-decision">
-									<span><CheckCheck size={16} /></span>
-									<b>{readableReferenceText(message.body, tasks, projects) || (t.workflow.labels.messageDeleted ?? 'Message deleted')}</b>
-									<small>{message.decision_by ? userLabel(message.decision_by) : t.workflow.labels.decision}</small>
-								</button>
-							)) : null}
-							{drawerMode === 'media' ? mediaAttachments.map(({ message, attachment }) => (
-								<a
-									key={`media-${message.id}-${attachment.id}`}
-									href={resolveMediaUrl(attachment.file_url ?? attachment.file)}
-									target="_blank"
-									rel="noreferrer"
-									className="workflow-chat-ref-card workflow-chat-ref-media"
-								>
-									<span>{isImageAttachment(attachment.mime_type, attachment.name, attachment.file_url ?? attachment.file) ? <ImageIcon size={16} /> : <FileText size={16} />}</span>
-									<b>{attachment.name}</b>
-									<small>{userLabel(message.sender)}</small>
-								</a>
-							)) : null}
-							{((drawerMode === 'references' && !linkedReferences.tasks.length && !linkedReferences.projects.length) || (drawerMode === 'decisions' && !decisionMessages.length) || (drawerMode === 'media' && !mediaAttachments.length)) ? (
+							{drawerMode === 'media'
+								? mediaAttachments.map(({ message, attachment }) => (
+										<a
+											key={`media-${message.id}-${attachment.id}`}
+											href={resolveMediaUrl(attachment.file_url ?? attachment.file)}
+											target="_blank"
+											rel="noreferrer"
+											className="workflow-chat-ref-card workflow-chat-ref-media"
+										>
+											<span>
+												{isImageAttachment(
+													attachment.mime_type,
+													attachment.name,
+													attachment.file_url ?? attachment.file,
+												) ? (
+													<ImageIcon size={16} />
+												) : (
+													<FileText size={16} />
+												)}
+											</span>
+											<b>{attachment.name}</b>
+											<small>{userLabel(message.sender)}</small>
+										</a>
+									))
+								: null}
+							{(drawerMode === 'references' && !linkedReferences.tasks.length && !linkedReferences.projects.length) ||
+							(drawerMode === 'media' && !mediaAttachments.length) ? (
 								<div className="workflow-chat-ref-empty">
-									<span><CheckSquare2 size={18} /></span>
-									<span>{drawerMode === 'references' ? (t.workflow.labels.chatReferencesEmpty ?? 'Use # to link tasks and projects.') : (t.workflow.labels.emptyState ?? 'Nothing here yet.')}</span>
+									<span>
+										<CheckSquare2 size={18} />
+									</span>
+									<span>
+										{drawerMode === 'references'
+											? (t.workflow.labels.chatReferencesEmpty ?? 'Use # to link tasks and projects.')
+											: (t.workflow.labels.emptyState ?? 'Nothing here yet.')}
+									</span>
 								</div>
 							) : null}
 						</div>
@@ -2165,7 +2542,10 @@ const DesignWorkflowChat = () => {
 			) : null}
 			{previewTarget && (previewTask || previewProject) ? (
 				<div className="workflow-chat-ref-overlay" onClick={() => setPreviewTarget(null)}>
-					<aside className="workflow-chat-refs workflow-chat-preview-drawer" onClick={(event) => event.stopPropagation()}>
+					<aside
+						className="workflow-chat-refs workflow-chat-preview-drawer"
+						onClick={(event) => event.stopPropagation()}
+					>
 						<div className="workflow-chat-ref-drawer-head">
 							<div className="workflow-chat-ref-drawer-title">
 								<span>{previewTask ? <CheckSquare2 size={18} /> : <BriefcaseBusiness size={18} />}</span>
@@ -2181,10 +2561,25 @@ const DesignWorkflowChat = () => {
 						<div className="workflow-chat-preview-body">
 							<p>{previewTask ? previewTask.description : previewProject?.description}</p>
 							<div className="workflow-chat-preview-meta">
-								<span>{previewTask ? (t.workflow.statuses[previewTask.status] ?? previewTask.status) : (previewProject ? t.workflow.statuses[previewProject.status] ?? previewProject.status : '')}</span>
-								<span>{previewTask?.current_assignee ? userLabel(previewTask.current_assignee) : previewProject?.manager ? userLabel(previewProject.manager) : ''}</span>
+								<span>
+									{previewTask
+										? (t.workflow.statuses[previewTask.status] ?? previewTask.status)
+										: previewProject
+											? (t.workflow.statuses[previewProject.status] ?? previewProject.status)
+											: ''}
+								</span>
+								<span>
+									{previewTask?.current_assignee
+										? userLabel(previewTask.current_assignee)
+										: previewProject?.manager
+											? userLabel(previewProject.manager)
+											: ''}
+								</span>
 							</div>
-							<Link href={previewTask ? DASHBOARD_TASK_VIEW(previewTask.id) : DASHBOARD_PROJECT_VIEW(previewProject!.id)} className="app-button">
+							<Link
+								href={previewTask ? DASHBOARD_TASK_VIEW(previewTask.id) : DASHBOARD_PROJECT_VIEW(previewProject!.id)}
+								className="app-button"
+							>
 								{t.workflow.buttons.open ?? 'Open'}
 							</Link>
 						</div>
@@ -2195,7 +2590,9 @@ const DesignWorkflowChat = () => {
 				<div className="workflow-chat-create-modal" onClick={() => setForwardMessage(null)}>
 					<div className="workflow-chat-create-card" onClick={(event) => event.stopPropagation()}>
 						<div className="workflow-chat-create-head">
-							<span><Forward size={18} /></span>
+							<span>
+								<Forward size={18} />
+							</span>
 							<div>
 								<p>{t.workflow.buttons.forwardMessage ?? 'Forward message'}</p>
 								<small>{readableReferenceText(forwardMessage.body, tasks, projects)}</small>
@@ -2203,9 +2600,12 @@ const DesignWorkflowChat = () => {
 						</div>
 						<div className="workflow-chat-forward-list">
 							{forwardThreads.map((thread) => {
-								const privatePeer = thread.kind === 'private'
-									? thread.participants.map((participant) => activeUserById.get(participant.id)).find((user) => user && user.id !== profile.id)
-									: undefined;
+								const privatePeer =
+									thread.kind === 'private'
+										? thread.participants
+												.map((participant) => activeUserById.get(participant.id))
+												.find((user) => user && user.id !== profile.id)
+										: undefined;
 								const peerOnline = privatePeer ? onlineUserIds.includes(privatePeer.id) : false;
 								return (
 									<button key={thread.id} type="button" onClick={() => forwardToThread(thread)}>
@@ -2225,8 +2625,25 @@ const DesignWorkflowChat = () => {
 											<MessagesSquare size={17} />
 										)}
 										<span className="workflow-chat-forward-copy">
-											<b>{privatePeer ? userLabel(privatePeer) : threadTitle(thread, profile.id, t.workflow.labels.publicStudio ?? 'Studio public', t.workflow.labels.privateChat ?? 'Private chat', t.workflow.labels.projectRoom ?? 'Project room', t.workflow.labels.taskRoom ?? 'Task room')}</b>
-											{privatePeer ? <small>{peerOnline ? (t.workflow.labels.online ?? 'Online') : (t.workflow.labels.offline ?? 'Offline')}</small> : null}
+											<b>
+												{privatePeer
+													? userLabel(privatePeer)
+													: threadTitle(
+															thread,
+															profile.id,
+															t.workflow.labels.publicStudio ?? 'Studio public',
+															t.workflow.labels.privateChat ?? 'Private chat',
+															t.workflow.labels.projectRoom ?? 'Project room',
+															t.workflow.labels.taskRoom ?? 'Task room',
+														)}
+											</b>
+											{privatePeer ? (
+												<small>
+													{peerOnline
+														? (t.workflow.labels.online ?? 'Online')
+														: (t.workflow.labels.offline ?? 'Offline')}
+												</small>
+											) : null}
 										</span>
 									</button>
 								);
@@ -2246,7 +2663,9 @@ const DesignWorkflowChat = () => {
 						}}
 					>
 						<div className="workflow-chat-create-head">
-							<span><AlarmClock size={18} /></span>
+							<span>
+								<AlarmClock size={18} />
+							</span>
 							<div>
 								<p>{t.workflow.buttons.addReminder ?? 'Add reminder'}</p>
 								<small>{readableReferenceText(reminderMessage.body, tasks, projects)}</small>
@@ -2283,10 +2702,7 @@ const DesignWorkflowChat = () => {
 									<WorkflowSelectField
 										value={reminderDraft.remindTime}
 										onChange={(value) => setReminderDraft((current) => ({ ...current, remindTime: value }))}
-										options={[
-											{ value: '', label: t.workflow.labels.timeLabel ?? 'Time' },
-											...REMINDER_TIME_OPTIONS,
-										]}
+										options={[{ value: '', label: t.workflow.labels.timeLabel ?? 'Time' }, ...REMINDER_TIME_OPTIONS]}
 										startIcon={<Clock3 size={16} />}
 										ariaLabel={t.workflow.labels.timeLabel ?? 'Time'}
 									/>
@@ -2324,10 +2740,16 @@ const DesignWorkflowChat = () => {
 						}}
 					>
 						<div className="workflow-chat-create-head">
-							<span><CheckSquare2 size={18} /></span>
+							<span>
+								<CheckSquare2 size={18} />
+							</span>
 							<div>
 								<p>{t.workflow.buttons.createTaskFromMessage ?? 'Create task from message'}</p>
-								<small>{taskSourceMessage ? userLabel(taskSourceMessage.sender) : (t.workflow.labels.selectedText ?? 'Selected text')}</small>
+								<small>
+									{taskSourceMessage
+										? userLabel(taskSourceMessage.sender)
+										: (t.workflow.labels.selectedText ?? 'Selected text')}
+								</small>
 							</div>
 						</div>
 						<label className="workflow-form-field">
@@ -2364,7 +2786,11 @@ const DesignWorkflowChat = () => {
 							<button type="button" className="app-button app-button-ghost" onClick={() => setTaskModalOpen(false)}>
 								{t.common.cancel}
 							</button>
-							<button type="submit" className="app-button" disabled={createTaskState.isLoading || !taskDraft.title.trim() || !taskDraft.projectId}>
+							<button
+								type="submit"
+								className="app-button"
+								disabled={createTaskState.isLoading || !taskDraft.title.trim() || !taskDraft.projectId}
+							>
 								<CheckSquare2 size={16} />
 								{t.workflow.buttons.createTask ?? 'Create task'}
 							</button>
@@ -2373,7 +2799,10 @@ const DesignWorkflowChat = () => {
 				</div>
 			) : null}
 			{selectedImage ? (
-				<div className="fixed inset-0 z-[260] grid place-items-center bg-indigo-950/55 p-4" onClick={() => setSelectedImage(null)}>
+				<div
+					className="fixed inset-0 z-[260] grid place-items-center bg-indigo-950/55 p-4"
+					onClick={() => setSelectedImage(null)}
+				>
 					<div className="relative max-h-[90vh] max-w-[90vw]" onClick={(event) => event.stopPropagation()}>
 						<button
 							type="button"
@@ -2382,7 +2811,14 @@ const DesignWorkflowChat = () => {
 						>
 							<X size={18} />
 						</button>
-						<Image src={selectedImage.src} alt={selectedImage.name} width={1200} height={900} unoptimized className="max-h-[90vh] max-w-[90vw] rounded-lg object-contain" />
+						<Image
+							src={selectedImage.src}
+							alt={selectedImage.name}
+							width={1200}
+							height={900}
+							unoptimized
+							className="max-h-[90vh] max-w-[90vw] rounded-lg object-contain"
+						/>
 					</div>
 				</div>
 			) : null}
@@ -2394,10 +2830,17 @@ const DesignWorkflowChat = () => {
 						</span>
 						<div>
 							<h3>{t.workflow.labels.deleteMessageTitle ?? 'Delete message?'}</h3>
-							<p>{t.workflow.labels.deleteMessageBody ?? 'This message will be archived and hidden from the conversation.'}</p>
+							<p>
+								{t.workflow.labels.deleteMessageBody ??
+									'This message will be archived and hidden from the conversation.'}
+							</p>
 						</div>
 						<div className="workflow-chat-confirm-actions">
-							<button type="button" className="app-button app-button-ghost" onClick={() => setDeleteTargetMessage(null)}>
+							<button
+								type="button"
+								className="app-button app-button-ghost"
+								onClick={() => setDeleteTargetMessage(null)}
+							>
 								{t.common.cancel}
 							</button>
 							<button type="button" className="app-button workflow-chat-danger-button" onClick={confirmDeleteMessage}>

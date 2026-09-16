@@ -15,7 +15,6 @@ export const AUTH_RESET_PASSWORD_COMPLETE = `${SITE_ROOT}/reset-password/set-pas
 export const DASHBOARD = `${SITE_ROOT}dashboard`;
 export const DASHBOARD_OVERVIEW = `${SITE_ROOT}dashboard/overview`;
 export const DASHBOARD_BOARD = `${SITE_ROOT}dashboard/board`;
-export const DASHBOARD_MY_WORK = `${SITE_ROOT}dashboard/my-work`;
 export const DASHBOARD_PROJECTS = `${SITE_ROOT}dashboard/projects`;
 export const DASHBOARD_PROJECT_VIEW = (id: number | string) => `${SITE_ROOT}dashboard/projects/${id}`;
 export const DASHBOARD_TASK_VIEW = (id: number | string) => `${SITE_ROOT}dashboard/tasks/${id}`;

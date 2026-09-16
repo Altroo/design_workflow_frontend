@@ -39,7 +39,18 @@ const DESIGN_WORKFLOW_ROOT = `${process.env.NEXT_PUBLIC_API_URL}/api/design-work
 
 export const designWorkflowApi = createApi({
 	reducerPath: 'designWorkflowApi',
-	tagTypes: ['Dashboard', 'Project', 'Task', 'Notification', 'NotificationPreference', 'Workload', 'Report', 'Label', 'Chat', 'SavedView'],
+	tagTypes: [
+		'Dashboard',
+		'Project',
+		'Task',
+		'Notification',
+		'NotificationPreference',
+		'Workload',
+		'Report',
+		'Label',
+		'Chat',
+		'SavedView',
+	],
 	baseQuery: axiosBaseQuery((api) =>
 		isAuthenticatedInstance(
 			() => getInitStateToken(api.getState() as RootState),
@@ -89,7 +100,7 @@ export const designWorkflowApi = createApi({
 				params,
 			}),
 		}),
-		getProjects: builder.query<ProjectSummary[], { archived?: boolean } | void>({
+		getProjects: builder.query<ProjectSummary[], { archived?: boolean; all?: boolean } | void>({
 			query: (params) => ({
 				url: `${DESIGN_WORKFLOW_ROOT}projects/`,
 				method: 'GET',
@@ -111,11 +122,7 @@ export const designWorkflowApi = createApi({
 				method: 'PATCH',
 				data,
 			}),
-			invalidatesTags: (_result, _error, { id }) => [
-				'Project',
-				{ type: 'Project', id },
-				'Dashboard',
-			],
+			invalidatesTags: (_result, _error, { id }) => ['Project', { type: 'Project', id }, 'Dashboard'],
 		}),
 		getProject: builder.query<ProjectDetail, number>({
 			query: (id) => ({ url: `${DESIGN_WORKFLOW_ROOT}projects/${id}/`, method: 'GET' }),
@@ -177,21 +184,24 @@ export const designWorkflowApi = createApi({
 				method: 'PATCH',
 				data,
 			}),
-			invalidatesTags: (_result, _error, { id }) => [
-				'Task',
-				{ type: 'Task', id },
-				'Dashboard',
-				'Project',
-				'Workload',
-			],
+			invalidatesTags: (_result, _error, { id }) => ['Task', { type: 'Task', id }, 'Dashboard', 'Project', 'Workload'],
 		}),
-		updateTaskReview: builder.mutation<TaskDetail, { id: number; review_state: TaskDetail['review_state']; notes?: string }>({
+		updateTaskReview: builder.mutation<
+			TaskDetail,
+			{ id: number; review_state: TaskDetail['review_state']; notes?: string }
+		>({
 			query: ({ id, ...data }) => ({
 				url: `${DESIGN_WORKFLOW_ROOT}tasks/${id}/review/`,
 				method: 'POST',
 				data,
 			}),
-			invalidatesTags: (_result, _error, { id }) => ['Task', { type: 'Task', id }, 'Dashboard', 'Project', 'Notification'],
+			invalidatesTags: (_result, _error, { id }) => [
+				'Task',
+				{ type: 'Task', id },
+				'Dashboard',
+				'Project',
+				'Notification',
+			],
 		}),
 		reorderTasks: builder.mutation<
 			TaskCard[],
@@ -235,7 +245,10 @@ export const designWorkflowApi = createApi({
 			}),
 			invalidatesTags: (_result, _error, { id }) => ['Task', { type: 'Task', id }],
 		}),
-		addChecklistItem: builder.mutation<TaskChecklistItem, { id: number; checklist_id?: number; title: string; done?: boolean; sort_order?: number }>({
+		addChecklistItem: builder.mutation<
+			TaskChecklistItem,
+			{ id: number; checklist_id?: number; title: string; done?: boolean; sort_order?: number }
+		>({
 			query: ({ id, ...data }) => ({
 				url: `${DESIGN_WORKFLOW_ROOT}tasks/${id}/checklist/`,
 				method: 'POST',
@@ -243,7 +256,10 @@ export const designWorkflowApi = createApi({
 			}),
 			invalidatesTags: (_result, _error, { id }) => ['Task', { type: 'Task', id }],
 		}),
-		updateChecklistItem: builder.mutation<TaskChecklistItem, { id: number; itemId: number; data: Partial<Pick<TaskChecklistItem, 'title' | 'done' | 'sort_order'>> }>({
+		updateChecklistItem: builder.mutation<
+			TaskChecklistItem,
+			{ id: number; itemId: number; data: Partial<Pick<TaskChecklistItem, 'title' | 'done' | 'sort_order'>> }
+		>({
 			query: ({ id, itemId, data }) => ({
 				url: `${DESIGN_WORKFLOW_ROOT}tasks/${id}/checklist/${itemId}/`,
 				method: 'PATCH',
@@ -301,7 +317,12 @@ export const designWorkflowApi = createApi({
 		}),
 		createTaskVersion: builder.mutation<
 			TaskArtifactVersion,
-			{ id: number; attachment_id?: number | null; notes?: string; approval_state?: TaskArtifactVersion['approval_state'] }
+			{
+				id: number;
+				attachment_id?: number | null;
+				notes?: string;
+				approval_state?: TaskArtifactVersion['approval_state'];
+			}
 		>({
 			query: ({ id, ...data }) => ({
 				url: `${DESIGN_WORKFLOW_ROOT}tasks/${id}/versions/`,
@@ -316,7 +337,14 @@ export const designWorkflowApi = createApi({
 		}),
 		createAttachmentAnnotation: builder.mutation<
 			AttachmentAnnotation,
-			{ attachmentId: number; version_id?: number | null; x_percent: string; y_percent: string; body: string; resolved?: boolean }
+			{
+				attachmentId: number;
+				version_id?: number | null;
+				x_percent: string;
+				y_percent: string;
+				body: string;
+				resolved?: boolean;
+			}
 		>({
 			query: ({ attachmentId, ...data }) => ({
 				url: `${DESIGN_WORKFLOW_ROOT}attachments/${attachmentId}/annotations/`,
@@ -356,10 +384,7 @@ export const designWorkflowApi = createApi({
 			query: (id) => ({ url: `${DESIGN_WORKFLOW_ROOT}tasks/${id}/time-entries/`, method: 'GET' }),
 			providesTags: ['Task'],
 		}),
-		addTaskTimeEntry: builder.mutation<
-			TimeEntry,
-			{ id: number; minutes: number; work_date: string; note: string }
-		>({
+		addTaskTimeEntry: builder.mutation<TimeEntry, { id: number; minutes: number; work_date: string; note: string }>({
 			query: ({ id, ...data }) => ({
 				url: `${DESIGN_WORKFLOW_ROOT}tasks/${id}/time-entries/`,
 				method: 'POST',
@@ -422,10 +447,10 @@ export const designWorkflowApi = createApi({
 			invalidatesTags: ['Chat'],
 		}),
 		getChatMessages: builder.query<ChatMessage[], ChatMessagesQuery>({
-			query: ({ threadId, before_id, limit, q, sender_id, date_from, date_to, has_files, has_images, decisions, reference }) => ({
+			query: ({ threadId, before_id, limit, q, sender_id, date_from, date_to, has_files, has_images, reference }) => ({
 				url: `${DESIGN_WORKFLOW_ROOT}chat/threads/${threadId}/messages/`,
 				method: 'GET',
-				params: { before_id, limit, q, sender_id, date_from, date_to, has_files, has_images, decisions, reference },
+				params: { before_id, limit, q, sender_id, date_from, date_to, has_files, has_images, reference },
 			}),
 			providesTags: (_result, _error, { threadId }) => [{ type: 'Chat', id: threadId }],
 		}),
@@ -446,19 +471,30 @@ export const designWorkflowApi = createApi({
 			invalidatesTags: ['Chat'],
 		}),
 		editChatMessage: builder.mutation<ChatMessage, { id: number; body: string }>({
-			query: ({ id, body }) => ({ url: `${DESIGN_WORKFLOW_ROOT}chat/messages/${id}/edit/`, method: 'PATCH', data: { body } }),
+			query: ({ id, body }) => ({
+				url: `${DESIGN_WORKFLOW_ROOT}chat/messages/${id}/edit/`,
+				method: 'PATCH',
+				data: { body },
+			}),
 			invalidatesTags: ['Chat'],
 		}),
 		reactChatMessage: builder.mutation<ChatMessage, { id: number; emoji: '✅' | '👀' | '👍' | '⚠️' }>({
-			query: ({ id, emoji }) => ({ url: `${DESIGN_WORKFLOW_ROOT}chat/messages/${id}/react/`, method: 'POST', data: { emoji } }),
+			query: ({ id, emoji }) => ({
+				url: `${DESIGN_WORKFLOW_ROOT}chat/messages/${id}/react/`,
+				method: 'POST',
+				data: { emoji },
+			}),
 			invalidatesTags: ['Chat'],
 		}),
-		markChatDecision: builder.mutation<ChatMessage, { id: number; is_decision: boolean }>({
-			query: ({ id, is_decision }) => ({ url: `${DESIGN_WORKFLOW_ROOT}chat/messages/${id}/decision/`, method: 'POST', data: { is_decision } }),
-			invalidatesTags: ['Chat'],
-		}),
-		addChatReminder: builder.mutation<ChatMessage, { id: number; task_id?: number | null; remind_at?: string | null; note?: string }>({
-			query: ({ id, ...data }) => ({ url: `${DESIGN_WORKFLOW_ROOT}chat/messages/${id}/reminders/`, method: 'POST', data }),
+		addChatReminder: builder.mutation<
+			ChatMessage,
+			{ id: number; task_id?: number | null; remind_at?: string | null; note?: string }
+		>({
+			query: ({ id, ...data }) => ({
+				url: `${DESIGN_WORKFLOW_ROOT}chat/messages/${id}/reminders/`,
+				method: 'POST',
+				data,
+			}),
 			invalidatesTags: ['Chat'],
 		}),
 		markNotificationRead: builder.mutation<NotificationItem, number>({
@@ -478,7 +514,12 @@ export const designWorkflowApi = createApi({
 		}),
 		runNotificationAction: builder.mutation<
 			NotificationItem,
-			{ id: number; action: 'mark_read' | 'accept_assignment' | 'move_status' | 'comment'; status?: TaskCard['status']; body?: string }
+			{
+				id: number;
+				action: 'mark_read' | 'accept_assignment' | 'move_status' | 'comment';
+				status?: TaskCard['status'];
+				body?: string;
+			}
 		>({
 			query: ({ id, ...data }) => ({
 				url: `${DESIGN_WORKFLOW_ROOT}notifications/${id}/action/`,
@@ -548,7 +589,6 @@ export const {
 	useDeleteChatMessageMutation,
 	useEditChatMessageMutation,
 	useReactChatMessageMutation,
-	useMarkChatDecisionMutation,
 	useAddChatReminderMutation,
 	useMarkNotificationReadMutation,
 	useSnoozeNotificationMutation,

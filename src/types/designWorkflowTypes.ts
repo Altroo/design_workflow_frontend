@@ -22,6 +22,7 @@ export type ProjectSummary = {
 	archived_at: string | null;
 	total_logged_minutes: number;
 	open_tasks_count: number;
+	can_work: boolean;
 	created_at: string;
 	updated_at: string;
 };
@@ -113,6 +114,7 @@ export type TaskCard = {
 	title: string;
 	description: string;
 	cover_image_url: string | null;
+	cover_image_label: string;
 	current_assignee: WorkflowUser | null;
 	status: 'backlog' | 'todo' | 'in_progress' | 'in_review' | 'blocked' | 'done';
 	priority: 'low' | 'medium' | 'high' | 'urgent';
@@ -444,6 +446,5 @@ export type ChatMessagesQuery = {
 	date_to?: string;
 	has_files?: boolean;
 	has_images?: boolean;
-	decisions?: boolean;
 	reference?: string;
 };

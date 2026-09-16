@@ -1,7 +1,4 @@
 import { jest } from '@jest/globals';
-import { renderToStaticMarkup } from 'react-dom/server';
-import React from 'react';
-
 type Session = { user: { pk: number; email: string } } | null;
 
 const mockAuth = jest.fn() as jest.MockedFunction<() => Promise<Session>>;
@@ -16,19 +13,12 @@ jest.mock('next/navigation', () => ({
 	redirect: mockRedirect,
 }));
 
-jest.mock('@/components/pages/design-workflow/designWorkflowShell', () => ({
-	__esModule: true,
-	default: (props: { title?: string; variant?: string }) => {
-		// eslint-disable-next-line @typescript-eslint/no-require-imports
-		const React = require('react');
-		return React.createElement('div', null, `WORKFLOW_SHELL:${props.title}:${props.variant}`);
-	},
-}));
-
 const AUTH_LOGIN = '/login';
+const DASHBOARD_BOARD = '/dashboard/board';
 jest.mock('@/utils/routes', () => ({
 	__esModule: true,
 	AUTH_LOGIN,
+	DASHBOARD_BOARD,
 }));
 
 beforeEach(() => {
@@ -47,13 +37,13 @@ describe('DashboardMyWorkPage server component', () => {
 		expect(mockRedirect).toHaveBeenCalledWith(AUTH_LOGIN);
 	});
 
-	it('renders my work shell', async () => {
+	it('redirects signed-in users to the task board', async () => {
 		mockAuth.mockResolvedValueOnce({ user: { pk: 1, email: 'user@example.com' } });
 
 		// eslint-disable-next-line @typescript-eslint/no-require-imports
 		const Page = require('./page').default as () => Promise<unknown>;
 
-		const result = await Page();
-		expect(renderToStaticMarkup(result as React.ReactElement)).toContain('WORKFLOW_SHELL:My Work:my-work');
+		await Page();
+		expect(mockRedirect).toHaveBeenCalledWith(DASHBOARD_BOARD);
 	});
 });
