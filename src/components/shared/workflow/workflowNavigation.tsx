@@ -36,6 +36,7 @@ export const getWorkflowNavigation = (
 	t: TranslationDictionary,
 	hasManagerAccess: boolean,
 	unreadNotifications = 0,
+	unreadChatMessages = 0,
 ): WorkflowNavItem[] => [
 	...(hasManagerAccess
 		? [{ label: t.navigation.overview, path: DASHBOARD_OVERVIEW, icon: <LayoutDashboard size={16} /> }]
@@ -43,7 +44,12 @@ export const getWorkflowNavigation = (
 	{ label: t.navigation.board, path: DASHBOARD_BOARD, icon: <BriefcaseBusiness size={16} /> },
 	{ label: t.navigation.projects, path: DASHBOARD_PROJECTS, icon: <FolderKanban size={16} /> },
 	...(hasManagerAccess ? [{ label: t.navigation.team, path: DASHBOARD_TEAM, icon: <Users size={16} /> }] : []),
-	{ label: t.workflow.labels.chatTitle ?? 'Chat', path: DASHBOARD_CHAT, icon: <MessagesSquare size={16} /> },
+	{
+		label: t.workflow.labels.chatTitle ?? 'Chat',
+		path: DASHBOARD_CHAT,
+		icon: <MessagesSquare size={16} />,
+		badge: unreadChatMessages,
+	},
 	...(hasManagerAccess
 		? [{ label: t.navigation.reports, path: DASHBOARD_REPORTS_TIME, icon: <Shield size={16} /> }]
 		: []),

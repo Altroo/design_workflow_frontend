@@ -36,7 +36,11 @@ import {
 import { cookiesDeleter } from '@/utils/apiHelpers';
 import { useAppSelector, useLanguage } from '@/utils/hooks';
 import { getProfilState } from '@/store/selectors';
-import { useGetNotificationsQuery, useMarkNotificationReadMutation } from '@/store/services/designWorkflow';
+import {
+	useGetChatThreadsQuery,
+	useGetNotificationsQuery,
+	useMarkNotificationReadMutation,
+} from '@/store/services/designWorkflow';
 import type { NotificationItem } from '@/types/designWorkflowTypes';
 import { getWorkflowNavigation, getWorkflowUtilities, type WorkflowNavItem as NavItem } from '@/components/shared/workflow/workflowNavigation';
 import { WorkflowAvatar } from '@/components/shared/workflow/workflowAvatar';
@@ -73,6 +77,16 @@ const NavigationBar = ({ title, children, hideTopbar = false }: Props) => {
 	const hasWorkflowDataAccess = Boolean(session && (profile.role || profile.is_staff || isSuperuser));
 	const unreadNotificationsQuery = useGetNotificationsQuery({ unread: true }, { skip: !hasWorkflowDataAccess });
 	const unreadNotifications = unreadNotificationsQuery.data?.length ?? 0;
+	const chatThreadsQuery = useGetChatThreadsQuery(undefined, {
+		skip: !hasWorkflowDataAccess,
+		pollingInterval: 10_000,
+		refetchOnFocus: true,
+		refetchOnReconnect: true,
+	});
+	const unreadChatMessages = (chatThreadsQuery.data ?? []).reduce(
+		(total, thread) => total + Math.max(0, thread.unread_count),
+		0,
+	);
 	const notificationsPreviewQuery = useGetNotificationsQuery(undefined, {
 		skip: !hasWorkflowDataAccess,
 	});
@@ -210,8 +224,8 @@ const NavigationBar = ({ title, children, hideTopbar = false }: Props) => {
 	}, [t.workflow.activities, t.workflow.labels.notificationFallback, unreadNotificationsQuery.data]);
 
 	const workflowItems = useMemo<NavItem[]>(
-		() => getWorkflowNavigation(t, hasManagerAccess, unreadNotifications),
-		[hasManagerAccess, t, unreadNotifications],
+		() => getWorkflowNavigation(t, hasManagerAccess, unreadNotifications, unreadChatMessages),
+		[hasManagerAccess, t, unreadChatMessages, unreadNotifications],
 	);
 
 	const utilityItems = useMemo<NavItem[]>(
@@ -281,9 +295,12 @@ const NavigationBar = ({ title, children, hideTopbar = false }: Props) => {
 				<span className="workflow-nav-text min-w-0 flex-1 truncate">{item.label}</span>
 				{item.badge ? (
 					<span
+						aria-label={`${item.badge} ${item.label}`}
 						className={[
 							'workflow-nav-badge inline-flex min-w-5 items-center justify-center rounded-full px-1.5 py-0.5 text-[11px] font-semibold',
-							active ? 'bg-(--accent-strong) text-white' : 'bg-(--ink) text-white',
+							active
+								? 'bg-(--accent-strong) text-white'
+								: 'bg-(--accent-soft) text-(--accent-strong) ring-1 ring-[color:var(--accent)]',
 						].join(' ')}
 					>
 						{item.badge}
