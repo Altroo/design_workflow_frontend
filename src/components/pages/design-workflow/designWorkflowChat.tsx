@@ -22,7 +22,6 @@ import {
 	ListTodo,
 	MessagesSquare,
 	Mic,
-	MoreHorizontal,
 	Paperclip,
 	Pause,
 	Play,
@@ -465,10 +464,12 @@ const DesignWorkflowChat = () => {
 	const [mentionActiveIndex, setMentionActiveIndex] = useState(0);
 	const [referenceActiveIndex, setReferenceActiveIndex] = useState(0);
 	const fileInputRef = useRef<HTMLInputElement | null>(null);
+	const composerInputRef = useRef<HTMLTextAreaElement | null>(null);
 	const scrollRef = useRef<HTMLDivElement | null>(null);
 	const markedReadIdsRef = useRef<Set<number>>(new Set());
 	const wsRef = useRef<WebSocket | null>(null);
 	const typingTimeoutRef = useRef<number | null>(null);
+	const typingPresenceTimeoutsRef = useRef<Record<number, number>>({});
 	const recordingPresenceTimeoutsRef = useRef<Record<number, number>>({});
 	const messagesBusyTimeoutRef = useRef<number | null>(null);
 	const mediaRecorderRef = useRef<MediaRecorder | null>(null);
@@ -697,6 +698,8 @@ const DesignWorkflowChat = () => {
 		setOlderMessages([]);
 		setHasOlder(false);
 		setTypingUsers({});
+		Object.values(typingPresenceTimeoutsRef.current).forEach((timeout) => window.clearTimeout(timeout));
+		typingPresenceTimeoutsRef.current = {};
 		setRecordingUsers({});
 		setReactionPickerMessageId(null);
 		markedReadIdsRef.current.clear();
@@ -767,19 +770,25 @@ const DesignWorkflowChat = () => {
 					payload.thread_id === selectedThread?.id &&
 					payload.user?.id !== profile.id
 				) {
+					const typingUser = payload.user as WorkflowUser | undefined;
+					if (!typingUser?.id) return;
+					const existingTimeout = typingPresenceTimeoutsRef.current[typingUser.id];
+					if (existingTimeout) window.clearTimeout(existingTimeout);
 					if (payload.is_typing) {
-						setTypingUsers((current) => ({ ...current, [payload.user.id]: payload.user }));
-						window.setTimeout(() => {
+						setTypingUsers((current) => ({ ...current, [typingUser.id]: typingUser }));
+						typingPresenceTimeoutsRef.current[typingUser.id] = window.setTimeout(() => {
 							setTypingUsers((current) => {
 								const next = { ...current };
-								delete next[payload.user.id];
+								delete next[typingUser.id];
 								return next;
 							});
+							delete typingPresenceTimeoutsRef.current[typingUser.id];
 						}, 2400);
 					} else {
+						delete typingPresenceTimeoutsRef.current[typingUser.id];
 						setTypingUsers((current) => {
 							const next = { ...current };
-							delete next[payload.user.id];
+							delete next[typingUser.id];
 							return next;
 						});
 					}
@@ -849,6 +858,8 @@ const DesignWorkflowChat = () => {
 
 	useEffect(
 		() => () => {
+			if (typingTimeoutRef.current) window.clearTimeout(typingTimeoutRef.current);
+			Object.values(typingPresenceTimeoutsRef.current).forEach((timeout) => window.clearTimeout(timeout));
 			Object.values(recordingPresenceTimeoutsRef.current).forEach((timeout) => window.clearTimeout(timeout));
 			if (messagesBusyTimeoutRef.current) window.clearTimeout(messagesBusyTimeoutRef.current);
 		},
@@ -1116,6 +1127,8 @@ const DesignWorkflowChat = () => {
 		if (typingTimeoutRef.current) window.clearTimeout(typingTimeoutRef.current);
 		if (isTyping) {
 			typingTimeoutRef.current = window.setTimeout(() => emitTyping(false), 1400);
+		} else {
+			typingTimeoutRef.current = null;
 		}
 	};
 
@@ -1771,7 +1784,10 @@ const DesignWorkflowChat = () => {
 													id={`chat-message-${message.id}`}
 													data-testid={`workflow-chat-message-${message.id}`}
 													data-message-id={message.id}
-													className="workflow-chat-message-row"
+													className={[
+														'workflow-chat-message-row',
+														replyTarget?.id === message.id ? 'is-reply-target' : '',
+													].join(' ')}
 												>
 													{firstUnreadMessageId === message.id ? (
 														<div className="workflow-chat-unread-separator">
@@ -1818,7 +1834,10 @@ const DesignWorkflowChat = () => {
 																<div className="workflow-chat-message-actions flex items-center gap-2 text-(--ink-soft)">
 																	<button
 																		type="button"
-																		onClick={() => setReplyTarget(message)}
+																		onClick={() => {
+																			setReplyTarget(message);
+																			requestAnimationFrame(() => composerInputRef.current?.focus());
+																		}}
 																		className="hover:text-(--ink)"
 																		data-action="reply"
 																		aria-label={t.workflow.buttons.reply ?? 'Reply'}
@@ -1938,7 +1957,7 @@ const DesignWorkflowChat = () => {
 																<button
 																	type="button"
 																	onClick={() => scrollToMessage(message.reply_to!.id)}
-																	className="mb-2 w-full rounded-lg border border-black/8 bg-white/70 px-3 py-2 text-left text-xs text-(--ink-soft)"
+																	className="workflow-chat-reply-reference mb-2 w-full rounded-lg border border-black/8 bg-white/70 px-3 py-2 text-left text-xs text-(--ink-soft)"
 																>
 																	<p className="font-semibold text-(--ink)">{userLabel(message.reply_to.sender)}</p>
 																	<p className="mt-1 line-clamp-2">
@@ -2156,8 +2175,12 @@ const DesignWorkflowChat = () => {
 								))}
 					</div>
 					{typingNames ? (
-						<div className="workflow-chat-typing">
-							<MoreHorizontal size={15} />
+						<div className="workflow-chat-typing" role="status" aria-live="polite">
+							<span className="workflow-chat-typing-dots" aria-hidden="true">
+								<i />
+								<i />
+								<i />
+							</span>
 							<span>
 								{typingNames} {t.workflow.labels.typing ?? 'is typing'}
 							</span>
@@ -2173,7 +2196,7 @@ const DesignWorkflowChat = () => {
 					) : null}
 					<div className="workflow-chat-composer">
 						{replyTarget ? (
-							<div className="mb-3 flex items-start justify-between gap-3 rounded-lg border border-[color:var(--line)] bg-(--surface-muted) px-3 py-2">
+							<div className="workflow-chat-reply-preview mb-3 flex items-start justify-between gap-3 rounded-lg border border-[color:var(--line)] bg-(--surface-muted) px-3 py-2">
 								<div className="min-w-0">
 									<p className="text-xs font-bold uppercase tracking-[0.14em] text-(--accent-strong)">
 										{t.workflow.labels.replyingTo ?? 'Replying to'}
@@ -2259,11 +2282,13 @@ const DesignWorkflowChat = () => {
 							</button>
 							<div className="relative flex-1">
 								<textarea
+									ref={composerInputRef}
 									value={body}
 									onChange={(event) => {
 										setBody(event.target.value);
 										emitTyping(Boolean(event.target.value.trim()));
 									}}
+									onBlur={() => emitTyping(false)}
 									onSelect={(event) => {
 										const target = event.currentTarget;
 										setSelectedComposerText(target.value.slice(target.selectionStart, target.selectionEnd));

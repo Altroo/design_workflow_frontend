@@ -80,12 +80,17 @@ const ActionModals: React.FC<Props> = ({
 							onClick={action.onClick}
 							disabled={action.disabled}
 							aria-label={action.text}
+							data-active={action.active}
 							className={[
-								'min-h-11 px-[18px] py-2.5 text-sm font-semibold transition',
+								'ui-modal-action min-h-11 px-[18px] py-2.5 text-sm font-semibold transition',
 								action.active ? 'app-button' : 'app-button app-button-secondary',
 								action.disabled ? 'cursor-not-allowed opacity-50' : '',
 							].join(' ')}
-							style={action.active && action.color ? { backgroundColor: action.color } : undefined}
+							style={
+								action.active && action.color
+									? ({ '--ui-modal-action-color': action.color } as React.CSSProperties)
+									: undefined
+							}
 						>
 							{action.icon}
 							<span>{action.text}</span>

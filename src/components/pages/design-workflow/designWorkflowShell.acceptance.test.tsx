@@ -1022,6 +1022,33 @@ describe('Design workflow acceptance flows', () => {
 		expect(mockUpdateTaskReview.mock.calls.map(([payload]) => payload.review_state)).toEqual(['changes_requested']);
 	});
 
+	it('requires manager confirmation before approval', async () => {
+		const user = userEvent.setup();
+		mockProfile(manager);
+		mockUpdateTaskReview.mockImplementation(({ review_state }: { review_state: TaskDetail['review_state'] }) =>
+			makeMutationResult({ ...taskDetail, review_state, status: 'done' }),
+		);
+
+		render(<DesignWorkflowShell title="Board" variant="board" taskId={taskDetail.id} />);
+		const dialog = await screen.findByRole('dialog', { name: taskDetail.title });
+
+		await user.click(within(dialog).getByRole('button', { name: 'Approve' }));
+		expect(mockUpdateTaskReview).not.toHaveBeenCalled();
+		const confirmation = screen.getByRole('dialog', { name: 'Approve this task?' });
+		expect(within(confirmation).getByText(/automatically move the task to Done/i)).toBeInTheDocument();
+		const confirmApproval = within(confirmation).getByRole('button', { name: 'Approve' });
+		expect(confirmApproval).toHaveStyle('--ui-modal-action-color: #16a34a');
+		await user.click(confirmApproval);
+
+		await waitFor(() =>
+			expect(mockUpdateTaskReview).toHaveBeenCalledWith({
+				id: taskDetail.id,
+				review_state: 'approved',
+				notes: undefined,
+			}),
+		);
+	});
+
 	it('lets the designer submit or resubmit without showing approval actions', async () => {
 		const user = userEvent.setup();
 		const changesRequestedTask = { ...taskDetail, review_state: 'changes_requested' as const };
@@ -1040,7 +1067,9 @@ describe('Design workflow acceptance flows', () => {
 		expect(mockUpdateTaskReview).not.toHaveBeenCalled();
 		const confirmation = screen.getByRole('dialog', { name: 'Submit task for review?' });
 		expect(within(confirmation).getByText(/cannot be changed until a manager responds/i)).toBeInTheDocument();
-		await user.click(within(confirmation).getByRole('button', { name: 'Resubmit for review' }));
+		const confirmReview = within(confirmation).getByRole('button', { name: 'Resubmit for review' });
+		expect(confirmReview).toHaveStyle('--ui-modal-action-color: #d97706');
+		await user.click(confirmReview);
 
 		await waitFor(() =>
 			expect(mockUpdateTaskReview).toHaveBeenCalledWith({

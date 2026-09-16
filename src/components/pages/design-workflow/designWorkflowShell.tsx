@@ -2001,7 +2001,10 @@ const DesignWorkflowShell = ({ title, variant, projectId, taskId }: Props) => {
 	const [reviewStateDraft, setReviewStateDraft] = useState<TaskDetail['review_state'] | null>(null);
 	const [taskDetailTab, setTaskDetailTab] = useState<TaskDetailTab>('overview');
 	const [reviewNotes, setReviewNotes] = useState('');
-	const [reviewConfirmation, setReviewConfirmation] = useState<{ resetNotes: boolean } | null>(null);
+	const [reviewConfirmation, setReviewConfirmation] = useState<{
+		reviewState: Extract<TaskDetail['review_state'], 'needs_review' | 'approved'>;
+		resetNotes: boolean;
+	} | null>(null);
 	const [versionNotes, setVersionNotes] = useState('');
 	const [versionAttachmentId, setVersionAttachmentId] = useState('');
 	const [versionApprovalState, setVersionApprovalState] = useState<TaskArtifactVersion['approval_state']>('pending');
@@ -4702,7 +4705,7 @@ const DesignWorkflowShell = ({ title, variant, projectId, taskId }: Props) => {
 								<button
 									type="button"
 									disabled={reviewLocked}
-									onClick={() => setReviewConfirmation({ resetNotes: false })}
+									onClick={() => setReviewConfirmation({ reviewState: 'needs_review', resetNotes: false })}
 									className="workflow-trello-modal-action"
 									data-tone="blue"
 								>
@@ -4725,7 +4728,7 @@ const DesignWorkflowShell = ({ title, variant, projectId, taskId }: Props) => {
 									<button
 										type="button"
 										disabled={reviewLocked}
-										onClick={() => void submitReviewUpdate('approved', { resetNotes: false })}
+										onClick={() => setReviewConfirmation({ reviewState: 'approved', resetNotes: false })}
 										className="workflow-trello-modal-action"
 										data-tone="green"
 									>
@@ -5812,7 +5815,7 @@ const DesignWorkflowShell = ({ title, variant, projectId, taskId }: Props) => {
 													type="button"
 													className="app-button"
 													disabled={reviewLocked}
-													onClick={() => setReviewConfirmation({ resetNotes: true })}
+													onClick={() => setReviewConfirmation({ reviewState: 'needs_review', resetNotes: true })}
 												>
 													<ShieldCheck size={16} />
 													<span>{requestReviewLabel}</span>
@@ -5833,7 +5836,7 @@ const DesignWorkflowShell = ({ title, variant, projectId, taskId }: Props) => {
 														type="button"
 														className="app-button app-button-secondary"
 														disabled={reviewLocked}
-														onClick={() => submitReviewUpdate('approved')}
+														onClick={() => setReviewConfirmation({ reviewState: 'approved', resetNotes: true })}
 													>
 														<CheckCircle2 size={16} />
 														<span>{workflow.buttons.approve ?? 'Approve'}</span>
@@ -8556,6 +8559,7 @@ const DesignWorkflowShell = ({ title, variant, projectId, taskId }: Props) => {
 			: (reviewStateDraft ?? task?.review_state) === 'approved'
 				? (workflow.buttons.requestNewReview ?? 'Request a new review')
 				: (workflow.buttons.requestReview ?? 'Request review');
+	const reviewConfirmationIsApproval = reviewConfirmation?.reviewState === 'approved';
 
 	return (
 		<NavigationBar title={pageHeading}>
@@ -8738,13 +8742,24 @@ const DesignWorkflowShell = ({ title, variant, projectId, taskId }: Props) => {
 			) : null}
 			{reviewConfirmation && task ? (
 				<ActionModals
-					title={messageFor('Confirmer la demande de revue ?', 'Submit task for review?')}
-					body={messageFor(
-						'Après l’envoi, cette demande ne pourra plus être modifiée tant qu’un responsable n’aura pas répondu.',
-						'After submitting, this request cannot be changed until a manager responds.',
-					)}
-					titleIcon={<ShieldCheck size={20} />}
-					titleIconColor="#4f46e5"
+					title={
+						reviewConfirmationIsApproval
+							? messageFor('Confirmer l’approbation ?', 'Approve this task?')
+							: messageFor('Confirmer la demande de revue ?', 'Submit task for review?')
+					}
+					body={
+						reviewConfirmationIsApproval
+							? messageFor(
+									'Cette action approuvera la revue et déplacera automatiquement la tâche vers Terminé.',
+									'This will approve the review and automatically move the task to Done.',
+								)
+							: messageFor(
+									'Après l’envoi, cette demande ne pourra plus être modifiée tant qu’un responsable n’aura pas répondu.',
+									'After submitting, this request cannot be changed until a manager responds.',
+								)
+					}
+					titleIcon={reviewConfirmationIsApproval ? <CheckCircle2 size={20} /> : <ShieldCheck size={20} />}
+					titleIconColor={reviewConfirmationIsApproval ? '#16a34a' : '#d97706'}
 					onClose={() => setReviewConfirmation(null)}
 					actions={[
 						{
@@ -8754,14 +8769,14 @@ const DesignWorkflowShell = ({ title, variant, projectId, taskId }: Props) => {
 						},
 						{
 							active: true,
-							text: reviewRequestActionLabel,
-							icon: <ShieldCheck size={16} />,
-							color: '#4f46e5',
+							text: reviewConfirmationIsApproval ? (workflow.buttons.approve ?? 'Approve') : reviewRequestActionLabel,
+							icon: reviewConfirmationIsApproval ? <CheckCircle2 size={16} /> : <ShieldCheck size={16} />,
+							color: reviewConfirmationIsApproval ? '#16a34a' : '#d97706',
 							disabled: updateTaskReviewState.isLoading,
 							onClick: () => {
-								const options = reviewConfirmation;
+								const { reviewState, ...options } = reviewConfirmation;
 								setReviewConfirmation(null);
-								void submitReviewUpdate('needs_review', options);
+								void submitReviewUpdate(reviewState, options);
 							},
 						},
 					]}
