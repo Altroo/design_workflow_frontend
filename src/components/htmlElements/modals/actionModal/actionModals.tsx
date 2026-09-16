@@ -21,24 +21,37 @@ type Props = {
 	onClose?: () => void;
 };
 
-const ActionModals: React.FC<Props> = ({ title, actions, actionsStyle, body, children, titleIcon, titleIconColor, onClose }) => {
+const ActionModals: React.FC<Props> = ({
+	title,
+	actions,
+	actionsStyle,
+	body,
+	children,
+	titleIcon,
+	titleIconColor,
+	onClose,
+}) => {
 	const handleClose = () => {
 		if (onClose) {
 			onClose();
 			return;
 		}
 		// Fallback: find the first non-active action (typically the cancel button)
-		const cancelAction = actions.find(a => !a.active);
+		const cancelAction = actions.find((a) => !a.active);
 		if (cancelAction) {
 			cancelAction.onClick();
 		}
 	};
 
 	return (
-		<div className="ui-modal-backdrop fixed inset-0 z-[130] flex items-center justify-center bg-black/45 px-4 py-6" onClick={handleClose}>
+		<div
+			className="ui-modal-backdrop fixed inset-0 z-[130] flex items-center justify-center bg-black/45 px-4 py-6"
+			onClick={handleClose}
+		>
 			<div
 				role="dialog"
 				aria-modal="true"
+				aria-label={title}
 				className="ui-modal app-card w-full max-w-[456px] border border-[color:var(--line)] bg-white p-6 shadow-(--shadow-lg)"
 				onClick={(event) => event.stopPropagation()}
 			>
@@ -69,9 +82,7 @@ const ActionModals: React.FC<Props> = ({ title, actions, actionsStyle, body, chi
 							aria-label={action.text}
 							className={[
 								'min-h-11 px-[18px] py-2.5 text-sm font-semibold transition',
-								action.active
-									? 'app-button'
-									: 'app-button app-button-secondary',
+								action.active ? 'app-button' : 'app-button app-button-secondary',
 								action.disabled ? 'cursor-not-allowed opacity-50' : '',
 							].join(' ')}
 							style={action.active && action.color ? { backgroundColor: action.color } : undefined}

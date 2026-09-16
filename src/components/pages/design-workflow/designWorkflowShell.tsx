@@ -69,6 +69,7 @@ import {
 	X,
 } from 'lucide-react';
 import NavigationBar from '@/components/layouts/navigationBar/navigationBar';
+import ActionModals from '@/components/htmlElements/modals/actionModal/actionModals';
 import {
 	useAddChecklistMutation,
 	useAddChecklistItemMutation,
@@ -1994,14 +1995,13 @@ const DesignWorkflowShell = ({ title, variant, projectId, taskId }: Props) => {
 	const [draggedTaskId, setDraggedTaskId] = useState<number | null>(null);
 	const [quickAddColumn, setQuickAddColumn] = useState<TaskStatus | null>(null);
 	const [quickAddTitle, setQuickAddTitle] = useState('');
-	const taskAddPanelRef = useRef<HTMLDivElement | null>(null);
-	const taskAddActionsRef = useRef<HTMLDivElement | null>(null);
 	const pendingReviewMutationRef = useRef<number | null>(null);
 	const [selectedTaskId, setSelectedTaskId] = useState<number | null>(null);
 	const [projectTaskEditId, setProjectTaskEditId] = useState<number | null>(null);
 	const [reviewStateDraft, setReviewStateDraft] = useState<TaskDetail['review_state'] | null>(null);
 	const [taskDetailTab, setTaskDetailTab] = useState<TaskDetailTab>('overview');
 	const [reviewNotes, setReviewNotes] = useState('');
+	const [reviewConfirmation, setReviewConfirmation] = useState<{ resetNotes: boolean } | null>(null);
 	const [versionNotes, setVersionNotes] = useState('');
 	const [versionAttachmentId, setVersionAttachmentId] = useState('');
 	const [versionApprovalState, setVersionApprovalState] = useState<TaskArtifactVersion['approval_state']>('pending');
@@ -2218,6 +2218,36 @@ const DesignWorkflowShell = ({ title, variant, projectId, taskId }: Props) => {
 		[onError, onSuccess, t.errors.unexpectedError],
 	);
 
+	const submitReviewUpdate = async (
+		reviewState: TaskDetail['review_state'],
+		options: { notes?: string; resetNotes?: boolean } = {},
+	) => {
+		if (!task) return;
+		const currentReviewState = reviewStateDraft ?? task.review_state;
+		if (currentReviewState === reviewState || pendingReviewMutationRef.current === task.id) return;
+		pendingReviewMutationRef.current = task.id;
+		setPendingReviewTaskId(task.id);
+		setReviewStateDraft(reviewState);
+		try {
+			const updatedTask = await updateTaskReview({
+				id: task.id,
+				review_state: reviewState,
+				notes: options.notes ?? (reviewNotes.trim() || undefined),
+			}).unwrap();
+			setReviewStateDraft(updatedTask.review_state);
+			onSuccess(messageFor('Revue mise à jour avec succès.', 'Review updated successfully.'));
+			if (options.resetNotes ?? true) setReviewNotes('');
+		} catch {
+			setReviewStateDraft(currentReviewState);
+			onError(messageFor('Impossible de mettre à jour la revue.', 'Could not update the review.'));
+		} finally {
+			if (pendingReviewMutationRef.current === task.id) {
+				pendingReviewMutationRef.current = null;
+				setPendingReviewTaskId(null);
+			}
+		}
+	};
+
 	useEffect(() => {
 		setReportChartsMounted(true);
 	}, []);
@@ -2330,6 +2360,7 @@ const DesignWorkflowShell = ({ title, variant, projectId, taskId }: Props) => {
 		setTaskDetailTab('overview');
 		setReviewStateDraft(null);
 		setReviewNotes('');
+		setReviewConfirmation(null);
 		setVersionNotes('');
 		setVersionAttachmentId(task?.attachments[0]?.id ? String(task.attachments[0].id) : '');
 		setVersionApprovalState('pending');
@@ -2366,24 +2397,6 @@ const DesignWorkflowShell = ({ title, variant, projectId, taskId }: Props) => {
 		};
 	}, [selectedTaskId, projectTaskEditId, taskAddPanel, closeTaskModal, closeProjectTaskEdit]);
 
-	useEffect(() => {
-		if (!taskAddPanel) return;
-		const handlePointerDown = (event: PointerEvent) => {
-			const target = event.target;
-			if (!(target instanceof Element)) return;
-			if (taskAddPanelRef.current?.contains(target) || taskAddActionsRef.current?.contains(target)) return;
-			if (
-				target.closest(
-					'.workflow-trello-add-menu, .app-day-picker-popover, .app-select-content, [data-radix-popper-content-wrapper]',
-				)
-			)
-				return;
-			setTaskAddPanel(null);
-		};
-		document.addEventListener('pointerdown', handlePointerDown, true);
-		return () => document.removeEventListener('pointerdown', handlePointerDown, true);
-	}, [taskAddPanel]);
-
 	const handleArchiveTask = async (taskItem: TaskCard) => {
 		await archiveTask({ id: taskItem.id, archived: !taskItem.archived }).unwrap();
 	};
@@ -2418,7 +2431,7 @@ const DesignWorkflowShell = ({ title, variant, projectId, taskId }: Props) => {
 		setMediaDeleteTarget(null);
 	};
 
-	const handleUploadTaskCover = async (taskId: number, closePanel = false) => {
+	const handleUploadTaskCover = async (taskId: number) => {
 		const label = taskCoverLabel.trim();
 		if (!taskCoverFile || !label) return;
 		await runPrimaryAction(
@@ -2429,14 +2442,13 @@ const DesignWorkflowShell = ({ title, variant, projectId, taskId }: Props) => {
 				await uploadTaskCover({ id: taskId, data }).unwrap();
 				setTaskCoverFile(null);
 				setTaskCoverLabel('');
-				if (closePanel) setTaskAddPanel(null);
 			},
 			messageFor('Image de carte ajoutée.', 'Card image added.'),
 			messageFor('Impossible d’ajouter l’image.', 'Could not add the image.'),
 		);
 	};
 
-	const handleUploadTaskAttachment = async (taskId: number, closePanel = false) => {
+	const handleUploadTaskAttachment = async (taskId: number) => {
 		const label = taskAttachmentLabel.trim();
 		if (!taskAttachmentFile || !label) return;
 		await runPrimaryAction(
@@ -2447,7 +2459,6 @@ const DesignWorkflowShell = ({ title, variant, projectId, taskId }: Props) => {
 				await uploadTaskAttachment({ id: taskId, data }).unwrap();
 				setTaskAttachmentFile(null);
 				setTaskAttachmentLabel('');
-				if (closePanel) setTaskAddPanel(null);
 			},
 			messageFor('Fichier ajouté avec succès.', 'File added successfully.'),
 			messageFor('Impossible d’ajouter le fichier.', 'Could not add the file.'),
@@ -2458,7 +2469,6 @@ const DesignWorkflowShell = ({ title, variant, projectId, taskId }: Props) => {
 		await runPrimaryAction(
 			async () => {
 				await setTaskCoverFromAttachment({ id: taskItem.id, attachmentId: attachment.id }).unwrap();
-				setTaskAddPanel(null);
 			},
 			messageFor('Image de carte mise à jour.', 'Card image updated.'),
 			messageFor('Impossible de modifier l’image de carte.', 'Could not update the card image.'),
@@ -4464,7 +4474,6 @@ const DesignWorkflowShell = ({ title, variant, projectId, taskId }: Props) => {
 					}
 					setNewChecklistGroupTitle('');
 					setSelectedChecklistTemplate('');
-					setTaskAddPanel(null);
 				},
 				messageFor('Liste ajoutée avec succès.', 'Checklist added successfully.'),
 				messageFor('Impossible d’ajouter la liste.', 'Could not add the checklist.'),
@@ -4578,34 +4587,6 @@ const DesignWorkflowShell = ({ title, variant, projectId, taskId }: Props) => {
 				</section>
 			);
 		};
-		const submitReviewUpdate = async (
-			reviewState: TaskDetail['review_state'],
-			options: { notes?: string; resetNotes?: boolean } = {},
-		) => {
-			if (displayReviewState === reviewState || pendingReviewMutationRef.current === task.id) return;
-			const previousReviewState = displayReviewState;
-			pendingReviewMutationRef.current = task.id;
-			setPendingReviewTaskId(task.id);
-			setReviewStateDraft(reviewState);
-			try {
-				const updatedTask = await updateTaskReview({
-					id: task.id,
-					review_state: reviewState,
-					notes: options.notes ?? (reviewNotes.trim() || undefined),
-				}).unwrap();
-				setReviewStateDraft(updatedTask.review_state);
-				onSuccess(messageFor('Revue mise à jour avec succès.', 'Review updated successfully.'));
-				if (options.resetNotes ?? true) setReviewNotes('');
-			} catch {
-				setReviewStateDraft(previousReviewState);
-				onError(messageFor('Impossible de mettre à jour la revue.', 'Could not update the review.'));
-			} finally {
-				if (pendingReviewMutationRef.current === task.id) {
-					pendingReviewMutationRef.current = null;
-					setPendingReviewTaskId(null);
-				}
-			}
-		};
 		const pendingReviewAction = updateTaskReviewState.isLoading || pendingReviewTaskId === task.id;
 		const reviewLocked = pendingReviewAction;
 		const canSubmitReview =
@@ -4716,12 +4697,12 @@ const DesignWorkflowShell = ({ title, variant, projectId, taskId }: Props) => {
 
 						{renderSourceChatLink('modal')}
 
-						<div className="workflow-trello-modal-actions" ref={taskAddActionsRef}>
+						<div className="workflow-trello-modal-actions">
 							{canSubmitReview ? (
 								<button
 									type="button"
 									disabled={reviewLocked}
-									onClick={() => void submitReviewUpdate('needs_review', { resetNotes: false })}
+									onClick={() => setReviewConfirmation({ resetNotes: false })}
 									className="workflow-trello-modal-action"
 									data-tone="blue"
 								>
@@ -4756,7 +4737,7 @@ const DesignWorkflowShell = ({ title, variant, projectId, taskId }: Props) => {
 							<button
 								type="button"
 								onClick={() => {
-									setTaskAddPanel((current) => (current === 'labels' ? null : 'labels'));
+									setTaskAddPanel('labels');
 									setModalLabelComposerOpen(false);
 									setEditingLabelId(null);
 								}}
@@ -4770,7 +4751,7 @@ const DesignWorkflowShell = ({ title, variant, projectId, taskId }: Props) => {
 							<button
 								type="button"
 								onClick={() => {
-									setTaskAddPanel((current) => (current === 'cover' ? null : 'cover'));
+									setTaskAddPanel('cover');
 									setModalLabelComposerOpen(false);
 								}}
 								className="workflow-trello-modal-action"
@@ -4783,7 +4764,7 @@ const DesignWorkflowShell = ({ title, variant, projectId, taskId }: Props) => {
 							<button
 								type="button"
 								onClick={() => {
-									setTaskAddPanel((current) => (current === 'attachments' ? null : 'attachments'));
+									setTaskAddPanel('attachments');
 									setModalLabelComposerOpen(false);
 								}}
 								className="workflow-trello-modal-action"
@@ -4796,7 +4777,7 @@ const DesignWorkflowShell = ({ title, variant, projectId, taskId }: Props) => {
 							<button
 								type="button"
 								onClick={() => {
-									setTaskAddPanel((current) => (current === 'checklist' ? null : 'checklist'));
+									setTaskAddPanel('checklist');
 									setModalLabelComposerOpen(false);
 								}}
 								className="workflow-trello-modal-action"
@@ -4809,7 +4790,7 @@ const DesignWorkflowShell = ({ title, variant, projectId, taskId }: Props) => {
 							<button
 								type="button"
 								onClick={() => {
-									setTaskAddPanel((current) => (current === 'members' ? null : 'members'));
+									setTaskAddPanel('members');
 									setModalLabelComposerOpen(false);
 								}}
 								className="workflow-trello-modal-action"
@@ -4839,7 +4820,12 @@ const DesignWorkflowShell = ({ title, variant, projectId, taskId }: Props) => {
 						</div>
 
 						{taskAddPanel ? (
-							<div className="workflow-trello-modal-floating-panel" data-panel={taskAddPanel} ref={taskAddPanelRef}>
+							<div
+								className="workflow-trello-modal-floating-panel"
+								data-panel={taskAddPanel}
+								role="region"
+								aria-label={addOptions.find((option) => option.key === taskAddPanel)?.title}
+							>
 								<div className="workflow-trello-modal-floating-head">
 									<p>{addOptions.find((option) => option.key === taskAddPanel)?.title}</p>
 									<button
@@ -4957,7 +4943,6 @@ const DesignWorkflowShell = ({ title, variant, projectId, taskId }: Props) => {
 																	}).unwrap();
 																	setNewLabelName('');
 																	setModalLabelComposerOpen(false);
-																	setTaskAddPanel(null);
 																},
 																messageFor('Étiquette ajoutée avec succès.', 'Label added successfully.'),
 																messageFor('Impossible d’ajouter l’étiquette.', 'Could not add the label.'),
@@ -5078,7 +5063,7 @@ const DesignWorkflowShell = ({ title, variant, projectId, taskId }: Props) => {
 												<button
 													type="button"
 													disabled={!taskCoverFile || !taskCoverLabel.trim()}
-													onClick={() => void handleUploadTaskCover(task.id, true)}
+													onClick={() => void handleUploadTaskCover(task.id)}
 												>
 													{uploadTaskCoverState.isLoading ? workflow.buttons.saving : t.common.add}
 												</button>
@@ -5106,7 +5091,7 @@ const DesignWorkflowShell = ({ title, variant, projectId, taskId }: Props) => {
 												<button
 													type="button"
 													disabled={!taskAttachmentFile || !taskAttachmentLabel.trim()}
-													onClick={() => void handleUploadTaskAttachment(task.id, true)}
+													onClick={() => void handleUploadTaskAttachment(task.id)}
 												>
 													{uploadTaskAttachmentState.isLoading ? workflow.buttons.saving : t.common.add}
 												</button>
@@ -5119,6 +5104,7 @@ const DesignWorkflowShell = ({ title, variant, projectId, taskId }: Props) => {
 										<SelectField
 											value={reassignForm.assignee_id}
 											onChange={(value) => setReassignForm((current) => ({ ...current, assignee_id: value }))}
+											ariaLabel={workflow.labels.assignee}
 											options={[
 												{ value: '', label: workflow.labels.assignee },
 												...assignableUsers.map((user) => ({
@@ -5148,7 +5134,6 @@ const DesignWorkflowShell = ({ title, variant, projectId, taskId }: Props) => {
 															reason: reassignForm.reason.trim(),
 														}).unwrap();
 														setReassignForm((current) => ({ ...current, reason: '' }));
-														setTaskAddPanel(null);
 													},
 													messageFor('Tâche réassignée avec succès.', 'Task reassigned successfully.'),
 													messageFor('Impossible de réassigner la tâche.', 'Could not reassign the task.'),
@@ -5282,7 +5267,7 @@ const DesignWorkflowShell = ({ title, variant, projectId, taskId }: Props) => {
 									<Clock3 size={20} />
 									<h3>{workflow.labels.dueDate}</h3>
 								</div>
-								<div className="workflow-trello-modal-control-grid">
+								<div className="workflow-trello-modal-control-grid" data-single-field={!isManager}>
 									<div>
 										<FieldLabel>{workflow.labels.dueDate}</FieldLabel>
 										<DateField
@@ -5827,7 +5812,7 @@ const DesignWorkflowShell = ({ title, variant, projectId, taskId }: Props) => {
 													type="button"
 													className="app-button"
 													disabled={reviewLocked}
-													onClick={() => submitReviewUpdate('needs_review')}
+													onClick={() => setReviewConfirmation({ resetNotes: true })}
 												>
 													<ShieldCheck size={16} />
 													<span>{requestReviewLabel}</span>
@@ -6167,7 +6152,7 @@ const DesignWorkflowShell = ({ title, variant, projectId, taskId }: Props) => {
 					className="workflow-task-detail-panel workflow-task-tools-panel workflow-trello-tools-panel"
 					title={workflow.labels.cardActions ?? 'Card actions'}
 				>
-					<div className="workflow-trello-action-row" ref={taskAddActionsRef}>
+					<div className="workflow-trello-action-row">
 						<button
 							type="button"
 							onClick={() => setTaskAddPanel((current) => (current === 'labels' ? null : 'labels'))}
@@ -6214,7 +6199,7 @@ const DesignWorkflowShell = ({ title, variant, projectId, taskId }: Props) => {
 							<span>{workflow.labels.membersPanel ?? 'Members'}</span>
 						</button>
 					</div>
-					<div className="workflow-task-tools-board" ref={taskAddPanelRef}>
+					<div className="workflow-task-tools-board">
 						{showChecklistPanel ? (
 							<div className="app-card-muted workflow-checklist-card workflow-tool-card-primary">
 								<div className="workflow-tool-card-heading workflow-tool-card-heading-large">
@@ -6719,6 +6704,7 @@ const DesignWorkflowShell = ({ title, variant, projectId, taskId }: Props) => {
 										<SelectField
 											value={reassignForm.assignee_id}
 											onChange={(value) => setReassignForm((current) => ({ ...current, assignee_id: value }))}
+											ariaLabel={workflow.labels.assignee}
 											options={assignableUsers.map((user) => ({
 												value: user.id,
 												label: `${user.first_name} ${user.last_name}`,
@@ -6743,7 +6729,6 @@ const DesignWorkflowShell = ({ title, variant, projectId, taskId }: Props) => {
 															reason: reassignForm.reason.trim(),
 														}).unwrap();
 														setReassignForm((current) => ({ ...current, reason: '' }));
-														setTaskAddPanel(null);
 													},
 													messageFor('Tâche réassignée avec succès.', 'Task reassigned successfully.'),
 													messageFor('Impossible de réassigner la tâche.', 'Could not reassign the task.'),
@@ -8565,6 +8550,12 @@ const DesignWorkflowShell = ({ title, variant, projectId, taskId }: Props) => {
 		variant === 'team' ||
 		variant === 'report-time' ||
 		variant === 'notifications';
+	const reviewRequestActionLabel =
+		(reviewStateDraft ?? task?.review_state) === 'changes_requested'
+			? (workflow.buttons.resubmitReview ?? 'Resubmit for review')
+			: (reviewStateDraft ?? task?.review_state) === 'approved'
+				? (workflow.buttons.requestNewReview ?? 'Request a new review')
+				: (workflow.buttons.requestReview ?? 'Request review');
 
 	return (
 		<NavigationBar title={pageHeading}>
@@ -8744,6 +8735,37 @@ const DesignWorkflowShell = ({ title, variant, projectId, taskId }: Props) => {
 						</div>
 					</div>
 				</div>
+			) : null}
+			{reviewConfirmation && task ? (
+				<ActionModals
+					title={messageFor('Confirmer la demande de revue ?', 'Submit task for review?')}
+					body={messageFor(
+						'Après l’envoi, cette demande ne pourra plus être modifiée tant qu’un responsable n’aura pas répondu.',
+						'After submitting, this request cannot be changed until a manager responds.',
+					)}
+					titleIcon={<ShieldCheck size={20} />}
+					titleIconColor="#4f46e5"
+					onClose={() => setReviewConfirmation(null)}
+					actions={[
+						{
+							active: false,
+							text: t.common.cancel,
+							onClick: () => setReviewConfirmation(null),
+						},
+						{
+							active: true,
+							text: reviewRequestActionLabel,
+							icon: <ShieldCheck size={16} />,
+							color: '#4f46e5',
+							disabled: updateTaskReviewState.isLoading,
+							onClick: () => {
+								const options = reviewConfirmation;
+								setReviewConfirmation(null);
+								void submitReviewUpdate('needs_review', options);
+							},
+						},
+					]}
+				/>
 			) : null}
 			{mediaDeleteTarget ? (
 				<div

@@ -200,6 +200,7 @@ export const designWorkflowApi = createApi({
 				{ type: 'Task', id },
 				'Dashboard',
 				'Project',
+				'Workload',
 				'Notification',
 			],
 		}),

@@ -1939,6 +1939,18 @@
 	padding: 1rem 1.125rem !important;
 }
 
+.workflow-task-modal .workflow-checklist-template-picker button[data-active='true'] small {
+	color: #eef2ff !important;
+}
+
+.workflow-task-modal .workflow-trello-modal-control-grid[data-single-field='true'] {
+	grid-template-columns: minmax(0, 1fr) auto !important;
+}
+
+.workflow-task-modal .workflow-trello-modal-control-grid > .workflow-trello-modal-save {
+	min-height: 3.25rem !important;
+}
+
 .workflow-trello-modal-checklist-item {
 	cursor: pointer;
 }
@@ -2977,6 +2989,14 @@
 }
 
 @media (max-width: 47.9375rem) {
+	.workflow-task-modal .workflow-trello-modal-control-grid[data-single-field='true'] {
+		grid-template-columns: minmax(0, 1fr) !important;
+	}
+
+	.workflow-task-modal .workflow-trello-modal-control-grid > .workflow-trello-modal-save {
+		width: 100% !important;
+	}
+
 	.workflow-task-edit-backdrop {
 		padding: 0.5rem;
 	}

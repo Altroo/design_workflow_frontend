@@ -1037,12 +1037,57 @@ describe('Design workflow acceptance flows', () => {
 		expect(within(dialog).queryByRole('button', { name: 'Approve' })).not.toBeInTheDocument();
 		expect(within(dialog).queryByRole('button', { name: 'Request changes' })).not.toBeInTheDocument();
 		await user.click(within(dialog).getByRole('button', { name: 'Resubmit for review' }));
+		expect(mockUpdateTaskReview).not.toHaveBeenCalled();
+		const confirmation = screen.getByRole('dialog', { name: 'Submit task for review?' });
+		expect(within(confirmation).getByText(/cannot be changed until a manager responds/i)).toBeInTheDocument();
+		await user.click(within(confirmation).getByRole('button', { name: 'Resubmit for review' }));
 
-		expect(mockUpdateTaskReview).toHaveBeenCalledWith({
-			id: taskDetail.id,
-			review_state: 'needs_review',
-			notes: undefined,
-		});
+		await waitFor(() =>
+			expect(mockUpdateTaskReview).toHaveBeenCalledWith({
+				id: taskDetail.id,
+				review_state: 'needs_review',
+				notes: undefined,
+			}),
+		);
+	});
+
+	it('keeps card action panels open until their close button is used', async () => {
+		const user = userEvent.setup();
+		mockProfile(manager);
+
+		render(<DesignWorkflowShell title="Board" variant="board" taskId={taskDetail.id} />);
+		const dialog = await screen.findByRole('dialog', { name: taskDetail.title });
+
+		for (const panelName of ['Labels', 'Card image', 'Attachments', 'Checklist']) {
+			await user.click(within(dialog).getByRole('button', { name: panelName }));
+			const panel = within(dialog).getByRole('region', { name: panelName });
+			await user.click(within(dialog).getByRole('heading', { name: 'Description' }));
+			expect(panel).toBeInTheDocument();
+			await user.click(within(panel).getByRole('button', { name: 'Close' }));
+			expect(within(dialog).queryByRole('region', { name: panelName })).not.toBeInTheDocument();
+		}
+
+		await user.click(within(dialog).getByRole('button', { name: 'Members' }));
+		const membersPanel = within(dialog).getByRole('region', { name: 'Members' });
+		await selectMuiOption(user, 'Assignee', 'Rami Reviewer', membersPanel);
+		await user.click(within(dialog).getByRole('heading', { name: 'Description' }));
+		expect(membersPanel).toBeInTheDocument();
+		await user.click(within(membersPanel).getByRole('button', { name: 'Close' }));
+		expect(within(dialog).queryByRole('region', { name: 'Members' })).not.toBeInTheDocument();
+	});
+
+	it('uses a two-column date row for designers and keeps Save level with the date field', async () => {
+		mockProfile(designerA);
+
+		render(<DesignWorkflowShell title="Board" variant="board" taskId={taskDetail.id} />);
+		const dialog = await screen.findByRole('dialog', { name: taskDetail.title });
+		const targetDateSection = within(dialog).getByRole('heading', { name: 'Target date' }).closest('section');
+		const controls = targetDateSection?.querySelector('.workflow-trello-modal-control-grid');
+
+		expect(controls).toHaveAttribute('data-single-field', 'true');
+		expect(within(controls as HTMLElement).getByRole('button', { name: 'Save' })).toHaveClass(
+			'workflow-trello-modal-save',
+		);
 	});
 
 	it('surfaces source chat links on task detail', async () => {
