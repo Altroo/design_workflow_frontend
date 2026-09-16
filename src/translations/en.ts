@@ -581,7 +581,7 @@ export const en: TranslationDictionary = {
 			weekLogged: 'Week logged',
 		},
 		statuses: {
-			backlog: 'Backlog',
+			backlog: 'To plan',
 			todo: 'Todo',
 			in_progress: 'In Progress',
 			in_review: 'In Review',
