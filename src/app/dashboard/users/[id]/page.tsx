@@ -4,17 +4,14 @@ import { AUTH_LOGIN, USERS_LIST } from '@/utils/routes';
 import UsersViewClient from '@/components/pages/users/users-view';
 import type { Metadata } from 'next';
 import { getServerTranslations } from '@/utils/serverTranslations';
+import type {IdRouteProps} from '@/types/routeTypes';
 
 export async function generateMetadata(): Promise<Metadata> {
 	const t = await getServerTranslations();
 	return { title: t.metadata.userDetailsTitle, description: t.metadata.userDetailsDescription };
 }
 
-interface Props {
-	params: Promise<{ id: string }>;
-}
-
-const UserDetailPage = async ({ params }: Props) => {
+const UserDetailPage = async ({ params }: IdRouteProps) => {
 	const session = await auth();
 	const { id } = await params;
 

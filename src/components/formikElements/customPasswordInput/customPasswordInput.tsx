@@ -1,13 +1,13 @@
-import React, { ForwardedRef, forwardRef, useState } from 'react';
+import {useState, type ChangeEvent, type FocusEvent, type ReactNode, type Ref} from 'react';
 import { Eye, EyeOff } from 'lucide-react';
 import { useLanguage } from '@/utils/hooks';
 
 type Props = {
 	id: string;
 	value: string;
-	onChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
+	onChange: (e: ChangeEvent<HTMLInputElement>) => void;
 	theme?: unknown;
-	onBlur?: (e: React.FocusEvent<HTMLInputElement>) => void;
+	onBlur?: (e: FocusEvent<HTMLInputElement>) => void;
 	cssClass?: string;
 	helperText?: string;
 	error?: boolean;
@@ -16,11 +16,12 @@ type Props = {
 	fullWidth?: boolean;
 	size?: 'small' | 'medium';
 	disabled?: boolean;
-	startIcon?: React.ReactNode;
+	startIcon?: ReactNode;
 	onClick?: () => void;
+	ref?: Ref<HTMLInputElement>;
 };
 
-const CustomPasswordInput = forwardRef<HTMLInputElement, Props>((props: Props, ref: ForwardedRef<HTMLInputElement>) => {
+const CustomPasswordInput = ({ref, ...props}: Props) => {
 	const [showPassword, setShowPassword] = useState(false);
 	const { t } = useLanguage();
 
@@ -63,7 +64,7 @@ const CustomPasswordInput = forwardRef<HTMLInputElement, Props>((props: Props, r
 			{props.helperText ? <p className="mt-2 text-sm text-red-600">{props.helperText}</p> : null}
 		</div>
 	);
-});
+};
 
 CustomPasswordInput.displayName = 'CustomPasswordInput';
 

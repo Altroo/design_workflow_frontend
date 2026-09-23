@@ -1,4 +1,4 @@
-import React from 'react';
+import {type ChangeEvent, type FC, type FocusEvent, type ReactNode} from 'react';
 import * as Select from '@radix-ui/react-select';
 import { ChevronDown } from 'lucide-react';
 import { DropDownType } from '@/types/accountTypes';
@@ -11,18 +11,18 @@ type Props = {
 	theme?: unknown;
 	value: string | null;
 	size?: 'small' | 'medium';
-	onChange?: (event: React.ChangeEvent<HTMLSelectElement>) => void;
-	onBlur?: (e: React.FocusEvent<HTMLSelectElement>) => void;
+	onChange?: (event: ChangeEvent<HTMLSelectElement>) => void;
+	onBlur?: (e: FocusEvent<HTMLSelectElement>) => void;
 	helperText?: string;
 	error?: boolean;
 	disabled?: boolean;
 	cssClass?: string;
-	startIcon?: React.ReactNode;
-	endIcon?: React.ReactNode;
-	children?: React.ReactNode;
+	startIcon?: ReactNode;
+	endIcon?: ReactNode;
+	children?: ReactNode;
 };
 
-const CustomDropDownSelect: React.FC<Props> = (props: Props) => {
+const CustomDropDownSelect: FC<Props> = (props: Props) => {
 	const { t } = useLanguage();
 	const value = props.value || undefined;
 
@@ -30,7 +30,7 @@ const CustomDropDownSelect: React.FC<Props> = (props: Props) => {
 		const event = {
 			target: { id: props.id, name: props.id, value: nextValue },
 			currentTarget: { id: props.id, name: props.id, value: nextValue },
-		} as React.ChangeEvent<HTMLSelectElement>;
+		} as ChangeEvent<HTMLSelectElement>;
 		props.onChange?.(event);
 	};
 
@@ -57,7 +57,7 @@ const CustomDropDownSelect: React.FC<Props> = (props: Props) => {
 						id={props.id}
 						data-testid={`dropdown-${props.id}`}
 						aria-label={props.label}
-						onBlur={() => props.onBlur?.({ target: { id: props.id, name: props.id, value: props.value ?? '' } } as unknown as React.FocusEvent<HTMLSelectElement>)}
+						onBlur={() => props.onBlur?.({ target: { id: props.id, name: props.id, value: props.value ?? '' } } as unknown as FocusEvent<HTMLSelectElement>)}
 						className={[
 							'app-input app-select-trigger w-full text-left',
 							props.startIcon ? 'pl-14' : '',

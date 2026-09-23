@@ -1,4 +1,4 @@
-import React from 'react';
+import {type ComponentProps} from 'react';
 import {render, screen} from '@testing-library/react';
 import '@testing-library/jest-dom';
 import Maintenance from './Maintenance';
@@ -13,7 +13,7 @@ jest.mock('next/image', () => ({
             }: {
     src: string | { src: string };
     alt: string;
-  } & Omit<React.ComponentProps<'img'>, 'src' | 'alt'>) => {
+  } & Omit<ComponentProps<'img'>, 'src' | 'alt'>) => {
     const resolvedSrc = typeof src === 'string' ? src : src.src;
     // eslint-disable-next-line @next/next/no-img-element
     return <img src={resolvedSrc} alt={alt} {...props} />;

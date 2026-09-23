@@ -1,12 +1,12 @@
-import React, { ForwardedRef, forwardRef } from 'react';
+import {type ChangeEvent, type FocusEvent, type HTMLInputTypeAttribute, type InputHTMLAttributes, type ReactNode, type Ref} from 'react';
 
 type Props = {
-	type: React.HTMLInputTypeAttribute;
+	type: HTMLInputTypeAttribute;
 	id: string;
 	value: string;
-	onChange: (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => void;
+	onChange: (e: ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => void;
 	theme?: unknown;
-	onBlur?: (e: React.FocusEvent<HTMLInputElement | HTMLTextAreaElement>) => void;
+	onBlur?: (e: FocusEvent<HTMLInputElement | HTMLTextAreaElement>) => void;
 	cssClass?: string;
 	helperText?: string;
 	error?: boolean;
@@ -17,10 +17,10 @@ type Props = {
 	disabled?: boolean;
 	variant?: 'filled' | 'standard' | 'outlined';
 	onClick?: () => void;
-	startIcon?: React.ReactNode;
-	endIcon?: React.ReactNode;
+	startIcon?: ReactNode;
+	endIcon?: ReactNode;
 	slotProps?: {
-		htmlInput?: React.InputHTMLAttributes<HTMLInputElement>;
+		htmlInput?: InputHTMLAttributes<HTMLInputElement>;
 	};
 	name?: string;
 	required?: boolean;
@@ -29,10 +29,10 @@ type Props = {
 	shrink?: boolean;
 	multiline?: boolean;
 	rows?: number;
+	ref?: Ref<HTMLInputElement | HTMLTextAreaElement>;
 };
 
-const CustomTextInput = forwardRef<HTMLInputElement | HTMLTextAreaElement, Props>(
-	(props: Props, ref: ForwardedRef<HTMLInputElement | HTMLTextAreaElement>) => {
+const CustomTextInput = ({ref, ...props}: Props) => {
 		const { cssClass, startIcon, endIcon, multiline, rows, helperText, error, fullWidth, slotProps, ...rest } = props;
 
 		return (
@@ -50,7 +50,7 @@ const CustomTextInput = forwardRef<HTMLInputElement | HTMLTextAreaElement, Props
 					) : null}
 					{multiline ? (
 						<textarea
-							ref={ref as ForwardedRef<HTMLTextAreaElement>}
+							ref={ref as Ref<HTMLTextAreaElement>}
 							id={rest.id}
 							name={rest.name || rest.id}
 							value={rest.value}
@@ -64,7 +64,7 @@ const CustomTextInput = forwardRef<HTMLInputElement | HTMLTextAreaElement, Props
 						/>
 					) : (
 						<input
-							ref={ref as ForwardedRef<HTMLInputElement>}
+							ref={ref as Ref<HTMLInputElement>}
 							id={rest.id}
 							name={rest.name || rest.id}
 							type={rest.type}
@@ -88,8 +88,7 @@ const CustomTextInput = forwardRef<HTMLInputElement | HTMLTextAreaElement, Props
 				{helperText ? <p className="mt-2 text-sm text-red-600">{helperText}</p> : null}
 			</div>
 		);
-	},
-);
+};
 
 CustomTextInput.displayName = 'CustomTextInput';
 export default CustomTextInput;

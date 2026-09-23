@@ -1,6 +1,6 @@
 import { jest } from '@jest/globals';
 import { renderToStaticMarkup } from 'react-dom/server';
-import React from 'react';
+import type {ReactElement, ReactNode} from 'react';
 
 type Session = { user: { pk: number; email: string } } | null;
 
@@ -18,10 +18,10 @@ jest.mock('next/navigation', () => ({
 
 jest.mock('@/components/layouts/navigationBar/navigationBar', () => ({
 	__esModule: true,
-	default: ({ children, title }: { children: React.ReactNode; title?: string }) => {
+	default: ({ children, title }: { children: ReactNode; title?: string }) => {
 		// eslint-disable-next-line @typescript-eslint/no-require-imports
-		const React = require('react');
-		return React.createElement('section', null, `NAV:${title}`, children);
+		const {createElement} = require('react');
+		return createElement('section', null, `NAV:${title}`, children);
 	},
 }));
 
@@ -29,8 +29,8 @@ jest.mock('@/components/pages/design-workflow/designWorkflowChat', () => ({
 	__esModule: true,
 	default: () => {
 		// eslint-disable-next-line @typescript-eslint/no-require-imports
-		const React = require('react');
-		return React.createElement('div', null, 'WORKFLOW_CHAT');
+		const {createElement} = require('react');
+		return createElement('div', null, 'WORKFLOW_CHAT');
 	},
 }));
 
@@ -63,7 +63,7 @@ describe('DashboardChatPage server component', () => {
 		const Page = require('./page').default as () => Promise<unknown>;
 
 		const result = await Page();
-		const html = renderToStaticMarkup(result as React.ReactElement);
+		const html = renderToStaticMarkup(result as ReactElement);
 		expect(html).toContain('NAV:Chat');
 		expect(html).toContain('WORKFLOW_CHAT');
 	});

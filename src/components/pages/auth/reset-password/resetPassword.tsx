@@ -1,6 +1,7 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
+import {runWithCleanup} from '@/utils/runWithCleanup';
+import {useEffect, useState, type FC} from 'react';
 import { useFormik } from 'formik';
 import { toFormikValidationSchema } from 'zod-formik-adapter';
 import { ArrowLeft, ArrowRight, Mail } from 'lucide-react';
@@ -30,15 +31,20 @@ const ResetPasswordPageContent = () => {
 		validationSchema: toFormikValidationSchema(emailSchema),
 		onSubmit: async (values, { setFieldError }) => {
 			setIsPending(true);
-			try {
-				await sendPasswordResetCode({ email: values.email }).unwrap();
-				await cookiesPoster('/api/cookies', { new_email: values.email });
-				router.push(AUTH_RESET_PASSWORD_ENTER_CODE);
-			} catch (e) {
-				setFormikAutoErrors({ e, setFieldError });
-			} finally {
-				setIsPending(false);
-			}
+			await runWithCleanup(
+			  async () => {
+			    try {
+			      await sendPasswordResetCode({email: values.email}).unwrap();
+			      await cookiesPoster('/api/cookies', {new_email: values.email});
+			      router.push(AUTH_RESET_PASSWORD_ENTER_CODE);
+			    } catch (e) {
+			      setFormikAutoErrors({e, setFieldError});
+			    }
+			  },
+			  () => {
+			    setIsPending(false);
+			  },
+			);
 		},
 	});
 
@@ -99,7 +105,7 @@ const ResetPasswordPageContent = () => {
 	);
 };
 
-const ResetPasswordClient: React.FC = () => {
+const ResetPasswordClient: FC = () => {
 	const { data: session, status } = useSession();
 	const router = useRouter();
 

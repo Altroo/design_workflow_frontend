@@ -1,6 +1,7 @@
 'use client';
 
-import React, { useMemo, useState } from 'react';
+import {runWithCleanup} from '@/utils/runWithCleanup';
+import { useState, type FC} from 'react';
 import { useRouter } from 'next/navigation';
 import { ArrowLeft, CheckCircle2, Eye, PencilLine, Plus, Search, ShieldCheck, ShieldX, Trash2, Users, XCircle } from 'lucide-react';
 import { useInitAccessToken } from '@/contexts/InitContext';
@@ -20,7 +21,7 @@ import { WorkflowAvatar, WORKFLOW_AVATAR_SIZES } from '@/components/shared/workf
 
 const DANGER_COLOR = '#ef4444';
 
-const UsersListClient: React.FC<SessionProps> = ({ session }) => {
+const UsersListClient: FC<SessionProps> = ({ session }) => {
 	const router = useRouter();
 	const { onSuccess, onError } = useToast();
 	const { t } = useLanguage();
@@ -62,31 +63,41 @@ const UsersListClient: React.FC<SessionProps> = ({ session }) => {
 	const totalPages = Math.max(1, Math.ceil((data?.count ?? 0) / paginationModel.pageSize));
 	const allVisibleSelected = rows.length > 0 && rows.every((user) => selectedUserIds.includes(user.id));
 
-	const pageLabel = useMemo(() => `${paginationModel.page + 1} / ${totalPages}`, [paginationModel.page, totalPages]);
+	const pageLabel = (`${paginationModel.page + 1} / ${totalPages}`);
 
 	const deleteHandler = async () => {
-		try {
-			await deleteRecord({ id: selectedUserId! }).unwrap();
-			onSuccess(t.users.userDeletedSuccess);
-			refetch();
-		} catch (err) {
-			onError(extractApiErrorMessage(err, t.users.userDeleteError));
-		} finally {
-			setShowDeleteModal(false);
-		}
+		await runWithCleanup(
+		  async () => {
+		    try {
+		      await deleteRecord({id: selectedUserId!}).unwrap();
+		      onSuccess(t.users.userDeletedSuccess);
+		      refetch();
+		    } catch (err) {
+		      onError(extractApiErrorMessage(err, t.users.userDeleteError));
+		    }
+		  },
+		  () => {
+		    setShowDeleteModal(false);
+		  },
+		);
 	};
 
 	const bulkDeleteHandler = async () => {
-		try {
-			await bulkDeleteUsers({ ids: selectedUserIds }).unwrap();
-			onSuccess(t.users.bulkUserDeletedSuccess(selectedUserIds.length));
-		} catch (err) {
-			onError(extractApiErrorMessage(err, t.users.userDeleteError));
-		} finally {
-			setSelectedUserIds([]);
-			setShowBulkDeleteModal(false);
-			refetch();
-		}
+		await runWithCleanup(
+		  async () => {
+		    try {
+		      await bulkDeleteUsers({ids: selectedUserIds}).unwrap();
+		      onSuccess(t.users.bulkUserDeletedSuccess(selectedUserIds.length));
+		    } catch (err) {
+		      onError(extractApiErrorMessage(err, t.users.userDeleteError));
+		    }
+		  },
+		  () => {
+		    setSelectedUserIds([]);
+		    setShowBulkDeleteModal(false);
+		    refetch();
+		  },
+		);
 	};
 
 	const toggleVisibleRows = () => {

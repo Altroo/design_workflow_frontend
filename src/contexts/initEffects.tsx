@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect, useRef } from 'react';
+import {useEffect, useRef, type FC} from 'react';
 import { useAppDispatch, useAppSelector } from '@/utils/hooks';
 import { useSession } from 'next-auth/react';
 import { useRouter, usePathname } from 'next/navigation';
@@ -11,7 +11,7 @@ import { accountSetProfilAction } from '@/store/actions/accountActions';
 import { DASHBOARD_PASSWORD } from '@/utils/routes';
 import { getAccessTokenFromSession } from '@/store/session';
 
-export const InitEffects: React.FC = () => {
+export const InitEffects: FC = () => {
 	const { data: session, status } = useSession();
 	const dispatch = useAppDispatch();
 	const router = useRouter();

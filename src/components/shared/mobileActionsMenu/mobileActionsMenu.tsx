@@ -1,11 +1,11 @@
 'use client';
 
-import React from 'react';
+import {type FC, type MouseEvent, type ReactNode} from 'react';
 
 export type ActionItem = {
 	label: string;
-	icon: React.ReactNode;
-	onClick: (event?: React.MouseEvent<HTMLElement>) => void;
+	icon: ReactNode;
+	onClick: (event?: MouseEvent<HTMLElement>) => void;
 	color?: 'inherit' | 'default' | 'primary' | 'secondary' | 'error' | 'info' | 'success' | 'warning';
 	show?: boolean;
 };
@@ -14,7 +14,7 @@ type MobileActionsMenuProps = {
 	actions: ActionItem[];
 };
 
-const MobileActionsMenu: React.FC<MobileActionsMenuProps> = ({ actions }) => {
+const MobileActionsMenu: FC<MobileActionsMenuProps> = ({ actions }) => {
 	const visibleActions = actions.filter((action) => action.show !== false);
 
 	return (

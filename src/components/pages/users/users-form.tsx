@@ -1,6 +1,7 @@
 'use client';
 
-import React, { useMemo, useState } from 'react';
+import {runWithCleanup, runAsyncWithErrorHandler} from '@/utils/runWithCleanup';
+import { useState, type FC, type MouseEvent} from 'react';
 import type { ApiErrorResponseType, ResponseDataInterface, SessionProps } from '@/types/_initTypes';
 import NavigationBar from '@/components/layouts/navigationBar/navigationBar';
 import {
@@ -89,7 +90,7 @@ const ToggleRow = ({
 	</label>
 );
 
-const FormikContent: React.FC<FormikContentProps> = ({ token, id }) => {
+const FormikContent: FC<FormikContentProps> = ({ token, id }) => {
 	const { onSuccess, onError } = useToast();
 	const { t } = useLanguage();
 	const isEditMode = id !== undefined;
@@ -106,9 +107,9 @@ const FormikContent: React.FC<FormikContentProps> = ({ token, id }) => {
 	const [editUser, { isLoading: isEditLoading, error: editError }] = useEditUserMutation();
 
 	const error = checkEmailError || (isEditMode ? dataError || editError : addError);
-	const axiosError: ResponseDataInterface<ApiErrorResponseType> | undefined = useMemo(() => {
+	const axiosError: ResponseDataInterface<ApiErrorResponseType> | undefined = (() => {
 		return error ? (error as ResponseDataInterface<ApiErrorResponseType>) : undefined;
-	}, [error]);
+	})();
 
 	const [isPending, setIsPending] = useState(false);
 	const [hasAttemptedSubmit, setHasAttemptedSubmit] = useState(false);
@@ -139,25 +140,30 @@ const FormikContent: React.FC<FormikContentProps> = ({ token, id }) => {
 			setIsPending(true);
 			const { globalError, ...fields } = data;
 			void globalError;
-			try {
-				if (rawData?.email !== data.email) {
-					await checkEmail({ email: data.email }).unwrap();
-				}
-				if (isEditMode) {
-					await editUser({ id: id!, data: fields }).unwrap();
-					onSuccess(t.users.userUpdatedSuccess);
-					router.push(USERS_VIEW(id!));
-				} else {
-					await addUser({ data: fields }).unwrap();
-					onSuccess(t.users.userCreatedSuccess);
-					router.push(USERS_LIST);
-				}
-			} catch (e) {
-				onError(isEditMode ? t.users.userUpdateError : t.users.userCreateError);
-				setFormikAutoErrors({ e, setFieldError });
-			} finally {
-				setIsPending(false);
-			}
+			await runWithCleanup(
+			  async () => {
+			    await runAsyncWithErrorHandler(async () => {
+			      if (rawData?.email !== data.email) {
+			        await checkEmail({email: data.email}).unwrap();
+			      }
+			      if (isEditMode) {
+			        await editUser({id: id!, data: fields}).unwrap();
+			        onSuccess(t.users.userUpdatedSuccess);
+			        router.push(USERS_VIEW(id!));
+			      } else {
+			        await addUser({data: fields}).unwrap();
+			        onSuccess(t.users.userCreatedSuccess);
+			        router.push(USERS_LIST);
+			      }
+			    }, (e) => {
+			      onError(isEditMode ? t.users.userUpdateError : t.users.userCreateError);
+			      setFormikAutoErrors({e, setFieldError});
+			    });
+			  },
+			  () => {
+			    setIsPending(false);
+			  },
+			);
 		},
 	});
 
@@ -240,8 +246,8 @@ const FormikContent: React.FC<FormikContentProps> = ({ token, id }) => {
 								<CustomSquareImageUploading
 									image={formik.values.avatar}
 									croppedImage={formik.values.avatar_cropped}
-									onChange={(img) => formik.setFieldValue('avatar', img)}
-									onCrop={(cropped) => formik.setFieldValue('avatar_cropped', cropped)}
+									onChange={(img) => void formik.setFieldValue('avatar', img)}
+									onCrop={(cropped) => void formik.setFieldValue('avatar_cropped', cropped)}
 								/>
 							</div>
 						</div>
@@ -253,7 +259,7 @@ const FormikContent: React.FC<FormikContentProps> = ({ token, id }) => {
 									label={t.users.activeAccount}
 									name="is_active"
 									checked={formik.values.is_active}
-									onChange={(checked) => formik.setFieldValue('is_active', checked)}
+									onChange={(checked) => void formik.setFieldValue('is_active', checked)}
 									tone="active"
 								/>
 								<ToggleRow
@@ -319,7 +325,7 @@ const FormikContent: React.FC<FormikContentProps> = ({ token, id }) => {
 										label={`${t.users.gender} *`}
 										items={genderItemsList(t)}
 										value={formik.values.gender}
-										onChange={(e) => formik.setFieldValue('gender', e.target.value)}
+										onChange={(e) => void formik.setFieldValue('gender', e.target.value)}
 										onBlur={formik.handleBlur('gender')}
 										error={formik.touched.gender && Boolean(formik.errors.gender)}
 										helperText={formik.touched.gender ? formik.errors.gender : ''}
@@ -332,10 +338,10 @@ const FormikContent: React.FC<FormikContentProps> = ({ token, id }) => {
 						<div className="workflow-user-form-panel">
 							<WorkflowIconPill tone="cyan" icon={<Shield className="h-4 w-4" />} label={t.users.permissions} />
 							<div className="workflow-user-form-permissions">
-								<ToggleRow label={t.users.canView} name="can_view" checked={formik.values.can_view} onChange={(checked) => formik.setFieldValue('can_view', checked)} />
-								<ToggleRow label={t.users.canCreate} name="can_create" checked={formik.values.can_create} onChange={(checked) => formik.setFieldValue('can_create', checked)} />
-								<ToggleRow label={t.users.canEdit} name="can_edit" checked={formik.values.can_edit} onChange={(checked) => formik.setFieldValue('can_edit', checked)} />
-								<ToggleRow label={t.users.canDelete} name="can_delete" checked={formik.values.can_delete} onChange={(checked) => formik.setFieldValue('can_delete', checked)} />
+								<ToggleRow label={t.users.canView} name="can_view" checked={formik.values.can_view} onChange={(checked) => void formik.setFieldValue('can_view', checked)} />
+								<ToggleRow label={t.users.canCreate} name="can_create" checked={formik.values.can_create} onChange={(checked) => void formik.setFieldValue('can_create', checked)} />
+								<ToggleRow label={t.users.canEdit} name="can_edit" checked={formik.values.can_edit} onChange={(checked) => void formik.setFieldValue('can_edit', checked)} />
+								<ToggleRow label={t.users.canDelete} name="can_delete" checked={formik.values.can_delete} onChange={(checked) => void formik.setFieldValue('can_delete', checked)} />
 							</div>
 						</div>
 
@@ -348,7 +354,7 @@ const FormikContent: React.FC<FormikContentProps> = ({ token, id }) => {
 								startIcon={
 									isEditMode ? <PencilLine className="h-4 w-4" /> : <Plus className="h-4 w-4" />
 								}
-								onClick={(e: React.MouseEvent<HTMLButtonElement>) => {
+								onClick={(e: MouseEvent<HTMLButtonElement>) => {
 									setHasAttemptedSubmit(true);
 									if (!formik.isValid) {
 										e.preventDefault();
@@ -372,7 +378,7 @@ interface Props extends SessionProps {
 	id?: number;
 }
 
-const UsersFormClient: React.FC<Props> = ({ session, id }) => {
+const UsersFormClient: FC<Props> = ({ session, id }) => {
 	const token = useInitAccessToken(session);
 	const isEditMode = id !== undefined;
 	const { t } = useLanguage();

@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect, useMemo, useRef, useState } from 'react';
+import {useEffect, useRef, useState, type MouseEvent as ReactMouseEvent, type ReactNode} from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import FlagGB from '../../../../public/assets/images/flags/gb.svg';
@@ -47,7 +47,7 @@ import { WorkflowAvatar } from '@/components/shared/workflow/workflowAvatar';
 
 type Props = {
 	title: string;
-	children: React.ReactNode;
+	children: ReactNode;
 	hideTopbar?: boolean;
 };
 
@@ -223,22 +223,13 @@ const NavigationBar = ({ title, children, hideTopbar = false }: Props) => {
 		});
 	}, [t.workflow.activities, t.workflow.labels.notificationFallback, unreadNotificationsQuery.data]);
 
-	const workflowItems = useMemo<NavItem[]>(
-		() => getWorkflowNavigation(t, hasManagerAccess, unreadNotifications, unreadChatMessages),
-		[hasManagerAccess, t, unreadChatMessages, unreadNotifications],
-	);
+	const workflowItems = (getWorkflowNavigation(t, hasManagerAccess, unreadNotifications, unreadChatMessages));
 
-	const utilityItems = useMemo<NavItem[]>(
-		() => getWorkflowUtilities(t, Boolean(profile.is_staff || isSuperuser)),
-		[isSuperuser, profile.is_staff, t],
-	);
-	const profileMenuItems = useMemo<NavItem[]>(
-		() => [
+	const utilityItems = (getWorkflowUtilities(t, Boolean(profile.is_staff || isSuperuser)));
+	const profileMenuItems = ([
 			{ label: t.navigation.myProfile, path: DASHBOARD_EDIT_PROFILE, icon: <CircleUserRound size={16} /> },
 			{ label: t.navigation.changePassword, path: DASHBOARD_PASSWORD, icon: <KeyRound size={16} /> },
-		],
-		[t],
-	);
+		]);
 
 	const greeting =
 		profile.gender === 'Femme'
@@ -257,7 +248,7 @@ const NavigationBar = ({ title, children, hideTopbar = false }: Props) => {
 	};
 
 	const handleNotificationPreviewClick = async (
-		event: React.MouseEvent<HTMLAnchorElement>,
+		event: ReactMouseEvent<HTMLAnchorElement>,
 		notification: NotificationItem,
 		href: string,
 	) => {

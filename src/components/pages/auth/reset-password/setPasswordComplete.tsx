@@ -1,6 +1,6 @@
 'use client';
 
-import React from 'react';
+import {type FC} from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { ArrowRight } from 'lucide-react';
@@ -9,7 +9,7 @@ import SuccessIlluSVG from '../../../../../public/assets/images/success-illu.svg
 import { AUTH_LOGIN } from '@/utils/routes';
 import { useLanguage } from '@/utils/hooks';
 
-const SetPasswordCompleteClient: React.FC = () => {
+const SetPasswordCompleteClient: FC = () => {
 	const { t } = useLanguage();
 
 	return (

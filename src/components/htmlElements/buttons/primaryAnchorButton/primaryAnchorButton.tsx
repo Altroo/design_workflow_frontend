@@ -1,6 +1,6 @@
 'use client';
 
-import React, { ForwardedRef, forwardRef } from 'react';
+import {type ReactNode, type Ref} from 'react';
 import Link from 'next/link';
 import type { UrlObject } from 'url';
 
@@ -8,7 +8,7 @@ type Props = {
 	buttonText: string;
 	active: boolean;
 	nextPage: string | UrlObject;
-	startIcon?: React.ReactNode;
+	startIcon?: ReactNode;
 	onClick?: () => void;
 	anchorcssClass?: string;
 	cssClass?: string;
@@ -16,11 +16,11 @@ type Props = {
 	shallow?: boolean;
 	replace?: boolean;
 	type?: 'submit' | 'reset' | 'button' | undefined;
-	children?: React.ReactNode;
+	children?: ReactNode;
+	ref?: Ref<HTMLAnchorElement>;
 };
 
-const PrimaryAnchorButton = forwardRef<HTMLAnchorElement, Props>(
-	(props: Props, ref: ForwardedRef<HTMLAnchorElement>) => {
+const PrimaryAnchorButton = ({ref, ...props}: Props) => {
 		return (
 			<Link
 				href={props.nextPage}
@@ -54,8 +54,7 @@ const PrimaryAnchorButton = forwardRef<HTMLAnchorElement, Props>(
 				</span>
 			</Link>
 		);
-	},
-);
+};
 PrimaryAnchorButton.displayName = 'PrimaryAnchorButton';
 
 export default PrimaryAnchorButton;

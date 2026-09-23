@@ -1,6 +1,7 @@
 'use client';
 
-import React, { useEffect, useRef, useState } from 'react';
+import {runWithCleanup} from '@/utils/runWithCleanup';
+import {useEffect, useRef, useState, type FC} from 'react';
 import { useFormik } from 'formik';
 import { toFormikValidationSchema } from 'zod-formik-adapter';
 import { ArrowRight, Eye, EyeOff, KeyRound, Lock, Mail } from 'lucide-react';
@@ -35,29 +36,34 @@ const LoginPageContent = () => {
 		validationSchema: toFormikValidationSchema(loginSchema),
 		onSubmit: async (values, { setFieldError }) => {
 			setIsPending(true);
-			try {
-				const instance = allowAnyInstance();
-				const response: AccountPostLoginResponseType = await postApi(
-					`${process.env.NEXT_PUBLIC_ACCOUNT_LOGIN}`,
-					instance,
-					{
-						email: values.email,
-						password: values.password,
-					},
-				);
+			await runWithCleanup(
+			  async () => {
+			    try {
+			      const instance = allowAnyInstance();
+			      const response: AccountPostLoginResponseType = await postApi(
+			        `${process.env.NEXT_PUBLIC_ACCOUNT_LOGIN}`,
+			        instance,
+			        {
+			          email: values.email,
+			          password: values.password,
+			        },
+			      );
 
-				if (response.status === 200) {
-					await signIn('credentials', {
-						email: values.email,
-						password: values.password,
-						redirect: false,
-					});
-				}
-			} catch (e) {
-				setFormikAutoErrors({ e, setFieldError });
-			} finally {
-				setIsPending(false);
-			}
+			      if (response.status === 200) {
+			        await signIn('credentials', {
+			          email: values.email,
+			          password: values.password,
+			          redirect: false,
+			        });
+			      }
+			    } catch (e) {
+			      setFormikAutoErrors({e, setFieldError});
+			    }
+			  },
+			  () => {
+			    setIsPending(false);
+			  },
+			);
 		},
 	});
 
@@ -156,7 +162,7 @@ const LoginPageContent = () => {
 	);
 };
 
-const LoginClient: React.FC = () => {
+const LoginClient: FC = () => {
 	const { data: session, status } = useSession();
 	const dispatch = useAppDispatch();
 	const router = useRouter();

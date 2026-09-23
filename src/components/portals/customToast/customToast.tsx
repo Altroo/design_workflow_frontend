@@ -1,13 +1,13 @@
-import React, { useEffect } from 'react';
+import {useEffect, type Dispatch, type FC, type ReactNode, type SetStateAction} from 'react';
 import { AlertCircle, CheckCircle2, Info, TriangleAlert, X } from 'lucide-react';
 import type { ToastType } from '@/contexts/toastContext';
 
 type Props = {
 	type: ToastType;
 	show: boolean;
-	setShow: React.Dispatch<React.SetStateAction<boolean>>;
+	setShow: Dispatch<SetStateAction<boolean>>;
 	message: string;
-	children?: React.ReactNode;
+	children?: ReactNode;
 };
 
 const toneMap = {
@@ -27,9 +27,9 @@ const toneMap = {
 		icon: <TriangleAlert className="h-5 w-5" />,
 		accent: 'border-l-amber-400',
 	},
-} satisfies Record<ToastType, { icon: React.ReactNode; accent: string }>;
+} satisfies Record<ToastType, { icon: ReactNode; accent: string }>;
 
-const CustomToast: React.FC<Props> = ({ type, show, setShow, message }) => {
+const CustomToast: FC<Props> = ({ type, show, setShow, message }) => {
 	useEffect(() => {
 		if (!show) {
 			return undefined;

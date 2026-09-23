@@ -1,20 +1,18 @@
 'use client';
 
+import {runWithCleanup, runWithErrorHandler} from '@/utils/runWithCleanup';
 import Image from 'next/image';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import {
 	AlarmClock,
-	AlertTriangle,
 	ArrowDown,
 	BriefcaseBusiness,
 	CheckSquare2,
 	ChevronDown,
-	CircleCheckBig,
 	Clock3,
 	Edit3,
-	Eye,
 	FileText,
 	Forward,
 	ImageIcon,
@@ -31,7 +29,6 @@ import {
 	SlidersHorizontal,
 	SmilePlus,
 	Square,
-	ThumbsUp,
 	Trash2,
 	Users,
 	X,
@@ -60,34 +57,14 @@ import type { UserClass } from '@/models/classes';
 import { WorkflowPageHero } from '@/components/shared/workflow/workflowPrimitives';
 import { WorkflowAvatar } from '@/components/shared/workflow/workflowAvatar';
 import { WorkflowDateField, WorkflowSelectField } from '@/components/shared/workflow/workflowFormControls';
+import {
+	CHAT_PAGE_SIZE as PAGE_SIZE, MESSAGE_SPINNER_SHOW_DELAY_MS, MESSAGE_SPINNER_HIDE_DELAY_MS,
+	REACTION_OPTIONS, REMINDER_TIME_OPTIONS, OTHER_BUBBLE_COLORS,
+} from '@/utils/rawData';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL ?? '';
 const WS_URL = API_URL.replace(/^http/, 'ws');
-const PAGE_SIZE = 40;
 const EMPTY_CHAT_MESSAGES: ChatMessage[] = [];
-const MESSAGE_SPINNER_SHOW_DELAY_MS = 120;
-const MESSAGE_SPINNER_HIDE_DELAY_MS = 220;
-const REACTION_OPTIONS = [
-	{ emoji: '\u2705', label: 'Done', Icon: CircleCheckBig },
-	{ emoji: '\ud83d\udc40', label: 'Seen', Icon: Eye },
-	{ emoji: '\ud83d\udc4d', label: 'Approved', Icon: ThumbsUp },
-	{ emoji: '\u26a0\ufe0f', label: 'Attention', Icon: AlertTriangle },
-] as const;
-const REMINDER_TIME_OPTIONS = Array.from({ length: 48 }, (_, index) => {
-	const hour = Math.floor(index / 2)
-		.toString()
-		.padStart(2, '0');
-	const minute = index % 2 === 0 ? '00' : '30';
-	const value = `${hour}:${minute}`;
-	return { value, label: value };
-});
-const OTHER_BUBBLE_COLORS = [
-	'border-[color:var(--line)] bg-white',
-	'border-[color:var(--line)] bg-white',
-	'border-[color:var(--line)] bg-white',
-	'border-[color:var(--line)] bg-white',
-	'border-[color:var(--line)] bg-white',
-];
 
 const formatTime = (value: string, locale: string) =>
 	new Intl.DateTimeFormat(locale, { hour: '2-digit', minute: '2-digit' }).format(new Date(value));
@@ -265,10 +242,10 @@ const VoiceMessagePlayer = ({
 	const [playing, setPlaying] = useState(false);
 	const [duration, setDuration] = useState(0);
 	const [currentTime, setCurrentTime] = useState(0);
-	const bars = useMemo(() => {
+	const bars = (() => {
 		const base = Array.from(seed || src).reduce((total, char) => total + char.charCodeAt(0), 0);
 		return Array.from({ length: 34 }, (_, index) => 8 + ((base + index * 13 + (index % 5) * 7) % 22));
-	}, [seed, src]);
+	})();
 	const progress = duration ? currentTime / duration : 0;
 	const activeBars = Math.round(progress * bars.length);
 
@@ -415,6 +392,14 @@ const dedupeMessages = (messages: ChatMessage[]) => {
 	});
 };
 
+const scrollToMessage = (id: number) => {
+	const element = document.getElementById(`chat-message-${id}`);
+	if (!element) return;
+	element.scrollIntoView({ behavior: 'smooth', block: 'center' });
+	element.classList.add('is-highlighted');
+	window.setTimeout(() => element.classList.remove('is-highlighted'), 1500);
+};
+
 const DesignWorkflowChat = () => {
 	const { t, language } = useLanguage();
 	const searchParams = useSearchParams();
@@ -486,26 +471,15 @@ const DesignWorkflowChat = () => {
 		isFetching: threadsFetching,
 		refetch: refetchThreads,
 	} = useGetChatThreadsQuery(undefined, { skip: !chatDataReady });
-	const chatThreads = useMemo(() => threads.filter((thread) => thread.kind !== 'task'), [threads]);
-	const requestedThreadAvailable = useMemo(
-		() => Boolean(requestedThreadId && chatThreads.some((thread) => thread.id === requestedThreadId)),
-		[chatThreads, requestedThreadId],
-	);
-	const preferredThread = useMemo(
-		() =>
-			chatThreads.find((thread) => thread.kind === 'public') ??
+	const chatThreads = (threads.filter((thread) => thread.kind !== 'task'));
+	const requestedThreadAvailable = (Boolean(requestedThreadId && chatThreads.some((thread) => thread.id === requestedThreadId)));
+	const preferredThread = (chatThreads.find((thread) => thread.kind === 'public') ??
 			chatThreads.find((thread) => thread.unread_count > 0) ??
 			chatThreads.find((thread) => thread.last_message) ??
-			chatThreads[0],
-		[chatThreads],
-	);
-	const selectedThread = useMemo(
-		() =>
-			chatThreads.find((thread) => thread.id === selectedThreadId) ??
+			chatThreads[0]);
+	const selectedThread = (chatThreads.find((thread) => thread.id === selectedThreadId) ??
 			(optimisticSelectedThread?.id === selectedThreadId ? optimisticSelectedThread : undefined) ??
-			preferredThread,
-		[chatThreads, optimisticSelectedThread, preferredThread, selectedThreadId],
-	);
+			preferredThread);
 	const selectedThreadSection = sectionForThread(selectedThread);
 	useEffect(() => {
 		if (!selectedThread?.id) return;
@@ -521,17 +495,14 @@ const DesignWorkflowChat = () => {
 		pendingIncomingThreadIdRef.current = null;
 	}, [chatThreads]);
 	const chatInitialLoading = chatDataReady && chatThreads.length === 0 && (threadsLoading || threadsFetching);
-	const threadPreviewLabels = useMemo(
-		() => ({
+	const threadPreviewLabels = (({
 			deleted: t.workflow.labels.messageDeleted ?? 'Message deleted',
 			photo: t.workflow.labels.photoMessage ?? 'Photo',
 			attachment: t.workflow.labels.attachmentMessage ?? 'Attachment',
 			noMessage: t.workflow.labels.noMessageYet ?? 'No message yet',
 			you: t.workflow.labels.you ?? 'You',
-		}),
-		[t],
-	);
-	const privateThreadByUserId = useMemo(() => {
+		}));
+	const privateThreadByUserId = (() => {
 		const byUserId = new Map<number, ChatThread>();
 		chatThreads
 			.filter((thread) => thread.kind === 'private')
@@ -540,20 +511,16 @@ const DesignWorkflowChat = () => {
 				if (peer) byUserId.set(peer.id, thread);
 			});
 		return byUserId;
-	}, [chatThreads, profile.id]);
-	const publicThreads = useMemo(() => chatThreads.filter((thread) => thread.kind === 'public'), [chatThreads]);
-	const unreadBySection = useMemo(
-		() =>
-			chatThreads.reduce<Record<ChatSidebarSection, number>>(
+	})();
+	const publicThreads = (chatThreads.filter((thread) => thread.kind === 'public'));
+	const unreadBySection = (chatThreads.reduce<Record<ChatSidebarSection, number>>(
 				(counts, thread) => {
 					counts[sectionForThread(thread)] += Math.max(0, thread.unread_count);
 					return counts;
 				},
 				{ studio: 0, projects: 0, direct: 0 },
-			),
-		[chatThreads],
-	);
-	const projectThreadByProjectId = useMemo(() => {
+			));
+	const projectThreadByProjectId = (() => {
 		const byProjectId = new Map<number, ChatThread>();
 		chatThreads
 			.filter((thread) => thread.kind === 'project' && thread.project)
@@ -561,7 +528,7 @@ const DesignWorkflowChat = () => {
 				if (thread.project) byProjectId.set(thread.project.id, thread);
 			});
 		return byProjectId;
-	}, [chatThreads]);
+	})();
 	const {
 		currentData: currentThreadMessages,
 		isLoading: messagesLoading,
@@ -571,7 +538,7 @@ const DesignWorkflowChat = () => {
 		{ threadId: selectedThread?.id ?? 0, limit: PAGE_SIZE, q: searchTerm || undefined, ...searchFilters },
 		{ skip: !chatDataReady || !selectedThread?.id },
 	);
-	const currentMessages = useMemo(() => currentThreadMessages ?? EMPTY_CHAT_MESSAGES, [currentThreadMessages]);
+	const currentMessages = (currentThreadMessages ?? EMPTY_CHAT_MESSAGES);
 	const [loadOlderMessages] = useLazyGetChatMessagesQuery();
 	const [createThread] = useCreateChatThreadMutation();
 	const [sendMessage, sendMessageState] = useSendChatMessageMutation();
@@ -585,11 +552,11 @@ const DesignWorkflowChat = () => {
 	const writableProjects = projects.filter((project) => project.can_work && !project.archived);
 	const { data: activeTasks = [] } = useGetTasksQuery({ archived: false }, { skip: !chatDataReady });
 	const { data: archivedTasks = [] } = useGetTasksQuery({ archived: true }, { skip: !chatDataReady });
-	const tasks = useMemo(() => {
+	const tasks = (() => {
 		const byId = new Map<number, TaskCard>();
 		[...activeTasks, ...archivedTasks].forEach((task) => byId.set(task.id, task));
 		return Array.from(byId.values());
-	}, [activeTasks, archivedTasks]);
+	})();
 
 	useEffect(() => {
 		if (requestedThreadId && (threadsLoading || threadsFetching || requestedThreadAvailable)) return;
@@ -659,8 +626,7 @@ const DesignWorkflowChat = () => {
 				avatar: croppedAvatar || (typeof user.avatar === 'string' ? user.avatar : null),
 			};
 		});
-	const currentWorkflowUser: WorkflowUser = useMemo(
-		() => ({
+	const currentWorkflowUser: WorkflowUser = (({
 			id: profile.id,
 			first_name: profile.first_name ?? '',
 			last_name: profile.last_name ?? '',
@@ -669,17 +635,7 @@ const DesignWorkflowChat = () => {
 			avatar:
 				(typeof profile.avatar_cropped === 'string' && profile.avatar_cropped) ||
 				(typeof profile.avatar === 'string' ? profile.avatar : null),
-		}),
-		[
-			profile.avatar,
-			profile.avatar_cropped,
-			profile.email,
-			profile.first_name,
-			profile.id,
-			profile.last_name,
-			profile.role,
-		],
-	);
+		}));
 	const activeUserById = new Map(users.map((user) => [user.id, user]));
 	const forwardThreads = chatThreads.filter(
 		(thread) =>
@@ -744,7 +700,7 @@ const DesignWorkflowChat = () => {
 			if (wsRef.current === ws) wsRef.current = null;
 		};
 		ws.onmessage = (event) => {
-			try {
+			runWithErrorHandler(() => {
 				const payload = JSON.parse(event.data);
 				const signalType = payload.type ?? payload.message?.type;
 				const incomingMessage = payload.message?.message ?? payload.message;
@@ -847,9 +803,9 @@ const DesignWorkflowChat = () => {
 					refetchThreads();
 					refetchMessages();
 				}
-			} catch {
+			}, () => {
 				refetchThreads();
-			}
+			});
 		};
 		return () => {
 			if (wsRef.current === ws) wsRef.current = null;
@@ -867,10 +823,7 @@ const DesignWorkflowChat = () => {
 		[],
 	);
 
-	const messageList = useMemo(
-		() => dedupeMessages([...olderMessages, ...currentMessages]),
-		[olderMessages, currentMessages],
-	);
+	const messageList = (dedupeMessages([...olderMessages, ...currentMessages]));
 	const immediateMessagesBusy = Boolean(
 		selectedThread?.id &&
 		currentThreadMessages === undefined &&
@@ -903,8 +856,7 @@ const DesignWorkflowChat = () => {
 		};
 	}, [immediateMessagesBusy]);
 	const messagesBusy = messagesBusyVisible && messageList.length === 0;
-	const threadPreviewFor = useCallback(
-		(thread: ChatThread) => {
+	const threadPreviewFor = (thread: ChatThread) => {
 			const latestSelectedMessage =
 				selectedThread?.id === thread.id ? (messageList[messageList.length - 1] ?? null) : null;
 			return threadPreview(
@@ -914,10 +866,8 @@ const DesignWorkflowChat = () => {
 				tasks,
 				projects,
 			);
-		},
-		[messageList, profile.id, projects, selectedThread?.id, tasks, threadPreviewLabels],
-	);
-	const messageMentionUsers = useMemo(() => {
+		};
+	const messageMentionUsers = (() => {
 		const byId = new Map<number, WorkflowUser>();
 		[currentWorkflowUser, ...users].forEach((user) => byId.set(user.id, user));
 		messageList.forEach((message) => {
@@ -925,8 +875,8 @@ const DesignWorkflowChat = () => {
 			message.mentions.forEach((user) => byId.set(user.id, user));
 		});
 		return Array.from(byId.values());
-	}, [currentWorkflowUser, messageList, users]);
-	const linkedReferences = useMemo(() => {
+	})();
+	const linkedReferences = (() => {
 		const taskIds = new Set<number>();
 		const projectIds = new Set<number>();
 		messageList.forEach((message) => {
@@ -940,19 +890,12 @@ const DesignWorkflowChat = () => {
 			tasks: referencedTasks,
 			projects: projects.filter((project) => projectIds.has(project.id)),
 		};
-	}, [messageList, projects, tasks]);
+	})();
 	const linkedReferenceCount = linkedReferences.tasks.length + linkedReferences.projects.length;
-	const firstUnreadMessageId = useMemo(
-		() =>
-			messageList.find(
+	const firstUnreadMessageId = (messageList.find(
 				(message) => message.sender.id !== profile.id && !message.read_by.some((user) => user.id === profile.id),
-			)?.id ?? null,
-		[messageList, profile.id],
-	);
-	const mediaAttachments = useMemo(
-		() => messageList.flatMap((message) => message.attachments.map((attachment) => ({ message, attachment }))),
-		[messageList],
-	);
+			)?.id ?? null);
+	const mediaAttachments = (messageList.flatMap((message) => message.attachments.map((attachment) => ({ message, attachment }))));
 	const previewTask = previewTarget?.kind === 'task' ? tasks.find((task) => task.id === previewTarget.id) : undefined;
 	const previewProject =
 		previewTarget?.kind === 'project' ? projects.find((project) => project.id === previewTarget.id) : undefined;
@@ -986,23 +929,26 @@ const DesignWorkflowChat = () => {
 			const oldest = messageList[0];
 			if (!oldest) return;
 			setLoadingOlder(true);
-			try {
-				const previousHeight = scrollRef.current.scrollHeight;
-				const older = await loadOlderMessages({
-					threadId: selectedThread.id,
-					before_id: oldest.id,
-					limit: PAGE_SIZE,
-				}).unwrap();
-				setOlderMessages((current) => dedupeMessages([...older, ...current]));
-				setHasOlder(older.length >= PAGE_SIZE);
-				requestAnimationFrame(() => {
-					if (scrollRef.current) {
-						scrollRef.current.scrollTop = scrollRef.current.scrollHeight - previousHeight;
-					}
-				});
-			} finally {
-				setLoadingOlder(false);
-			}
+			await runWithCleanup(
+			  async () => {
+			    const previousHeight = scroller.scrollHeight;
+			    const older = await loadOlderMessages({
+			      threadId: selectedThread.id,
+			      before_id: oldest.id,
+			      limit: PAGE_SIZE,
+			    }).unwrap();
+			    setOlderMessages((current) => dedupeMessages([...older, ...current]));
+			    setHasOlder(older.length >= PAGE_SIZE);
+			    requestAnimationFrame(() => {
+			      if (scrollRef.current) {
+			        scrollRef.current.scrollTop = scrollRef.current.scrollHeight - previousHeight;
+			      }
+			    });
+			  },
+			  () => {
+			    setLoadingOlder(false);
+			  },
+			);
 		};
 		scroller.addEventListener('scroll', onScroll);
 		return () => scroller.removeEventListener('scroll', onScroll);
@@ -1011,7 +957,7 @@ const DesignWorkflowChat = () => {
 	const composerTrigger = body.match(/(^|\s)([@#])([\w:.-]*)$/);
 	const mentionMatch = composerTrigger?.[2] === '@' ? composerTrigger : null;
 	const referenceMatch = composerTrigger?.[2] === '#' ? composerTrigger : null;
-	const mentionOptions = useMemo(() => {
+	const mentionOptions = (() => {
 		if (!mentionMatch) return [];
 		const query = mentionMatch[3].toLowerCase();
 		return users
@@ -1025,8 +971,8 @@ const DesignWorkflowChat = () => {
 				);
 			})
 			.slice(0, 6);
-	}, [mentionMatch, users]);
-	const referenceOptions = useMemo(() => {
+	})();
+	const referenceOptions = (() => {
 		if (!referenceMatch) return [];
 		const query = referenceMatch[3].toLowerCase();
 		const projectOptions = projects
@@ -1041,7 +987,7 @@ const DesignWorkflowChat = () => {
 			.slice(0, 5)
 			.map((task) => ({ kind: 'task' as const, id: task.id, title: task.title, meta: task.project.name }));
 		return [...taskOptions, ...projectOptions].slice(0, 8);
-	}, [activeTasks, projects, referenceMatch]);
+	})();
 	const mentionTriggerText = mentionMatch?.[0] ?? '';
 	const referenceTriggerText = referenceMatch?.[0] ?? '';
 
@@ -1053,7 +999,7 @@ const DesignWorkflowChat = () => {
 		setReferenceActiveIndex(0);
 	}, [referenceTriggerText, referenceOptions.length]);
 
-	const groupedMessages = useMemo(() => {
+	const groupedMessages = (() => {
 		const groups: Array<{ day: string; items: ChatMessage[] }> = [];
 		messageList.forEach((message) => {
 			const day = new Date(message.created_at).toDateString();
@@ -1065,7 +1011,7 @@ const DesignWorkflowChat = () => {
 			group.items.push(message);
 		});
 		return groups;
-	}, [messageList]);
+	})();
 
 	const resetFiles = () => {
 		filePreviewUrls.forEach((url) => URL.revokeObjectURL(url));
@@ -1157,14 +1103,6 @@ const DesignWorkflowChat = () => {
 		setForwardMessage(null);
 	};
 
-	const scrollToMessage = useCallback((id: number) => {
-		const element = document.getElementById(`chat-message-${id}`);
-		if (!element) return;
-		element.scrollIntoView({ behavior: 'smooth', block: 'center' });
-		element.classList.add('is-highlighted');
-		window.setTimeout(() => element.classList.remove('is-highlighted'), 1500);
-	}, []);
-
 	useEffect(() => {
 		highlightedMessageKeyRef.current = null;
 	}, [requestedMessageKey]);
@@ -1178,7 +1116,7 @@ const DesignWorkflowChat = () => {
 			highlightedMessageKeyRef.current = requestedMessageKey;
 		}, 120);
 		return () => window.clearTimeout(timeout);
-	}, [messageList, requestedMessageId, requestedMessageKey, requestedThreadId, scrollToMessage, selectedThread?.id]);
+	}, [messageList, requestedMessageId, requestedMessageKey, requestedThreadId, selectedThread?.id]);
 
 	useEffect(() => {
 		if (reactionPickerMessageId === null) return;
@@ -1448,6 +1386,8 @@ const DesignWorkflowChat = () => {
 								{projects.map((project) => {
 									const thread = projectThreadByProjectId.get(project.id);
 									const preview = thread ? threadPreviewFor(thread) : null;
+									const hasUnread = Boolean(thread?.unread_count);
+									const isActive = selectedThread?.id === thread?.id;
 									return (
 										<button
 											key={project.id}
@@ -1458,8 +1398,8 @@ const DesignWorkflowChat = () => {
 											}}
 											className={[
 												'workflow-chat-context-button',
-												thread?.unread_count ? 'is-unread' : '',
-												selectedThread?.id === thread?.id ? 'is-active' : '',
+												hasUnread ? 'is-unread' : '',
+												isActive ? 'is-active' : '',
 											].join(' ')}
 										>
 											<span className="workflow-chat-context-icon">
@@ -1514,6 +1454,8 @@ const DesignWorkflowChat = () => {
 								{users.map((user) => {
 									const thread = privateThreadByUserId.get(user.id);
 									const preview = thread ? threadPreviewFor(thread) : null;
+									const hasUnread = Boolean(thread?.unread_count);
+									const isActive = selectedThread?.id === thread?.id;
 									return (
 										<button
 											key={user.id}
@@ -1527,8 +1469,8 @@ const DesignWorkflowChat = () => {
 											}}
 											className={[
 												'workflow-chat-direct-button',
-												thread?.unread_count ? 'is-unread' : '',
-												selectedThread?.id === thread?.id ? 'is-active' : '',
+												hasUnread ? 'is-unread' : '',
+												isActive ? 'is-active' : '',
 											].join(' ')}
 										>
 											<WorkflowAvatar
@@ -1548,7 +1490,7 @@ const DesignWorkflowChat = () => {
 													<span>{preview?.text ?? t.workflow.labels.noMessageYet ?? 'No message yet'}</span>
 												</small>
 											</span>
-											{thread?.unread_count ? <i>{thread.unread_count}</i> : null}
+													{hasUnread ? <i>{thread?.unread_count}</i> : null}
 										</button>
 									);
 								})}
@@ -1688,17 +1630,20 @@ const DesignWorkflowChat = () => {
 										const oldest = messageList[0];
 										if (!oldest || !selectedThread?.id) return;
 										setLoadingOlder(true);
-										try {
-											const older = await loadOlderMessages({
-												threadId: selectedThread.id,
-												before_id: oldest.id,
-												limit: PAGE_SIZE,
-											}).unwrap();
-											setOlderMessages((current) => dedupeMessages([...older, ...current]));
-											setHasOlder(older.length >= PAGE_SIZE);
-										} finally {
-											setLoadingOlder(false);
-										}
+										await runWithCleanup(
+										  async () => {
+										    const older = await loadOlderMessages({
+										      threadId: selectedThread.id,
+										      before_id: oldest.id,
+										      limit: PAGE_SIZE,
+										    }).unwrap();
+										    setOlderMessages((current) => dedupeMessages([...older, ...current]));
+										    setHasOlder(older.length >= PAGE_SIZE);
+										  },
+										  () => {
+										    setLoadingOlder(false);
+										  },
+										);
 									}}
 									className="workflow-chat-load-older"
 								>

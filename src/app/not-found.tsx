@@ -1,6 +1,5 @@
 'use client';
 
-import React from 'react';
 import { useRouter } from 'next/navigation';
 import { DASHBOARD } from '@/utils/routes';
 import { useLanguage } from '@/utils/hooks';

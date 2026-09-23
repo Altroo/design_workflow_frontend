@@ -1,6 +1,7 @@
 'use client';
 
-import React, { useState } from 'react';
+import {runWithCleanup} from '@/utils/runWithCleanup';
+import {useState, type FC} from 'react';
 import { Camera, PencilLine, UserRound } from 'lucide-react';
 import { useFormik } from 'formik';
 import { profilSchema } from '@/utils/formValidationSchemas';
@@ -26,7 +27,7 @@ type FormikContentType = {
 
 const normalizeGenderValue = (value?: string | null) => (value === 'Homme' ? 'H' : value === 'Femme' ? 'F' : value ?? '');
 
-const FormikContent: React.FC<FormikContentType> = ({ token }) => {
+const FormikContent: FC<FormikContentType> = ({ token }) => {
 	const { onSuccess, onError } = useToast();
 	const { t } = useLanguage();
 	const { data: profilData, isLoading: isProfilLoading } = useGetProfilQuery(undefined, { skip: !token });
@@ -50,18 +51,23 @@ const FormikContent: React.FC<FormikContentType> = ({ token }) => {
 			setIsPending(true);
 			const { globalError, ...payload } = data;
 			void globalError;
-			try {
-				const response = await editProfil({ data: payload }).unwrap();
-				if (response) {
-					dispatch(accountEditProfilAction(response));
-					onSuccess(t.settings.updateSuccess);
-				}
-			} catch (e) {
-				onError(t.settings.updateError);
-				setFormikAutoErrors({ e, setFieldError });
-			} finally {
-				setIsPending(false);
-			}
+			await runWithCleanup(
+			  async () => {
+			    try {
+			      const response = await editProfil({data: payload}).unwrap();
+			      if (response) {
+			        dispatch(accountEditProfilAction(response));
+			        onSuccess(t.settings.updateSuccess);
+			      }
+			    } catch (e) {
+			      onError(t.settings.updateError);
+			      setFormikAutoErrors({e, setFieldError});
+			    }
+			  },
+			  () => {
+			    setIsPending(false);
+			  },
+			);
 		},
 	});
 
@@ -85,8 +91,8 @@ const FormikContent: React.FC<FormikContentType> = ({ token }) => {
 							<CustomSquareImageUploading
 								image={formik.values.avatar}
 								croppedImage={formik.values.avatar_cropped}
-								onChange={(img) => formik.setFieldValue('avatar', img)}
-								onCrop={(cropped) => formik.setFieldValue('avatar_cropped', cropped)}
+								onChange={(img) => void formik.setFieldValue('avatar', img)}
+								onCrop={(cropped) => void formik.setFieldValue('avatar_cropped', cropped)}
 							/>
 						</div>
 					</div>
@@ -126,7 +132,7 @@ const FormikContent: React.FC<FormikContentType> = ({ token }) => {
 								id="gender"
 								label={t.users.gender}
 								items={genderItemsList(t)}
-								onChange={(e) => formik.setFieldValue('gender', e.target.value)}
+								onChange={(e) => void formik.setFieldValue('gender', e.target.value)}
 								onBlur={formik.handleBlur('gender')}
 								value={formik.values.gender}
 								error={formik.touched.gender && Boolean(formik.errors.gender)}
@@ -151,7 +157,7 @@ const FormikContent: React.FC<FormikContentType> = ({ token }) => {
 	);
 };
 
-const EditProfilClient: React.FC<SessionProps> = ({ session }) => {
+const EditProfilClient: FC<SessionProps> = ({ session }) => {
 	const token = useInitAccessToken(session);
 	const { t } = useLanguage();
 

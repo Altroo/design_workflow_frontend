@@ -1,4 +1,3 @@
-import React from 'react';
 import type { Metadata, Viewport } from 'next';
 import '@/styles/globals.css';
 import '@/styles/workflow/chat-workspace.css';
@@ -12,7 +11,7 @@ import '@/styles/workflow/empty-states.css';
 import '@/styles/workflow/visual-system.css';
 import SessionProvider from '@/providers/sessionProvider';
 import StoreProvider from '@/providers/storeProvider';
-import type { AppProps } from 'next/app';
+import type {RootLayoutProps} from '@/types/routeTypes';
 import { InitContextProvider } from '@/contexts/InitContext';
 import ThemeProvider from '@/providers/themeProvider';
 import { InitEffects } from '@/contexts/initEffects';
@@ -104,11 +103,7 @@ export const viewport: Viewport = {
 	themeColor: '#111827',
 };
 
-interface EntryPointProps extends AppProps {
-	children: React.ReactNode;
-}
-
-const RootLayout: React.FC<EntryPointProps> = async (props) => {
+const RootLayout = async ({children}: RootLayoutProps) => {
 	const t = await getServerTranslations();
 	const cookieStore = await cookies();
 	const lang = cookieStore.get('app-language')?.value === 'en' ? 'en' : 'fr';
@@ -128,7 +123,7 @@ const RootLayout: React.FC<EntryPointProps> = async (props) => {
 										<ToastContextProvider>
 											<SessionExpiredListener />
 											<Maintenance />
-											<div id="main-content">{props.children}</div>
+											<div id="main-content">{children}</div>
 										</ToastContextProvider>
 									</ErrorBoundary>
 								</LanguageContextProvider>

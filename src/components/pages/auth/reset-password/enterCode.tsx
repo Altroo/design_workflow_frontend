@@ -1,6 +1,7 @@
 'use client';
 
-import React, { useRef, useState } from 'react';
+import {runWithCleanup} from '@/utils/runWithCleanup';
+import {useRef, useState, type ClipboardEvent, type FC} from 'react';
 import { useFormik } from 'formik';
 import { toFormikValidationSchema } from 'zod-formik-adapter';
 import { ArrowRight, RotateCcw } from 'lucide-react';
@@ -54,15 +55,20 @@ const EnterCodePageContent = ({ email }: Props) => {
 		onSubmit: async (values, { setFieldError }) => {
 			setIsPending(true);
 			const code = fields.map((field) => values[field]).join('');
-			try {
-				await passwordReset({ email, code }).unwrap();
-				await cookiesPoster('/api/cookies', { code });
-				router.push(AUTH_RESET_PASSWORD_SET_PASSWORD);
-			} catch (e) {
-				setFormikAutoErrors({ e, setFieldError });
-			} finally {
-				setIsPending(false);
-			}
+			await runWithCleanup(
+			  async () => {
+			    try {
+			      await passwordReset({email, code}).unwrap();
+			      await cookiesPoster('/api/cookies', {code});
+			      router.push(AUTH_RESET_PASSWORD_SET_PASSWORD);
+			    } catch (e) {
+			      setFormikAutoErrors({e, setFieldError});
+			    }
+			  },
+			  () => {
+			    setIsPending(false);
+			  },
+			);
 		},
 	});
 
@@ -83,7 +89,7 @@ const EnterCodePageContent = ({ email }: Props) => {
 		moveFocus(field, nextValue);
 	};
 
-	const handlePaste = (event: React.ClipboardEvent<HTMLInputElement>) => {
+	const handlePaste = (event: ClipboardEvent<HTMLInputElement>) => {
 		event.preventDefault();
 		const digits = event.clipboardData.getData('text').replace(/\D/g, '').slice(0, fields.length).split('');
 		digits.forEach((digit, index) => {
@@ -168,7 +174,7 @@ const EnterCodePageContent = ({ email }: Props) => {
 	);
 };
 
-const EnterCodeClient: React.FC<Props> = ({ email }) => {
+const EnterCodeClient: FC<Props> = ({ email }) => {
 	const { data: session, status } = useSession();
 
 	if (status === 'loading') {

@@ -1,6 +1,7 @@
 'use client';
 
-import React, { useMemo, useState } from 'react';
+import {runWithCleanup} from '@/utils/runWithCleanup';
+import { useState, type FC} from 'react';
 import { useRouter } from 'next/navigation';
 import type { ApiErrorResponseType, ResponseDataInterface, SessionProps } from '@/types/_initTypes';
 import { useInitAccessToken } from '@/contexts/InitContext';
@@ -29,7 +30,7 @@ interface InfoRowProps {
 	value: string | number | null | undefined;
 }
 
-const InfoRow: React.FC<InfoRowProps> = ({ label, value }) => (
+const InfoRow: FC<InfoRowProps> = ({ label, value }) => (
 	<div className="workflow-user-detail-info-row">
 		<span>{label}</span>
 		<strong>{value && String(value).length > 0 ? value : '-'}</strong>
@@ -46,14 +47,11 @@ interface Props extends SessionProps {
 	id: number;
 }
 
-const UsersViewClient: React.FC<Props> = ({ session, id }) => {
+const UsersViewClient: FC<Props> = ({ session, id }) => {
 	const router = useRouter();
 	const token = useInitAccessToken(session);
 	const { data: userData, isLoading, error } = useGetUserQuery({ id }, { skip: !token });
-	const axiosError = useMemo(
-		() => (error ? (error as ResponseDataInterface<ApiErrorResponseType>) : undefined),
-		[error],
-	);
+	const axiosError = ((error ? (error as ResponseDataInterface<ApiErrorResponseType>) : undefined));
 
 	const [deleteRecord] = useDeleteUserMutation();
 	const { onSuccess, onError } = useToast();
@@ -61,15 +59,20 @@ const UsersViewClient: React.FC<Props> = ({ session, id }) => {
 	const [showDeleteModal, setShowDeleteModal] = useState(false);
 
 	const handleDelete = async () => {
-		try {
-			await deleteRecord({ id }).unwrap();
-			onSuccess(t.users.userDeletedSuccess);
-			router.push(USERS_LIST);
-		} catch (err) {
-			onError(extractApiErrorMessage(err, t.users.userDeleteError));
-		} finally {
-			setShowDeleteModal(false);
-		}
+		await runWithCleanup(
+		  async () => {
+		    try {
+		      await deleteRecord({id}).unwrap();
+		      onSuccess(t.users.userDeletedSuccess);
+		      router.push(USERS_LIST);
+		    } catch (err) {
+		      onError(extractApiErrorMessage(err, t.users.userDeleteError));
+		    }
+		  },
+		  () => {
+		    setShowDeleteModal(false);
+		  },
+		);
 	};
 
 	return (

@@ -1,6 +1,6 @@
 import { jest } from '@jest/globals';
 import { renderToStaticMarkup } from 'react-dom/server';
-import React from 'react';
+import type {ReactElement} from 'react';
 
 type Session = { user: { pk: number; email: string; role?: string } } | null;
 
@@ -20,8 +20,8 @@ jest.mock('@/components/pages/design-workflow/designWorkflowShell', () => ({
 	__esModule: true,
 	default: (props: { title?: string; variant?: string; taskId?: number }) => {
 		// eslint-disable-next-line @typescript-eslint/no-require-imports
-		const React = require('react');
-		return React.createElement('div', null, `WORKFLOW_SHELL:${props.title}:${props.variant}:${props.taskId ?? 'none'}`);
+		const {createElement} = require('react');
+		return createElement('div', null, `WORKFLOW_SHELL:${props.title}:${props.variant}:${props.taskId ?? 'none'}`);
 	},
 }));
 
@@ -54,6 +54,6 @@ describe('DashboardBoardPage server component', () => {
 		const Page = require('./page').default as (props?: { searchParams?: Promise<{ task?: string }> }) => Promise<unknown>;
 
 		const result = await Page({ searchParams: Promise.resolve({ task: '22' }) });
-		expect(renderToStaticMarkup(result as React.ReactElement)).toContain('WORKFLOW_SHELL:Board:board:22');
+		expect(renderToStaticMarkup(result as ReactElement)).toContain('WORKFLOW_SHELL:Board:board:22');
 	});
 });

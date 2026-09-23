@@ -1,20 +1,20 @@
-import React from 'react';
+import {type FC, type MouseEventHandler, type ReactNode} from 'react';
 
 type Props = {
 	buttonText: string;
 	loading: boolean;
-	onClick?: React.MouseEventHandler<HTMLButtonElement> | (() => void);
+	onClick?: MouseEventHandler<HTMLButtonElement> | (() => void);
 	active?: boolean;
 	type?: 'submit' | 'reset' | 'button' | undefined;
-	startIcon?: React.ReactNode;
+	startIcon?: ReactNode;
 	cssClass?: string;
-	children?: React.ReactNode;
+	children?: ReactNode;
 };
 
-const PrimaryLoadingButton: React.FC<Props> = (props: Props) => {
+const PrimaryLoadingButton: FC<Props> = (props: Props) => {
 	return (
 		<button
-			onClick={props.onClick as React.MouseEventHandler<HTMLButtonElement>}
+			onClick={props.onClick as MouseEventHandler<HTMLButtonElement>}
 			className={['app-button ui-button-primary', props.cssClass ?? ''].join(' ')}
 			disabled={!props.active || props.loading}
 			type={props.type}

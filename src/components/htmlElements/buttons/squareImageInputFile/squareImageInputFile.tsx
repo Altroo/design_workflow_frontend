@@ -1,15 +1,15 @@
 'use client';
 
-import React from 'react';
+import {type FC, type ReactNode} from 'react';
 import { ImagePlus, UploadCloud } from 'lucide-react';
 import { useLanguage } from '@/utils/hooks';
 
 type Props = {
 	onImageUpload: () => void;
-	children?: React.ReactNode;
+	children?: ReactNode;
 };
 
-const SquareImageInputFile: React.FC<Props> = ({ onImageUpload }) => {
+const SquareImageInputFile: FC<Props> = ({ onImageUpload }) => {
 	const { t } = useLanguage();
 	return (
 		<button

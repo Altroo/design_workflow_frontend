@@ -1,8 +1,8 @@
 'use client';
 
-import React from 'react';
+import {type ReactNode} from 'react';
 
-const ThemeProvider = ({ children }: { children: React.ReactNode }) => {
+const ThemeProvider = ({ children }: { children: ReactNode }) => {
 	return <>{children}</>;
 };
 

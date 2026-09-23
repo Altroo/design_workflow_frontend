@@ -1,9 +1,10 @@
 'use client';
 
+import {runWithCleanup, runAsyncWithErrorHandler} from '@/utils/runWithCleanup';
 import Link from 'next/link';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useEffectEvent, useRef, useState } from 'react';
 import type { CSSProperties, ReactNode } from 'react';
 import { format as formatDateFns, isValid, parseISO } from 'date-fns';
 import { HexColorPicker } from 'react-colorful';
@@ -119,7 +120,6 @@ import {
 } from '@/store/services/designWorkflow';
 import { useGetUsersListQuery } from '@/store/services/account';
 import type {
-	AttachmentAnnotation,
 	NotificationItem,
 	NotificationPreference,
 	ProjectDetail,
@@ -150,6 +150,11 @@ import { useAppSelector, useLanguage, useToast } from '@/utils/hooks';
 import { getAccessToken, getProfilState, getWSOnlineUserIdsState } from '@/store/selectors';
 import type { UserClass } from '@/models/classes';
 import type { TranslationDictionary } from '@/types/languageTypes';
+import {
+	PRIORITY_OPTIONS, REVIEW_STATE_OPTIONS, BOARD_SORT_OPTIONS, PROJECT_STATUS_OPTIONS,
+	EMPTY_PROJECTS, EMPTY_TASKS, EMPTY_WORKLOAD, EMPTY_TIME_REPORT, EMPTY_NOTIFICATIONS,
+	EMPTY_ANNOTATIONS, WORK_DAY_MINUTES, WORKFLOW_CHART_PALETTE,
+} from '@/utils/rawData';
 import {
 	WorkflowMetricCard as MetricCard,
 	WorkflowPageHero,
@@ -218,30 +223,6 @@ type BoardFiltersState = {
 	archivedOnly: boolean;
 };
 
-const PRIORITY_OPTIONS: Array<TaskCard['priority']> = ['low', 'medium', 'high', 'urgent'];
-const REVIEW_STATE_OPTIONS: Array<TaskCard['review_state']> = [
-	'not_submitted',
-	'needs_review',
-	'changes_requested',
-	'approved',
-];
-const BOARD_SORT_OPTIONS = [
-	'sort_order',
-	'due_date',
-	'-due_date',
-	'priority',
-	'-priority',
-	'updated_at',
-	'-updated_at',
-	'title',
-] as const;
-const PROJECT_STATUS_OPTIONS: Array<ProjectSummary['status']> = ['planned', 'active', 'on_hold', 'completed'];
-const EMPTY_PROJECTS: ProjectSummary[] = [];
-const EMPTY_TASKS: TaskCard[] = [];
-const EMPTY_WORKLOAD: WorkloadRow[] = [];
-const EMPTY_TIME_REPORT: TimeReportRow[] = [];
-const EMPTY_NOTIFICATIONS: NotificationItem[] = [];
-const EMPTY_ANNOTATIONS: AttachmentAnnotation[] = [];
 const DEFAULT_NOTIFICATION_PREFERENCES: NotificationPreference = {
 	mentions: true,
 	assignments: true,
@@ -251,8 +232,19 @@ const DEFAULT_NOTIFICATION_PREFERENCES: NotificationPreference = {
 	created_at: '',
 	updated_at: '',
 };
-const WORK_DAY_MINUTES = 8 * 60;
 type WorkflowCopy = TranslationDictionary['workflow'];
+const getWorkflowLabel = (workflow: WorkflowCopy, value: string) =>
+	workflow.statuses[value] ??
+	workflow.priorities[value] ??
+	workflow.activities[value] ??
+	workflow.labels[value] ??
+	formatLabel(value);
+
+const getWorkflowRiskLabel = (workflow: WorkflowCopy, value: string) =>
+	workflow.labels[`risk_${value}`] ??
+	workflow.labels[value] ??
+	workflow.priorities[value] ??
+	getWorkflowLabel(workflow, value);
 type PrintableReportCopy = {
 	brand: string;
 	reportStudio: string;
@@ -737,8 +729,6 @@ const getChecklistTemplates = (labels: WorkflowCopy['labels']): ChecklistTemplat
 		],
 	},
 ];
-
-const WORKFLOW_CHART_PALETTE = ['#4f46e5', '#0891b2', '#059669', '#d97706', '#7c3aed', '#e11d48'];
 
 const formatDate = (value?: string | null, emptyLabel = 'No date', locale?: string) => {
 	if (!value) return emptyLabel;
@@ -1996,25 +1986,19 @@ const DesignWorkflowShell = ({ title, variant, projectId, taskId }: Props) => {
 	const { onSuccess, onError } = useToast();
 	const workflow = t.workflow;
 	const locale = language === 'en' ? 'en-US' : 'fr-FR';
-	const labelFor = (value: string) =>
-		workflow.statuses[value] ??
-		workflow.priorities[value] ??
-		workflow.activities[value] ??
-		workflow.labels[value] ??
-		formatLabel(value);
-	const riskLabelFor = (value: string) =>
-		workflow.labels[`risk_${value}`] ?? workflow.labels[value] ?? workflow.priorities[value] ?? labelFor(value);
+	const labelFor = (value: string) => getWorkflowLabel(workflow, value);
+	const riskLabelFor = (value: string) => getWorkflowRiskLabel(workflow, value);
 	const dateFor = (value?: string | null) => formatDate(value, workflow.labels.noDate, locale);
 	const dateTimeFor = (value?: string | null) => formatDateTime(value, workflow.labels.noDate, locale);
 	const messageFor = (fr: string, en: string) => (language === 'en' ? en : fr);
-	const calendarWeekdays = useMemo(() => {
+	const calendarWeekdays = (() => {
 		const baseSunday = new Date(Date.UTC(2026, 0, 4));
 		return Array.from({ length: 7 }, (_, index) =>
 			new Intl.DateTimeFormat(locale, { weekday: 'short', timeZone: 'UTC' }).format(
 				new Date(baseSunday.getTime() + index * 86_400_000),
 			),
 		);
-	}, [locale]);
+	})();
 	const notificationTitle = (notification: NotificationItem) => {
 		return labelFor(notification.type);
 	};
@@ -2161,7 +2145,7 @@ const DesignWorkflowShell = ({ title, variant, projectId, taskId }: Props) => {
 			},
 		}),
 	);
-	const closeTaskModal = useCallback(() => {
+	const closeTaskModal = () => {
 		setSelectedTaskId(null);
 		setTaskAddPanel(null);
 		setModalDescriptionEditing(false);
@@ -2169,8 +2153,8 @@ const DesignWorkflowShell = ({ title, variant, projectId, taskId }: Props) => {
 		if (taskId && variant === 'board') {
 			router.replace(DASHBOARD_BOARD, { scroll: false });
 		}
-	}, [router, taskId, variant]);
-	const closeProjectTaskEdit = useCallback(() => setProjectTaskEditId(null), []);
+	};
+	const closeProjectTaskEdit = () => setProjectTaskEditId(null);
 	const toggleTaskAddPanel = (panel: NonNullable<typeof taskAddPanel>) => {
 		setTaskAddPanel((current) => (current === panel ? null : panel));
 		setModalLabelComposerOpen(false);
@@ -2273,7 +2257,7 @@ const DesignWorkflowShell = ({ title, variant, projectId, taskId }: Props) => {
 	const projectBusy = !workflowDataReady || projectLoading;
 	const tasksBusy = !workflowDataReady || tasksLoading;
 	const taskBusy = !workflowDataReady || taskLoading;
-	const task = useMemo(() => normalizeTaskDetail(taskData), [taskData]);
+	const task = (normalizeTaskDetail(taskData));
 	const { data: workloadData } = useGetWorkloadQuery(undefined, {
 		skip: !workflowDataReady || !isManager || !['team', 'overview'].includes(variant),
 	});
@@ -2348,17 +2332,14 @@ const DesignWorkflowShell = ({ title, variant, projectId, taskId }: Props) => {
 	const [runNotificationAction] = useRunNotificationActionMutation();
 	const [updateNotificationPreferences] = useUpdateNotificationPreferencesMutation();
 
-	const runPrimaryAction = useCallback(
-		async (action: () => Promise<unknown>, successMessage: string, errorMessage = t.errors.unexpectedError) => {
-			try {
+	const runPrimaryAction = async (action: () => Promise<unknown>, successMessage: string, errorMessage?: string) => {
+			await runAsyncWithErrorHandler(async () => {
 				await action();
 				onSuccess(successMessage);
-			} catch (error) {
-				onError(getApiErrorMessage(error, errorMessage));
-			}
-		},
-		[onError, onSuccess, t.errors.unexpectedError],
-	);
+			}, (error) => {
+				onError(getApiErrorMessage(error, errorMessage ?? t.errors.unexpectedError));
+			});
+		};
 
 	const submitReviewUpdate = async (
 		reviewState: TaskDetail['review_state'],
@@ -2370,24 +2351,29 @@ const DesignWorkflowShell = ({ title, variant, projectId, taskId }: Props) => {
 		pendingReviewMutationRef.current = task.id;
 		setPendingReviewTaskId(task.id);
 		setReviewStateDraft(reviewState);
-		try {
-			const updatedTask = await updateTaskReview({
-				id: task.id,
-				review_state: reviewState,
-				notes: options.notes ?? (reviewNotes.trim() || undefined),
-			}).unwrap();
-			setReviewStateDraft(updatedTask.review_state);
-			onSuccess(messageFor('Revue mise à jour avec succès.', 'Review updated successfully.'));
-			if (options.resetNotes ?? true) setReviewNotes('');
-		} catch {
-			setReviewStateDraft(currentReviewState);
-			onError(messageFor('Impossible de mettre à jour la revue.', 'Could not update the review.'));
-		} finally {
-			if (pendingReviewMutationRef.current === task.id) {
-				pendingReviewMutationRef.current = null;
-				setPendingReviewTaskId(null);
-			}
-		}
+		await runWithCleanup(
+		  async () => {
+		    await runAsyncWithErrorHandler(async () => {
+		      const updatedTask = await updateTaskReview({
+		        id: task.id,
+		        review_state: reviewState,
+		        notes: options.notes ?? (reviewNotes.trim() || undefined),
+		      }).unwrap();
+		      setReviewStateDraft(updatedTask.review_state);
+		      onSuccess(messageFor('Revue mise à jour avec succès.', 'Review updated successfully.'));
+		      if (options.resetNotes ?? true) setReviewNotes('');
+		    }, () => {
+		      setReviewStateDraft(currentReviewState);
+		      onError(messageFor('Impossible de mettre à jour la revue.', 'Could not update the review.'));
+		    });
+		  },
+		  () => {
+		    if (pendingReviewMutationRef.current === task.id) {
+		      pendingReviewMutationRef.current = null;
+		      setPendingReviewTaskId(null);
+		    }
+		  },
+		);
 	};
 
 	useEffect(() => {
@@ -2478,7 +2464,7 @@ const DesignWorkflowShell = ({ title, variant, projectId, taskId }: Props) => {
 		};
 	}, []);
 
-	useEffect(() => {
+	const syncTaskEditForm = useEffectEvent(() => {
 		setTaskEditForm(buildTaskEditForm(task));
 		if (task?.current_assignee?.id) {
 			setReassignForm((current) => ({ ...current, assignee_id: String(task.current_assignee?.id ?? '') }));
@@ -2496,9 +2482,13 @@ const DesignWorkflowShell = ({ title, variant, projectId, taskId }: Props) => {
 		setModalDescriptionEditing(false);
 		setModalLabelComposerOpen(false);
 		setEditingLabelId(null);
-	}, [task]);
+	});
 
 	useEffect(() => {
+		syncTaskEditForm();
+	}, [taskData]);
+
+	const resetTaskReviewState = useEffectEvent(() => {
 		setTaskDetailTab('overview');
 		setReviewStateDraft(null);
 		setReviewNotes('');
@@ -2512,23 +2502,30 @@ const DesignWorkflowShell = ({ title, variant, projectId, taskId }: Props) => {
 		setAnnotationX('50');
 		setAnnotationY('50');
 		setAnnotationResolved(false);
-		// eslint-disable-next-line react-hooks/exhaustive-deps
+	});
+
+	useEffect(() => {
+		resetTaskReviewState();
 	}, [task?.id]);
+
+	const onModalEscape = useEffectEvent(() => {
+		if (projectTaskEditId) {
+			closeProjectTaskEdit();
+			return;
+		}
+		if (taskAddPanel) {
+			setTaskAddPanel(null);
+			return;
+		}
+		closeTaskModal();
+	});
 
 	useEffect(() => {
 		if (!selectedTaskId && !projectTaskEditId) return;
 		const previousOverflow = document.body.style.overflow;
 		const handleKeyDown = (event: KeyboardEvent) => {
 			if (event.key === 'Escape') {
-				if (projectTaskEditId) {
-					closeProjectTaskEdit();
-					return;
-				}
-				if (taskAddPanel) {
-					setTaskAddPanel(null);
-					return;
-				}
-				closeTaskModal();
+				onModalEscape();
 			}
 		};
 		document.body.style.overflow = 'hidden';
@@ -2537,7 +2534,7 @@ const DesignWorkflowShell = ({ title, variant, projectId, taskId }: Props) => {
 			document.body.style.overflow = previousOverflow;
 			window.removeEventListener('keydown', handleKeyDown);
 		};
-	}, [selectedTaskId, projectTaskEditId, taskAddPanel, closeTaskModal, closeProjectTaskEdit]);
+	}, [selectedTaskId, projectTaskEditId]);
 
 	const handleArchiveTask = async (taskItem: TaskCard) => {
 		await archiveTask({ id: taskItem.id, archived: !taskItem.archived }).unwrap();
@@ -7835,10 +7832,10 @@ const DesignWorkflowShell = ({ title, variant, projectId, taskId }: Props) => {
 				: workflow.labels.allTimeWindow;
 		const selectedReportProject = projects.find((item) => String(item.id) === reportFilters.project);
 		const selectedReportUser = assignableUsers.find((item) => String(item.id) === reportFilters.user);
-		const reportScopeLabel =
-			[selectedReportProject?.name, selectedReportUser ? userOptionLabel(selectedReportUser) : '']
-				.filter(Boolean)
-				.join(' - ') || workflow.labels.allProjects;
+		const selectedProjectName = selectedReportProject?.name ?? '';
+		const selectedUserName = selectedReportUser ? userOptionLabel(selectedReportUser) : '';
+		const selectedScopeLabel = [selectedProjectName, selectedUserName].filter(Boolean).join(' - ');
+		const reportScopeLabel = selectedScopeLabel || workflow.labels.allProjects;
 		const generatedAt = workflowReport?.generated_at ?? new Date().toISOString();
 		const generatedLabel = formatExportDateTime(generatedAt, locale);
 		const reportFileDate = new Date(generatedAt).toISOString().slice(0, 10);
@@ -8412,11 +8409,11 @@ const DesignWorkflowShell = ({ title, variant, projectId, taskId }: Props) => {
 			const previousPreferences = notificationPreferenceDraft;
 			const nextPreferences = { ...previousPreferences, [key]: value };
 			setNotificationPreferenceDraft(nextPreferences);
-			try {
+			await runAsyncWithErrorHandler(async () => {
 				const savedPreferences = await updateNotificationPreferences({ [key]: value }).unwrap();
 				setNotificationPreferenceDraft(savedPreferences ?? nextPreferences);
 				onSuccess(messageFor('Préférences mises à jour.', 'Preferences updated.'));
-			} catch (error) {
+			}, (error) => {
 				setNotificationPreferenceDraft(previousPreferences);
 				onError(
 					getApiErrorMessage(
@@ -8424,17 +8421,17 @@ const DesignWorkflowShell = ({ title, variant, projectId, taskId }: Props) => {
 						messageFor('Impossible de mettre à jour les préférences.', 'Could not update preferences.'),
 					),
 				);
-			}
+			});
 		};
 		const updateDigestFrequency = async (value: NotificationPreference['digest_frequency']) => {
 			const previousPreferences = notificationPreferenceDraft;
 			const nextPreferences = { ...previousPreferences, digest_frequency: value };
 			setNotificationPreferenceDraft(nextPreferences);
-			try {
+			await runAsyncWithErrorHandler(async () => {
 				const savedPreferences = await updateNotificationPreferences({ digest_frequency: value }).unwrap();
 				setNotificationPreferenceDraft(savedPreferences ?? nextPreferences);
 				onSuccess(messageFor('Préférences mises à jour.', 'Preferences updated.'));
-			} catch (error) {
+			}, (error) => {
 				setNotificationPreferenceDraft(previousPreferences);
 				onError(
 					getApiErrorMessage(
@@ -8442,7 +8439,7 @@ const DesignWorkflowShell = ({ title, variant, projectId, taskId }: Props) => {
 						messageFor('Impossible de mettre à jour les préférences.', 'Could not update preferences.'),
 					),
 				);
-			}
+			});
 		};
 		const snoozeForOneHour = (notification: NotificationItem) => {
 			const snoozedUntil = new Date(Date.now() + 60 * 60 * 1000).toISOString();

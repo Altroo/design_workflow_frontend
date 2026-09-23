@@ -1,11 +1,11 @@
 'use client';
 
-import React from 'react';
+import {type Dispatch, type ReactNode, type SetStateAction} from 'react';
 
 export type GridColDef = {
 	field: string;
 	headerName?: string;
-	renderCell?: (params: { row: Record<string, unknown>; value: unknown }) => React.ReactNode;
+	renderCell?: (params: { row: Record<string, unknown>; value: unknown }) => ReactNode;
 };
 
 export type GridLogicOperator = 'and' | 'or';
@@ -24,9 +24,9 @@ type PaginatedDataGridProps<T> = {
 	isLoading?: boolean;
 	columns: GridColDef[];
 	paginationModel: { page: number; pageSize: number };
-	setPaginationModel: React.Dispatch<React.SetStateAction<{ page: number; pageSize: number }>>;
+	setPaginationModel: Dispatch<SetStateAction<{ page: number; pageSize: number }>>;
 	searchTerm: string;
-	setSearchTerm: React.Dispatch<React.SetStateAction<string>>;
+	setSearchTerm: Dispatch<SetStateAction<string>>;
 	onSelectionChange?: (ids: number[]) => void;
 	selectedIds?: number[];
 	onRowClick?: (params: GridRowParams) => void;

@@ -1,4 +1,3 @@
-import React from 'react';
 import { render, waitFor } from '@testing-library/react';
 import { InitEffects } from './initEffects';
 import { useSession } from 'next-auth/react';
@@ -15,7 +14,6 @@ jest.mock('next/navigation', () => ({
 	useRouter: jest.fn(),
 	usePathname: jest.fn(),
 }));
-
 import { useRouter, usePathname } from 'next/navigation';
 
 const mockDispatch = jest.fn();

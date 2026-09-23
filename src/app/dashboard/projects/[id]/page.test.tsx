@@ -1,6 +1,6 @@
 import { jest } from '@jest/globals';
 import { renderToStaticMarkup } from 'react-dom/server';
-import React from 'react';
+import type {ReactElement} from 'react';
 
 type Session = { user: { pk: number; email: string } } | null;
 
@@ -11,17 +11,19 @@ jest.mock('@/auth', () => ({
 }));
 
 const mockRedirect = jest.fn((url: string | URL) => ({ redirectedTo: String(url) }));
+const mockNotFound = jest.fn(() => { throw new Error('not found'); });
 jest.mock('next/navigation', () => ({
 	__esModule: true,
 	redirect: mockRedirect,
+	notFound: mockNotFound,
 }));
 
 jest.mock('@/components/pages/design-workflow/designWorkflowShell', () => ({
 	__esModule: true,
 	default: (props: { title?: string; variant?: string; projectId?: number }) => {
 		// eslint-disable-next-line @typescript-eslint/no-require-imports
-		const React = require('react');
-		return React.createElement('div', null, `WORKFLOW_SHELL:${props.title}:${props.variant}:${props.projectId}`);
+		const {createElement} = require('react');
+		return createElement('div', null, `WORKFLOW_SHELL:${props.title}:${props.variant}:${props.projectId}`);
 	},
 }));
 
@@ -54,6 +56,14 @@ describe('DashboardProjectDetailPage server component', () => {
 		const Page = require('./page').default as (props: { params: Promise<{ id: string }> }) => Promise<unknown>;
 
 		const result = await Page({ params: Promise.resolve({ id: '5' }) });
-		expect(renderToStaticMarkup(result as React.ReactElement)).toContain('WORKFLOW_SHELL:Project:project-detail:5');
+		expect(renderToStaticMarkup(result as ReactElement)).toContain('WORKFLOW_SHELL:Project:project-detail:5');
+	});
+
+	it('rejects an invalid project id', async () => {
+		mockAuth.mockResolvedValueOnce({ user: { pk: 1, email: 'user@example.com' } });
+		// eslint-disable-next-line @typescript-eslint/no-require-imports
+		const Page = require('./page').default as (props: { params: Promise<{ id: string }> }) => Promise<unknown>;
+		await expect(Page({ params: Promise.resolve({ id: 'oops' }) })).rejects.toThrow('not found');
+		expect(mockNotFound).toHaveBeenCalledTimes(1);
 	});
 });

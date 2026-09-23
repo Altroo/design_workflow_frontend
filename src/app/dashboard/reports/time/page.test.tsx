@@ -1,6 +1,6 @@
 import { jest } from '@jest/globals';
 import { renderToStaticMarkup } from 'react-dom/server';
-import React from 'react';
+import type {ReactElement} from 'react';
 
 type Session = { user: { pk: number; email: string; role?: string } } | null;
 
@@ -28,8 +28,8 @@ jest.mock('@/components/pages/design-workflow/designWorkflowShell', () => ({
 	__esModule: true,
 	default: (props: { title?: string; variant?: string }) => {
 		// eslint-disable-next-line @typescript-eslint/no-require-imports
-		const React = require('react');
-		return React.createElement('div', null, `WORKFLOW_SHELL:${props.title}:${props.variant}`);
+		const {createElement} = require('react');
+		return createElement('div', null, `WORKFLOW_SHELL:${props.title}:${props.variant}`);
 	},
 }));
 
@@ -76,6 +76,6 @@ describe('DashboardReportsTimePage server component', () => {
 		const Page = require('./page').default as () => Promise<unknown>;
 
 		const result = await Page();
-		expect(renderToStaticMarkup(result as React.ReactElement)).toContain('WORKFLOW_SHELL:Time reports:report-time');
+		expect(renderToStaticMarkup(result as ReactElement)).toContain('WORKFLOW_SHELL:Time reports:report-time');
 	});
 });

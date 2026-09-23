@@ -1,6 +1,6 @@
 'use client';
 
-import React from 'react';
+import {type FC} from 'react';
 import Image from 'next/image';
 import { useLanguage } from '@/utils/hooks';
 import { Desktop, TabletAndMobile } from '@/utils/clientHelpers';
@@ -21,7 +21,7 @@ export const LanguageFlag = ({ language, size = 20 }: LanguageFlagProps) => (
 	/>
 );
 
-const LanguageSwitcher: React.FC = () => {
+const LanguageSwitcher: FC = () => {
 	const { language, setLanguage } = useLanguage();
 
 	const toggleLanguage = () => {

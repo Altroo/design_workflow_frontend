@@ -1,12 +1,12 @@
-import React from 'react';
+import {type ReactNode, isValidElement} from 'react';
 
 type TooltipProps = {
-	title?: React.ReactNode;
-	children: React.ReactNode;
+	title?: ReactNode;
+	children: ReactNode;
 };
 
 const DarkTooltip = ({ title, children }: TooltipProps) => {
-	if (React.isValidElement(children)) {
+	if (isValidElement(children)) {
 		return (
 			<span title={typeof title === 'string' ? title : undefined} className="inline-flex">
 				{children}

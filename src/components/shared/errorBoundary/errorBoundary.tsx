@@ -1,6 +1,6 @@
 'use client';
 
-import React, { Component } from 'react';
+import {Component} from 'react';
 import type { ErrorInfo, ReactNode } from 'react';
 import { AlertTriangle } from 'lucide-react';
 import type { Language } from '@/types/languageTypes';

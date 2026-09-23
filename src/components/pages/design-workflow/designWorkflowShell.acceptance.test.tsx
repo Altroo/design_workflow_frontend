@@ -1,6 +1,6 @@
 import { render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import React from 'react';
+import {type ReactNode} from 'react';
 import DesignWorkflowShell from './designWorkflowShell';
 import type {
 	DashboardSummary,
@@ -34,7 +34,7 @@ beforeAll(() => {
 });
 
 jest.mock('next/link', () => {
-	function MockNextLink({ children, href }: { children: React.ReactNode; href: string }) {
+	function MockNextLink({ children, href }: { children: ReactNode; href: string }) {
 		return <a href={href}>{children}</a>;
 	}
 
@@ -50,7 +50,7 @@ jest.mock('next/navigation', () => ({
 }));
 
 jest.mock('@/components/layouts/navigationBar/navigationBar', () => {
-	function MockNavigationBar({ children }: { children: React.ReactNode }) {
+	function MockNavigationBar({ children }: { children: ReactNode }) {
 		return <div data-testid="navigation-shell">{children}</div>;
 	}
 
@@ -71,8 +71,8 @@ jest.mock('@/utils/hooks', () => {
 });
 
 jest.mock('@dnd-kit/core', () => ({
-	DndContext: ({ children }: { children: React.ReactNode }) => <div data-testid="dnd-context">{children}</div>,
-	DragOverlay: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
+	DndContext: ({ children }: { children: ReactNode }) => <div data-testid="dnd-context">{children}</div>,
+	DragOverlay: ({ children }: { children: ReactNode }) => <div>{children}</div>,
 	PointerSensor: function PointerSensor() {
 		return null;
 	},
@@ -84,7 +84,7 @@ jest.mock('@dnd-kit/core', () => ({
 }));
 
 jest.mock('@dnd-kit/sortable', () => ({
-	SortableContext: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
+	SortableContext: ({ children }: { children: ReactNode }) => <div>{children}</div>,
 	useSortable: () => ({
 		attributes: {},
 		listeners: {},

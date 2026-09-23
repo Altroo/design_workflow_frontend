@@ -1,7 +1,6 @@
 import { render, screen } from '@testing-library/react';
 import DarkTooltip from './darkTooltip';
 import '@testing-library/jest-dom';
-import React from 'react';
 
 describe('DarkTooltip', () => {
 	it('renders tooltip text as a native title', () => {

@@ -1,11 +1,11 @@
-import React from 'react';
+import {type CSSProperties, type FC, type ReactNode} from 'react';
 
 type Action = {
 	active: boolean;
 	text: string;
 	onClick: () => void;
 	color?: string;
-	icon?: React.ReactNode;
+	icon?: ReactNode;
 	disabled?: boolean;
 };
 
@@ -14,14 +14,14 @@ type Props = {
 	actions: Action[];
 	actionsStyle?: string[];
 	body?: string;
-	children?: React.ReactNode;
-	titleIcon?: React.ReactNode;
+	children?: ReactNode;
+	titleIcon?: ReactNode;
 	titleIconColor?: string;
 	/** Called when the dialog is dismissed via backdrop click or Escape key. */
 	onClose?: () => void;
 };
 
-const ActionModals: React.FC<Props> = ({
+const ActionModals: FC<Props> = ({
 	title,
 	actions,
 	actionsStyle,
@@ -88,7 +88,7 @@ const ActionModals: React.FC<Props> = ({
 							].join(' ')}
 							style={
 								action.active && action.color
-									? ({ '--ui-modal-action-color': action.color } as React.CSSProperties)
+									? ({ '--ui-modal-action-color': action.color } as CSSProperties)
 									: undefined
 							}
 						>

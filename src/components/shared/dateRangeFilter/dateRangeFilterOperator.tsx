@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import {useState, type ComponentType, type FC} from 'react';
 import { formatLocalDate } from '@/utils/helpers';
 import { useLanguage } from '@/utils/hooks';
 
@@ -20,10 +20,10 @@ type GridFilterOperator = {
 	label: string;
 	value: string;
 	getApplyFilterFn: () => null;
-	InputComponent: React.ComponentType<GridFilterInputValueProps>;
+	InputComponent: ComponentType<GridFilterInputValueProps>;
 };
 
-const DateRangeFilterInput: React.FC<GridFilterInputValueProps> = (props) => {
+const DateRangeFilterInput: FC<GridFilterInputValueProps> = (props) => {
 	const { item, applyValue } = props;
 	const { t } = useLanguage();
 	const value = item.value || {};

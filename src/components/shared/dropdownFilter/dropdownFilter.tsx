@@ -1,4 +1,4 @@
-import React from 'react';
+import {type ChangeEvent, type ComponentType, type FC} from 'react';
 
 export interface DropdownFilterOption {
 	value: string;
@@ -14,7 +14,7 @@ type GridFilterOperator = {
 	label: string;
 	value: string;
 	getApplyFilterFn: (filterItem: GridFilterItem) => ((value: unknown) => boolean) | null;
-	InputComponent?: React.ComponentType<unknown>;
+	InputComponent?: ComponentType<unknown>;
 };
 
 interface DropdownFilterProps {
@@ -25,10 +25,10 @@ interface DropdownFilterProps {
 	showChips?: boolean;
 }
 
-const DropdownFilter: React.FC<DropdownFilterProps> = (props) => {
+const DropdownFilter: FC<DropdownFilterProps> = (props) => {
 	const { item, applyValue, options, placeholder } = props;
 
-	const handleFilterChange = (event: React.ChangeEvent<HTMLSelectElement>) => {
+	const handleFilterChange = (event: ChangeEvent<HTMLSelectElement>) => {
 		applyValue({ ...item, value: event.target.value });
 	};
 

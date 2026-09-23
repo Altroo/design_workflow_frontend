@@ -1,4 +1,4 @@
-import React from 'react';
+import {type ReactNode} from 'react';
 import { render, screen, cleanup, fireEvent, act, waitFor } from '@testing-library/react';
 import '@testing-library/jest-dom';
 
@@ -79,12 +79,12 @@ jest.mock('@/store/services/account', () => ({
 
 // Mock Protected
 jest.mock('@/components/layouts/protected/protected', () => ({
-	Protected: ({ children }: { children: React.ReactNode }) => <div data-testid="protected">{children}</div>,
+	Protected: ({ children }: { children: ReactNode }) => <div data-testid="protected">{children}</div>,
 }));
 
 // Mock NavigationBar
 jest.mock('@/components/layouts/navigationBar/navigationBar', () => {
-	const Mock = ({ children }: { children: React.ReactNode }) => <div data-testid="navigation-bar">{children}</div>;
+	const Mock = ({ children }: { children: ReactNode }) => <div data-testid="navigation-bar">{children}</div>;
 	Mock.displayName = 'NavigationBar';
 	return { __esModule: true, default: Mock };
 });
@@ -99,7 +99,7 @@ jest.mock('@/components/shared/paginatedDataGrid/paginatedDataGrid', () => ({
 		columns: Array<{
 			field: string;
 			headerName: string;
-			renderCell?: (params: { value: unknown; row: Record<string, unknown>; field: string }) => React.ReactNode;
+			renderCell?: (params: { value: unknown; row: Record<string, unknown>; field: string }) => ReactNode;
 		}>;
 		data?: { results?: Array<Record<string, unknown>> };
 		isLoading?: boolean;
@@ -177,7 +177,7 @@ jest.mock('@/components/shared/mobileActionsMenu/mobileActionsMenu', () => ({
 
 jest.mock('@/components/htmlElements/tooltip/darkTooltip/darkTooltip', () => ({
 	__esModule: true,
-	default: ({ children }: { children: React.ReactNode }) => <>{children}</>,
+	default: ({ children }: { children: ReactNode }) => <>{children}</>,
 }));
 
 jest.mock('@/components/shared/dropdownFilter/dropdownFilter', () => ({
@@ -204,7 +204,6 @@ jest.mock('next/image', () => ({
 		return <img {...props} alt={String(alt)} />;
 	},
 }));
-
 import UsersListClient from './users-list';
 
 describe('UsersListClient', () => {

@@ -4,17 +4,14 @@ import { AUTH_LOGIN, USERS_LIST } from '@/utils/routes';
 import UsersFormClient from '@/components/pages/users/users-form';
 import type { Metadata } from 'next';
 import { getServerTranslations } from '@/utils/serverTranslations';
+import type {IdRouteProps} from '@/types/routeTypes';
 
 export async function generateMetadata(): Promise<Metadata> {
 	const t = await getServerTranslations();
 	return { title: t.metadata.editUserTitle, description: t.metadata.editUserDescription };
 }
 
-interface Props {
-	params: Promise<{ id: string }>;
-}
-
-const UserEditPage = async ({ params }: Props) => {
+const UserEditPage = async ({ params }: IdRouteProps) => {
 	const session = await auth();
 	const { id } = await params;
 

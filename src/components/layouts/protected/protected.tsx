@@ -1,6 +1,6 @@
 'use client';
 
-import { ReactNode, useEffect, useMemo } from 'react';
+import { ReactNode, useEffect } from 'react';
 import { usePermission, useAppSelector, useAppDispatch } from '@/utils/hooks';
 import { getProfilState } from '@/store/selectors';
 import NoPermission from '@/components/shared/noPermission/noPermission';
@@ -41,7 +41,7 @@ export const Protected = (props: ProtectedProps) => {
 		skip: !shouldFetchProfile,
 	});
 	const required = props.permission ?? 'is_staff';
-	const sessionProfile = useMemo(() => getUserProfileFromSession(session ?? undefined), [session]);
+	const sessionProfile = (getUserProfileFromSession(session ?? undefined));
 	const activeProfile = profil.id ? profil : fetchedProfile ?? sessionProfile;
 	const permissions = profil.id ? storePermissions : permissionsFor(fetchedProfile ?? sessionProfile);
 

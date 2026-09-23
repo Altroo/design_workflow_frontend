@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useRef, useState } from 'react';
+import {useRef, useState, type ChangeEvent, type FC} from 'react';
 import Image from 'next/image';
 import { X } from 'lucide-react';
 import SquareImageInputFile from '../../htmlElements/buttons/squareImageInputFile/squareImageInputFile';
@@ -20,12 +20,12 @@ const resolveMediaUrl = (value: string) => {
 	return `${apiUrl}${value.startsWith('/') ? value : `/${value}`}`;
 };
 
-const CustomSquareImageUploading: React.FC<Props> = ({ image, croppedImage, onChange, onCrop, cssClasse }) => {
+const CustomSquareImageUploading: FC<Props> = ({ image, croppedImage, onChange, onCrop, cssClasse }) => {
 	const fileInputRef = useRef<HTMLInputElement>(null);
 	const { t } = useLanguage();
 	const [failedImageSrc, setFailedImageSrc] = useState<string | null>(null);
 
-	const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+	const handleFileChange = (e: ChangeEvent<HTMLInputElement>) => {
 		const file = e.target.files?.[0];
 		if (!file) return;
 		const reader = new FileReader();

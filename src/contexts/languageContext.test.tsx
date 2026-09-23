@@ -1,4 +1,4 @@
-import React from 'react';
+import {type ReactNode} from 'react';
 import {act, renderHook} from '@testing-library/react';
 import '@testing-library/jest-dom';
 import {LanguageContext, LanguageContextProvider} from './languageContext';
@@ -13,7 +13,7 @@ describe('LanguageContextProvider', () => {
   });
 
   it('provides default French translations', () => {
-    const wrapper = ({children}: {children: React.ReactNode}) => (
+    const wrapper = ({children}: {children: ReactNode}) => (
       <LanguageContextProvider>{children}</LanguageContextProvider>
     );
     const {result} = renderHook(() => useTestLanguage(), {wrapper});
@@ -22,7 +22,7 @@ describe('LanguageContextProvider', () => {
   });
 
   it('setLanguage updates the language and saves to localStorage', () => {
-    const wrapper = ({children}: {children: React.ReactNode}) => (
+    const wrapper = ({children}: {children: ReactNode}) => (
       <LanguageContextProvider>{children}</LanguageContextProvider>
     );
     const {result} = renderHook(() => useTestLanguage(), {wrapper});
@@ -37,7 +37,7 @@ describe('LanguageContextProvider', () => {
   });
 
   it('uses initialLanguage prop when provided', () => {
-    const wrapper = ({children}: {children: React.ReactNode}) => (
+    const wrapper = ({children}: {children: ReactNode}) => (
       <LanguageContextProvider initialLanguage="en">{children}</LanguageContextProvider>
     );
     const {result} = renderHook(() => useTestLanguage(), {wrapper});
@@ -47,7 +47,7 @@ describe('LanguageContextProvider', () => {
 
   it('falls back to fr for invalid stored language', () => {
     localStorage.setItem('app-language', 'de');
-    const wrapper = ({children}: {children: React.ReactNode}) => (
+    const wrapper = ({children}: {children: ReactNode}) => (
       <LanguageContextProvider>{children}</LanguageContextProvider>
     );
     const {result} = renderHook(() => useTestLanguage(), {wrapper});

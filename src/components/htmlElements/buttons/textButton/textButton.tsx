@@ -1,15 +1,15 @@
-import React from 'react';
+import {type FC, type ReactNode} from 'react';
 
 type Props = {
 	buttonText: string;
-	startIcon?: React.ReactNode;
+	startIcon?: ReactNode;
 	onClick?: () => void;
 	cssClass?: string;
 	disabled?: boolean;
-	children?: React.ReactNode;
+	children?: ReactNode;
 };
 
-const TextButton: React.FC<Props> = (props: Props) => {
+const TextButton: FC<Props> = (props: Props) => {
 	return (
 		<button
 			type="button"

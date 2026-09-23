@@ -1,6 +1,6 @@
 'use client';
 
-import React from 'react';
+import {type FC} from 'react';
 
 export interface DateRangeFilterValue {
 	from?: string;
@@ -33,7 +33,7 @@ export function filterHasValue(item: CustomFilterItem): boolean {
 	return Boolean(item.value.from || item.value.to);
 }
 
-const CustomFilterPanel: React.FC<CustomFilterPanelProps> = ({ filterModel, onChange }) => {
+const CustomFilterPanel: FC<CustomFilterPanelProps> = ({ filterModel, onChange }) => {
 	return (
 		<div className="ui-filter-panel app-card border border-[color:var(--line)] bg-white p-4">
 			<div className="flex items-center justify-between gap-3">

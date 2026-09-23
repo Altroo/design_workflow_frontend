@@ -1,15 +1,15 @@
 'use client';
 
-import React from 'react';
+import {type CSSProperties, type FC, type ReactNode} from 'react';
 import { useLanguage } from '@/utils/hooks';
 
 type Props = {
 	errorDetails?: Record<string, string[]> | { error: string[] } | null;
-	cssStyle?: React.CSSProperties;
-	children?: React.ReactNode;
+	cssStyle?: CSSProperties;
+	children?: ReactNode;
 };
 
-const ApiAlert: React.FC<Props> = (props: Props) => {
+const ApiAlert: FC<Props> = (props: Props) => {
 	const { t } = useLanguage();
 	const errorDetails = props.errorDetails;
 	const errorMessage: Array<Record<string, Array<string>>> = [];
