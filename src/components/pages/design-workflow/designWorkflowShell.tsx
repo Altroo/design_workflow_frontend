@@ -6,6 +6,7 @@ import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import { useEffect, useEffectEvent, useRef, useState } from 'react';
 import type { CSSProperties, ReactNode } from 'react';
+import { prepareCardCoverImage } from '@/utils/cardImage';
 import { format as formatDateFns, isValid, parseISO } from 'date-fns';
 import { HexColorPicker } from 'react-colorful';
 import {
@@ -2101,6 +2102,7 @@ const DesignWorkflowShell = ({ title, variant, projectId, taskId }: Props) => {
 	const [taskAttachmentLabel, setTaskAttachmentLabel] = useState('');
 	const [taskCoverFile, setTaskCoverFile] = useState<File | null>(null);
 	const [taskCoverLabel, setTaskCoverLabel] = useState('');
+	const [isPreparingTaskCover, setIsPreparingTaskCover] = useState(false);
 	const [mediaDeleteTarget, setMediaDeleteTarget] = useState<MediaDeleteTarget | null>(null);
 	const [projectArchiveOpen, setProjectArchiveOpen] = useState(false);
 	const [attachmentPreview, setAttachmentPreview] = useState<AttachmentPreviewTarget | null>(null);
@@ -2572,19 +2574,32 @@ const DesignWorkflowShell = ({ title, variant, projectId, taskId }: Props) => {
 
 	const handleUploadTaskCover = async (taskId: number) => {
 		const label = taskCoverLabel.trim();
-		if (!taskCoverFile || !label) return;
-		await runPrimaryAction(
-			async () => {
-				const data = new FormData();
-				data.append('cover_image', taskCoverFile);
-				data.append('name', label);
-				await uploadTaskCover({ id: taskId, data }).unwrap();
-				setTaskCoverFile(null);
-				setTaskCoverLabel('');
-			},
-			messageFor('Image de carte ajoutée.', 'Card image added.'),
-			messageFor('Impossible d’ajouter l’image.', 'Could not add the image.'),
-		);
+		if (!taskCoverFile || !label || isPreparingTaskCover) return;
+		setIsPreparingTaskCover(true);
+		try {
+			const preparedFile = await prepareCardCoverImage(taskCoverFile);
+			await runPrimaryAction(
+				async () => {
+					const data = new FormData();
+					data.append('cover_image', preparedFile);
+					data.append('name', label);
+					await uploadTaskCover({ id: taskId, data }).unwrap();
+					setTaskCoverFile(null);
+					setTaskCoverLabel('');
+				},
+				messageFor('Image de carte ajoutée.', 'Card image added.'),
+				messageFor('Impossible d’ajouter l’image.', 'Could not add the image.'),
+			);
+		} catch {
+			onError(
+				messageFor(
+					'Impossible de réduire cette image. Choisissez une image valide ou moins volumineuse.',
+					'Could not reduce this image. Choose a valid or smaller image.',
+				),
+			);
+		} finally {
+			setIsPreparingTaskCover(false);
+		}
 	};
 
 	const handleUploadTaskAttachment = async (taskId: number) => {
@@ -5242,10 +5257,12 @@ const DesignWorkflowShell = ({ title, variant, projectId, taskId }: Props) => {
 												</label>
 												<button
 													type="button"
-													disabled={!taskCoverFile || !taskCoverLabel.trim()}
+													disabled={!taskCoverFile || !taskCoverLabel.trim() || isPreparingTaskCover}
 													onClick={() => void handleUploadTaskCover(task.id)}
 												>
-													{uploadTaskCoverState.isLoading ? workflow.buttons.saving : t.common.add}
+													{uploadTaskCoverState.isLoading || isPreparingTaskCover
+														? workflow.buttons.saving
+														: t.common.add}
 												</button>
 											</div>
 										) : null}
@@ -5652,10 +5669,12 @@ const DesignWorkflowShell = ({ title, variant, projectId, taskId }: Props) => {
 											<button
 												type="button"
 												className="workflow-trello-modal-save"
-												disabled={!taskCoverFile || !taskCoverLabel.trim()}
+												disabled={!taskCoverFile || !taskCoverLabel.trim() || isPreparingTaskCover}
 												onClick={() => void handleUploadTaskCover(task.id)}
 											>
-												{uploadTaskCoverState.isLoading ? workflow.buttons.saving : t.common.add}
+												{uploadTaskCoverState.isLoading || isPreparingTaskCover
+													? workflow.buttons.saving
+													: t.common.add}
 											</button>
 											{task.cover_image_url ? (
 												<button
@@ -6746,13 +6765,13 @@ const DesignWorkflowShell = ({ title, variant, projectId, taskId }: Props) => {
 													</label>
 													<button
 														type="button"
-														disabled={!taskCoverFile || !taskCoverLabel.trim()}
+														disabled={!taskCoverFile || !taskCoverLabel.trim() || isPreparingTaskCover}
 														onClick={() => void handleUploadTaskCover(task.id)}
 														className="app-button workflow-upload-submit"
 													>
 														<ImagePlus size={16} />
 														<span>
-															{uploadTaskCoverState.isLoading
+															{uploadTaskCoverState.isLoading || isPreparingTaskCover
 																? workflow.buttons.saving
 																: (workflow.labels.setCardImage ?? "Modifier l'image")}
 														</span>
