@@ -9,6 +9,7 @@ import '@/styles/workflow/page-heroes.css';
 import '@/styles/workflow/neutral-chrome.css';
 import '@/styles/workflow/empty-states.css';
 import '@/styles/workflow/visual-system.css';
+import '@/styles/workflow/color-modes.css';
 import SessionProvider from '@/providers/sessionProvider';
 import StoreProvider from '@/providers/storeProvider';
 import type {RootLayoutProps} from '@/types/routeTypes';
@@ -107,8 +108,9 @@ const RootLayout = async ({children}: RootLayoutProps) => {
 	const t = await getServerTranslations();
 	const cookieStore = await cookies();
 	const lang = cookieStore.get('app-language')?.value === 'en' ? 'en' : 'fr';
+	const theme = cookieStore.get('app-theme')?.value === 'dark' ? 'dark' : 'light';
 	return (
-		<html lang={lang} data-scroll-behavior="smooth" suppressHydrationWarning>
+		<html lang={lang} data-theme={theme} data-scroll-behavior="smooth" suppressHydrationWarning>
 			<body className={poppins.variable} suppressHydrationWarning>
 				<a href="#main-content" className="skip-to-content">
 					{t.common.skipToContent}
@@ -117,7 +119,7 @@ const RootLayout = async ({children}: RootLayoutProps) => {
 					<StoreProvider>
 						<InitContextProvider>
 							<InitEffects />
-							<ThemeProvider>
+							<ThemeProvider initialTheme={theme}>
 								<LanguageContextProvider initialLanguage={lang}>
 									<ErrorBoundary>
 										<ToastContextProvider>

@@ -667,6 +667,7 @@ describe('Design workflow acceptance flows', () => {
 				name: 'Creative sprint',
 				description: '',
 				manager_id: manager.id,
+				collaborator_ids: [],
 				start_date: null,
 				target_end_date: null,
 				priority: 'medium',
@@ -771,6 +772,7 @@ describe('Design workflow acceptance flows', () => {
 				name: 'Shared campaign',
 				description: '',
 				manager_id: designerA.id,
+				collaborator_ids: [],
 				start_date: null,
 				target_end_date: null,
 				priority: 'medium',
@@ -882,6 +884,94 @@ describe('Design workflow acceptance flows', () => {
 		const dialog = await screen.findByRole('dialog', { name: boardTask.title });
 		expect(within(dialog).queryByRole('button', { name: 'Labels' })).not.toBeInTheDocument();
 		expect(within(dialog).queryByPlaceholderText('Write a comment…')).not.toBeInTheDocument();
+	});
+
+	it('shows compact project counts and a meaningful project status', () => {
+		mockProfile(manager);
+		const { rerender, container } = render(<DesignWorkflowShell title="Projects" variant="projects" />);
+		const summary = container.querySelector('.workflow-projects-header .workflow-header-summary') as HTMLElement;
+		expect(summary.querySelectorAll('.workflow-header-stat')).toHaveLength(3);
+		expect(within(summary).getByText('Open tasks')).toBeInTheDocument();
+		expect(container.querySelector('.workflow-projects-actions')).toBeNull();
+		mockUseGetProjectQuery.mockReturnValue({ data: { ...projectDetail, open_tasks_count: 1 }, isLoading: false });
+		rerender(<DesignWorkflowShell title="Project" variant="project-detail" projectId={projectDetail.id} />);
+		const header = container.querySelector('.workflow-project-detail-header') as HTMLElement;
+		expect(within(header).getByText('open task')).toBeInTheDocument();
+		expect(within(header).queryByText('Workflow')).not.toBeInTheDocument();
+		expect(header.querySelector('.workflow-project-detail-status')).toHaveAttribute('data-status', projectDetail.status);
+	});
+
+	it('shows the complete read-only explanation for another project', async () => {
+		const user = userEvent.setup();
+		mockProfile(designerA);
+		const readOnlyProject = { ...projectSummary, id: 202, name: 'Other studio', can_work: false };
+		mockUseGetProjectsQuery.mockReturnValue({ data: [{ ...projectSummary, can_work: true }, readOnlyProject], isLoading: false });
+		render(<DesignWorkflowShell title="Board" variant="board" />);
+		await selectMuiOption(user, 'Project', readOnlyProject.name);
+		const notice = document.querySelector('.workflow-board-view-notice') as HTMLElement;
+		expect(notice).toHaveAttribute('role', 'status');
+		expect(within(notice).getByText('Read-only project')).toBeInTheDocument();
+		expect(within(notice).getByText('You can view every card. Only tasks assigned to you can be edited or moved.')).toBeInTheDocument();
+	});
+
+	it('toggles the unread notification filter accessibly and keeps mark-all working', async () => {
+		const user = userEvent.setup();
+		mockProfile(designerA);
+		render(<DesignWorkflowShell title="Notifications" variant="notifications" />);
+		const toggle = screen.getByRole('button', { name: 'Unread only' });
+		expect(toggle).toHaveAttribute('aria-pressed', 'false');
+		await user.click(toggle);
+		expect(toggle).toHaveAttribute('aria-pressed', 'true');
+		expect(mockUseGetNotificationsQuery).toHaveBeenLastCalledWith({ unread: true }, { skip: false });
+		await user.click(toggle);
+		expect(toggle).toHaveAttribute('aria-pressed', 'false');
+		expect(mockUseGetNotificationsQuery).toHaveBeenLastCalledWith(undefined, { skip: false });
+		await user.click(screen.getByRole('button', { name: 'Mark all read' }));
+		expect(mockMarkNotificationRead).toHaveBeenCalledWith(301);
+		expect(mockMarkNotificationRead).not.toHaveBeenCalledWith(302);
+	});
+
+	it('adds multiple collaborators and removes only the selected member', async () => {
+		const user = userEvent.setup();
+		mockProfile(manager);
+		render(<DesignWorkflowShell title="Projects" variant="projects" />);
+		await user.type(screen.getByLabelText('Project name'), 'Shared studio');
+		await selectMuiOption(user, 'Collaborators', 'Dina Designer');
+		await selectMuiOption(user, 'Collaborators', 'Rami Reviewer');
+		await user.click(screen.getByRole('button', { name: 'Remove Dina Designer' }));
+		expect(screen.getByRole('button', { name: 'Remove Rami Reviewer' })).toBeInTheDocument();
+		await user.click(screen.getByRole('button', { name: 'Create project' }));
+		await waitFor(() => expect(mockCreateProject).toHaveBeenCalledWith(expect.objectContaining({ collaborator_ids: [designerB.id] })));
+	});
+
+	it('excludes inactive collaborator choices but keeps existing inactive members removable', async () => {
+		const user = userEvent.setup();
+		mockProfile(manager);
+		const inactiveDesigner = { ...designerA, is_active: false };
+		mockUseGetUsersListQuery.mockReturnValue({ data: { results: [manager, inactiveDesigner, designerB] }, isLoading: false });
+		const { rerender } = render(<DesignWorkflowShell title="Projects" variant="projects" />);
+		await user.click(screen.getByRole('combobox', { name: 'Collaborators' }));
+		const choices = await screen.findByRole('listbox');
+		expect(within(choices).queryByRole('option', { name: 'Dina Designer' })).not.toBeInTheDocument();
+		await user.click(within(choices).getByRole('option', { name: 'Rami Reviewer' }));
+		await user.type(screen.getByLabelText('Project name'), 'Active team');
+		await user.click(screen.getByRole('button', { name: 'Create project' }));
+		await waitFor(() => expect(mockCreateProject).toHaveBeenCalledWith(expect.objectContaining({ collaborator_ids: [designerB.id] })));
+
+		mockUseGetProjectQuery.mockReturnValue({ data: { ...projectDetail, collaborators: [inactiveDesigner] }, isLoading: false });
+		rerender(<DesignWorkflowShell title="Project" variant="project-detail" projectId={projectDetail.id} />);
+		await user.click(await screen.findByRole('button', { name: 'Remove Dina Designer' }));
+		await user.click(screen.getByRole('button', { name: 'Update project' }));
+		await waitFor(() => expect(mockUpdateProject).toHaveBeenCalledWith(expect.objectContaining({ data: expect.objectContaining({ collaborator_ids: [] }) })));
+	});
+
+	it('lets a collaborator create tasks without managing project settings', () => {
+		mockProfile(designerA);
+		mockUseGetProjectQuery.mockReturnValue({ data: { ...projectDetail, can_work: true, can_manage: false, collaborators: [designerA, designerB] }, isLoading: false });
+		render(<DesignWorkflowShell title="Project" variant="project-detail" projectId={projectDetail.id} />);
+		expect(document.querySelector('.workflow-project-detail-create')).not.toBeNull();
+		expect(document.querySelector('.workflow-project-detail-edit')).toBeNull();
+		expect(screen.queryByRole('button', { name: 'Archive project' })).not.toBeInTheDocument();
 	});
 
 	it('opens another owner project tasks in read-only mode', async () => {

@@ -24,7 +24,12 @@ const LoginPageContent = () => {
 	const [showPassword, setShowPassword] = useState(false);
 	const { t } = useLanguage();
 	const error = searchParams.get('error') as string | null;
-	const errorState = error === 'AccessDenied' ? t.errors.serviceUnavailable : error;
+	const loginErrorMessage = (code: string) => {
+		if (code === 'CredentialsSignin') return t.errors.invalidCredentials;
+		if (['SSOConfiguration', 'SSOCodeMissing', 'SSOFailed'].includes(code)) return t.errors.ssoLoginFailed;
+		return t.errors.serviceUnavailable;
+	};
+	const errorState = error ? loginErrorMessage(error) : null;
 
 	const formik = useFormik({
 		initialValues: {
@@ -50,14 +55,17 @@ const LoginPageContent = () => {
 			      );
 
 			      if (response.status === 200) {
-			        await signIn('credentials', {
+			        const result = await signIn('credentials', {
 			          email: values.email,
 			          password: values.password,
 			          redirect: false,
 			        });
+			        if (result?.error) setFieldError('globalError', loginErrorMessage(result.error));
 			      }
 			    } catch (e) {
-			      setFormikAutoErrors({e, setFieldError});
+			      const status = (e as { error?: { status_code?: number } })?.error?.status_code;
+			      if (status === 400 || status === 401) setFieldError('globalError', t.errors.invalidCredentials);
+			      else setFormikAutoErrors({e, setFieldError});
 			    }
 			  },
 			  () => {
@@ -76,7 +84,7 @@ const LoginPageContent = () => {
 				</header>
 
 				{errorState ? (
-					<div className="mb-4 rounded-[14px] border border-[color:var(--accent)] bg-(--accent-soft) px-4 py-3 text-xs font-bold text-(--accent-strong)">
+					<div role="alert" className="auth-login-error mb-4">
 						{errorState}
 					</div>
 				) : null}
@@ -98,10 +106,12 @@ const LoginPageContent = () => {
 								onChange={formik.handleChange}
 								onBlur={formik.handleBlur}
 								className="auth-login-input app-input pl-14"
+								aria-invalid={Boolean(formik.touched.email && formik.errors.email)}
+								aria-describedby={formik.touched.email && formik.errors.email ? 'login-email-error' : undefined}
 							/>
 						</div>
 						{formik.touched.email && formik.errors.email ? (
-							<p className="mt-2 text-sm text-(--ink-soft)">{formik.errors.email}</p>
+							<p id="login-email-error" role="alert" className="auth-field-error">{formik.errors.email}</p>
 						) : null}
 					</div>
 
@@ -121,6 +131,8 @@ const LoginPageContent = () => {
 								onChange={formik.handleChange}
 								onBlur={formik.handleBlur}
 								className="auth-login-input app-input pl-14 pr-14"
+								aria-invalid={Boolean(formik.touched.password && formik.errors.password)}
+								aria-describedby={formik.touched.password && formik.errors.password ? 'login-password-error' : undefined}
 							/>
 							<button
 								type="button"
@@ -132,12 +144,12 @@ const LoginPageContent = () => {
 							</button>
 						</div>
 						{formik.touched.password && formik.errors.password ? (
-							<p className="mt-2 text-sm text-(--ink-soft)">{formik.errors.password}</p>
+							<p id="login-password-error" role="alert" className="auth-field-error">{formik.errors.password}</p>
 						) : null}
 					</div>
 
 					{formik.errors.globalError ? (
-						<div className="rounded-[14px] border border-[color:var(--line)] bg-(--surface-muted) px-4 py-3 text-xs font-semibold text-(--ink-soft)">
+						<div role="alert" className="auth-login-error">
 							{formik.errors.globalError}
 						</div>
 					) : null}

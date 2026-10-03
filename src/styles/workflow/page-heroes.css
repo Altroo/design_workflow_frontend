@@ -20,8 +20,8 @@
 	border: 1px solid var(--line) !important;
 	border-radius: 18px !important;
 	background:
-		linear-gradient(90deg, rgba(248, 250, 252, 0.92), rgba(255, 255, 255, 0) 44%),
-		#ffffff !important;
+		linear-gradient(90deg, rgba(var(--theme-muted-rgb, 248, 250, 252), 0.92), rgba(255, 255, 255, 0) 44%),
+		var(--theme-surface, #ffffff) !important;
 	box-shadow: 0 1.125rem 2.75rem -2.35rem rgba(15, 23, 42, 0.38) !important;
 	color: var(--ink) !important;
 }
@@ -153,7 +153,7 @@
 	min-height: 2.625rem !important;
 	border: 1px solid var(--line) !important;
 	border-radius: 999px !important;
-	background: #ffffff !important;
+	background: var(--theme-surface, #ffffff) !important;
 	box-shadow: 0 0.75rem 1.5rem -1.35rem rgba(15, 23, 42, 0.36) !important;
 	color: var(--ink) !important;
 	font-size: 0.875rem !important;
@@ -194,11 +194,11 @@
 }
 
 .workflow-chat-sidebar-head > span::before {
-	background: #94a3b8 !important;
+	background: var(--theme-surface-strong, #94a3b8) !important;
 }
 
 .workflow-chat-sidebar-head > span[data-live='true']::before {
-	background: #475569 !important;
+	background: var(--theme-surface-strong, #475569) !important;
 }
 
 @media (max-width: 980px) {

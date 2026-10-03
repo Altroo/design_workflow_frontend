@@ -49,7 +49,9 @@ import {
 	useSendChatMessageMutation,
 } from '@/store/services/designWorkflow';
 import { useGetUsersListQuery } from '@/store/services/account';
-import { useAppSelector, useLanguage } from '@/utils/hooks';
+import { useAppSelector, useLanguage, useToast } from '@/utils/hooks';
+import { extractApiErrorMessage } from '@/utils/helpers';
+import { UploadProgress } from '@/components/shared/workflow/uploadProgress';
 import { getAccessToken, getProfilState } from '@/store/selectors';
 import { DASHBOARD_PROJECT_VIEW, DASHBOARD_TASK_VIEW } from '@/utils/routes';
 import type { ChatMessage, ChatThread, ProjectSummary, TaskCard, WorkflowUser } from '@/types/designWorkflowTypes';
@@ -61,6 +63,8 @@ import {
 	CHAT_PAGE_SIZE as PAGE_SIZE, MESSAGE_SPINNER_SHOW_DELAY_MS, MESSAGE_SPINNER_HIDE_DELAY_MS,
 	REACTION_OPTIONS, REMINDER_TIME_OPTIONS, OTHER_BUBBLE_COLORS,
 } from '@/utils/rawData';
+
+import { attachmentsExceedLimit } from '@/utils/attachments';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL ?? '';
 const WS_URL = API_URL.replace(/^http/, 'ws');
@@ -402,6 +406,8 @@ const scrollToMessage = (id: number) => {
 
 const DesignWorkflowChat = () => {
 	const { t, language } = useLanguage();
+	const { onError } = useToast();
+	const [attachmentUploadProgress, setAttachmentUploadProgress] = useState<number | null>(null);
 	const searchParams = useSearchParams();
 	const requestedThreadId = Number(searchParams.get('thread') ?? 0) || null;
 	const requestedMessageId = Number(searchParams.get('message') ?? 0) || null;
@@ -1021,12 +1027,27 @@ const DesignWorkflowChat = () => {
 	};
 
 	const submit = async () => {
-		if (!selectedThread?.id || (!body.trim() && files.length === 0)) return;
+		if (!selectedThread?.id || sendMessageState.isLoading || (!body.trim() && files.length === 0)) return;
+		if (attachmentsExceedLimit(files)) {
+			onError(t.errors.attachmentTooLarge);
+			return;
+		}
 		const data = new FormData();
 		data.append('body', body.trim());
 		if (replyTarget) data.append('reply_to_id', String(replyTarget.id));
 		files.forEach((file) => data.append('files', file));
-		await sendMessage({ threadId: selectedThread.id, data }).unwrap();
+		if (files.length) setAttachmentUploadProgress(0);
+		try {
+			await sendMessage({
+				threadId: selectedThread.id, data,
+				onUploadProgress: files.length ? ({ loaded, total }) => setAttachmentUploadProgress(Math.min(100, Math.round(loaded / (total || files.reduce((sum, file) => sum + file.size, 0)) * 100))) : undefined,
+			}).unwrap();
+		} catch (error) {
+			onError(extractApiErrorMessage(error, t.errors.genericError));
+			return;
+		} finally {
+			setAttachmentUploadProgress(null);
+		}
 		setBody('');
 		emitTyping(false);
 		setReplyTarget(null);
@@ -2197,9 +2218,15 @@ const DesignWorkflowChat = () => {
 								ref={fileInputRef}
 								type="file"
 								multiple
-								accept="image/*,audio/*,.pdf,.doc,.docx,.xls,.xlsx,.zip,.txt"
+								disabled={sendMessageState.isLoading}
+								accept="image/*,audio/*,video/*,.pdf,.doc,.docx,.xls,.xlsx,.zip,.txt"
 								onChange={(event) => {
 									const selectedFiles = Array.from(event.target.files ?? []);
+									if (attachmentsExceedLimit(selectedFiles)) {
+										onError(t.errors.attachmentTooLarge);
+										event.target.value = '';
+										return;
+									}
 									resetFiles();
 									setFiles(selectedFiles);
 									setFilePreviewUrls(selectedFiles.map((file) => URL.createObjectURL(file)));
@@ -2357,6 +2384,7 @@ const DesignWorkflowChat = () => {
 								<Send size={16} />
 							</button>
 						</div>
+						<UploadProgress progress={attachmentUploadProgress} />
 						{files.length ? (
 							<div className="workflow-chat-draft-attachments">
 								<div className="flex flex-wrap gap-2">

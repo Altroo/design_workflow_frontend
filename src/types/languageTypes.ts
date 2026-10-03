@@ -257,6 +257,10 @@ export type TranslationDictionary = {
     serviceUnavailable: string;
     unknownError: string;
     unexpectedError: string;
+    attachmentTooLarge: string;
+    uploadTooLarge: string;
+    invalidCredentials: string;
+    ssoLoginFailed: string;
   };
   pdf: {
     generatePdf: string;

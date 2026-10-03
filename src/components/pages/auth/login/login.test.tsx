@@ -5,6 +5,7 @@ import { Provider } from 'react-redux';
 import { store } from '@/store/store';
 import {type ReactNode} from 'react';
 import { DASHBOARD } from '@/utils/routes';
+import { translations } from '@/translations';
 
 // Minimal AppSession shape used by the component/tests
 interface AppSession {
@@ -27,6 +28,7 @@ interface AppSession {
 
 // Dynamic mock for search params
 let searchParamsMock = new URLSearchParams();
+let mockLanguage: 'fr' | 'en' = 'fr';
 
 // controllable mocks
 const mockSignIn = jest.fn();
@@ -76,15 +78,49 @@ jest.mock('zod-formik-adapter', () => ({
 
 jest.mock('@/utils/hooks', () => ({
 	useAppDispatch: () => mockDispatch,
-	useLanguage: () => ({ t: jest.requireActual('@/translations/fr').fr }),
+	useLanguage: () => ({ t: jest.requireActual('@/translations').translations[mockLanguage], language: mockLanguage }),
 }));
 
 describe('LoginClient', () => {
 	beforeEach(() => {
 		searchParamsMock = new URLSearchParams();
+		mockLanguage = 'fr';
 		jest.clearAllMocks();
+		mockSignIn.mockReset();
 		mockUseSession.mockImplementation(() => ({ data: null, status: 'unauthenticated' }));
 		mockPostApi.mockResolvedValue({ status: 500 });
+	});
+
+	it.each((['fr', 'en'] as const).flatMap(language => [
+		{ language, code: 'CredentialsSignin', expected: 'invalidCredentials' as const },
+		{ language, code: 'SSOConfiguration', expected: 'ssoLoginFailed' as const },
+		{ language, code: 'SSOCodeMissing', expected: 'ssoLoginFailed' as const },
+		{ language, code: 'SSOFailed', expected: 'ssoLoginFailed' as const },
+		{ language, code: 'AccessDenied', expected: 'serviceUnavailable' as const },
+		{ language, code: 'Configuration', expected: 'serviceUnavailable' as const },
+		{ language, code: 'UnknownFailure', expected: 'serviceUnavailable' as const },
+	]))('shows the correct $language message for $code', async ({ language, code, expected }) => {
+		mockLanguage = language;
+		searchParamsMock = new URLSearchParams({ error: code });
+		await act(async () => {
+			render(<Provider store={store}><LoginClient /></Provider>);
+		});
+		expect(screen.getByRole('alert')).toHaveTextContent(translations[language].errors[expected]);
+		expect(screen.getByRole('alert')).toHaveClass('auth-login-error');
+	});
+
+	it.each(['CredentialsSignin', 'Configuration'])('classifies %s returned by signIn', async code => {
+		mockPostApi.mockResolvedValue({ status: 200 });
+		mockSignIn.mockResolvedValue({ error: code });
+		await act(async () => {
+			render(<Provider store={store}><LoginClient /></Provider>);
+		});
+		fireEvent.change(screen.getAllByLabelText(/Adresse email/i)[0], { target: { value: 'user@example.com' } });
+		fireEvent.change(screen.getAllByLabelText(/Mot de passe/i)[0], { target: { value: 'password123' } });
+		fireEvent.click(screen.getAllByRole('button', { name: /Me connecter/i })[0]);
+		await waitFor(() => expect(screen.getByRole('alert')).toHaveTextContent(
+			code === 'CredentialsSignin' ? translations.fr.errors.invalidCredentials : translations.fr.errors.serviceUnavailable,
+		));
 	});
 
 	it('renders login form with title and button', async () => {

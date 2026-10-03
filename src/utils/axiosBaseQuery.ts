@@ -1,4 +1,4 @@
-import axios, { type AxiosInstance } from 'axios';
+import axios, { type AxiosInstance, type AxiosProgressEvent } from 'axios';
 import type { BaseQueryFn, BaseQueryApi } from '@reduxjs/toolkit/query';
 import { getT } from '@/utils/helpers';
 
@@ -30,6 +30,7 @@ type AxiosBaseQueryArgs<D = unknown, P = unknown> = {
 	method: 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE';
 	data?: D;
 	params?: P;
+	onUploadProgress?: (event: AxiosProgressEvent) => void;
 };
 
 /**
@@ -40,11 +41,11 @@ export const axiosBaseQuery =
 	<D = unknown, P = unknown>(
 		getInstance: (api: BaseQueryApi) => AxiosInstance,
 	): BaseQueryFn<AxiosBaseQueryArgs<D, P>, unknown, { status: number; data: ApiErrorResponseType }> =>
-	async ({ url, method, data, params }, api) => {
+	async ({ url, method, data, params, onUploadProgress }, api) => {
 		const instance = getInstance(api);
 
 		try {
-			const response = await instance.request({ url, method, data, params });
+			const response = await instance.request({ url, method, data, params, onUploadProgress, signal: api.signal });
 			return { data: response.data };
 		} catch (err) {
 			// Handle normalized errors from interceptors

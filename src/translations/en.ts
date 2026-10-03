@@ -858,6 +858,10 @@ export const en: TranslationDictionary = {
 		serviceUnavailable: 'Service unavailable. Please try again later.',
 		unknownError: 'Unknown error',
 		unexpectedError: 'An unexpected error occurred.',
+		attachmentTooLarge: 'Each file can be up to 10 GB. If the total exceeds 10 GB, send the files separately.',
+		uploadTooLarge: 'This file exceeds the upload limit. Each attachment can be up to 10 GB.',
+		invalidCredentials: 'Incorrect email or password. Please try again.',
+		ssoLoginFailed: 'Sign-in through the portal failed. Please try again from the portal.',
 	},
 	pdf: {
 		generatePdf: 'PDF Generation',

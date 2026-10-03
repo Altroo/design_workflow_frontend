@@ -73,6 +73,15 @@ export const isAuthenticatedInstance = (
 	instance.interceptors.response.use(
 		(response: AxiosResponse) => response,
 		async (error) => {
+			if (error.response?.status === 413) {
+				return Promise.reject({
+					error: {
+						status_code: 413,
+						message: getT().errors.uploadTooLarge,
+						details: { file: [getT().errors.uploadTooLarge] },
+					},
+				});
+			}
 			if (error.response?.data) {
 				const errorData = error.response.data as ApiErrorResponseType;
 

@@ -6,6 +6,7 @@ export type WorkflowUser = {
 	last_name: string;
 	email: string;
 	role: UserRole;
+	is_active?: boolean;
 	avatar?: string | null;
 };
 
@@ -23,6 +24,8 @@ export type ProjectSummary = {
 	total_logged_minutes: number;
 	open_tasks_count: number;
 	can_work: boolean;
+	can_manage?: boolean;
+	collaborators?: WorkflowUser[];
 	created_at: string;
 	updated_at: string;
 };
@@ -196,6 +199,7 @@ export type ProjectInput = {
 	name: string;
 	description: string;
 	manager_id: number;
+	collaborator_ids?: number[];
 	start_date?: string | null;
 	target_end_date?: string | null;
 	priority?: ProjectSummary['priority'];

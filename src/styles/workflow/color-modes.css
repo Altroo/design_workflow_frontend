@@ -1,0 +1,144 @@
+/* The shared palette also covers dialogs and popovers rendered outside the shell.
+   Existing color declarations use fallbacks, keeping the light palette intact. */
+:root { color-scheme: light; }
+
+:root[data-theme='dark'] {
+	color-scheme: dark;
+	--app-bg: #121722;
+	--surface: #1b2332;
+	--surface-muted: #222c3d;
+	--surface-strong: #2b374a;
+	--ink: #eef2f8;
+	--ink-soft: #c4cedd;
+	--ink-muted: #a0afc4;
+	--line: #344157;
+	--line-strong: #4a5b75;
+	--accent: #6159e6;
+	--accent-strong: #b8b2ff;
+	--accent-hover: #4f46ce;
+	--accent-soft: #2b2a49;
+	--accent-tint: #25253e;
+	--shadow-sm: 0 2px 6px rgb(0 0 0 / 0.14);
+	--shadow-md: 0 8px 24px rgb(0 0 0 / 0.22);
+	--shadow-lg: 0 18px 56px rgb(0 0 0 / 0.36);
+	--workflow-card-border: var(--line);
+	--workflow-card-border-strong: var(--line-strong);
+	--workflow-card-bg: var(--surface);
+	--workflow-card-muted: var(--surface-muted);
+	--workflow-card-muted-strong: var(--surface-strong);
+	--workflow-icon-bg: var(--accent-soft);
+	--workflow-icon-fg: var(--accent-strong);
+	--theme-surface: var(--surface);
+	--theme-surface-muted: var(--surface-muted);
+	--theme-surface-strong: var(--surface-strong);
+	--theme-ink: var(--ink);
+	--theme-ink-soft: var(--ink-soft);
+	--theme-ink-muted: var(--ink-muted);
+	--theme-line: var(--line);
+	--theme-line-strong: var(--line-strong);
+	--theme-surface-rgb: 27, 35, 50;
+	--theme-muted-rgb: 34, 44, 61;
+	--theme-indigo-soft: #2b2a49;
+	--theme-indigo-text: #b8b2ff;
+	--theme-indigo-line: #514c80;
+	--theme-blue-soft: #1e304c;
+	--theme-blue-text: #9fc9ff;
+	--theme-blue-line: #34527c;
+	--theme-cyan-soft: #193641;
+	--theme-cyan-text: #82deec;
+	--theme-cyan-line: #2e5966;
+	--theme-green-soft: #1b382f;
+	--theme-green-text: #83dfb2;
+	--theme-green-line: #366c54;
+	--theme-amber-soft: #3b3021;
+	--theme-amber-text: #f6cc7a;
+	--theme-amber-line: #715837;
+	--theme-rose-soft: #402733;
+	--theme-rose-text: #fda6b6;
+	--theme-rose-line: #784357;
+	--theme-violet-soft: #352945;
+	--theme-violet-text: #d1acf4;
+	--theme-violet-line: #624c80;
+}
+
+.workflow-theme-toggle {
+	display: inline-grid;
+	place-items: center;
+	flex: 0 0 40px;
+	width: 40px;
+	height: 40px;
+	padding: 0;
+	border: 1px solid var(--line);
+	border-radius: 50%;
+	background: var(--surface);
+	color: var(--accent-strong);
+	cursor: pointer;
+	transition: background-color 150ms ease, border-color 150ms ease;
+}
+
+.workflow-theme-toggle:hover { background: var(--accent-soft); border-color: var(--accent); }
+.auth-language-control { display: flex; align-items: center; gap: 0.5rem; }
+
+:root[data-theme='dark'] body,
+:root[data-theme='dark'] .workflow-shell:not(.auth-login-layer),
+:root[data-theme='dark'] .workflow-main { background: var(--app-bg) !important; color: var(--ink); }
+
+/* The login form sits over the blurred workspace, in either color mode. */
+.auth-login-layer.workflow-shell { background: transparent !important; }
+.auth-login-error {
+	border: 1px solid var(--theme-rose-line, #fecaca);
+	border-radius: 14px;
+	background: var(--theme-rose-soft, #fef2f2);
+	padding: 12px 16px;
+	color: var(--login-error-color, #b91c1c);
+	font-size: 0.8125rem;
+	line-height: 1.5;
+}
+.auth-field-error { margin-top: 8px; font-size: 0.8125rem; color: var(--login-error-color, #b91c1c); }
+:root[data-theme='dark'] .auth-shell { --login-error-color: #fca5a5; }
+.auth-shell .auth-login-input[aria-invalid='true'] { border-color: var(--theme-rose-text, #dc2626) !important; }
+.auth-shell .auth-login-input[aria-invalid='true']:focus { box-shadow: 0 0 0 3px rgb(239 68 68 / 0.15); }
+
+:root[data-theme='dark'] .workflow-column[data-status='backlog'] { --status-soft: var(--surface-muted); --status-text: var(--ink-soft); }
+:root[data-theme='dark'] .workflow-column[data-status='todo'] { --status-soft: var(--theme-indigo-soft); --status-text: var(--theme-indigo-text); }
+:root[data-theme='dark'] .workflow-column[data-status='in_progress'] { --status-soft: var(--theme-amber-soft); --status-text: var(--theme-amber-text); }
+:root[data-theme='dark'] .workflow-column[data-status='in_review'] { --status-soft: var(--theme-cyan-soft); --status-text: var(--theme-cyan-text); }
+:root[data-theme='dark'] .workflow-column[data-status='blocked'] { --status-soft: var(--theme-rose-soft); --status-text: var(--theme-rose-text); }
+:root[data-theme='dark'] .workflow-column[data-status='done'] { --status-soft: var(--theme-green-soft); --status-text: var(--theme-green-text); }
+:root[data-theme='dark'] .workflow-column-header { --status-soft: inherit !important; --status-text: inherit !important; }
+:root[data-theme='dark'] .workflow-kanban-page .workflow-trello-board-card[data-status] {
+	background: var(--surface) !important;
+	border-top: 3px solid var(--card-status-accent) !important;
+}
+
+:root[data-theme='dark'] .workflow-empty-state,
+:root[data-theme='dark'] .workflow-kanban-page .workflow-column-empty {
+	box-shadow: none !important;
+}
+
+/* Tailwind utilities used by shared forms and portal content. */
+:root[data-theme='dark'] :is(.bg-white, .bg-white\/95, .bg-white\/90) { background-color: var(--surface); }
+:root[data-theme='dark'] :is(.bg-slate-50, .bg-gray-50, .bg-gray-100, .bg-slate-100) { background-color: var(--surface-muted); }
+:root[data-theme='dark'] :is(.text-slate-900, .text-gray-900, .text-black) { color: var(--ink); }
+:root[data-theme='dark'] :is(.text-slate-700, .text-gray-700, .text-slate-600, .text-gray-600) { color: var(--ink-soft); }
+:root[data-theme='dark'] :is(.text-slate-500, .text-gray-500, .text-slate-400) { color: var(--ink-muted); }
+:root[data-theme='dark'] :is(.border-slate-200, .border-gray-200, .border-slate-100) { border-color: var(--line); }
+:root[data-theme='dark'] :is(.bg-indigo-50, .bg-indigo-100) { background-color: var(--theme-indigo-soft); }
+:root[data-theme='dark'] :is(.text-indigo-600, .text-indigo-700, .text-indigo-800) { color: var(--theme-indigo-text); }
+:root[data-theme='dark'] :is(.bg-blue-50, .bg-blue-100) { background-color: var(--theme-blue-soft); }
+:root[data-theme='dark'] :is(.text-blue-600, .text-blue-700, .text-blue-800) { color: var(--theme-blue-text); }
+:root[data-theme='dark'] :is(.bg-cyan-50, .bg-cyan-100) { background-color: var(--theme-cyan-soft); }
+:root[data-theme='dark'] :is(.text-cyan-600, .text-cyan-700, .text-cyan-800) { color: var(--theme-cyan-text); }
+:root[data-theme='dark'] :is(.bg-emerald-50, .bg-green-50, .bg-emerald-100, .bg-green-100) { background-color: var(--theme-green-soft); }
+:root[data-theme='dark'] :is(.text-emerald-600, .text-emerald-700, .text-green-600, .text-green-700) { color: var(--theme-green-text); }
+:root[data-theme='dark'] :is(.bg-amber-50, .bg-amber-100, .bg-orange-50) { background-color: var(--theme-amber-soft); }
+:root[data-theme='dark'] :is(.text-amber-600, .text-amber-700, .text-orange-600, .text-orange-700) { color: var(--theme-amber-text); }
+:root[data-theme='dark'] :is(.bg-rose-50, .bg-red-50, .bg-rose-100, .bg-red-100) { background-color: var(--theme-rose-soft); }
+:root[data-theme='dark'] :is(.text-rose-600, .text-rose-700, .text-red-600, .text-red-700) { color: var(--theme-rose-text); }
+:root[data-theme='dark'] :is(.bg-violet-50, .bg-violet-100, .bg-purple-50) { background-color: var(--theme-violet-soft); }
+:root[data-theme='dark'] :is(.text-violet-600, .text-violet-700, .text-purple-600, .text-purple-700) { color: var(--theme-violet-text); }
+
+@media print {
+	:root[data-theme='dark'] { color-scheme: light; }
+	.workflow-theme-toggle { display: none; }
+}

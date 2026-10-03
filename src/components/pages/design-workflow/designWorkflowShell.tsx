@@ -120,6 +120,9 @@ import {
 	useUpdateTaskStatusMutation,
 } from '@/store/services/designWorkflow';
 import { useGetUsersListQuery } from '@/store/services/account';
+import { attachmentsExceedLimit } from '@/utils/attachments';
+import { UploadProgress } from '@/components/shared/workflow/uploadProgress';
+import { useTheme } from '@/providers/themeProvider';
 import type {
 	NotificationItem,
 	NotificationPreference,
@@ -164,6 +167,8 @@ import {
 } from '@/components/shared/workflow/workflowPrimitives';
 import { BOARD_STATUS_META, STATUS_COLUMNS } from '@/components/shared/workflow/boardAppearance';
 import { WorkflowAvatar, WORKFLOW_AVATAR_SIZES } from '@/components/shared/workflow/workflowAvatar';
+import { ProjectCollaborators } from '@/components/shared/workflow/projectCollaborators';
+import { AvatarTooltip } from '@/components/shared/workflow/avatarTooltip';
 import {
 	WorkflowDateField as DateField,
 	WorkflowSelectField as SelectField,
@@ -379,6 +384,7 @@ const emptyProjectForm = (managerId?: number): ProjectInput => ({
 	name: '',
 	description: '',
 	manager_id: managerId ?? 0,
+	collaborator_ids: [],
 	start_date: '',
 	target_end_date: '',
 	priority: 'medium',
@@ -809,14 +815,16 @@ const AvatarBadge = ({
 	user,
 	size = WORKFLOW_AVATAR_SIZES.default,
 	showPresence = true,
+	showTooltip = false,
 }: {
 	user?: WorkflowUser | null;
 	size?: number;
 	showPresence?: boolean;
+	showTooltip?: boolean;
 }) => {
 	const onlineUserIds = useAppSelector(getWSOnlineUserIdsState);
 	const online = !!user && onlineUserIds.includes(user.id);
-	return (
+	const avatar = (
 		<WorkflowAvatar
 			user={user}
 			size={size}
@@ -825,6 +833,9 @@ const AvatarBadge = ({
 			fallbackInitials="S"
 		/>
 	);
+	return showTooltip && user
+		? <AvatarTooltip name={`${user.first_name} ${user.last_name}`.trim() || user.email}>{avatar}</AvatarTooltip>
+		: avatar;
 };
 
 const HistoryPager = ({
@@ -882,8 +893,9 @@ const normalizeUsers = (usersResponse?: UsersListResponse): WorkflowUser[] => {
 			first_name: user.first_name,
 			last_name: user.last_name,
 			email: user.email,
-			role: user.role === 'manager' || user.is_staff ? 'manager' : 'designer',
-			avatar:
+				role: user.role === 'manager' || user.is_staff ? 'manager' : 'designer',
+				is_active: user.is_active !== false,
+				avatar:
 				typeof user.avatar === 'string'
 					? user.avatar
 					: typeof user.avatar_cropped === 'string'
@@ -897,6 +909,7 @@ const toDatePayload = (value?: string | null) => (value?.trim() ? value : null);
 
 const buildProjectPayload = (form: ProjectInput): ProjectInput => ({
 	...form,
+	collaborator_ids: form.collaborator_ids?.filter(id => id !== form.manager_id),
 	name: form.name.trim(),
 	description: form.description.trim(),
 	start_date: toDatePayload(form.start_date),
@@ -1373,7 +1386,7 @@ const TaskPeople = ({ task }: { task: TaskCard }) => {
 		<div className="flex items-center">
 			{people.map((user, index) => (
 				<span key={user.id} className={cn('workflow-avatar-stack', index > 0 && '-ml-2')}>
-					<AvatarBadge user={user} size={26} />
+					<AvatarBadge user={user} size={26} showTooltip />
 				</span>
 			))}
 		</div>
@@ -1527,7 +1540,7 @@ const TaskCardItem = ({
 								</span>
 							) : null}
 						</div>
-						{task.current_assignee ? <AvatarBadge user={task.current_assignee} size={24} /> : null}
+						{task.current_assignee ? <AvatarBadge user={task.current_assignee} size={24} showTooltip /> : null}
 					</div>
 				</div>
 			</div>
@@ -1979,6 +1992,9 @@ const BoardColumn = ({
 };
 
 const DesignWorkflowShell = ({ title, variant, projectId, taskId }: Props) => {
+	const { theme } = useTheme();
+	const chartTextColor = theme === 'dark' ? '#c4cedd' : '#475569';
+	const chartSurfaceColor = theme === 'dark' ? '#1b2332' : '#ffffff';
 	const router = useRouter();
 	const profile = useAppSelector(getProfilState);
 	const token = useAppSelector(getAccessToken);
@@ -2321,6 +2337,7 @@ const DesignWorkflowShell = ({ title, variant, projectId, taskId }: Props) => {
 	const [updateChecklistItem] = useUpdateChecklistItemMutation();
 	const [deleteChecklistItem] = useDeleteChecklistItemMutation();
 	const [uploadTaskAttachment, uploadTaskAttachmentState] = useUploadTaskAttachmentMutation();
+	const [attachmentUploadProgress, setAttachmentUploadProgress] = useState<number | null>(null);
 	const [deleteTaskAttachment] = useDeleteTaskAttachmentMutation();
 	const [setTaskCoverFromAttachment, setTaskCoverFromAttachmentState] = useSetTaskCoverFromAttachmentMutation();
 	const [uploadTaskCover, uploadTaskCoverState] = useUploadTaskCoverMutation();
@@ -2400,6 +2417,7 @@ const DesignWorkflowShell = ({ title, variant, projectId, taskId }: Props) => {
 				name: project.name,
 				description: project.description,
 				manager_id: project.manager.id,
+				collaborator_ids: project.collaborators?.map(user => user.id) ?? [],
 				start_date: project.start_date ?? '',
 				target_end_date: project.target_end_date ?? '',
 				priority: project.priority,
@@ -2602,21 +2620,42 @@ const DesignWorkflowShell = ({ title, variant, projectId, taskId }: Props) => {
 		}
 	};
 
+	const selectTaskAttachment = (file: File | null) => {
+		if (file && attachmentsExceedLimit([file])) {
+			onError(t.errors.attachmentTooLarge);
+			setTaskAttachmentFile(null);
+			return;
+		}
+		setTaskAttachmentFile(file);
+	};
+
 	const handleUploadTaskAttachment = async (taskId: number) => {
 		const label = taskAttachmentLabel.trim();
-		if (!taskAttachmentFile || !label) return;
-		await runPrimaryAction(
-			async () => {
-				const data = new FormData();
-				data.append('file', taskAttachmentFile);
-				data.append('name', label);
-				await uploadTaskAttachment({ id: taskId, data }).unwrap();
-				setTaskAttachmentFile(null);
-				setTaskAttachmentLabel('');
-			},
-			messageFor('Fichier ajouté avec succès.', 'File added successfully.'),
-			messageFor('Impossible d’ajouter le fichier.', 'Could not add the file.'),
-		);
+		if (!taskAttachmentFile || !label || uploadTaskAttachmentState.isLoading) return;
+		if (attachmentsExceedLimit([taskAttachmentFile])) {
+			onError(t.errors.attachmentTooLarge);
+			return;
+		}
+		setAttachmentUploadProgress(0);
+		try {
+			await runPrimaryAction(
+				async () => {
+					const data = new FormData();
+					data.append('file', taskAttachmentFile);
+					data.append('name', label);
+					await uploadTaskAttachment({
+						id: taskId, data,
+						onUploadProgress: ({ loaded, total }) => setAttachmentUploadProgress(Math.min(100, Math.round(loaded / (total || taskAttachmentFile.size) * 100))),
+					}).unwrap();
+					setTaskAttachmentFile(null);
+					setTaskAttachmentLabel('');
+				},
+				messageFor('Fichier ajouté avec succès.', 'File added successfully.'),
+				messageFor('Impossible d’ajouter le fichier.', 'Could not add the file.'),
+			);
+		} finally {
+			setAttachmentUploadProgress(null);
+		}
 	};
 
 	const handleSetAttachmentAsCover = async (taskItem: TaskDetail, attachment: TaskAttachment) => {
@@ -3011,13 +3050,13 @@ const DesignWorkflowShell = ({ title, variant, projectId, taskId }: Props) => {
 				x: {
 					border: { display: false },
 					grid: { color: 'rgba(148, 163, 184, 0.18)' },
-					ticks: { color: '#64748b', precision: 0, font: { weight: 'bold' } },
+					ticks: { color: chartTextColor, precision: 0, font: { weight: 'bold' } },
 				},
 				y: {
 					border: { display: false },
 					grid: { display: false },
 					ticks: {
-						color: '#334155',
+						color: chartTextColor,
 						font: { weight: 'bold' },
 						callback: (value) => `#${Number(value) + 1}`,
 					},
@@ -3036,7 +3075,7 @@ const DesignWorkflowShell = ({ title, variant, projectId, taskId }: Props) => {
 						BOARD_STATUS_META.blocked.accent,
 						BOARD_STATUS_META.done.accent,
 					],
-					borderColor: '#ffffff',
+					borderColor: chartSurfaceColor,
 					borderWidth: 4,
 					hoverOffset: 8,
 				},
@@ -3053,7 +3092,7 @@ const DesignWorkflowShell = ({ title, variant, projectId, taskId }: Props) => {
 					labels: {
 						boxWidth: 8,
 						boxHeight: 8,
-						color: '#475569',
+						color: chartTextColor,
 						font: { weight: 'bold' },
 						padding: 12,
 						usePointStyle: true,
@@ -3903,17 +3942,20 @@ const DesignWorkflowShell = ({ title, variant, projectId, taskId }: Props) => {
 				<WorkflowPageHero
 					className="workflow-projects-header"
 					title={workflow.pageTitles.projects}
-					actionsClassName="workflow-projects-actions"
+					actionsClassName="workflow-header-summary"
 					actions={
 						<>
-							<span>
-								{workflow.labels.projects} {projects.length}
+							<span className="workflow-header-stat" data-tone="indigo">
+								<FolderKanban size={15} aria-hidden="true" />
+								<strong>{projects.length}</strong> {workflow.labels.projects}
 							</span>
-							<span>
-								{workflow.labels.active} {activeProjectCount}
+							<span className="workflow-header-stat" data-tone="green">
+								<CheckCircle2 size={15} aria-hidden="true" />
+								<strong>{activeProjectCount}</strong> {workflow.labels.active}
 							</span>
-							<span>
-								{workflow.labels.open} {totalProjectOpenTasks}
+							<span className="workflow-header-stat" data-tone="amber">
+								<ListTodo size={15} aria-hidden="true" />
+								<strong>{totalProjectOpenTasks}</strong> {workflow.labels.openTasksLabel}
 							</span>
 						</>
 					}
@@ -3982,6 +4024,8 @@ const DesignWorkflowShell = ({ title, variant, projectId, taskId }: Props) => {
 										startIcon={<ShieldCheck size={18} />}
 									/>
 								</div>
+								<ProjectCollaborators id="project-collaborators" users={assignableUsers} ownerId={projectForm.manager_id}
+									value={projectForm.collaborator_ids ?? []} onChange={collaborator_ids => setProjectForm(current => ({ ...current, collaborator_ids }))} />
 								<div className="md:col-span-2">
 									<FieldLabel htmlFor="project-description">{workflow.labels.description}</FieldLabel>
 									<Area
@@ -4088,7 +4132,7 @@ const DesignWorkflowShell = ({ title, variant, projectId, taskId }: Props) => {
 													{item.manager.first_name} {item.manager.last_name}
 												</span>
 											</div>
-											<AvatarBadge user={item.manager} size={34} />
+											<AvatarBadge user={item.manager} size={34} showTooltip />
 										</div>
 										<div className="workflow-project-card-stats">
 											<span>
@@ -4170,31 +4214,39 @@ const DesignWorkflowShell = ({ title, variant, projectId, taskId }: Props) => {
 		const projectStatusOptions = project.archived
 			? [...PROJECT_STATUS_OPTIONS, 'archived' as const]
 			: PROJECT_STATUS_OPTIONS;
-		const canManageProject = project.can_work;
+		const canManageProject = project.can_manage ?? (isManager || project.manager.id === profile.id);
+		const projectDisplayStatus = project.archived ? 'archived' : project.status;
+		const ProjectStatusIcon = projectDisplayStatus === 'archived' ? Archive
+			: projectDisplayStatus === 'completed' ? CheckCircle2
+				: projectDisplayStatus === 'active' ? FolderKanban
+					: projectDisplayStatus === 'on_hold' ? Clock3 : CalendarDays;
 
 		return (
 			<div className="workflow-project-detail-page">
 				<WorkflowPageHero
 					className="workflow-project-detail-header"
 					eyebrow={
-						<span className="workflow-project-detail-eyebrow">
-							<Link href={DASHBOARD_PROJECTS} className="workflow-project-detail-back-link">
-								<ChevronLeft size={15} />
-								<span>{workflow.buttons.backToProjects ?? workflow.pageTitles.projects}</span>
-							</Link>
-							<span>{workflow.labels.workflow}</span>
-						</span>
+						<Link href={DASHBOARD_PROJECTS} className="workflow-project-detail-back-link">
+							<ChevronLeft size={15} />
+							<span>{workflow.buttons.backToProjects ?? workflow.pageTitles.projects}</span>
+						</Link>
 					}
 					title={project.name}
-					actionsClassName="workflow-projects-actions"
+					actionsClassName="workflow-header-summary"
 					actions={
 						<>
-							<span>{labelFor(project.archived ? 'archived' : project.status)}</span>
-							<span>
-								{project.open_tasks_count} {workflow.labels.openTasks}
+							<span className="workflow-project-detail-status" data-status={projectDisplayStatus}>
+								<ProjectStatusIcon size={14} aria-hidden="true" />
+								{labelFor(projectDisplayStatus)}
 							</span>
-							<span>
-								{formatMinutes(project.total_logged_minutes)} {workflow.labels.loggedSuffix}
+							<span className="workflow-header-stat" data-tone="blue">
+								<ListTodo size={15} aria-hidden="true" />
+								<strong>{project.open_tasks_count}</strong>
+								{project.open_tasks_count === 1 ? messageFor('tâche ouverte', 'open task') : messageFor('tâches ouvertes', 'open tasks')}
+							</span>
+							<span className="workflow-header-stat" data-tone="violet">
+								<Clock3 size={15} aria-hidden="true" />
+								<strong>{formatMinutes(project.total_logged_minutes)}</strong> {workflow.labels.loggedSuffix}
 							</span>
 						</>
 					}
@@ -4211,6 +4263,13 @@ const DesignWorkflowShell = ({ title, variant, projectId, taskId }: Props) => {
 						<p className="workflow-project-detail-description">
 							{project.description || workflow.labels.noDescription}
 						</p>
+						{Boolean(project.collaborators?.length) && <div className="mb-4">
+							<p className="mb-2 text-xs font-bold text-(--ink-muted)">{messageFor('Collaborateurs', 'Collaborators')}</p>
+							<ul className="flex flex-wrap gap-2">{project.collaborators?.map(user => <li key={user.id} className="workflow-project-member">
+								<AvatarBadge user={user} size={26} showPresence={false} />
+								<span>{user.first_name} {user.last_name}</span>
+							</li>)}</ul>
+						</div>}
 						<div className="workflow-project-detail-meta">
 							<div className="workflow-project-detail-meta-card">
 								<span>{workflow.labels.manager}</span>
@@ -4264,6 +4323,8 @@ const DesignWorkflowShell = ({ title, variant, projectId, taskId }: Props) => {
 										startIcon={<ShieldCheck size={18} />}
 									/>
 								</div>
+								<ProjectCollaborators id="project-edit-collaborators" users={assignableUsers} ownerId={projectEditForm.manager_id}
+									value={projectEditForm.collaborator_ids ?? []} onChange={collaborator_ids => setProjectEditForm(current => ({ ...current, collaborator_ids }))} />
 								<div className="md:col-span-2">
 									<FieldLabel>{workflow.labels.description}</FieldLabel>
 									<Area
@@ -4389,7 +4450,7 @@ const DesignWorkflowShell = ({ title, variant, projectId, taskId }: Props) => {
 						) : null}
 					</section>
 
-					{canManageProject ? (
+					{project.can_work && !project.archived ? (
 						<section className="workflow-project-detail-panel workflow-project-detail-create" data-tone="cyan">
 							<div className="workflow-overview-panel-pill">
 								<b>{workflow.sections.createTask.title}</b>
@@ -5278,7 +5339,8 @@ const DesignWorkflowShell = ({ title, variant, projectId, taskId }: Props) => {
 												<input
 													id={`${attachmentInputId}-floating`}
 													type="file"
-													onChange={(event) => setTaskAttachmentFile(event.target.files?.[0] ?? null)}
+													onChange={(event) => selectTaskAttachment(event.target.files?.[0] ?? null)}
+													disabled={uploadTaskAttachmentState.isLoading}
 													className="workflow-hidden-file-input"
 												/>
 												<label htmlFor={`${attachmentInputId}-floating`}>
@@ -5287,11 +5349,13 @@ const DesignWorkflowShell = ({ title, variant, projectId, taskId }: Props) => {
 												</label>
 												<button
 													type="button"
-													disabled={!taskAttachmentFile || !taskAttachmentLabel.trim()}
+													disabled={!taskAttachmentFile || !taskAttachmentLabel.trim() || uploadTaskAttachmentState.isLoading}
 													onClick={() => void handleUploadTaskAttachment(task.id)}
 												>
 													{uploadTaskAttachmentState.isLoading ? workflow.buttons.saving : t.common.add}
 												</button>
+												<small className="workflow-upload-hint">{messageFor('10 Go maximum par fichier · Qualité originale', 'Up to 10 GB per file · Original quality')}</small>
+												<UploadProgress progress={attachmentUploadProgress} />
 											</div>
 										) : null}
 									</div>
@@ -5441,9 +5505,9 @@ const DesignWorkflowShell = ({ title, variant, projectId, taskId }: Props) => {
 											minHeight: 92,
 											border: '1px solid #dbe3ef',
 											borderRadius: 10,
-											background: '#ffffff',
+											background: 'var(--surface)',
 											padding: '14px 16px',
-											color: '#334155',
+											color: chartTextColor,
 											fontSize: 15,
 											fontWeight: 700,
 											lineHeight: 1.65,
@@ -5782,7 +5846,8 @@ const DesignWorkflowShell = ({ title, variant, projectId, taskId }: Props) => {
 										<input
 											id={attachmentInputId}
 											type="file"
-											onChange={(event) => setTaskAttachmentFile(event.target.files?.[0] ?? null)}
+											onChange={(event) => selectTaskAttachment(event.target.files?.[0] ?? null)}
+											disabled={uploadTaskAttachmentState.isLoading}
 											className="workflow-hidden-file-input"
 										/>
 										<label htmlFor={attachmentInputId} className="workflow-trello-modal-file-button">
@@ -5792,11 +5857,13 @@ const DesignWorkflowShell = ({ title, variant, projectId, taskId }: Props) => {
 										<button
 											type="button"
 											className="workflow-trello-modal-save"
-											disabled={!taskAttachmentFile || !taskAttachmentLabel.trim()}
+											disabled={!taskAttachmentFile || !taskAttachmentLabel.trim() || uploadTaskAttachmentState.isLoading}
 											onClick={() => void handleUploadTaskAttachment(task.id)}
 										>
 											{uploadTaskAttachmentState.isLoading ? workflow.buttons.saving : t.common.add}
 										</button>
+										<small className="workflow-upload-hint">{messageFor('10 Go maximum par fichier · Qualité originale', 'Up to 10 GB per file · Original quality')}</small>
+										<UploadProgress progress={attachmentUploadProgress} />
 									</div>
 								) : null}
 							</section>
@@ -5921,7 +5988,7 @@ const DesignWorkflowShell = ({ title, variant, projectId, taskId }: Props) => {
 								<Chip>{labelFor(task.priority)}</Chip>
 								<Chip>
 									<span className="inline-flex items-center gap-2">
-										{task.current_assignee ? <AvatarBadge user={task.current_assignee} size={20} /> : null}
+										{task.current_assignee ? <AvatarBadge user={task.current_assignee} size={20} showTooltip /> : null}
 										<span>
 											{task.current_assignee
 												? `${task.current_assignee.first_name} ${task.current_assignee.last_name}`
@@ -6887,7 +6954,8 @@ const DesignWorkflowShell = ({ title, variant, projectId, taskId }: Props) => {
 												<input
 													id={attachmentInputId}
 													type="file"
-													onChange={(event) => setTaskAttachmentFile(event.target.files?.[0] ?? null)}
+													onChange={(event) => selectTaskAttachment(event.target.files?.[0] ?? null)}
+													disabled={uploadTaskAttachmentState.isLoading}
 													className="workflow-hidden-file-input"
 												/>
 												<label htmlFor={attachmentInputId} className="workflow-upload-picker">
@@ -6896,13 +6964,15 @@ const DesignWorkflowShell = ({ title, variant, projectId, taskId }: Props) => {
 												</label>
 												<button
 													type="button"
-													disabled={!taskAttachmentFile || !taskAttachmentLabel.trim()}
+													disabled={!taskAttachmentFile || !taskAttachmentLabel.trim() || uploadTaskAttachmentState.isLoading}
 													onClick={() => void handleUploadTaskAttachment(task.id)}
 													className="app-button workflow-upload-submit"
 												>
 													<Paperclip size={16} />
 													<span>{uploadTaskAttachmentState.isLoading ? workflow.buttons.saving : t.common.add}</span>
 												</button>
+												<small className="workflow-upload-hint">{messageFor('10 Go maximum par fichier · Qualité originale', 'Up to 10 GB per file · Original quality')}</small>
+												<UploadProgress progress={attachmentUploadProgress} />
 											</div>
 										) : null}
 									</div>
@@ -7379,7 +7449,7 @@ const DesignWorkflowShell = ({ title, variant, projectId, taskId }: Props) => {
 					labels: {
 						boxWidth: 7,
 						boxHeight: 7,
-						color: '#475569',
+						color: chartTextColor,
 						font: { size: 11, weight: 'bold' },
 						padding: 8,
 						usePointStyle: true,
@@ -7397,7 +7467,7 @@ const DesignWorkflowShell = ({ title, variant, projectId, taskId }: Props) => {
 					border: { display: false },
 					grid: { color: 'rgba(148, 163, 184, 0.18)' },
 					ticks: {
-						color: '#64748b',
+						color: chartTextColor,
 						font: { weight: 'bold' },
 						autoSkip: true,
 						maxRotation: 0,
@@ -7410,7 +7480,7 @@ const DesignWorkflowShell = ({ title, variant, projectId, taskId }: Props) => {
 					border: { display: false },
 					grid: { display: false },
 					ticks: {
-						color: '#334155',
+						color: chartTextColor,
 						font: { weight: 'bold' },
 						callback: (value) => `#${Number(value) + 1}`,
 					},
@@ -7733,7 +7803,7 @@ const DesignWorkflowShell = ({ title, variant, projectId, taskId }: Props) => {
 					border: { display: false },
 					grid: { color: 'rgba(148, 163, 184, 0.18)' },
 					ticks: {
-						color: '#64748b',
+						color: chartTextColor,
 						font: { weight: 'bold' },
 						autoSkip: true,
 						maxRotation: 0,
@@ -7746,7 +7816,7 @@ const DesignWorkflowShell = ({ title, variant, projectId, taskId }: Props) => {
 					border: { display: false },
 					grid: { display: false },
 					ticks: {
-						color: '#334155',
+						color: chartTextColor,
 						font: { weight: 'bold' },
 						callback: (value) => `#${Number(value) + 1}`,
 					},
@@ -7767,7 +7837,7 @@ const DesignWorkflowShell = ({ title, variant, projectId, taskId }: Props) => {
 				{
 					data: doughnutValues,
 					backgroundColor: doughnutValues.map((_, index) => reportPalette[index % reportPalette.length]),
-					borderColor: '#ffffff',
+					borderColor: chartSurfaceColor,
 					borderWidth: 4,
 					hoverOffset: 8,
 				},
@@ -7783,7 +7853,7 @@ const DesignWorkflowShell = ({ title, variant, projectId, taskId }: Props) => {
 					labels: {
 						boxWidth: 8,
 						boxHeight: 8,
-						color: '#475569',
+						color: chartTextColor,
 						font: { weight: 'bold' },
 						padding: 14,
 						usePointStyle: true,
@@ -7806,7 +7876,7 @@ const DesignWorkflowShell = ({ title, variant, projectId, taskId }: Props) => {
 					backgroundColor: 'rgba(79, 70, 229, 0.08)',
 					fill: true,
 					pointBackgroundColor: '#4f46e5',
-					pointBorderColor: '#ffffff',
+					pointBorderColor: chartSurfaceColor,
 					pointBorderWidth: 3,
 					pointRadius: 5,
 					tension: 0.42,
@@ -7828,13 +7898,13 @@ const DesignWorkflowShell = ({ title, variant, projectId, taskId }: Props) => {
 				x: {
 					border: { display: false },
 					grid: { display: false },
-					ticks: { color: '#64748b', font: { weight: 'bold' } },
+					ticks: { color: chartTextColor, font: { weight: 'bold' } },
 				},
 				y: {
 					border: { display: false },
 					grid: { color: 'rgba(148, 163, 184, 0.16)' },
 					ticks: {
-						color: '#64748b',
+						color: chartTextColor,
 						font: { weight: 'bold' },
 						autoSkip: true,
 						maxRotation: 0,
@@ -8490,11 +8560,10 @@ const DesignWorkflowShell = ({ title, variant, projectId, taskId }: Props) => {
 								type="button"
 								className="workflow-notifications-toggle"
 								data-active={notificationsUnreadOnly}
+								aria-pressed={notificationsUnreadOnly}
 								onClick={() => setNotificationsUnreadOnly(!notificationsUnreadOnly)}
 							>
-								<span aria-hidden="true">
-									{notificationsUnreadOnly ? <CheckCircle2 size={14} /> : <Bell size={14} />}
-								</span>
+								{notificationsUnreadOnly ? <CheckCircle2 size={16} aria-hidden="true" /> : <Bell size={16} aria-hidden="true" />}
 								{workflow.labels.unreadOnly}
 							</button>
 							{unreadCount ? (

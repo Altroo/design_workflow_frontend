@@ -21,7 +21,7 @@
 	overflow: hidden !important;
 	border: 1px solid var(--line) !important;
 	border-radius: 1.125rem !important;
-	background: #ffffff !important;
+	background: var(--theme-surface, #ffffff) !important;
 	box-shadow: 0 1.125rem 2.75rem -2.375rem rgba(15, 23, 42, 0.38) !important;
 }
 
@@ -68,8 +68,8 @@
 	align-content: space-between !important;
 	padding: 1.25rem !important;
 	background:
-		linear-gradient(180deg, var(--surface-muted) 0 3.5rem, #ffffff 3.5rem),
-		#ffffff !important;
+		linear-gradient(180deg, var(--surface-muted) 0 3.5rem, var(--theme-surface, #ffffff) 3.5rem),
+		var(--theme-surface, #ffffff) !important;
 }
 
 .workflow-report-metric::before,
@@ -137,7 +137,7 @@
 	border-color: color-mix(in srgb, var(--accent) 22%, var(--line)) !important;
 	background:
 		linear-gradient(90deg, rgba(15, 23, 42, 0.04), transparent 36%),
-		#ffffff !important;
+		var(--theme-surface, #ffffff) !important;
 }
 
 .workflow-notifications-type,
@@ -146,14 +146,14 @@
 .workflow-report-board-head > span,
 .workflow-report-chart-head > span {
 	border-color: var(--line) !important;
-	background: #ffffff !important;
+	background: var(--theme-surface, #ffffff) !important;
 	color: var(--ink-soft) !important;
 }
 
 .workflow-notifications-action-button,
 .workflow-notifications-comment-action button {
 	border-color: var(--line) !important;
-	background: #ffffff !important;
+	background: var(--theme-surface, #ffffff) !important;
 	color: var(--ink) !important;
 	box-shadow: none !important;
 }
@@ -447,7 +447,7 @@
 		min-height: 44px !important;
 		border-radius: 0.875rem !important;
 		padding: 0 0.875rem !important;
-		background: #ffffff !important;
+		background: var(--theme-surface, #ffffff) !important;
 	}
 
 	.workflow-notification-preference-toggle {

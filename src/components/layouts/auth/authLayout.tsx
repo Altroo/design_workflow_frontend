@@ -6,6 +6,7 @@ import FlagGB from '../../../../public/assets/images/flags/gb.svg';
 import FlagFR from '../../../../public/assets/images/flags/fr.svg';
 import { useLanguage } from '@/utils/hooks';
 import AuthWorkspaceBackdrop from './authWorkspaceBackdrop';
+import { ThemeToggle } from '@/components/shared/workflow/themeToggle';
 
 const AuthLayout = ({ children }: { children?: ReactNode }) => {
 	const { language, setLanguage, t } = useLanguage();
@@ -18,6 +19,7 @@ const AuthLayout = ({ children }: { children?: ReactNode }) => {
 				<div className="auth-login-stage">
 					<section className="auth-login-dock">
 						<div className="auth-language-control">
+							<ThemeToggle />
 							<button
 								type="button"
 								onClick={() => setLanguage(language === 'fr' ? 'en' : 'fr')}

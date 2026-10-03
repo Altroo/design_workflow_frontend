@@ -73,7 +73,7 @@
 .workflow-password-card,
 .workflow-password-visual {
 	border-color: var(--line) !important;
-	background: #ffffff !important;
+	background: var(--theme-surface, #ffffff) !important;
 	color: var(--ink) !important;
 	box-shadow: 0 1.125rem 2.75rem -2.375rem rgba(15, 23, 42, 0.38) !important;
 }
@@ -197,7 +197,7 @@
 .workflow-upload-submit:hover,
 .workflow-project-detail-page .app-button:not(:disabled):hover {
 	border-color: var(--accent-strong) !important;
-	background: var(--accent-strong) !important;
+	background: var(--accent-hover, var(--accent-hover, var(--accent-strong))) !important;
 	color: #ffffff !important;
 }
 
@@ -225,7 +225,7 @@
 
 .workflow-users-danger-outline {
 	border-color: var(--line) !important;
-	background: #ffffff !important;
+	background: var(--theme-surface, #ffffff) !important;
 	color: var(--ink) !important;
 }
 
@@ -257,7 +257,7 @@
 .workflow-forecast-track,
 .workflow-checklist-progress,
 .workflow-trello-modal-progress {
-	background: #e5e7eb !important;
+	background: var(--theme-surface-strong, #e5e7eb) !important;
 }
 
 .workflow-report-rank {
@@ -282,7 +282,7 @@
 .workflow-user-form-hero {
 	background:
 		linear-gradient(90deg, rgba(15, 23, 42, 0.035), transparent 38%),
-		#ffffff !important;
+		var(--theme-surface, #ffffff) !important;
 }
 
 /* Palette restraint layer: neutral by default for generic active and primary states. */
@@ -382,7 +382,7 @@
 .workflow-report-chart-card,
 .workflow-notifications-board,
 .workflow-users-board {
-	background: #ffffff !important;
+	background: var(--theme-surface, #ffffff) !important;
 }
 
 .workflow-projects-create > header,
@@ -402,77 +402,77 @@
 .workflow-column,
 .workflow-trello-board-card {
 	--status-accent: #64748b;
-	--status-soft: #f8fafc;
-	--status-text: #334155;
+	--status-soft: var(--theme-surface-muted, #f8fafc);
+	--status-text: var(--theme-ink-soft, #334155);
 	--card-status-accent: #64748b;
-	--card-status-soft: #f8fafc;
-	--card-status-text: #334155;
+	--card-status-soft: var(--theme-surface-muted, #f8fafc);
+	--card-status-text: var(--theme-ink-soft, #334155);
 }
 
 .workflow-column[data-status='backlog'],
 .workflow-board-card-shell:has(.workflow-trello-board-card[data-status='backlog']),
 .workflow-trello-board-card[data-status='backlog'] {
 	--status-accent: #64748b !important;
-	--status-soft: #f8fafc !important;
-	--status-text: #334155 !important;
+	--status-soft: var(--theme-surface-muted, #f8fafc) !important;
+	--status-text: var(--theme-ink-soft, #334155) !important;
 	--card-status-accent: #64748b !important;
-	--card-status-soft: #f8fafc !important;
-	--card-status-text: #334155 !important;
+	--card-status-soft: var(--theme-surface-muted, #f8fafc) !important;
+	--card-status-text: var(--theme-ink-soft, #334155) !important;
 }
 
 .workflow-column[data-status='todo'],
 .workflow-board-card-shell:has(.workflow-trello-board-card[data-status='todo']),
 .workflow-trello-board-card[data-status='todo'] {
 	--status-accent: #4f46e5 !important;
-	--status-soft: #eef2ff !important;
-	--status-text: #312e81 !important;
+	--status-soft: var(--theme-surface-muted, #eef2ff) !important;
+	--status-text: var(--theme-indigo-text, #312e81) !important;
 	--card-status-accent: #4f46e5 !important;
-	--card-status-soft: #eef2ff !important;
-	--card-status-text: #312e81 !important;
+	--card-status-soft: var(--theme-surface-muted, #eef2ff) !important;
+	--card-status-text: var(--theme-indigo-text, #312e81) !important;
 }
 
 .workflow-column[data-status='in_progress'],
 .workflow-board-card-shell:has(.workflow-trello-board-card[data-status='in_progress']),
 .workflow-trello-board-card[data-status='in_progress'] {
 	--status-accent: #f59e0b !important;
-	--status-soft: #fffbeb !important;
-	--status-text: #92400e !important;
+	--status-soft: var(--theme-amber-soft, #fffbeb) !important;
+	--status-text: var(--theme-amber-text, #92400e) !important;
 	--card-status-accent: #f59e0b !important;
-	--card-status-soft: #fffbeb !important;
-	--card-status-text: #92400e !important;
+	--card-status-soft: var(--theme-amber-soft, #fffbeb) !important;
+	--card-status-text: var(--theme-amber-text, #92400e) !important;
 }
 
 .workflow-column[data-status='in_review'],
 .workflow-board-card-shell:has(.workflow-trello-board-card[data-status='in_review']),
 .workflow-trello-board-card[data-status='in_review'] {
 	--status-accent: #06b6d4 !important;
-	--status-soft: #ecfeff !important;
-	--status-text: #155e75 !important;
+	--status-soft: var(--theme-surface-muted, #ecfeff) !important;
+	--status-text: var(--theme-cyan-text, #155e75) !important;
 	--card-status-accent: #06b6d4 !important;
-	--card-status-soft: #ecfeff !important;
-	--card-status-text: #155e75 !important;
+	--card-status-soft: var(--theme-surface-muted, #ecfeff) !important;
+	--card-status-text: var(--theme-cyan-text, #155e75) !important;
 }
 
 .workflow-column[data-status='blocked'],
 .workflow-board-card-shell:has(.workflow-trello-board-card[data-status='blocked']),
 .workflow-trello-board-card[data-status='blocked'] {
 	--status-accent: #e11d48 !important;
-	--status-soft: #fff1f2 !important;
-	--status-text: #9f1239 !important;
+	--status-soft: var(--theme-surface-muted, #fff1f2) !important;
+	--status-text: var(--theme-rose-text, #9f1239) !important;
 	--card-status-accent: #e11d48 !important;
-	--card-status-soft: #fff1f2 !important;
-	--card-status-text: #9f1239 !important;
+	--card-status-soft: var(--theme-surface-muted, #fff1f2) !important;
+	--card-status-text: var(--theme-rose-text, #9f1239) !important;
 }
 
 .workflow-column[data-status='done'],
 .workflow-board-card-shell:has(.workflow-trello-board-card[data-status='done']),
 .workflow-trello-board-card[data-status='done'] {
 	--status-accent: #22c55e !important;
-	--status-soft: #f0fdf4 !important;
-	--status-text: #166534 !important;
+	--status-soft: var(--theme-surface-muted, #f0fdf4) !important;
+	--status-text: var(--theme-green-text, #166534) !important;
 	--card-status-accent: #22c55e !important;
-	--card-status-soft: #f0fdf4 !important;
-	--card-status-text: #166534 !important;
+	--card-status-soft: var(--theme-surface-muted, #f0fdf4) !important;
+	--card-status-text: var(--theme-green-text, #166534) !important;
 }
 
 .workflow-column[data-status] .workflow-column-icon,
@@ -480,8 +480,8 @@
 .workflow-column[data-status] .workflow-column-empty > span,
 .workflow-task-cover-mark,
 .workflow-task-cover-chip {
-	border-color: color-mix(in srgb, var(--status-accent, var(--ink)) 18%, #e5e7eb) !important;
-	background: color-mix(in srgb, var(--status-soft, #f8fafc) 74%, #ffffff) !important;
+	border-color: color-mix(in srgb, var(--status-accent, var(--ink)) 18%, var(--theme-line, #e5e7eb)) !important;
+	background: color-mix(in srgb, var(--status-soft, var(--theme-surface-muted, #f8fafc)) 74%, var(--theme-surface, #ffffff)) !important;
 	color: var(--status-accent, var(--ink)) !important;
 	box-shadow: none !important;
 }
@@ -491,8 +491,8 @@
 .workflow-trello-board-card[data-status] .workflow-chip[data-status],
 .workflow-column[data-status] .workflow-column-stats span,
 .workflow-column[data-status] .workflow-column-count {
-	border-color: color-mix(in srgb, var(--card-status-accent, var(--status-accent)) 18%, #e5e7eb) !important;
-	background: color-mix(in srgb, var(--card-status-soft, var(--status-soft)) 62%, #ffffff) !important;
+	border-color: color-mix(in srgb, var(--card-status-accent, var(--status-accent)) 18%, var(--theme-line, #e5e7eb)) !important;
+	background: color-mix(in srgb, var(--card-status-soft, var(--status-soft)) 62%, var(--theme-surface, #ffffff)) !important;
 	color: var(--card-status-text, var(--status-text)) !important;
 }
 
@@ -507,8 +507,8 @@
 .workflow-chat-shell {
 	--chat-accent: #475569;
 	--chat-accent-strong: #334155;
-	--chat-accent-soft: #f1f5f9;
-	--chat-line: #cbd5e1;
+	--chat-accent-soft: var(--theme-surface-muted, #f1f5f9);
+	--chat-line: var(--theme-line, #cbd5e1);
 }
 
 .workflow-chat-thread-button:hover,
@@ -540,7 +540,7 @@
 .workflow-chat-thread-button.is-active .workflow-chat-avatar,
 .workflow-chat-direct-button.is-active .workflow-chat-avatar {
 	border-color: var(--chat-line) !important;
-	background: #ffffff !important;
+	background: var(--theme-surface, #ffffff) !important;
 	color: var(--chat-accent-strong) !important;
 }
 

@@ -44,6 +44,7 @@ import {
 import type { NotificationItem } from '@/types/designWorkflowTypes';
 import { getWorkflowNavigation, getWorkflowUtilities, type WorkflowNavItem as NavItem } from '@/components/shared/workflow/workflowNavigation';
 import { WorkflowAvatar } from '@/components/shared/workflow/workflowAvatar';
+import { ThemeToggle } from '@/components/shared/workflow/themeToggle';
 
 type Props = {
 	title: string;
@@ -389,6 +390,7 @@ const NavigationBar = ({ title, children, hideTopbar = false }: Props) => {
 							</button>
 
 							<div className="workflow-topbar-controls ml-auto flex items-center gap-2">
+								<ThemeToggle />
 								<div ref={notificationsRef} className="relative">
 									<button
 										type="button"

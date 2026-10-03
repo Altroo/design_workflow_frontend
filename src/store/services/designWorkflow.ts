@@ -1,4 +1,5 @@
 import { createApi } from '@reduxjs/toolkit/query/react';
+import type { AxiosProgressEvent } from 'axios';
 import { initToken } from '@/store/slices/_initSlice';
 import { getInitStateToken } from '@/store/selectors';
 import type { RootState } from '@/store/store';
@@ -122,7 +123,7 @@ export const designWorkflowApi = createApi({
 				method: 'PATCH',
 				data,
 			}),
-			invalidatesTags: (_result, _error, { id }) => ['Project', { type: 'Project', id }, 'Dashboard'],
+			invalidatesTags: (_result, _error, { id }) => ['Project', { type: 'Project', id }, 'Task', 'Chat', 'Dashboard'],
 		}),
 		getProject: builder.query<ProjectDetail, number>({
 			query: (id) => ({ url: `${DESIGN_WORKFLOW_ROOT}projects/${id}/`, method: 'GET' }),
@@ -275,11 +276,12 @@ export const designWorkflowApi = createApi({
 			}),
 			invalidatesTags: (_result, _error, { id }) => ['Task', { type: 'Task', id }],
 		}),
-		uploadTaskAttachment: builder.mutation<TaskAttachment, { id: number; data: FormData }>({
-			query: ({ id, data }) => ({
+		uploadTaskAttachment: builder.mutation<TaskAttachment, { id: number; data: FormData; onUploadProgress?: (event: AxiosProgressEvent) => void }>({
+			query: ({ id, data, onUploadProgress }) => ({
 				url: `${DESIGN_WORKFLOW_ROOT}tasks/${id}/attachments/`,
 				method: 'POST',
 				data,
+				onUploadProgress,
 			}),
 			invalidatesTags: (_result, _error, { id }) => ['Task', { type: 'Task', id }],
 		}),
@@ -455,11 +457,12 @@ export const designWorkflowApi = createApi({
 			}),
 			providesTags: (_result, _error, { threadId }) => [{ type: 'Chat', id: threadId }],
 		}),
-		sendChatMessage: builder.mutation<ChatMessage, { threadId: number; data: FormData }>({
-			query: ({ threadId, data }) => ({
+		sendChatMessage: builder.mutation<ChatMessage, { threadId: number; data: FormData; onUploadProgress?: (event: AxiosProgressEvent) => void }>({
+			query: ({ threadId, data, onUploadProgress }) => ({
 				url: `${DESIGN_WORKFLOW_ROOT}chat/threads/${threadId}/messages/`,
 				method: 'POST',
 				data,
+				onUploadProgress,
 			}),
 			invalidatesTags: (_result, _error, { threadId }) => ['Chat', { type: 'Chat', id: threadId }],
 		}),

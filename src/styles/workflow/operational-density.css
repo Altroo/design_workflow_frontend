@@ -940,8 +940,8 @@
 	border: 1px solid var(--line) !important;
 	border-radius: 18px !important;
 	background:
-		linear-gradient(90deg, rgba(248, 250, 252, 0.92), rgba(255, 255, 255, 0) 44%),
-		#ffffff !important;
+		linear-gradient(90deg, rgba(var(--theme-muted-rgb, 248, 250, 252), 0.92), rgba(255, 255, 255, 0) 44%),
+		var(--theme-surface, #ffffff) !important;
 	padding: 1.125rem 1.5rem !important;
 	box-shadow: 0 1.125rem 2.75rem -2.375rem rgba(15, 23, 42, 0.38) !important;
 }
@@ -991,7 +991,7 @@
 	min-height: 2.5rem !important;
 	border: 1px solid var(--line) !important;
 	border-radius: 999px !important;
-	background: #ffffff !important;
+	background: var(--theme-surface, #ffffff) !important;
 	padding: 0 0.875rem !important;
 	color: var(--ink) !important;
 	font-size: 0.8125rem !important;
@@ -1021,7 +1021,7 @@
 	overflow: hidden !important;
 	border: 1px solid var(--line) !important;
 	border-radius: 18px !important;
-	background: #ffffff !important;
+	background: var(--theme-surface, #ffffff) !important;
 	padding: 1rem !important;
 	box-shadow: 0 1.125rem 2.75rem -2.375rem rgba(15, 23, 42, 0.38) !important;
 }
@@ -1032,7 +1032,7 @@
 	inset: 0 auto auto 0 !important;
 	width: 100% !important;
 	height: 0.25rem !important;
-	background: linear-gradient(90deg, #e5e7eb, rgba(229, 231, 235, 0.55), transparent) !important;
+	background: linear-gradient(90deg, var(--theme-surface-strong, #e5e7eb), rgba(229, 231, 235, 0.55), transparent) !important;
 	content: '' !important;
 }
 
@@ -1178,6 +1178,10 @@
 	.workflow-user-detail-avatar {
 		width: 3.75rem !important;
 		height: 3.75rem !important;
+		min-width: 3.75rem !important;
+		min-height: 3.75rem !important;
+		max-width: 3.75rem !important;
+		max-height: 3.75rem !important;
 		border-radius: 0.875rem !important;
 		font-size: 1rem !important;
 	}

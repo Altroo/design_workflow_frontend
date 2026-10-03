@@ -6,8 +6,8 @@
 
 .workflow-kanban-page .workflow-board-surface {
 	padding: 1.625rem 1.75rem !important;
-	border-radius: 1.25rem !important;
-	background: #ffffff !important;
+	border-radius: 1.125rem !important;
+	background: var(--theme-surface, #ffffff) !important;
 	box-shadow: 0 1.5rem 3.75rem -3.25rem rgba(15, 23, 42, 0.45) !important;
 }
 
@@ -102,11 +102,11 @@
 
 .workflow-kanban-page .workflow-trello-board-card[data-status] {
 	padding: 1rem !important;
-	border-color: color-mix(in srgb, var(--card-status-accent) 28%, #e5e7eb) !important;
+	border-color: color-mix(in srgb, var(--card-status-accent) 28%, var(--theme-line, #e5e7eb)) !important;
 	border-radius: 1rem !important;
 	background:
-		linear-gradient(180deg, var(--card-status-soft) 0 0.35rem, #ffffff 0.35rem),
-		#ffffff !important;
+		linear-gradient(180deg, var(--card-status-soft) 0 0.35rem, var(--theme-surface, #ffffff) 0.35rem),
+		var(--theme-surface, #ffffff) !important;
 	box-shadow: 0 1.125rem 2.25rem -2rem color-mix(in srgb, var(--card-status-accent) 42%, rgba(15, 23, 42, 0.42)) !important;
 }
 
@@ -117,9 +117,9 @@
 	overflow: hidden !important;
 	border-radius: 0.875rem !important;
 	background:
-		linear-gradient(135deg, color-mix(in srgb, var(--card-cover-soft, #f8fafc) 82%, #ffffff), #ffffff 64%),
-		var(--card-cover-soft, #f8fafc) !important;
-	color: var(--card-cover-text, #334155) !important;
+		linear-gradient(135deg, color-mix(in srgb, var(--card-cover-soft, var(--theme-surface-muted, #f8fafc)) 82%, var(--theme-surface, #ffffff)), var(--theme-surface, #ffffff) 64%),
+		var(--card-cover-soft, var(--theme-surface-muted, #f8fafc)) !important;
+	color: var(--card-cover-text, var(--theme-ink-soft, #334155)) !important;
 }
 
 .workflow-kanban-page .workflow-trello-card-cover img {
@@ -142,20 +142,20 @@
 	align-items: end !important;
 	padding: 1rem !important;
 	background:
-		linear-gradient(90deg, color-mix(in srgb, var(--card-cover-accent, #64748b) 12%, transparent), transparent 58%),
-		linear-gradient(180deg, transparent, rgba(255, 255, 255, 0.72)) !important;
+		linear-gradient(90deg, color-mix(in srgb, var(--card-cover-accent, var(--theme-surface-strong, #64748b)) 12%, transparent), transparent 58%),
+		linear-gradient(180deg, transparent, rgba(var(--theme-surface-rgb, 255, 255, 255), 0.72)) !important;
 }
 
 .workflow-kanban-page .workflow-trello-card-cover-art span {
 	display: block !important;
 	min-height: 3.25rem !important;
 	border-radius: 0.7rem !important;
-	background: color-mix(in srgb, var(--card-cover-accent, #64748b) 22%, #ffffff) !important;
+	background: color-mix(in srgb, var(--card-cover-accent, var(--theme-surface-strong, #64748b)) 22%, var(--theme-surface, #ffffff)) !important;
 }
 
 .workflow-kanban-page .workflow-trello-card-cover-art span:nth-child(2) {
 	min-height: 2.35rem !important;
-	background: color-mix(in srgb, var(--card-cover-accent, #64748b) 14%, #ffffff) !important;
+	background: color-mix(in srgb, var(--card-cover-accent, var(--theme-surface-strong, #64748b)) 14%, var(--theme-surface, #ffffff)) !important;
 }
 
 .workflow-kanban-page .workflow-trello-card-cover-art span:nth-child(3) {
@@ -164,7 +164,7 @@
 	right: 1rem !important;
 	width: 4rem !important;
 	min-height: 0.5rem !important;
-	background: color-mix(in srgb, var(--card-cover-accent, #64748b) 18%, #ffffff) !important;
+	background: color-mix(in srgb, var(--card-cover-accent, var(--theme-surface-strong, #64748b)) 18%, var(--theme-surface, #ffffff)) !important;
 }
 
 .workflow-kanban-page .workflow-trello-card-cover-status {
@@ -176,11 +176,11 @@
 	align-items: center !important;
 	gap: 0.375rem !important;
 	min-height: 1.625rem !important;
-	border: 1px solid color-mix(in srgb, var(--card-cover-accent, #64748b) 18%, #e5e7eb) !important;
+	border: 1px solid color-mix(in srgb, var(--card-cover-accent, var(--theme-line-strong, #64748b)) 18%, var(--theme-line, #e5e7eb)) !important;
 	border-radius: 999px !important;
-	background: rgba(255, 255, 255, 0.92) !important;
+	background: rgba(var(--theme-surface-rgb, 255, 255, 255), 0.92) !important;
 	padding: 0 0.625rem !important;
-	color: var(--card-cover-text, #334155) !important;
+	color: var(--card-cover-text, var(--theme-ink-soft, #334155)) !important;
 	font-size: 0.6875rem !important;
 	font-weight: 850 !important;
 	box-shadow: 0 0.75rem 1.5rem -1.35rem color-mix(in srgb, var(--card-cover-accent, #64748b) 45%, rgba(15, 23, 42, 0.35)) !important;
@@ -215,7 +215,7 @@
 	min-height: 10.5rem !important;
 	padding: 1rem !important;
 	border-radius: 1rem !important;
-	background: #ffffff !important;
+	background: var(--theme-surface, #ffffff) !important;
 	box-shadow: 0 1.125rem 2.5rem -2rem rgba(15, 23, 42, 0.38) !important;
 }
 
@@ -226,7 +226,7 @@
 	padding: 0 0.35rem !important;
 	border: 0 !important;
 	background: transparent !important;
-	color: #64748b !important;
+	color: var(--theme-ink-muted, #64748b) !important;
 	box-shadow: none !important;
 }
 
@@ -285,61 +285,61 @@
 .workflow-column[data-status='backlog'],
 .workflow-trello-board-card[data-status='backlog'] {
 	--status-accent: #64748b;
-	--status-soft: #f8fafc;
-	--status-text: #334155;
+	--status-soft: var(--theme-surface-muted, #f8fafc);
+	--status-text: var(--theme-ink-soft, #334155);
 	--card-status-accent: #64748b;
-	--card-status-soft: #f8fafc;
-	--card-status-text: #334155;
+	--card-status-soft: var(--theme-surface-muted, #f8fafc);
+	--card-status-text: var(--theme-ink-soft, #334155);
 }
 
 .workflow-column[data-status='todo'],
 .workflow-trello-board-card[data-status='todo'] {
 	--status-accent: #4f46e5;
-	--status-soft: #eef2ff;
-	--status-text: #312e81;
+	--status-soft: var(--theme-surface-muted, #eef2ff);
+	--status-text: var(--theme-indigo-text, #312e81);
 	--card-status-accent: #4f46e5;
-	--card-status-soft: #eef2ff;
-	--card-status-text: #312e81;
+	--card-status-soft: var(--theme-surface-muted, #eef2ff);
+	--card-status-text: var(--theme-indigo-text, #312e81);
 }
 
 .workflow-column[data-status='in_progress'],
 .workflow-trello-board-card[data-status='in_progress'] {
 	--status-accent: #f59e0b;
-	--status-soft: #fffbeb;
-	--status-text: #92400e;
+	--status-soft: var(--theme-amber-soft, #fffbeb);
+	--status-text: var(--theme-amber-text, #92400e);
 	--card-status-accent: #f59e0b;
-	--card-status-soft: #fffbeb;
-	--card-status-text: #92400e;
+	--card-status-soft: var(--theme-amber-soft, #fffbeb);
+	--card-status-text: var(--theme-amber-text, #92400e);
 }
 
 .workflow-column[data-status='in_review'],
 .workflow-trello-board-card[data-status='in_review'] {
 	--status-accent: #06b6d4;
-	--status-soft: #ecfeff;
-	--status-text: #155e75;
+	--status-soft: var(--theme-surface-muted, #ecfeff);
+	--status-text: var(--theme-cyan-text, #155e75);
 	--card-status-accent: #06b6d4;
-	--card-status-soft: #ecfeff;
-	--card-status-text: #155e75;
+	--card-status-soft: var(--theme-surface-muted, #ecfeff);
+	--card-status-text: var(--theme-cyan-text, #155e75);
 }
 
 .workflow-column[data-status='blocked'],
 .workflow-trello-board-card[data-status='blocked'] {
 	--status-accent: #f43f5e;
-	--status-soft: #fff1f2;
-	--status-text: #9f1239;
+	--status-soft: var(--theme-surface-muted, #fff1f2);
+	--status-text: var(--theme-rose-text, #9f1239);
 	--card-status-accent: #f43f5e;
-	--card-status-soft: #fff1f2;
-	--card-status-text: #9f1239;
+	--card-status-soft: var(--theme-surface-muted, #fff1f2);
+	--card-status-text: var(--theme-rose-text, #9f1239);
 }
 
 .workflow-column[data-status='done'],
 .workflow-trello-board-card[data-status='done'] {
 	--status-accent: #22c55e;
-	--status-soft: #f0fdf4;
-	--status-text: #166534;
+	--status-soft: var(--theme-surface-muted, #f0fdf4);
+	--status-text: var(--theme-green-text, #166534);
 	--card-status-accent: #22c55e;
-	--card-status-soft: #f0fdf4;
-	--card-status-text: #166534;
+	--card-status-soft: var(--theme-surface-muted, #f0fdf4);
+	--card-status-text: var(--theme-green-text, #166534);
 }
 
 @media (max-width: 47.9375rem) {

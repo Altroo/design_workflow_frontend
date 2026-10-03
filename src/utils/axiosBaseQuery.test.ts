@@ -35,7 +35,7 @@ describe('axiosBaseQuery', () => {
 
 		const result = await baseQuery({ url: '/x', method: 'GET' }, makeBaseQueryApi({}), {});
 		expect(result).toEqual({ data: responseData });
-		expect(spy).toHaveBeenCalledWith({ url: '/x', method: 'GET', data: undefined, params: undefined });
+		expect(spy).toHaveBeenCalledWith(expect.objectContaining({ url: '/x', method: 'GET', data: undefined, params: undefined, signal: expect.any(AbortSignal) }));
 	});
 
 	it('handles normalized errors thrown by interceptors', async () => {
