@@ -40,6 +40,7 @@ if (isDev && process.env.NEXT_PUBLIC_API_ROOT_URL) {
 }
 
 const nextConfig: NextConfig = {
+	agentRules: false,
 	reactCompiler: true,
 	reactStrictMode: true,
 	poweredByHeader: false,
