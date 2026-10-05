@@ -128,4 +128,25 @@ describe('InitEffects', () => {
 			expect(mockPush).not.toHaveBeenCalled();
 		});
 	});
+
+	it('refreshes authoritative session and server routes only when privileges change', async () => {
+		const update = jest.fn().mockResolvedValue({});
+		const refresh = jest.fn();
+		(useRouter as jest.Mock).mockReturnValue({ push: jest.fn(), refresh });
+		(useSession as jest.Mock).mockReturnValue({ data: { user: {} }, status: 'authenticated', update });
+		const profile = { id: 1, role: 'designer', is_staff: false, first_name: 'A' };
+		(useGetProfilQuery as jest.Mock).mockReturnValue({ data: profile });
+		const { rerender } = render(<InitEffects />);
+		expect(update).not.toHaveBeenCalled();
+		(useGetProfilQuery as jest.Mock).mockReturnValue({ data: { ...profile, first_name: 'B' } });
+		rerender(<InitEffects />);
+		expect(update).not.toHaveBeenCalled();
+		(useGetProfilQuery as jest.Mock).mockReturnValue({ data: { ...profile, role: 'manager' } });
+		rerender(<InitEffects />);
+		await waitFor(() => expect(refresh).toHaveBeenCalledTimes(1));
+		expect(update).toHaveBeenCalledWith();
+		(useGetProfilQuery as jest.Mock).mockReturnValue({ data: profile });
+		rerender(<InitEffects />);
+		await waitFor(() => expect(refresh).toHaveBeenCalledTimes(2));
+	});
 });

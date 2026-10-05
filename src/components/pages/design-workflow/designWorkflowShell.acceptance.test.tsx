@@ -1,4 +1,4 @@
-import { render, screen, waitFor, within } from '@testing-library/react';
+import { act, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import {type ReactNode} from 'react';
 import DesignWorkflowShell from './designWorkflowShell';
@@ -7,6 +7,7 @@ import type {
 	NotificationItem,
 	ProjectDetail,
 	ProjectSummary,
+	SavedView,
 	TaskCard,
 	TaskDetail,
 	TimeReportRow,
@@ -61,12 +62,13 @@ jest.mock('@/components/layouts/navigationBar/navigationBar', () => {
 });
 
 const mockUseAppSelector = jest.fn();
+const mockOnError = jest.fn();
 jest.mock('@/utils/hooks', () => {
 	const { en } = jest.requireActual('@/translations/en') as typeof import('@/translations/en');
 	return {
 		useAppSelector: (selector: unknown) => mockUseAppSelector(selector),
 		useLanguage: () => ({ language: 'en', setLanguage: jest.fn(), t: en }),
-		useToast: () => ({ onSuccess: jest.fn(), onError: jest.fn() }),
+		useToast: () => ({ onSuccess: jest.fn(), onError: mockOnError }),
 	};
 });
 
@@ -736,16 +738,11 @@ describe('Design workflow acceptance flows', () => {
 			expect(mockUpdateTask).toHaveBeenCalledWith({
 				id: taskDetail.id,
 				data: {
-					project_id: projectDetail.id,
 					title: 'Finalize approved material board',
-					description: taskDetail.description,
-					current_assignee_id: designerA.id,
 					status: 'in_progress',
 					priority: 'high',
-					due_date: taskDetail.due_date,
 					estimated_minutes: 960,
-					blocked_reason: '',
-					sort_order: 0,
+					expected_values: { title: taskDetail.title, status: taskDetail.status, priority: taskDetail.priority, estimated_minutes: taskDetail.estimated_minutes },
 				},
 			}),
 		);
@@ -830,7 +827,7 @@ describe('Design workflow acceptance flows', () => {
 		);
 	});
 
-	it('requires an explicit project when quick-adding with multiple writable projects', async () => {
+	it.each(['All projects', 'My projects'])('requires an explicit project when quick-adding from %s', async (filter) => {
 		const user = userEvent.setup();
 		mockProfile(manager);
 		const secondProject: ProjectSummary = {
@@ -841,10 +838,10 @@ describe('Design workflow acceptance flows', () => {
 		mockUseGetProjectsQuery.mockReturnValue({ data: [projectSummary, secondProject], isLoading: false });
 
 		render(<DesignWorkflowShell title="Board" variant="board" />);
-		await selectMuiOption(user, 'Project', 'My projects');
+		await selectMuiOption(user, 'Project', filter);
 		await waitFor(() =>
 			expect(mockUseGetTasksQuery).toHaveBeenCalledWith(
-				expect.objectContaining({ my_projects: true, project: undefined }),
+				expect.objectContaining({ my_projects: filter === 'My projects' || undefined, project: undefined }),
 				expect.objectContaining({ skip: false }),
 			),
 		);
@@ -854,12 +851,17 @@ describe('Design workflow acceptance flows', () => {
 		expect(quickAdd).not.toBeNull();
 		const addButton = within(quickAdd as HTMLElement).getByRole('button', { name: 'Add' });
 		expect(addButton).toBeDisabled();
+		const projectChoice = within(quickAdd as HTMLElement).getByRole('combobox', { name: 'Card project' });
+		expect(projectChoice).toHaveFocus();
+		expect(projectChoice.compareDocumentPosition(within(quickAdd as HTMLElement).getByLabelText('Task title')) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
 		await user.type(
 			within(quickAdd as HTMLElement).getByPlaceholderText('Enter a title or paste a link'),
 			'Launch card',
 		);
 		expect(addButton).toBeDisabled();
-		await selectMuiOption(user, 'Project', secondProject.name, quickAdd as HTMLElement);
+		await user.keyboard('{Enter}');
+		expect(mockCreateTask).not.toHaveBeenCalled();
+		await selectMuiOption(user, 'Card project', secondProject.name, quickAdd as HTMLElement);
 		expect(addButton).toBeEnabled();
 		await user.click(addButton);
 
@@ -868,6 +870,96 @@ describe('Design workflow acceptance flows', () => {
 				expect.objectContaining({ project_id: secondProject.id, title: 'Launch card' }),
 			),
 		);
+	});
+
+	it.each([false, true])('shows the destination project when only one choice is available (filtered=%s)', async (filtered) => {
+		const user = userEvent.setup();
+		mockProfile(designerA);
+		const secondProject = { ...projectSummary, id: 202, name: 'Other editable project' };
+		mockUseGetProjectsQuery.mockReturnValue({ data: filtered ? [projectSummary, secondProject] : [projectSummary], isLoading: false });
+		render(<DesignWorkflowShell title="Board" variant="board" />);
+		if (filtered) await selectMuiOption(user, 'Project', projectSummary.name);
+		await user.click(screen.getAllByRole('button', { name: 'Add a card' })[0]);
+		const form = document.querySelector('.workflow-quick-add-card') as HTMLElement;
+		expect(within(form).getByText('Card project')).toBeInTheDocument();
+		expect(within(form).getByRole('combobox', { name: 'Card project' })).toHaveTextContent(projectSummary.name);
+		await user.type(within(form).getByLabelText('Task title'), 'Clearly assigned{Enter}');
+		await waitFor(() => expect(mockCreateTask).toHaveBeenCalledWith(expect.objectContaining({ project_id: projectSummary.id, title: 'Clearly assigned' })));
+	});
+
+	it.each(['empty', 'read-only', 'archived'])('keeps creation visible but disabled with %s projects', async (kind) => {
+		const user = userEvent.setup();
+		mockProfile(designerA);
+		mockUseGetProjectsQuery.mockReturnValue({ data: kind === 'empty' ? [] : [{ ...projectSummary, can_work: kind !== 'read-only', archived: kind === 'archived' }], isLoading: false });
+		render(<DesignWorkflowShell title="Board" variant="board" />);
+		for (const button of screen.getAllByRole('button', { name: 'Add a card' })) expect(button).toBeDisabled();
+		await user.click(screen.getAllByRole('button', { name: 'Add a card' })[0]);
+		expect(document.querySelector('.workflow-quick-add-card')).toBeNull();
+		expect(mockCreateTask).not.toHaveBeenCalled();
+	});
+
+	it('lists only writable active projects and never substitutes another project after access is lost', async () => {
+		const user = userEvent.setup();
+		mockProfile(designerA);
+		const secondProject = { ...projectSummary, id: 202, name: 'Other editable project' };
+		const readOnly = { ...projectSummary, id: 203, name: 'Read only project', can_work: false };
+		const archived = { ...projectSummary, id: 204, name: 'Archived project', archived: true };
+		mockUseGetProjectsQuery.mockReturnValue({ data: [projectSummary, secondProject, readOnly, archived], isLoading: false });
+		const { rerender } = render(<DesignWorkflowShell title="Board" variant="board" />);
+		await user.click(screen.getAllByRole('button', { name: 'Add a card' })[0]);
+		const form = document.querySelector('.workflow-quick-add-card') as HTMLElement;
+		await user.click(within(form).getByRole('combobox', { name: 'Card project' }));
+		const options = screen.getByRole('listbox');
+		expect(within(options).queryByRole('option', { name: readOnly.name })).not.toBeInTheDocument();
+		expect(within(options).queryByRole('option', { name: archived.name })).not.toBeInTheDocument();
+		await user.click(within(options).getByRole('option', { name: projectSummary.name }));
+		await user.type(within(form).getByLabelText('Task title'), 'Do not redirect');
+		mockUseGetProjectsQuery.mockReturnValue({ data: [{ ...projectSummary, can_work: false }, secondProject], isLoading: false });
+		await act(async () => { rerender(<DesignWorkflowShell title="Board" variant="board" />); });
+		expect(within(form).getByRole('button', { name: 'Add' })).toBeDisabled();
+		await user.click(within(form).getByLabelText('Task title'));
+		await user.keyboard('{Enter}');
+		expect(mockCreateTask).not.toHaveBeenCalled();
+		await selectMuiOption(user, 'Card project', secondProject.name, form);
+		await user.click(within(form).getByRole('button', { name: 'Add' }));
+		await waitFor(() => expect(mockCreateTask).toHaveBeenCalledWith(expect.objectContaining({ project_id: secondProject.id })));
+	});
+
+	it('resets creation context when the project filter changes and blocks a read-only selected project', async () => {
+		const user = userEvent.setup();
+		mockProfile(designerA);
+		const other = { ...projectSummary, id: 202, name: 'Other project', can_work: false };
+		mockUseGetProjectsQuery.mockReturnValue({ data: [projectSummary, other], isLoading: false });
+		render(<DesignWorkflowShell title="Board" variant="board" />);
+		await user.click(screen.getAllByRole('button', { name: 'Add a card' })[0]);
+		await user.type(screen.getByLabelText('Task title'), 'Old draft');
+		await selectMuiOption(user, 'Project', other.name);
+		expect(document.querySelector('.workflow-quick-add-card')).toBeNull();
+		for (const button of screen.getAllByRole('button', { name: 'Add a card' })) expect(button).toBeDisabled();
+		await selectMuiOption(user, 'Project', projectSummary.name);
+		await user.click(screen.getAllByRole('button', { name: 'Add a card' })[0]);
+		expect(screen.getByLabelText('Task title')).toHaveValue('');
+		expect(mockCreateTask).not.toHaveBeenCalled();
+	});
+
+	it('retains the project and title after a create error, prevents duplicate requests and leaves cancelled forms closed', async () => {
+		const user = userEvent.setup();
+		mockProfile(designerA);
+		let finish: () => void = () => {};
+		const pending = new Promise<void>((resolve) => { finish = resolve; });
+		mockCreateTask.mockReturnValueOnce({ unwrap: () => Promise.reject({ status: 500 }) }).mockReturnValue({ unwrap: () => pending });
+		render(<DesignWorkflowShell title="Board" variant="board" />);
+		await user.click(screen.getAllByRole('button', { name: 'Add a card' })[0]);
+		const form = document.querySelector('.workflow-quick-add-card') as HTMLElement;
+		await user.type(within(form).getByLabelText('Task title'), 'Retry in same project{Enter}');
+		await waitFor(() => expect(mockCreateTask).toHaveBeenCalledTimes(1));
+		expect(within(form).getByLabelText('Task title')).toHaveValue('Retry in same project');
+		expect(within(form).getByRole('combobox', { name: 'Card project' })).toHaveTextContent(projectSummary.name);
+		await user.keyboard('{Enter}{Enter}');
+		expect(mockCreateTask).toHaveBeenCalledTimes(2);
+		await user.click(within(form).getByRole('button', { name: 'Cancel' }));
+		await act(async () => { finish(); await pending; });
+		expect(document.querySelector('.workflow-quick-add-card')).toBeNull();
 	});
 
 	it('keeps unassigned cards visible but removes their edit and drag controls', async () => {
@@ -996,6 +1088,25 @@ describe('Design workflow acceptance flows', () => {
 		expect(within(dialog).queryByRole('button', { name: 'Labels' })).not.toBeInTheDocument();
 	});
 
+	it('enables shared card tools for a collaborator who is not the assignee', async () => {
+		const user = userEvent.setup();
+		mockProfile(designerB);
+		const sharedProject = { ...projectSummary, can_work: true, can_manage: false, collaborators: [designerB] };
+		const sharedCard = { ...boardTask, project: sharedProject, can_edit: true, review_state: 'not_submitted' as const };
+		mockUseGetTasksQuery.mockReturnValue({ data: [sharedCard], isLoading: false });
+		mockUseGetTaskQuery.mockReturnValue({ data: { ...taskDetail, ...sharedCard }, isLoading: false });
+		render(<DesignWorkflowShell title="Board" variant="board" />);
+		expect(screen.getByTestId(`board-task-${sharedCard.id}`).querySelector('.workflow-board-drag-handle')).not.toBeNull();
+		await user.click(screen.getByText(sharedCard.title));
+		const dialog = await screen.findByRole('dialog', { name: sharedCard.title });
+		for (const action of ['Labels', 'Card image', 'Attachments', 'Checklist', 'Members', 'Request review']) {
+			expect(within(dialog).getByRole('button', { name: action })).toBeEnabled();
+		}
+		expect(within(dialog).queryByRole('button', { name: 'Approve' })).not.toBeInTheDocument();
+		await user.click(within(dialog).getByRole('button', { name: 'Attachments' }));
+		expect(within(dialog).getByRole('region', { name: 'Attachments' })).toBeInTheDocument();
+	});
+
 	it('toggles a card action panel with the same button and suggests @mentions', async () => {
 		const user = userEvent.setup();
 		mockProfile(manager);
@@ -1015,6 +1126,128 @@ describe('Design workflow acceptance flows', () => {
 		await user.type(description, '@ram');
 		await user.click(await screen.findByRole('option', { name: /Rami Reviewer.*@rami\.reviewer/i }));
 		expect(description).toHaveValue('@rami.reviewer ');
+	});
+
+	it.each([designerA, designerB])('lets $first_name rename an editable card by double-clicking its title', async (person) => {
+		const user = userEvent.setup();
+		mockProfile(person);
+		render(<DesignWorkflowShell title="Board" variant="board" />);
+		await user.click(screen.getByText(boardTask.title));
+		const dialog = await screen.findByRole('dialog', { name: boardTask.title });
+		const heading = within(dialog).getByRole('heading', { name: boardTask.title });
+		await user.click(heading);
+		expect(within(dialog).queryByLabelText('Card title')).not.toBeInTheDocument();
+		await user.dblClick(heading);
+		const input = within(dialog).getByLabelText('Card title');
+		expect(input).toHaveFocus();
+		expect(input).toHaveValue(boardTask.title);
+		expect(input).toHaveAttribute('maxlength', '255');
+		await user.clear(input);
+		await user.type(input, '  Revised material board  {Enter}');
+		await waitFor(() => expect(mockUpdateTask).toHaveBeenCalledWith({ id: boardTask.id, data: { title: 'Revised material board', expected_values: { title: boardTask.title } } }));
+		await waitFor(() => expect(within(dialog).queryByLabelText('Card title')).not.toBeInTheDocument());
+	});
+
+	it('rejects blank or unchanged titles and cancels renaming without closing the card', async () => {
+		const user = userEvent.setup();
+		mockProfile(designerA);
+		render(<DesignWorkflowShell title="Board" variant="board" />);
+		await user.click(screen.getByText(boardTask.title));
+		const dialog = await screen.findByRole('dialog', { name: boardTask.title });
+		const heading = within(dialog).getByRole('heading', { name: boardTask.title });
+		await user.dblClick(heading);
+		let form = within(dialog).getByRole('form', { name: 'Rename card' });
+		expect(within(form).getByRole('button', { name: 'Save' })).toBeDisabled();
+		await user.clear(within(form).getByLabelText('Card title'));
+		await user.type(within(form).getByLabelText('Card title'), '   {Enter}{Escape}');
+		expect(mockUpdateTask).not.toHaveBeenCalled();
+		expect(dialog).toBeInTheDocument();
+		expect(heading).toHaveFocus();
+		await user.keyboard('{F2}');
+		form = within(dialog).getByRole('form', { name: 'Rename card' });
+		expect(within(form).getByLabelText('Card title')).toHaveValue(boardTask.title);
+		await user.clear(within(form).getByLabelText('Card title'));
+		await user.type(within(form).getByLabelText('Card title'), 'Discard this');
+		await user.click(within(form).getByRole('button', { name: 'Cancel' }));
+		expect(mockUpdateTask).not.toHaveBeenCalled();
+		expect(within(dialog).queryByLabelText('Card title')).not.toBeInTheDocument();
+	});
+
+	it('keeps the rename draft after an error or task refresh and allows retry', async () => {
+		const user = userEvent.setup();
+		mockProfile(designerA);
+		mockUpdateTask.mockReturnValueOnce({ unwrap: () => Promise.reject({ status: 500 }) }).mockReturnValue(makeMutationResult());
+		const { rerender } = render(<DesignWorkflowShell title="Board" variant="board" />);
+		await user.click(screen.getByText(boardTask.title));
+		const dialog = await screen.findByRole('dialog', { name: boardTask.title });
+		await user.dblClick(within(dialog).getByRole('heading', { name: boardTask.title }));
+		await user.clear(within(dialog).getByLabelText('Card title'));
+		await user.type(within(dialog).getByLabelText('Card title'), 'Keep my draft');
+		const form = within(dialog).getByRole('form', { name: 'Rename card' });
+		await user.click(within(form).getByRole('button', { name: 'Save' }));
+		await waitFor(() => expect(mockUpdateTask).toHaveBeenCalledTimes(1));
+		mockUseGetTaskQuery.mockReturnValue({ data: { ...taskDetail, description: 'Teammate update' }, isLoading: false });
+		rerender(<DesignWorkflowShell title="Board" variant="board" />);
+		expect(within(dialog).getByLabelText('Card title')).toHaveValue('Keep my draft');
+		await user.click(within(form).getByRole('button', { name: 'Save' }));
+		await waitFor(() => expect(within(dialog).queryByLabelText('Card title')).not.toBeInTheDocument());
+		expect(mockUpdateTask).toHaveBeenCalledTimes(2);
+	});
+
+	it('does not allow renaming a read-only card', async () => {
+		const user = userEvent.setup();
+		mockProfile(designerB);
+		mockUseGetTaskQuery.mockReturnValue({ data: { ...taskDetail, can_edit: false }, isLoading: false });
+		render(<DesignWorkflowShell title="Board" variant="board" />);
+		await user.click(screen.getByText(boardTask.title));
+		const dialog = await screen.findByRole('dialog', { name: boardTask.title });
+		await user.dblClick(within(dialog).getByRole('heading', { name: boardTask.title }));
+		expect(within(dialog).queryByLabelText('Card title')).not.toBeInTheDocument();
+		expect(mockUpdateTask).not.toHaveBeenCalled();
+	});
+
+	it('keeps an unfinished description and an open card tool during live refresh', async () => {
+		const user = userEvent.setup();
+		mockProfile(designerA);
+		const { rerender } = render(<DesignWorkflowShell title="Board" variant="board" />);
+		await user.click(screen.getByText(boardTask.title));
+		const dialog = await screen.findByRole('dialog', { name: boardTask.title });
+		await user.click(within(dialog).getByRole('button', { name: 'Labels' }));
+		await user.click(within(dialog).getByText(taskDetail.description));
+		const description = within(dialog).getByPlaceholderText('Short description');
+		await user.clear(description);
+		await user.type(description, 'Unfinished personal draft');
+		mockUseGetTaskQuery.mockReturnValue({ data: { ...taskDetail, title: 'Remote title', description: 'Remote description' }, isLoading: false });
+		rerender(<DesignWorkflowShell title="Board" variant="board" />);
+		expect(within(dialog).getByRole('heading', { name: 'Remote title' })).toBeInTheDocument();
+		expect(description).toHaveValue('Unfinished personal draft');
+		expect(within(dialog).getByRole('region', { name: 'Labels' })).toBeInTheDocument();
+	});
+
+	it('does not keep an editable card visible after access is rejected', async () => {
+		const user = userEvent.setup();
+		mockProfile(designerA);
+		const { rerender } = render(<DesignWorkflowShell title="Board" variant="board" />);
+		await user.click(screen.getByText(boardTask.title));
+		await screen.findByRole('dialog', { name: boardTask.title });
+		mockUseGetTaskQuery.mockReturnValue({ data: taskDetail, error: { status: 403 }, isLoading: false });
+		rerender(<DesignWorkflowShell title="Board" variant="board" />);
+		expect(screen.queryByRole('dialog', { name: boardTask.title })).not.toBeInTheDocument();
+	});
+
+	it('keeps the title visible if editing permission is revoked during renaming', async () => {
+		const user = userEvent.setup();
+		mockProfile(designerB);
+		const { rerender } = render(<DesignWorkflowShell title="Board" variant="board" />);
+		await user.click(screen.getByText(boardTask.title));
+		const dialog = await screen.findByRole('dialog', { name: boardTask.title });
+		await user.dblClick(within(dialog).getByRole('heading', { name: boardTask.title }));
+		expect(within(dialog).getByLabelText('Card title')).toBeInTheDocument();
+		mockUseGetTaskQuery.mockReturnValue({ data: { ...taskDetail, can_edit: false }, isLoading: false });
+		rerender(<DesignWorkflowShell title="Board" variant="board" />);
+		expect(within(dialog).queryByLabelText('Card title')).not.toBeInTheDocument();
+		expect(within(dialog).getByRole('heading', { name: boardTask.title })).not.toHaveClass('sr-only');
+		expect(mockUpdateTask).not.toHaveBeenCalled();
 	});
 
 	it('filters reports by project and user', async () => {
@@ -1059,6 +1292,129 @@ describe('Design workflow acceptance flows', () => {
 				expect.objectContaining({ skip: false }),
 			),
 		);
+	});
+
+	const openAttachmentPicker = async (user: ReturnType<typeof userEvent.setup>) => {
+		await user.click(screen.getByTestId(`board-task-${boardTask.id}`));
+		await user.click(within(screen.getByRole('dialog')).getByRole('button', { name: /^Attachments$/ }));
+		return screen.getAllByTestId('task-attachment-picker')[0];
+	};
+
+	it('lets a designer select, label, remove, and upload several files without duplicates', async () => {
+		const user = userEvent.setup();
+		mockProfile(designerA);
+		render(<DesignWorkflowShell title="Board" variant="board" />);
+		const picker = await openAttachmentPicker(user);
+		const input = within(picker).getByLabelText('Choose files') as HTMLInputElement;
+		expect(input).toHaveAttribute('multiple');
+		const files = ['plan.pdf', 'render.mp4', 'remove.txt'].map(name => new File(['contents'], name, { lastModified: 1 }));
+		await user.upload(input, files.slice(0, 2));
+		await user.upload(input, [files[0], files[2]]);
+		expect(within(picker).getAllByRole('textbox')).toHaveLength(3);
+		expect(within(picker).getByRole('button', { name: 'Add 3 files' })).toBeDisabled();
+		expect(within(picker).getByLabelText('Description for plan.pdf')).toHaveValue('');
+		await user.click(within(picker).getByRole('button', { name: 'Remove remove.txt' }));
+		await user.type(within(picker).getByLabelText('Description for plan.pdf'), 'Floor plan');
+		await user.type(within(picker).getByLabelText('Description for render.mp4'), 'Final render');
+		await user.click(within(picker).getByRole('button', { name: 'Add 2 files' }));
+		await waitFor(() => expect(mockUploadTaskAttachment).toHaveBeenCalledTimes(2));
+		for (const [index, label] of ['Floor plan', 'Final render'].entries()) {
+			const args = mockUploadTaskAttachment.mock.calls[index][0];
+			expect(args.id).toBe(taskDetail.id);
+			expect(args.data.get('file')).toBe(files[index]);
+			expect(args.data.get('name')).toBe(label);
+		}
+		expect(within(picker).queryByRole('textbox')).not.toBeInTheDocument();
+	});
+
+	it('continues after one upload fails and retries only the failed file with its label', async () => {
+		const user = userEvent.setup();
+		mockProfile(designerA);
+		mockUploadTaskAttachment
+			.mockReturnValueOnce(makeMutationResult())
+			.mockReturnValueOnce({ unwrap: () => Promise.reject({ data: { details: { file: 'Temporary upload failure' } } }) })
+			.mockReturnValueOnce(makeMutationResult());
+		render(<DesignWorkflowShell title="Board" variant="board" />);
+		const picker = await openAttachmentPicker(user);
+		const files = ['one.pdf', 'two.pdf', 'three.pdf'].map(name => new File(['contents'], name));
+		await user.upload(within(picker).getByLabelText('Choose files'), files);
+		for (const file of files) await user.type(within(picker).getByLabelText(`Description for ${file.name}`), `Label ${file.name}`);
+		await user.click(within(picker).getByRole('button', { name: 'Add 3 files' }));
+		await waitFor(() => expect(mockUploadTaskAttachment).toHaveBeenCalledTimes(3));
+		expect(within(picker).getByLabelText('Description for two.pdf')).toHaveValue('Label two.pdf');
+		expect(within(picker).getAllByRole('textbox')).toHaveLength(1);
+		expect(within(picker).getByRole('alert')).toHaveTextContent('Temporary upload failure');
+		await user.click(within(picker).getByRole('button', { name: 'Add 1 file' }));
+		await waitFor(() => expect(mockUploadTaskAttachment).toHaveBeenCalledTimes(4));
+		expect(mockUploadTaskAttachment.mock.calls[3][0].data.get('file')).toBe(files[1]);
+		expect(mockUploadTaskAttachment.mock.calls[3][0].data.get('name')).toBe('Label two.pdf');
+	});
+
+	it('validates the 10 GB limit per file rather than the combined selection', async () => {
+		const user = userEvent.setup();
+		mockProfile(designerA);
+		render(<DesignWorkflowShell title="Board" variant="board" />);
+		const picker = await openAttachmentPicker(user);
+		const files = ['six-a.mp4', 'six-b.mp4', 'too-large.mp4'].map(name => new File(['x'], name));
+		files.forEach((file, index) => Object.defineProperty(file, 'size', { value: (index === 2 ? 11 : 6) * 1024 ** 3 }));
+		await user.upload(within(picker).getByLabelText('Choose files'), files);
+		expect(within(picker).getAllByRole('textbox')).toHaveLength(2);
+		expect(within(picker).queryByText('too-large.mp4')).not.toBeInTheDocument();
+		for (const file of files.slice(0, 2)) await user.type(within(picker).getByLabelText(`Description for ${file.name}`), file.name);
+		await user.click(within(picker).getByRole('button', { name: 'Add 2 files' }));
+		await waitFor(() => expect(mockUploadTaskAttachment).toHaveBeenCalledTimes(2));
+	});
+
+	it('keeps the queue and labels during task refresh and sends one file at a time', async () => {
+		const user = userEvent.setup();
+		mockProfile(designerA);
+		let finishFirst!: () => void;
+		mockUploadTaskAttachment.mockReturnValueOnce({ unwrap: () => new Promise<void>(resolve => { finishFirst = resolve; }) });
+		const { rerender } = render(<DesignWorkflowShell title="Board" variant="board" />);
+		const picker = await openAttachmentPicker(user);
+		const files = ['one.pdf', 'two.pdf'].map(name => new File(['contents'], name));
+		await user.upload(within(picker).getByLabelText('Choose files'), files);
+		for (const file of files) await user.type(within(picker).getByLabelText(`Description for ${file.name}`), file.name);
+		await user.click(within(picker).getByRole('button', { name: 'Add 2 files' }));
+		expect(mockUploadTaskAttachment).toHaveBeenCalledTimes(1);
+		expect(within(picker).getByLabelText('Choose files')).toBeDisabled();
+		mockUseGetTaskQuery.mockReturnValue({ data: { ...taskDetail, attachments: [reviewAttachment] }, isLoading: false });
+		rerender(<DesignWorkflowShell title="Board" variant="board" />);
+		expect(within(picker).getByLabelText('Description for two.pdf')).toHaveValue('two.pdf');
+		await act(async () => { finishFirst(); });
+		await waitFor(() => expect(mockUploadTaskAttachment).toHaveBeenCalledTimes(2));
+		expect(mockUploadTaskAttachment.mock.calls[1][0].data.get('name')).toBe('two.pdf');
+	});
+
+	it('stops the remaining queue when the card closes and does not leak files on reopening', async () => {
+		const user = userEvent.setup();
+		mockProfile(designerA);
+		let finishFirst!: () => void;
+		mockUploadTaskAttachment.mockReturnValueOnce({ unwrap: () => new Promise<void>(resolve => { finishFirst = resolve; }) });
+		render(<DesignWorkflowShell title="Board" variant="board" />);
+		const picker = await openAttachmentPicker(user);
+		const files = ['one.pdf', 'two.pdf'].map(name => new File(['contents'], name));
+		await user.upload(within(picker).getByLabelText('Choose files'), files);
+		for (const file of files) await user.type(within(picker).getByLabelText(`Description for ${file.name}`), file.name);
+		await user.click(within(picker).getByRole('button', { name: 'Add 2 files' }));
+		await user.click(document.querySelector('.workflow-trello-modal-close') as HTMLButtonElement);
+		await act(async () => { finishFirst(); });
+		expect(mockUploadTaskAttachment).toHaveBeenCalledTimes(1);
+		const reopened = await openAttachmentPicker(user);
+		expect(within(reopened).queryByRole('textbox')).not.toBeInTheDocument();
+	});
+
+	it('does not expose upload controls to a designer viewing someone else’s task', async () => {
+		const user = userEvent.setup();
+		mockProfile(designerB);
+		mockUseGetTasksQuery.mockReturnValue({ data: [{ ...boardTask, can_edit: false }], isLoading: false });
+		mockUseGetTaskQuery.mockReturnValue({ data: { ...reviewTaskDetail, can_edit: false }, isLoading: false });
+		render(<DesignWorkflowShell title="Board" variant="board" />);
+		await user.click(screen.getByTestId(`board-task-${boardTask.id}`));
+		expect(within(screen.getByRole('dialog')).getByRole('link', { name: reviewAttachment.name })).toBeInTheDocument();
+		expect(within(screen.getByRole('dialog')).queryByRole('button', { name: /^Attachments$/ })).not.toBeInTheDocument();
+		expect(screen.queryByTestId('task-attachment-picker')).not.toBeInTheDocument();
+		expect(mockUploadTaskAttachment).not.toHaveBeenCalled();
 	});
 
 	it('covers designer status update, comment, time log, and manager-only restrictions', async () => {
@@ -1198,7 +1554,7 @@ describe('Design workflow acceptance flows', () => {
 		const user = userEvent.setup();
 		mockProfile(manager);
 		mockUpdateTaskReview.mockImplementation(({ review_state }: { review_state: TaskDetail['review_state'] }) =>
-			makeMutationResult({ ...taskDetail, review_state }),
+			makeMutationResult({ ...taskDetail, review_state, updated_at: '2026-04-22T12:01:00Z' }),
 		);
 
 		render(<DesignWorkflowShell title="Board" variant="board" taskId={taskDetail.id} />);
@@ -1219,7 +1575,7 @@ describe('Design workflow acceptance flows', () => {
 		const user = userEvent.setup();
 		mockProfile(manager);
 		mockUpdateTaskReview.mockImplementation(({ review_state }: { review_state: TaskDetail['review_state'] }) =>
-			makeMutationResult({ ...taskDetail, review_state, status: 'done' }),
+			makeMutationResult({ ...taskDetail, review_state, status: 'done', updated_at: '2026-04-22T12:01:00Z' }),
 		);
 
 		render(<DesignWorkflowShell title="Board" variant="board" taskId={taskDetail.id} />);
@@ -1248,7 +1604,7 @@ describe('Design workflow acceptance flows', () => {
 		mockProfile(designerA);
 		mockUseGetTaskQuery.mockReturnValue({ data: changesRequestedTask, isLoading: false });
 		mockUpdateTaskReview.mockImplementation(({ review_state }: { review_state: TaskDetail['review_state'] }) =>
-			makeMutationResult({ ...changesRequestedTask, review_state }),
+			makeMutationResult({ ...changesRequestedTask, review_state, updated_at: '2026-04-22T12:01:00Z' }),
 		);
 
 		render(<DesignWorkflowShell title="Board" variant="board" taskId={taskDetail.id} />);
@@ -1597,5 +1953,215 @@ describe('Design workflow acceptance flows', () => {
 		await user.click(savedViewSelect);
 		await user.click(within(await screen.findByRole('listbox')).getByRole('option', { name: 'Saved views' }));
 		expect(screen.getByPlaceholderText('Task, project, description')).toHaveValue('');
+	});
+
+	it('guards a dirty task field against a concurrent update without overwriting clean fields', async () => {
+		const user = userEvent.setup();
+		mockProfile(manager);
+		const { rerender } = render(<DesignWorkflowShell title="Project" variant="project-detail" projectId={projectDetail.id} />);
+		await user.click(screen.getByRole('button', { name: /Finalize material board/ }));
+		const dialog = await screen.findByRole('dialog', { name: 'Edit task' });
+		await user.clear(within(dialog).getByLabelText('Task title'));
+		await user.type(within(dialog).getByLabelText('Task title'), 'My unfinished title');
+		mockUseGetTaskQuery.mockReturnValue({ data: { ...taskDetail, title: 'Their title', description: 'Fresh description' }, isLoading: false });
+		rerender(<DesignWorkflowShell title="Project" variant="project-detail" projectId={projectDetail.id} />);
+		expect(within(dialog).getByLabelText('Task title')).toHaveValue('My unfinished title');
+		expect(within(dialog).getByLabelText('Description')).toHaveValue('Fresh description');
+		expect(within(dialog).getByRole('alert')).toHaveTextContent('Someone else changed this task');
+		await user.click(within(dialog).getByRole('button', { name: 'Save' }));
+		expect(mockUpdateTask).toHaveBeenCalledWith({ id: taskDetail.id, data: {
+			title: 'My unfinished title', expected_values: { title: taskDetail.title },
+		} });
+	});
+
+	it('rebases the description after cancelling a conflicted draft', async () => {
+		const user = userEvent.setup();
+		mockProfile(designerA);
+		const { rerender } = render(<DesignWorkflowShell title="Board" variant="board" taskId={taskDetail.id} />);
+		const dialog = await screen.findByRole('dialog', { name: taskDetail.title });
+		await user.click(within(dialog).getByText(taskDetail.description));
+		await user.type(within(dialog).getByPlaceholderText('Short description'), ' My discarded draft');
+		mockUseGetTaskQuery.mockReturnValue({ data: { ...taskDetail, description: 'Remote description' }, isLoading: false });
+		rerender(<DesignWorkflowShell title="Board" variant="board" taskId={taskDetail.id} />);
+		expect(within(dialog).getByRole('alert')).toHaveTextContent('Someone else changed this task');
+		await user.click(within(dialog).getByRole('button', { name: 'Cancel' }));
+		await user.click(within(dialog).getByText('Remote description'));
+		const input = within(dialog).getByPlaceholderText('Short description');
+		expect(input).toHaveValue('Remote description');
+		await user.type(input, ' plus my new edit');
+		const editor = input.closest('.workflow-trello-modal-description-edit') as HTMLElement;
+		await user.click(within(editor).getByRole('button', { name: 'Save' }));
+		expect(mockUpdateTask).toHaveBeenCalledWith({ id: taskDetail.id, data: {
+			description: 'Remote description plus my new edit', expected_values: { description: 'Remote description' },
+		} });
+	});
+
+	it('turns an open project task editor into a read-only preview when access is revoked', async () => {
+		const user = userEvent.setup();
+		mockProfile(designerA);
+		const { rerender } = render(<DesignWorkflowShell title="Project" variant="project-detail" projectId={projectDetail.id} />);
+		await user.click(screen.getByRole('button', { name: /Finalize material board/ }));
+		expect(await screen.findByRole('dialog', { name: 'Edit task' })).toBeInTheDocument();
+		mockUseGetTaskQuery.mockReturnValue({ data: { ...taskDetail, can_edit: false }, isLoading: false });
+		rerender(<DesignWorkflowShell title="Project" variant="project-detail" projectId={projectDetail.id} />);
+		expect(screen.queryByRole('dialog', { name: 'Edit task' })).not.toBeInTheDocument();
+		const preview = await screen.findByRole('dialog', { name: taskDetail.title });
+		expect(within(preview).getByText(taskDetail.description)).toBeInTheDocument();
+		expect(within(preview).queryByRole('button', { name: 'Save' })).not.toBeInTheDocument();
+		expect(within(preview).queryByRole('button', { name: 'Members' })).not.toBeInTheDocument();
+		expect(mockUpdateTask).not.toHaveBeenCalled();
+	});
+
+	it.each(['approved', 'changes_requested'] as const)('accepts the live %s decision after submitting review, including a return to the original state', async (decision) => {
+		const user = userEvent.setup();
+		mockProfile(designerA);
+		const original = { ...taskDetail, review_state: 'changes_requested' as const };
+		const submitted = { ...original, review_state: 'needs_review' as const, updated_at: '2026-04-22T12:01:00Z' };
+		mockUseGetTaskQuery.mockReturnValue({ data: original, isLoading: false });
+		mockUpdateTaskReview.mockReturnValue(makeMutationResult(submitted));
+		const { rerender } = render(<DesignWorkflowShell title="Board" variant="board" taskId={taskDetail.id} />);
+		const dialog = await screen.findByRole('dialog', { name: taskDetail.title });
+		await user.click(within(dialog).getByRole('button', { name: 'Resubmit for review' }));
+		await user.click(within(screen.getByRole('dialog', { name: 'Submit task for review?' })).getByRole('button', { name: 'Resubmit for review' }));
+		await waitFor(() => expect(within(dialog).queryByRole('button', { name: 'Resubmit for review' })).not.toBeInTheDocument());
+		// A stale query arriving after mutation fulfillment must not undo the optimistic result.
+		mockUseGetTaskQuery.mockReturnValue({ data: { ...original }, isLoading: false });
+		rerender(<DesignWorkflowShell title="Board" variant="board" taskId={taskDetail.id} />);
+		expect(within(dialog).queryByRole('button', { name: 'Resubmit for review' })).not.toBeInTheDocument();
+		mockUseGetTaskQuery.mockReturnValue({ data: { ...original, review_state: decision, updated_at: '2026-04-22T12:02:00Z' }, isLoading: false });
+		rerender(<DesignWorkflowShell title="Board" variant="board" taskId={taskDetail.id} />);
+		expect(within(dialog).getByText(decision === 'approved' ? 'Approved' : 'Changes requested')).toBeInTheDocument();
+		if (decision === 'changes_requested') expect(within(dialog).getByRole('button', { name: 'Resubmit for review' })).toBeEnabled();
+	});
+
+	it('updates selected saved-view filters live and clears them when the view is removed', async () => {
+		const user = userEvent.setup();
+		mockProfile(manager);
+		const view: SavedView = { id: 88, name: 'Shared review', owner: manager, visibility: 'private', filters: { q: 'palette' },
+			sort: { field: 'due_date' }, density: 'compact', collapsed_lanes: [], show_archived: false, is_default: false,
+			created_at: '2026-04-20T08:00:00Z', updated_at: '2026-04-20T08:00:00Z' };
+		mockUseGetSavedViewsQuery.mockReturnValue({ data: [view] });
+		const { rerender } = render(<DesignWorkflowShell title="Board" variant="board" />);
+		const viewSelect = within(document.querySelector('.workflow-saved-view-bar') as HTMLElement).getAllByRole('combobox')[0];
+		await user.click(viewSelect);
+		await user.click(within(await screen.findByRole('listbox')).getByRole('option', { name: view.name }));
+		expect(screen.getByPlaceholderText('Task, project, description')).toHaveValue('palette');
+		mockUseGetSavedViewsQuery.mockReturnValue({ data: [{ ...view, filters: { q: 'updated filter', priority: 'high' } }] });
+		mockUseGetTasksQuery.mockClear();
+		rerender(<DesignWorkflowShell title="Board" variant="board" />);
+		expect(screen.getByPlaceholderText('Task, project, description')).toHaveValue('updated filter');
+		expect(mockUseGetTasksQuery).toHaveBeenCalledWith(expect.objectContaining({ priority: 'high' }), { skip: false });
+		mockUseGetSavedViewsQuery.mockReturnValue({ data: [] });
+		mockUseGetTasksQuery.mockClear();
+		rerender(<DesignWorkflowShell title="Board" variant="board" />);
+		expect(screen.getByPlaceholderText('Task, project, description')).toHaveValue('');
+		expect(mockUseGetTasksQuery).toHaveBeenCalledWith(expect.objectContaining({ priority: undefined }), { skip: false });
+	});
+
+	it('does not let a late review response erase another card’s notes or review state', async () => {
+		const user = userEvent.setup();
+		mockProfile(manager);
+		let finishReview!: (task: TaskDetail) => void;
+		mockUpdateTaskReview.mockReturnValue({ unwrap: () => new Promise<TaskDetail>(resolve => { finishReview = resolve; }) });
+		const { rerender } = render(<DesignWorkflowShell title="Task" variant="task-detail" taskId={taskDetail.id} />);
+		await user.click(screen.getByRole('tab', { name: 'Review' }));
+		await user.click(screen.getByRole('button', { name: 'Request changes' }));
+		const otherTask = { ...taskDetail, id: 502, title: 'Other card' };
+		mockUseGetTaskQuery.mockReturnValue({ data: otherTask, isLoading: false });
+		rerender(<DesignWorkflowShell title="Task" variant="task-detail" taskId={otherTask.id} />);
+		await user.click(screen.getByRole('tab', { name: 'Review' }));
+		const notes = screen.getAllByLabelText('Optional note')[0];
+		await user.type(notes, 'My notes for the other card');
+		await act(async () => { finishReview({ ...taskDetail, review_state: 'changes_requested', updated_at: '2026-04-22T12:01:00Z' }); });
+		expect(notes).toHaveValue('My notes for the other card');
+		expect(screen.getByRole('button', { name: 'Approve' })).toBeEnabled();
+		expect(screen.getByRole('button', { name: 'Request changes' })).toBeEnabled();
+	});
+
+	it('closes an attachment preview after the attachment is deleted remotely', async () => {
+		const user = userEvent.setup();
+		mockProfile(designerA);
+		mockUseGetTaskQuery.mockReturnValue({ data: reviewTaskDetail, isLoading: false });
+		const { rerender } = render(<DesignWorkflowShell title="Board" variant="board" taskId={taskDetail.id} />);
+		const dialog = await screen.findByRole('dialog', { name: taskDetail.title });
+		await user.click(within(dialog).getByRole('button', { name: `Preview ${reviewAttachment.name}` }));
+		expect(document.querySelector('.workflow-attachment-preview-backdrop')).not.toBeNull();
+		mockUseGetTaskQuery.mockReturnValue({ data: { ...reviewTaskDetail, attachments: [] }, isLoading: false });
+		rerender(<DesignWorkflowShell title="Board" variant="board" taskId={taskDetail.id} />);
+		expect(document.querySelector('.workflow-attachment-preview-backdrop')).toBeNull();
+		expect(screen.getByRole('dialog', { name: taskDetail.title })).toBeInTheDocument();
+	});
+
+	it('shows delivered reminder notes and links directly to their message', () => {
+		mockProfile(designerA);
+		mockUseGetNotificationsQuery.mockReturnValue({ data: [{ ...notifications[0], type: 'chat_message', task: null, project: null,
+			payload: { kind: 'reminder', title: 'Rappel de message', note: 'Check final materials', thread_id: 33, message_id: 92 } }] });
+		render(<DesignWorkflowShell title="Notifications" variant="notifications" />);
+		expect(screen.getByText('Message reminder')).toBeInTheDocument();
+		expect(screen.getByText('Check final materials')).toBeInTheDocument();
+		expect(screen.getByRole('link', { name: 'Open chat' })).toHaveAttribute('href', '/dashboard/chat?thread=33&message=92');
+	});
+
+	it.each([
+		{ detail: 'Changed elsewhere. Reload before saving.' },
+		{ title: ['Changed elsewhere. Reload before saving.'] },
+		{ task: { title: ['Changed elsewhere. Reload before saving.'] } },
+		'Changed elsewhere. Reload before saving.',
+	])('keeps a rejected edit and displays structured conflict errors safely (%j)', async (details) => {
+		const user = userEvent.setup();
+		mockProfile(manager);
+		mockUpdateTask.mockReturnValue({ unwrap: () => Promise.reject({ status: 409, data: { details } }) });
+		render(<DesignWorkflowShell title="Project" variant="project-detail" projectId={projectDetail.id} />);
+		await user.click(screen.getByRole('button', { name: /Finalize material board/ }));
+		const dialog = await screen.findByRole('dialog', { name: 'Edit task' });
+		await user.type(within(dialog).getByLabelText('Task title'), ' my draft');
+		await user.click(within(dialog).getByRole('button', { name: 'Save' }));
+		await waitFor(() => expect(mockOnError).toHaveBeenCalledWith(expect.stringContaining('Changed elsewhere. Reload before saving.')));
+		expect(within(dialog).getByLabelText('Task title')).toHaveValue(`${taskDetail.title} my draft`);
+	});
+
+	it.each(['permission revoked', 'review completed'])('closes an approval confirmation when %s remotely', async (change) => {
+		const user = userEvent.setup();
+		mockProfile(manager);
+		const { rerender } = render(<DesignWorkflowShell title="Board" variant="board" taskId={taskDetail.id} />);
+		const card = await screen.findByRole('dialog', { name: taskDetail.title });
+		await user.click(within(card).getByRole('button', { name: 'Approve' }));
+		expect(screen.getByRole('dialog', { name: 'Approve this task?' })).toBeInTheDocument();
+		if (change === 'permission revoked') mockProfile(designerA);
+		else mockUseGetTaskQuery.mockReturnValue({ data: { ...taskDetail, review_state: 'approved' }, isLoading: false });
+		rerender(<DesignWorkflowShell title="Board" variant="board" taskId={taskDetail.id} />);
+		expect(screen.queryByRole('dialog', { name: 'Approve this task?' })).not.toBeInTheDocument();
+		expect(screen.getByRole('dialog', { name: taskDetail.title })).toBeInTheDocument();
+		expect(mockUpdateTaskReview).not.toHaveBeenCalled();
+	});
+
+	it.each(['permission revoked', 'attachment deleted'])('closes a file deletion confirmation when %s remotely', async (change) => {
+		const user = userEvent.setup();
+		mockProfile(designerA);
+		mockUseGetTaskQuery.mockReturnValue({ data: reviewTaskDetail, isLoading: false });
+		const { rerender } = render(<DesignWorkflowShell title="Board" variant="board" taskId={taskDetail.id} />);
+		const card = await screen.findByRole('dialog', { name: taskDetail.title });
+		const attachment = within(card).getByRole('link', { name: reviewAttachment.name }).closest('.workflow-trello-modal-attachment-item') as HTMLElement;
+		await user.click(within(attachment).getByRole('button', { name: 'Delete' }));
+		expect(screen.getByText('Delete attachment?')).toBeInTheDocument();
+		mockUseGetTaskQuery.mockReturnValue({ data: { ...reviewTaskDetail, ...(change === 'permission revoked' ? { can_edit: false } : { attachments: [] }) }, isLoading: false });
+		rerender(<DesignWorkflowShell title="Board" variant="board" taskId={taskDetail.id} />);
+		expect(screen.queryByText('Delete attachment?')).not.toBeInTheDocument();
+		expect(screen.getByRole('dialog', { name: taskDetail.title })).toBeInTheDocument();
+		expect(mockDeleteTaskAttachment).not.toHaveBeenCalled();
+	});
+
+	it.each(['permission revoked', 'archived'])('closes a project archive confirmation when %s remotely', async (change) => {
+		const user = userEvent.setup();
+		mockProfile(designerA);
+		mockUseGetProjectQuery.mockReturnValue({ data: { ...projectDetail, can_manage: true }, isLoading: false });
+		const { rerender } = render(<DesignWorkflowShell title="Project" variant="project-detail" projectId={projectDetail.id} />);
+		await user.click(screen.getByRole('button', { name: 'Archive project' }));
+		expect(screen.getByRole('dialog', { name: 'Archive this project?' })).toBeInTheDocument();
+		mockUseGetProjectQuery.mockReturnValue({ data: { ...projectDetail, can_manage: change !== 'permission revoked', archived: change === 'archived' }, isLoading: false });
+		rerender(<DesignWorkflowShell title="Project" variant="project-detail" projectId={projectDetail.id} />);
+		expect(screen.queryByRole('dialog', { name: 'Archive this project?' })).not.toBeInTheDocument();
+		expect(screen.queryByRole('dialog', { name: 'Unarchive this project?' })).not.toBeInTheDocument();
+		expect(mockUpdateProject).not.toHaveBeenCalled();
 	});
 });

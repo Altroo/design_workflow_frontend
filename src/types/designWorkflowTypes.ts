@@ -196,6 +196,7 @@ export type ProjectDetail = ProjectSummary & {
 };
 
 export type ProjectInput = {
+	expected_values?: Record<string, unknown>;
 	name: string;
 	description: string;
 	manager_id: number;
@@ -208,6 +209,7 @@ export type ProjectInput = {
 };
 
 export type TaskInput = {
+	expected_values?: Record<string, unknown>;
 	project_id: number;
 	title: string;
 	description: string;

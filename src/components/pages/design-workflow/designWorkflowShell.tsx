@@ -7,6 +7,7 @@ import { useRouter } from 'next/navigation';
 import { useEffect, useEffectEvent, useRef, useState } from 'react';
 import type { CSSProperties, ReactNode } from 'react';
 import { prepareCardCoverImage } from '@/utils/cardImage';
+import { mergeLiveDraft, mergeDraftBaseline, guardedChanges } from '@/utils/liveDraft';
 import { format as formatDateFns, isValid, parseISO } from 'date-fns';
 import { HexColorPicker } from 'react-colorful';
 import {
@@ -121,6 +122,7 @@ import {
 } from '@/store/services/designWorkflow';
 import { useGetUsersListQuery } from '@/store/services/account';
 import { attachmentsExceedLimit } from '@/utils/attachments';
+import { extractApiErrorMessage } from '@/utils/helpers';
 import { UploadProgress } from '@/components/shared/workflow/uploadProgress';
 import { useTheme } from '@/providers/themeProvider';
 import type {
@@ -312,6 +314,7 @@ type MediaDeleteTarget =
 	| { kind: 'attachment'; taskId: number; attachmentId: number; name: string };
 
 type AttachmentPreviewTarget = {
+	id: number;
 	name: string;
 	url: string;
 	meta: string;
@@ -917,14 +920,20 @@ const buildProjectPayload = (form: ProjectInput): ProjectInput => ({
 });
 
 const getApiErrorMessage = (error: unknown, fallback: string) => {
-	const maybeError = error as { data?: { message?: unknown; details?: Record<string, string[]> } };
-	const details = maybeError.data?.details;
-	if (details) {
-		return Object.entries(details)
-			.map(([field, messages]) => `${formatLabel(field)}: ${messages.join(' ')}`)
-			.join(' ');
-	}
-	return typeof maybeError.data?.message === 'string' ? maybeError.data.message : fallback;
+	const formatDetails = (value: unknown, depth = 0): string => {
+		if (typeof value === 'string') return value.trim();
+		if (!value || typeof value !== 'object' || depth > 6) return '';
+		if (Array.isArray(value)) return value.map(item => formatDetails(item, depth + 1)).filter(Boolean).join(' ');
+		return Object.entries(value).map(([field, detail]) => {
+			const message = formatDetails(detail, depth + 1);
+			return !message ? '' : ['detail', 'non_field_errors'].includes(field) ? message : `${formatLabel(field)}: ${message}`;
+		}).filter(Boolean).join(' ');
+	};
+	if (!error || typeof error !== 'object' || !('data' in error)) return fallback;
+	const data = error.data;
+	if (!data || typeof data !== 'object') return typeof data === 'string' && data.trim() ? data : fallback;
+	const details = 'details' in data ? formatDetails(data.details) : '';
+	return details || ('message' in data && typeof data.message === 'string' && data.message.trim() ? data.message : fallback);
 };
 
 const stringFromSavedFilter = (filters: Record<string, unknown>, key: string) => {
@@ -1793,7 +1802,7 @@ const BoardColumn = ({
 	onArchive,
 	quickAddOpen,
 	quickAddTitle,
-	quickAddProjectName,
+	quickAddUnavailableReason,
 	quickAddProjects,
 	quickAddProjectId,
 	quickAddLoading,
@@ -1814,7 +1823,7 @@ const BoardColumn = ({
 	onArchive?: (task: TaskCard) => void;
 	quickAddOpen?: boolean;
 	quickAddTitle?: string;
-	quickAddProjectName?: string;
+	quickAddUnavailableReason?: string;
 	quickAddProjects?: ProjectSummary[];
 	quickAddProjectId?: string;
 	quickAddLoading?: boolean;
@@ -1826,6 +1835,7 @@ const BoardColumn = ({
 	onQuickAddCancel?: () => void;
 	showTime?: boolean;
 }) => {
+	const { t } = useLanguage();
 	const { setNodeRef, isOver } = useDroppable({
 		id: getColumnId(status),
 		data: {
@@ -1837,6 +1847,11 @@ const BoardColumn = ({
 	const totalItems = tasks.reduce((count, task) => count + task.checklist_items.length, 0);
 	const overdueCount = tasks.filter((task) => task.is_overdue).length;
 	const totalEffort = tasks.reduce((total, task) => total + (task.actual_minutes || task.estimated_minutes || 0), 0);
+	useEffect(() => {
+		if (quickAddOpen && canQuickAdd) {
+			document.getElementById(`quick-add-${quickAddProjectId ? 'title' : 'project'}-${status}`)?.focus();
+		}
+	}, [quickAddOpen, quickAddProjectId, canQuickAdd, status]);
 
 	return (
 		<div
@@ -1908,53 +1923,56 @@ const BoardColumn = ({
 							<small>{copy.emptyStates.noCards.description}</small>
 						</div>
 					) : null}
-					{canQuickAdd ? (
-						quickAddOpen ? (
+					{canQuickAdd && quickAddOpen ? (
 							<form
 								className="workflow-quick-add-card"
+								aria-label={copy.labels.addCard}
 								data-no-card-open
 								onSubmit={(event) => {
 									event.preventDefault();
 									onQuickAddSubmit?.(status);
 								}}
 							>
-								<textarea
-									autoFocus
-									rows={3}
-									value={quickAddTitle ?? ''}
-									onChange={(event) => onQuickAddTitleChange?.(event.target.value)}
-									onKeyDown={(event) => {
-										if (event.key === 'Enter' && !event.shiftKey) {
-											event.preventDefault();
-											onQuickAddSubmit?.(status);
-										}
-										if (event.key === 'Escape') {
-											event.preventDefault();
-											onQuickAddCancel?.();
-										}
-									}}
-									placeholder={copy.labels.quickAddPlaceholder ?? 'Enter a title or paste a link'}
-								/>
-								{(quickAddProjects?.length ?? 0) > 1 ? (
-									<div className="workflow-quick-add-project-select">
-										<label>{copy.labels.project}</label>
+								<div className="workflow-quick-add-project-select">
+									<label htmlFor={`quick-add-project-${status}`}>{copy.labels.cardProject}</label>
 										<SelectField
+											id={`quick-add-project-${status}`}
 											value={quickAddProjectId ?? ''}
 											onChange={(value) => onQuickAddProjectChange?.(value)}
-											ariaLabel={copy.labels.project}
+											ariaLabel={copy.labels.cardProject}
+											disabled={quickAddLoading}
 											options={[
 												{ value: '', label: copy.labels.selectProject ?? 'Select a project' },
-												...quickAddProjects!.map((project) => ({ value: project.id, label: project.name })),
+												...(quickAddProjects ?? []).map((project) => ({ value: project.id, label: project.name })),
 											]}
 											startIcon={<FolderKanban size={14} />}
 										/>
-									</div>
-								) : quickAddProjectName ? (
-									<div className="workflow-quick-add-project">
-										<FolderKanban size={13} />
-										<span>{quickAddProjectName}</span>
-									</div>
-								) : null}
+									<p className="workflow-quick-add-hint">
+										{quickAddProjectId ? copy.labels.cardProjectHint : copy.labels.chooseCardProjectHint}
+									</p>
+								</div>
+								<div className="workflow-quick-add-title">
+									<label htmlFor={`quick-add-title-${status}`}>{copy.labels.taskTitle}</label>
+									<textarea
+										id={`quick-add-title-${status}`}
+										rows={3}
+										maxLength={255}
+										disabled={quickAddLoading}
+										value={quickAddTitle ?? ''}
+										onChange={(event) => onQuickAddTitleChange?.(event.target.value)}
+										onKeyDown={(event) => {
+											if (event.key === 'Enter' && !event.shiftKey) {
+												event.preventDefault();
+												onQuickAddSubmit?.(status);
+											}
+											if (event.key === 'Escape') {
+												event.preventDefault();
+												onQuickAddCancel?.();
+											}
+										}}
+										placeholder={copy.labels.quickAddPlaceholder ?? 'Enter a title or paste a link'}
+									/>
+								</div>
 								<div className="workflow-quick-add-actions">
 									<button
 										type="submit"
@@ -1967,7 +1985,7 @@ const BoardColumn = ({
 										type="button"
 										className="workflow-quick-add-cancel"
 										onClick={onQuickAddCancel}
-										aria-label={copy.buttons.cancel}
+										aria-label={t.common.cancel}
 									>
 										<X size={19} />
 									</button>
@@ -1977,14 +1995,20 @@ const BoardColumn = ({
 							<button
 								type="button"
 								className="workflow-column-add-card"
+								disabled={!canQuickAdd || quickAddLoading}
+								title={!canQuickAdd ? quickAddUnavailableReason : undefined}
+								aria-label={copy.labels.addCard}
+								aria-describedby={canQuickAdd ? `quick-add-hint-${status}` : undefined}
 								data-no-card-open
 								onClick={() => onQuickAddOpen?.(status)}
 							>
 								<Plus size={18} />
-								<span>{copy.labels.addCard}</span>
+								<span className="workflow-column-add-copy">
+									<span>{copy.labels.addCard}</span>
+									{canQuickAdd ? <small id={`quick-add-hint-${status}`}>{quickAddProjects?.length === 1 ? quickAddProjects[0].name : copy.labels.selectProject}</small> : null}
+								</span>
 							</button>
-						)
-					) : null}
+					)}
 				</div>
 			</SortableContext>
 		</div>
@@ -2017,10 +2041,16 @@ const DesignWorkflowShell = ({ title, variant, projectId, taskId }: Props) => {
 		);
 	})();
 	const notificationTitle = (notification: NotificationItem) => {
+		if (notification.type === 'chat_message' && notification.payload.kind === 'reminder') return messageFor('Rappel de message', 'Message reminder');
 		return labelFor(notification.type);
 	};
 	const notificationDescription = (notification: NotificationItem) => {
 		const objectTitle = notification.task?.title ?? notification.project?.name ?? '';
+		if (notification.type === 'chat_message' && notification.payload.kind === 'reminder') {
+			return typeof notification.payload.note === 'string' && notification.payload.note.trim()
+				? notification.payload.note
+				: messageFor('Relisez ce message.', 'Revisit this message.');
+		}
 		if (notification.type === 'task_overdue' && typeof notification.payload.days_overdue === 'number') {
 			return [objectTitle, `${notification.payload.days_overdue} ${workflow.labels.daysOverdue}`]
 				.filter(Boolean)
@@ -2099,6 +2129,11 @@ const DesignWorkflowShell = ({ title, variant, projectId, taskId }: Props) => {
 	const [projectEditForm, setProjectEditForm] = useState<ProjectInput>(() => emptyProjectForm(profile.id));
 	const [taskForm, setTaskForm] = useState<TaskFormState>(emptyTaskForm);
 	const [taskEditForm, setTaskEditForm] = useState<TaskFormState>(emptyTaskForm);
+	const taskFormSnapshot = useRef<{ id: number; form: TaskFormState } | null>(null);
+	const projectFormSnapshot = useRef<{ id: number; form: ProjectInput } | null>(null);
+	const taskEditBaseline = useRef<TaskFormState | null>(null);
+	const projectEditBaseline = useRef<ProjectInput | null>(null);
+	const savedViewSnapshot = useRef<{ id: number; filters: BoardFiltersState } | null>(null);
 	const [reassignForm, setReassignForm] = useState({ assignee_id: '', reason: '' });
 	const [commentBody, setCommentBody] = useState('');
 	const [newChecklistItemsByChecklist, setNewChecklistItemsByChecklist] = useState<Record<string, string>>({});
@@ -2108,33 +2143,52 @@ const DesignWorkflowShell = ({ title, variant, projectId, taskId }: Props) => {
 		null,
 	);
 	const [modalDescriptionEditing, setModalDescriptionEditing] = useState(false);
+	const [modalTitleDraft, setModalTitleDraft] = useState<{ id: number; title: string; original: string } | null>(null);
+	const renameLock = useRef(false);
+	const cardTitleHeading = useRef<HTMLHeadingElement>(null);
 	const [modalLabelComposerOpen, setModalLabelComposerOpen] = useState(false);
 	const [newLabelName, setNewLabelName] = useState('');
 	const [newLabelColor, setNewLabelColor] = useState('#7F56D9');
 	const [editingLabelId, setEditingLabelId] = useState<number | null>(null);
 	const [editingLabelName, setEditingLabelName] = useState('');
 	const [editingLabelColor, setEditingLabelColor] = useState('#7F56D9');
-	const [taskAttachmentFile, setTaskAttachmentFile] = useState<File | null>(null);
-	const [taskAttachmentLabel, setTaskAttachmentLabel] = useState('');
+	const [taskAttachments, setTaskAttachments] = useState<Array<{ id: number; file: File; label: string; error?: string }>>([]);
+	const nextAttachmentId = useRef(0);
+	const attachmentContext = useRef(0);
+	const attachmentUploadLock = useRef(false);
+	const [attachmentUploadStatus, setAttachmentUploadStatus] = useState<{ index: number; total: number } | null>(null);
 	const [taskCoverFile, setTaskCoverFile] = useState<File | null>(null);
 	const [taskCoverLabel, setTaskCoverLabel] = useState('');
 	const [isPreparingTaskCover, setIsPreparingTaskCover] = useState(false);
 	const [mediaDeleteTarget, setMediaDeleteTarget] = useState<MediaDeleteTarget | null>(null);
-	const [projectArchiveOpen, setProjectArchiveOpen] = useState(false);
+	const [projectArchiveTarget, setProjectArchiveTarget] = useState<{ id: number; archived: boolean } | null>(null);
 	const [attachmentPreview, setAttachmentPreview] = useState<AttachmentPreviewTarget | null>(null);
 	const [reportChartsMounted, setReportChartsMounted] = useState(false);
 	const [boardDraft, setBoardDraft] = useState<TaskCard[]>([]);
+	const [boardMovePending, setBoardMovePending] = useState(false);
+	const boardMoveLock = useRef(false);
 	const [draggedTaskId, setDraggedTaskId] = useState<number | null>(null);
 	const [quickAddColumn, setQuickAddColumn] = useState<TaskStatus | null>(null);
 	const [quickAddTitle, setQuickAddTitle] = useState('');
 	const [quickAddProjectId, setQuickAddProjectId] = useState('');
+	const quickAddContext = useRef(0);
+	const quickAddLock = useRef(false);
+	useEffect(() => {
+		quickAddContext.current += 1;
+		setQuickAddColumn(null);
+		setQuickAddTitle('');
+		setQuickAddProjectId('');
+	}, [boardFilters.project, boardFilters.archivedOnly]);
 	const pendingReviewMutationRef = useRef<number | null>(null);
 	const [selectedTaskId, setSelectedTaskId] = useState<number | null>(null);
 	const [projectTaskEditId, setProjectTaskEditId] = useState<number | null>(null);
 	const [reviewStateDraft, setReviewStateDraft] = useState<TaskDetail['review_state'] | null>(null);
+	const reviewResponseVersion = useRef<{ id: number; updatedAt: string } | null>(null);
+	const reviewContext = useRef(0);
 	const [taskDetailTab, setTaskDetailTab] = useState<TaskDetailTab>('overview');
 	const [reviewNotes, setReviewNotes] = useState('');
 	const [reviewConfirmation, setReviewConfirmation] = useState<{
+		taskId: number;
 		reviewState: Extract<TaskDetail['review_state'], 'needs_review' | 'approved'>;
 		resetNotes: boolean;
 	} | null>(null);
@@ -2165,6 +2219,7 @@ const DesignWorkflowShell = ({ title, variant, projectId, taskId }: Props) => {
 	);
 	const closeTaskModal = () => {
 		setSelectedTaskId(null);
+		setModalTitleDraft(null);
 		setTaskAddPanel(null);
 		setModalDescriptionEditing(false);
 		setModalLabelComposerOpen(false);
@@ -2226,6 +2281,23 @@ const DesignWorkflowShell = ({ title, variant, projectId, taskId }: Props) => {
 	const { data: savedViews = [] } = useGetSavedViewsQuery(undefined, {
 		skip: !workflowDataReady || variant !== 'board',
 	});
+	useEffect(() => {
+		if (!selectedSavedViewId) { savedViewSnapshot.current = null; return; }
+		const selected = savedViews.find(view => view.id === selectedSavedViewId);
+		if (!selected) {
+			if (savedViewSnapshot.current?.id === selectedSavedViewId) {
+				setSelectedSavedViewId(null);
+				setBoardFilters(emptyBoardFilters());
+			}
+			return;
+		}
+		const next = filtersFromSavedView(selected);
+		const previous = savedViewSnapshot.current;
+		if (previous?.id === selected.id && JSON.stringify(previous.filters) !== JSON.stringify(next)) {
+			setBoardFilters(current => mergeLiveDraft(current, previous.filters, next));
+		}
+		savedViewSnapshot.current = { id: selected.id, filters: next };
+	}, [savedViews, selectedSavedViewId]);
 	const { data: workspaceSearchResults = [] } = useSearchWorkspaceQuery(
 		{ q: boardFilters.search.trim(), types: 'task,project,user,chat,file' },
 		{ skip: !workflowDataReady || variant !== 'board' || boardFilters.search.trim().length < 2 },
@@ -2253,6 +2325,7 @@ const DesignWorkflowShell = ({ title, variant, projectId, taskId }: Props) => {
 		data: tasksData,
 		isLoading: tasksLoading,
 		isFetching: tasksFetching,
+		refetch: refetchTasks,
 	} = useGetTasksQuery(tasksParams, {
 		skip: !workflowDataReady || !['board', 'overview'].includes(variant),
 	});
@@ -2268,14 +2341,15 @@ const DesignWorkflowShell = ({ title, variant, projectId, taskId }: Props) => {
 		},
 		{ skip: !workflowDataReady || variant !== 'board' || !autoAppliedSavedViewId },
 	);
-	const { data: taskData, isLoading: taskLoading } = useGetTaskQuery(activeTaskId ?? 0, {
+	const { data: taskData, isLoading: taskLoading, error: taskError } = useGetTaskQuery(activeTaskId ?? 0, {
 		skip: !workflowDataReady || !activeTaskId,
 	});
 	const projectsBusy = !workflowDataReady || projectsLoading;
 	const projectBusy = !workflowDataReady || projectLoading;
 	const tasksBusy = !workflowDataReady || tasksLoading;
 	const taskBusy = !workflowDataReady || taskLoading;
-	const task = (normalizeTaskDetail(taskData));
+	const taskUnavailable = Boolean(taskError && typeof taskError === 'object' && 'status' in taskError && [403, 404].includes(Number(taskError.status)));
+	const task = normalizeTaskDetail(taskData?.id === activeTaskId && !taskUnavailable ? taskData : undefined);
 	const { data: workloadData } = useGetWorkloadQuery(undefined, {
 		skip: !workflowDataReady || !isManager || !['team', 'overview'].includes(variant),
 	});
@@ -2336,7 +2410,7 @@ const DesignWorkflowShell = ({ title, variant, projectId, taskId }: Props) => {
 	const [addChecklistItem, addChecklistItemState] = useAddChecklistItemMutation();
 	const [updateChecklistItem] = useUpdateChecklistItemMutation();
 	const [deleteChecklistItem] = useDeleteChecklistItemMutation();
-	const [uploadTaskAttachment, uploadTaskAttachmentState] = useUploadTaskAttachmentMutation();
+	const [uploadTaskAttachment] = useUploadTaskAttachmentMutation();
 	const [attachmentUploadProgress, setAttachmentUploadProgress] = useState<number | null>(null);
 	const [deleteTaskAttachment] = useDeleteTaskAttachmentMutation();
 	const [setTaskCoverFromAttachment, setTaskCoverFromAttachmentState] = useSetTaskCoverFromAttachmentMutation();
@@ -2367,7 +2441,9 @@ const DesignWorkflowShell = ({ title, variant, projectId, taskId }: Props) => {
 		if (!task) return;
 		const currentReviewState = reviewStateDraft ?? task.review_state;
 		if (currentReviewState === reviewState || pendingReviewMutationRef.current === task.id) return;
+		const context = reviewContext.current;
 		pendingReviewMutationRef.current = task.id;
+		reviewResponseVersion.current = null;
 		setPendingReviewTaskId(task.id);
 		setReviewStateDraft(reviewState);
 		await runWithCleanup(
@@ -2378,11 +2454,14 @@ const DesignWorkflowShell = ({ title, variant, projectId, taskId }: Props) => {
 		        review_state: reviewState,
 		        notes: options.notes ?? (reviewNotes.trim() || undefined),
 		      }).unwrap();
-		      setReviewStateDraft(updatedTask.review_state);
+		      if (reviewContext.current === context) {
+		        reviewResponseVersion.current = { id: task.id, updatedAt: updatedTask.updated_at };
+		        setReviewStateDraft(updatedTask.review_state);
+		        if (options.resetNotes ?? true) setReviewNotes('');
+		      }
 		      onSuccess(messageFor('Revue mise à jour avec succès.', 'Review updated successfully.'));
-		      if (options.resetNotes ?? true) setReviewNotes('');
 		    }, () => {
-		      setReviewStateDraft(currentReviewState);
+		      if (reviewContext.current === context) setReviewStateDraft(null);
 		      onError(messageFor('Impossible de mettre à jour la revue.', 'Could not update the review.'));
 		    });
 		  },
@@ -2394,6 +2473,17 @@ const DesignWorkflowShell = ({ title, variant, projectId, taskId }: Props) => {
 		  },
 		);
 	};
+
+	useEffect(() => {
+		const responseVersion = reviewResponseVersion.current;
+		// Retain the optimistic state until the query has caught up with this
+		// mutation, then accept newer decisions even if they return to the old state.
+		if (!pendingReviewTaskId && task && responseVersion?.id === task.id &&
+			Date.parse(task.updated_at) >= Date.parse(responseVersion.updatedAt)) {
+			setReviewStateDraft(null);
+			reviewResponseVersion.current = null;
+		}
+	}, [task?.review_state, pendingReviewTaskId, reviewStateDraft, task]);
 
 	useEffect(() => {
 		setReportChartsMounted(true);
@@ -2411,9 +2501,9 @@ const DesignWorkflowShell = ({ title, variant, projectId, taskId }: Props) => {
 		}
 	}, [profile.id, projectForm.manager_id]);
 
-	useEffect(() => {
+	const syncProjectEditForm = useEffectEvent(() => {
 		if (project) {
-			setProjectEditForm({
+			const next: ProjectInput = {
 				name: project.name,
 				description: project.description,
 				manager_id: project.manager.id,
@@ -2423,20 +2513,26 @@ const DesignWorkflowShell = ({ title, variant, projectId, taskId }: Props) => {
 				priority: project.priority,
 				status: project.status,
 				archived: project.archived,
-			});
+			};
+			const previous = projectFormSnapshot.current;
+			projectEditBaseline.current = previous?.id === project.id && projectEditBaseline.current
+				? mergeDraftBaseline(projectEditForm, projectEditBaseline.current, next) : next;
+			setProjectEditForm(current => previous?.id === project.id ? mergeLiveDraft(current, previous.form, next) : next);
+			projectFormSnapshot.current = { id: project.id, form: next };
 			setTaskForm((current) => ({
 				...current,
 				current_assignee_id: current.current_assignee_id || '',
 			}));
 		}
-	}, [project]);
+	});
+	useEffect(() => { syncProjectEditForm(); }, [project]);
 
 	useEffect(() => {
-		if (!['board', 'overview'].includes(variant)) {
+		if (!['board', 'overview'].includes(variant) || draggedTaskId !== null || boardMovePending) {
 			return;
 		}
 		setBoardDraft(tasks);
-	}, [tasks, variant]);
+	}, [tasks, variant, draggedTaskId, boardMovePending]);
 
 	useEffect(() => {
 		if (variant !== 'board' || defaultSavedViewAppliedRef.current || savedViews.length === 0) {
@@ -2484,21 +2580,39 @@ const DesignWorkflowShell = ({ title, variant, projectId, taskId }: Props) => {
 		};
 	}, []);
 
+	useEffect(() => {
+		attachmentContext.current += 1;
+		setModalTitleDraft(null);
+		attachmentUploadLock.current = false;
+		setTaskAttachments([]);
+		setAttachmentUploadProgress(null);
+		setAttachmentUploadStatus(null);
+		setTaskAddPanel(null);
+		return () => { attachmentContext.current += 1; };
+	}, [activeTaskId]);
+
 	const syncTaskEditForm = useEffectEvent(() => {
-		setTaskEditForm(buildTaskEditForm(task));
+		const next = buildTaskEditForm(task);
+		const previous = taskFormSnapshot.current;
+		if (task && previous?.id === task.id) {
+			taskEditBaseline.current = mergeDraftBaseline(taskEditForm, taskEditBaseline.current ?? previous.form, next);
+			setTaskEditForm(current => mergeLiveDraft(current, previous.form, next));
+			taskFormSnapshot.current = { id: task.id, form: next };
+			return;
+		}
+		taskFormSnapshot.current = task ? { id: task.id, form: next } : null;
+		taskEditBaseline.current = next;
+		setTaskEditForm(next);
 		if (task?.current_assignee?.id) {
 			setReassignForm((current) => ({ ...current, assignee_id: String(task.current_assignee?.id ?? '') }));
 		}
 		setTaskCommentsPage(1);
 		setTaskTimeEntriesPage(1);
 		setTaskActivityPage(1);
-		setTaskAttachmentFile(null);
-		setTaskAttachmentLabel('');
 		setTaskCoverFile(null);
 		setTaskCoverLabel('');
 		setMediaDeleteTarget(null);
 		setAttachmentPreview(null);
-		setTaskAddPanel(null);
 		setModalDescriptionEditing(false);
 		setModalLabelComposerOpen(false);
 		setEditingLabelId(null);
@@ -2506,11 +2620,13 @@ const DesignWorkflowShell = ({ title, variant, projectId, taskId }: Props) => {
 
 	useEffect(() => {
 		syncTaskEditForm();
-	}, [taskData]);
+	}, [taskData, activeTaskId, taskUnavailable]);
 
 	const resetTaskReviewState = useEffectEvent(() => {
+		reviewContext.current += 1;
 		setTaskDetailTab('overview');
 		setReviewStateDraft(null);
+		reviewResponseVersion.current = null;
 		setReviewNotes('');
 		setReviewConfirmation(null);
 		setVersionNotes('');
@@ -2528,7 +2644,42 @@ const DesignWorkflowShell = ({ title, variant, projectId, taskId }: Props) => {
 		resetTaskReviewState();
 	}, [task?.id]);
 
+	useEffect(() => {
+		if (projectTaskEditId && task && !task.can_edit) {
+			setProjectTaskEditId(null);
+			setSelectedTaskId(task.id);
+		}
+	}, [projectTaskEditId, task]);
+
+	useEffect(() => {
+		if (attachmentPreview && task && !task.attachments.some(attachment => attachment.id === attachmentPreview.id)) setAttachmentPreview(null);
+	}, [task, attachmentPreview]);
+
+	useEffect(() => {
+		if (mediaDeleteTarget && (!task?.can_edit || task.id !== mediaDeleteTarget.taskId ||
+			(mediaDeleteTarget.kind === 'cover' ? !task.cover_image_url : !task.attachments.some(attachment => attachment.id === mediaDeleteTarget.attachmentId)))) {
+			setMediaDeleteTarget(null);
+		}
+		if (reviewConfirmation) {
+			const canConfirm = task?.id === reviewConfirmation.taskId && !task.archived && !task.project.archived &&
+				(reviewConfirmation.reviewState === 'approved'
+					? isManager && task.review_state === 'needs_review'
+					: !isManager && task.can_edit && ['not_submitted', 'changes_requested', 'approved'].includes(task.review_state));
+			if (!canConfirm) setReviewConfirmation(null);
+		}
+	}, [task, isManager, mediaDeleteTarget, reviewConfirmation]);
+
+	useEffect(() => {
+		if (projectArchiveTarget && (!project || project.id !== projectArchiveTarget.id || project.archived !== projectArchiveTarget.archived ||
+			!(project.can_manage ?? (isManager || project.manager.id === profile.id)))) setProjectArchiveTarget(null);
+	}, [project, projectArchiveTarget, isManager, profile.id]);
+
 	const onModalEscape = useEffectEvent(() => {
+		if (modalTitleDraft) {
+			setModalTitleDraft(null);
+			cardTitleHeading.current?.focus();
+			return;
+		}
 		if (projectTaskEditId) {
 			closeProjectTaskEdit();
 			return;
@@ -2561,12 +2712,14 @@ const DesignWorkflowShell = ({ title, variant, projectId, taskId }: Props) => {
 	};
 
 	const handleSetProjectArchived = async () => {
-		if (!project) return;
+		if (!project || project.id !== projectArchiveTarget?.id || project.archived !== projectArchiveTarget.archived ||
+			!(project.can_manage ?? (isManager || project.manager.id === profile.id))) return;
+		const target = projectArchiveTarget;
 		const archived = !project.archived;
 		await runPrimaryAction(
 			async () => {
 				await setProjectArchived({ id: project.id, data: { archived } }).unwrap();
-				setProjectArchiveOpen(false);
+				setProjectArchiveTarget(current => current === target ? null : current);
 			},
 			archived
 				? messageFor('Projet archivé avec succès.', 'Project archived successfully.')
@@ -2578,16 +2731,17 @@ const DesignWorkflowShell = ({ title, variant, projectId, taskId }: Props) => {
 	};
 
 	const handleConfirmMediaDelete = async () => {
-		if (!mediaDeleteTarget) return;
-		if (mediaDeleteTarget.kind === 'cover') {
-			await deleteTaskCover(mediaDeleteTarget.taskId).unwrap();
+		if (!mediaDeleteTarget || !task?.can_edit || task.id !== mediaDeleteTarget.taskId) return;
+		const target = mediaDeleteTarget;
+		if (target.kind === 'cover') {
+			await deleteTaskCover(target.taskId).unwrap();
 		} else {
 			await deleteTaskAttachment({
-				id: mediaDeleteTarget.taskId,
-				attachmentId: mediaDeleteTarget.attachmentId,
+				id: target.taskId,
+				attachmentId: target.attachmentId,
 			}).unwrap();
 		}
-		setMediaDeleteTarget(null);
+		setMediaDeleteTarget(current => current === target ? null : current);
 	};
 
 	const handleUploadTaskCover = async (taskId: number) => {
@@ -2620,43 +2774,100 @@ const DesignWorkflowShell = ({ title, variant, projectId, taskId }: Props) => {
 		}
 	};
 
-	const selectTaskAttachment = (file: File | null) => {
-		if (file && attachmentsExceedLimit([file])) {
-			onError(t.errors.attachmentTooLarge);
-			setTaskAttachmentFile(null);
-			return;
-		}
-		setTaskAttachmentFile(file);
+	const selectTaskAttachments = (files: File[]) => {
+		if (attachmentUploadLock.current) return;
+		const validFiles = files.filter(file => !attachmentsExceedLimit([file]));
+		if (validFiles.length !== files.length) onError(t.errors.attachmentTooLarge);
+		const additions = validFiles.map(file => ({ id: nextAttachmentId.current++, file, label: '' }));
+		setTaskAttachments(current => {
+			const result = [...current];
+			for (const entry of additions) {
+				if (!result.some(({ file }) => file.name === entry.file.name && file.size === entry.file.size && file.lastModified === entry.file.lastModified)) result.push(entry);
+			}
+			return result;
+		});
 	};
 
-	const handleUploadTaskAttachment = async (taskId: number) => {
-		const label = taskAttachmentLabel.trim();
-		if (!taskAttachmentFile || !label || uploadTaskAttachmentState.isLoading) return;
-		if (attachmentsExceedLimit([taskAttachmentFile])) {
+	const handleUploadTaskAttachments = async (taskId: number) => {
+		if (attachmentUploadLock.current || !taskAttachments.length || taskAttachments.some(entry => !entry.label.trim())) return;
+		if (taskAttachments.some(entry => attachmentsExceedLimit([entry.file]))) {
 			onError(t.errors.attachmentTooLarge);
 			return;
 		}
-		setAttachmentUploadProgress(0);
+		attachmentUploadLock.current = true;
+		const context = attachmentContext.current;
+		let uploaded = 0;
+		let failed = 0;
 		try {
-			await runPrimaryAction(
-				async () => {
-					const data = new FormData();
-					data.append('file', taskAttachmentFile);
-					data.append('name', label);
+			// One request per file preserves the 10 GB per-file limit and avoids a huge multipart request.
+			for (const [index, entry] of taskAttachments.entries()) {
+				if (attachmentContext.current !== context) return;
+				setAttachmentUploadStatus({ index: index + 1, total: taskAttachments.length });
+				setAttachmentUploadProgress(0);
+				const data = new FormData();
+				data.append('file', entry.file);
+				data.append('name', entry.label.trim());
+				try {
 					await uploadTaskAttachment({
 						id: taskId, data,
-						onUploadProgress: ({ loaded, total }) => setAttachmentUploadProgress(Math.min(100, Math.round(loaded / (total || taskAttachmentFile.size) * 100))),
+						onUploadProgress: ({ loaded, total }) => {
+							if (attachmentContext.current === context) setAttachmentUploadProgress(Math.min(100, Math.round(loaded / (total || entry.file.size || 1) * 100)));
+						},
 					}).unwrap();
-					setTaskAttachmentFile(null);
-					setTaskAttachmentLabel('');
-				},
-				messageFor('Fichier ajouté avec succès.', 'File added successfully.'),
-				messageFor('Impossible d’ajouter le fichier.', 'Could not add the file.'),
-			);
+					if (attachmentContext.current !== context) return;
+					uploaded += 1;
+					setTaskAttachments(current => current.filter(item => item.id !== entry.id));
+				} catch (error) {
+					if (attachmentContext.current !== context) return;
+					failed += 1;
+					const errorMessage = extractApiErrorMessage(error, messageFor('Impossible d’ajouter ce fichier. Réessayez.', 'Could not add this file. Try again.'));
+					setTaskAttachments(current => current.map(item => item.id === entry.id ? { ...item, error: errorMessage } : item));
+				}
+			}
+			if (uploaded) onSuccess(messageFor(`${uploaded} fichier${uploaded > 1 ? 's' : ''} ajouté${uploaded > 1 ? 's' : ''}.`, `${uploaded} file${uploaded > 1 ? 's' : ''} added.`));
+			if (failed) onError(messageFor('Les fichiers non envoyés restent dans la liste. Vous pouvez réessayer.', 'Unsent files remain in the list. You can retry them.'));
 		} finally {
-			setAttachmentUploadProgress(null);
+			if (attachmentContext.current === context) {
+				attachmentUploadLock.current = false;
+				setAttachmentUploadStatus(null);
+				setAttachmentUploadProgress(null);
+			}
 		}
 	};
+
+	const renderTaskAttachmentPicker = (taskId: number, inputId: string) => (
+		<div className="workflow-attachment-picker" data-testid="task-attachment-picker">
+			<input id={inputId} type="file" multiple className="workflow-hidden-file-input"
+				disabled={attachmentUploadStatus !== null}
+				onChange={event => { selectTaskAttachments(Array.from(event.target.files ?? [])); event.target.value = ''; }} />
+			<div className="workflow-trello-modal-media-actions">
+				<label htmlFor={inputId} className="workflow-trello-modal-file-button"><Paperclip size={16} />{messageFor('Choisir des fichiers', 'Choose files')}</label>
+				<small className="workflow-upload-hint">{messageFor('Plusieurs fichiers possibles · 10 Go maximum par fichier · Qualité originale', 'Select multiple files · Up to 10 GB per file · Original quality')}</small>
+			</div>
+			{taskAttachments.length ? <ul className="workflow-attachment-queue">
+				{taskAttachments.map(entry => <li key={entry.id}>
+					<div className="workflow-attachment-queue-heading">
+						<strong>{entry.file.name}</strong>
+						<button type="button" className="workflow-tool-icon-button workflow-tool-icon-button-danger"
+							disabled={attachmentUploadStatus !== null} aria-label={`${messageFor('Retirer', 'Remove')} ${entry.file.name}`}
+							onClick={() => setTaskAttachments(current => current.filter(item => item.id !== entry.id))}><X size={16} /></button>
+					</div>
+					<input className="app-input" value={entry.label} maxLength={255} disabled={attachmentUploadStatus !== null}
+						aria-label={`${messageFor('Description de', 'Description for')} ${entry.file.name}`}
+						placeholder={workflow.labels.attachmentLabelPlaceholder ?? 'Décrivez ce fichier'}
+						onChange={event => setTaskAttachments(current => current.map(item => item.id === entry.id ? { ...item, label: event.target.value, error: undefined } : item))} />
+					{entry.error ? <p className="workflow-attachment-queue-error" role="alert">{entry.error}</p> : null}
+				</li>)}
+			</ul> : null}
+			{attachmentUploadStatus ? <p className="workflow-upload-hint" role="status">{messageFor('Fichier', 'File')} {attachmentUploadStatus.index} / {attachmentUploadStatus.total}</p> : null}
+			<UploadProgress progress={attachmentUploadProgress} />
+			{taskAttachments.length || attachmentUploadStatus ? <button type="button" className="workflow-trello-modal-save"
+				disabled={attachmentUploadStatus !== null || !taskAttachments.length || taskAttachments.some(entry => !entry.label.trim())}
+				onClick={() => void handleUploadTaskAttachments(taskId)}>
+				{attachmentUploadStatus ? workflow.buttons.saving : messageFor(`Ajouter ${taskAttachments.length} fichier${taskAttachments.length > 1 ? 's' : ''}`, `Add ${taskAttachments.length} file${taskAttachments.length > 1 ? 's' : ''}`)}
+			</button> : null}
+		</div>
+	);
 
 	const handleSetAttachmentAsCover = async (taskItem: TaskDetail, attachment: TaskAttachment) => {
 		await runPrimaryAction(
@@ -2669,7 +2880,7 @@ const DesignWorkflowShell = ({ title, variant, projectId, taskId }: Props) => {
 	};
 
 	const openAttachmentPreview = (attachment: TaskAttachment, url: string, meta: string) => {
-		setAttachmentPreview({ name: attachment.name, url, meta });
+		setAttachmentPreview({ id: attachment.id, name: attachment.name, url, meta });
 	};
 
 	const updateBoardFiltersManually = (
@@ -2718,38 +2929,55 @@ const DesignWorkflowShell = ({ title, variant, projectId, taskId }: Props) => {
 			`${taskItem.title} ${taskItem.project.name} ${taskItem.description} ${taskItem.labels.map((label) => label.name).join(' ')}`.toLowerCase();
 		return haystack.includes(boardFilters.search.trim().toLowerCase());
 	});
+	const hasSpecificProjectFilter = Boolean(boardFilters.project && boardFilters.project !== 'mine');
 	const filteredProject =
-		boardFilters.project && boardFilters.project !== 'mine'
+		hasSpecificProjectFilter
 			? (projects.find((item) => item.id === Number(boardFilters.project)) ?? null)
 			: null;
-	const availableQuickAddProjects = filteredProject
-		? filteredProject.can_work && !filteredProject.archived
-			? [filteredProject]
-			: []
-		: writableProjects;
+	const availableQuickAddProjects = boardFilters.archivedOnly
+		? []
+		: hasSpecificProjectFilter
+			? filteredProject?.can_work && !filteredProject.archived
+				? [filteredProject]
+				: []
+			: writableProjects;
 	const quickAddProject =
-		availableQuickAddProjects.find((item) => String(item.id) === quickAddProjectId) ??
-		(availableQuickAddProjects.length === 1 ? availableQuickAddProjects[0] : null);
+		availableQuickAddProjects.find((item) => String(item.id) === quickAddProjectId) ?? null;
+	const quickAddUnavailableReason = boardFilters.archivedOnly
+		? messageFor('Affichez les cartes actives pour ajouter une carte.', 'Show active cards to add a card.')
+		: hasSpecificProjectFilter
+			? messageFor('Vous ne pouvez pas ajouter de carte dans ce projet. Sélectionnez un projet auquel vous participez.', 'You cannot add cards to this project. Select a project you work on.')
+			: messageFor('Créez un projet ou demandez à y être ajouté comme collaborateur pour ajouter des cartes.', 'Create a project or ask to join one as a collaborator before adding cards.');
 
 	const handleQuickAddTask = async (status: TaskStatus) => {
 		const title = quickAddTitle.trim();
-		if (!title || !quickAddProject?.can_work) return;
+		if (!title || title.length > 255 || !quickAddProject?.can_work || quickAddLock.current || createTaskState.isLoading) return;
+		const context = quickAddContext.current;
+		quickAddLock.current = true;
 		const columnTasks = boardDraft.filter((item) => item.status === status);
-		await createTask(
-			buildTaskPayload(
-				quickAddProject.id,
-				{
-					...emptyTaskForm(),
-					title,
-					status,
-					current_assignee_id: profile.id ? String(profile.id) : '',
-					sort_order: String(columnTasks.length),
+		await runWithCleanup(
+			() => runPrimaryAction(
+				async () => {
+					await createTask(
+						buildTaskPayload(
+							quickAddProject.id,
+							{
+								...emptyTaskForm(),
+								title,
+								status,
+								current_assignee_id: profile.id ? String(profile.id) : '',
+								sort_order: String(columnTasks.length),
+							},
+							{ includeTime: true },
+						),
+					).unwrap();
+					if (quickAddContext.current === context) setQuickAddTitle('');
 				},
-				{ includeTime: true },
+				messageFor(`Carte ajoutée au projet « ${quickAddProject.name} ».`, `Card added to project “${quickAddProject.name}”.`),
+				messageFor('Impossible d’ajouter la carte. Vous pouvez réessayer.', 'Could not add the card. You can try again.'),
 			),
-		).unwrap();
-		setQuickAddTitle('');
-		setQuickAddColumn(status);
+			() => { quickAddLock.current = false; },
+		);
 	};
 
 	const tasksByStatus = STATUS_COLUMNS.map((status) => ({
@@ -2763,6 +2991,36 @@ const DesignWorkflowShell = ({ title, variant, projectId, taskId }: Props) => {
 	const isUserOnline = (userId: number) => onlineUserIds.includes(userId);
 	const taskMutable = Boolean(task?.can_edit);
 	const taskMediaMutable = taskMutable;
+	const projectConflict = project && projectEditBaseline.current && projectFormSnapshot.current &&
+		Object.keys(projectEditForm).some(key => {
+			const field = key as keyof ProjectInput;
+			const baseline = JSON.stringify(projectEditBaseline.current![field]);
+			const latest = JSON.stringify(projectFormSnapshot.current!.form[field]);
+			const draft = JSON.stringify(projectEditForm[field]);
+			return draft !== baseline && latest !== baseline && draft !== latest;
+		});
+	const projectConflictNotice = projectConflict ? <div role="alert" className="workflow-realtime-status">
+		<span>{messageFor('Le projet a été modifié par une autre personne. Vos modifications sont conservées.', 'Someone else changed this project. Your edits have been kept.')}</span>
+		<button type="button" className="app-pill" onClick={() => { const latest = projectFormSnapshot.current!.form; projectEditBaseline.current = latest; setProjectEditForm(latest); }}>
+			{messageFor('Charger la dernière version', 'Load latest version')}
+		</button>
+	</div> : null;
+	const taskUpdatePayload = (includeTime: boolean) => guardedChanges(
+		buildTaskPayload(task!.project.id, taskEditForm, { includeTime }),
+		buildTaskPayload(task!.project.id, taskEditBaseline.current ?? buildTaskEditForm(task), { includeTime }),
+	);
+	const taskConflict = task && taskEditBaseline.current && Object.keys(taskEditForm).some(key => {
+		const field = key as keyof TaskFormState;
+		const baseline = taskEditBaseline.current![field];
+		const current = buildTaskEditForm(task)[field];
+		return taskEditForm[field] !== baseline && current !== baseline && taskEditForm[field] !== current;
+	});
+	const taskConflictNotice = taskConflict ? <div role="alert" className="workflow-realtime-status">
+		<span>{messageFor('Cette tâche a été modifiée par une autre personne. Vos modifications sont conservées.', 'Someone else changed this task. Your edits have been kept.')}</span>
+		<button type="button" className="app-pill" onClick={() => { const latest = buildTaskEditForm(task); taskEditBaseline.current = latest; setTaskEditForm(latest); }}>
+			{messageFor('Charger la dernière version', 'Load latest version')}
+		</button>
+	</div> : null;
 	const pageHeading =
 		variant === 'project-detail' && project
 			? project.name
@@ -2851,6 +3109,7 @@ const DesignWorkflowShell = ({ title, variant, projectId, taskId }: Props) => {
 	};
 
 	const applyBoardMove = async (movingTaskId: number, placement: { status: TaskStatus; index: number }) => {
+		if (boardMoveLock.current) return false;
 		const movingTask = boardDraft.find((item) => item.id === movingTaskId);
 		if (!movingTask?.can_edit) return false;
 		const nextState = moveTaskToBoardIndex(boardDraft, movingTaskId, placement.status, placement.index);
@@ -2861,7 +3120,8 @@ const DesignWorkflowShell = ({ title, variant, projectId, taskId }: Props) => {
 			return false;
 		}
 
-		const previousBoard = boardDraft;
+		boardMoveLock.current = true;
+		setBoardMovePending(true);
 		const scrollBeforeMove = typeof window !== 'undefined' ? { x: window.scrollX, y: window.scrollY } : null;
 		const restoreBoardScroll = () => {
 			if (!scrollBeforeMove || typeof window === 'undefined') return;
@@ -2884,9 +3144,14 @@ const DesignWorkflowShell = ({ title, variant, projectId, taskId }: Props) => {
 			restoreBoardScroll();
 			return true;
 		} catch {
-			setBoardDraft(previousBoard);
 			restoreBoardScroll();
 			return false;
+		} finally {
+			// Refetch authoritative order, including concurrent moves by others.
+			try { await refetchTasks(); } finally {
+				boardMoveLock.current = false;
+				setBoardMovePending(false);
+			}
 		}
 	};
 
@@ -2932,6 +3197,7 @@ const DesignWorkflowShell = ({ title, variant, projectId, taskId }: Props) => {
 	};
 
 	const handleDragStart = (event: DragStartEvent) => {
+		if (boardMoveLock.current) return;
 		if (typeof event.active.id !== 'string' || !isTaskDragId(event.active.id)) return;
 		const taskId = getTaskIdFromDragId(event.active.id);
 		if (!boardDraft.find((item) => item.id === taskId)?.can_edit) return;
@@ -3880,12 +4146,13 @@ const DesignWorkflowShell = ({ title, variant, projectId, taskId }: Props) => {
 											onArchive={handleArchiveTask}
 											quickAddOpen={quickAddColumn === column.status}
 											quickAddTitle={quickAddColumn === column.status ? quickAddTitle : ''}
-											quickAddProjectName={quickAddProject?.name}
+											quickAddUnavailableReason={quickAddUnavailableReason}
 											quickAddProjects={availableQuickAddProjects}
-											quickAddProjectId={quickAddProject ? String(quickAddProject.id) : quickAddProjectId}
-											quickAddLoading={createTaskState.isLoading && quickAddColumn === column.status}
+											quickAddProjectId={quickAddProject ? String(quickAddProject.id) : ''}
+											quickAddLoading={createTaskState.isLoading}
 											canQuickAdd={variant === 'board' && availableQuickAddProjects.length > 0}
 											onQuickAddOpen={(nextStatus) => {
+												quickAddContext.current += 1;
 												setQuickAddColumn(nextStatus);
 												setQuickAddTitle('');
 												setQuickAddProjectId(
@@ -3896,6 +4163,7 @@ const DesignWorkflowShell = ({ title, variant, projectId, taskId }: Props) => {
 											onQuickAddProjectChange={setQuickAddProjectId}
 											onQuickAddSubmit={handleQuickAddTask}
 											onQuickAddCancel={() => {
+												quickAddContext.current += 1;
 												setQuickAddColumn(null);
 												setQuickAddTitle('');
 												setQuickAddProjectId('');
@@ -4377,7 +4645,7 @@ const DesignWorkflowShell = ({ title, variant, projectId, taskId }: Props) => {
 									onClick={() =>
 										void runPrimaryAction(
 											async () => {
-												await updateProject({ id: project.id, data: buildProjectPayload(projectEditForm) }).unwrap();
+												await updateProject({ id: project.id, data: guardedChanges(buildProjectPayload(projectEditForm), buildProjectPayload(projectEditBaseline.current ?? projectEditForm)) }).unwrap();
 											},
 											messageFor('Projet modifié avec succès.', 'Project saved successfully.'),
 											messageFor('Impossible de modifier le projet.', 'Could not save the project.'),
@@ -4390,7 +4658,7 @@ const DesignWorkflowShell = ({ title, variant, projectId, taskId }: Props) => {
 								</button>
 								<button
 									type="button"
-									onClick={() => setProjectArchiveOpen(true)}
+									onClick={() => setProjectArchiveTarget({ id: project.id, archived: project.archived })}
 									disabled={projectArchiveState.isLoading}
 									className="workflow-project-archive-trigger"
 									data-archived={project.archived}
@@ -4959,18 +5227,87 @@ const DesignWorkflowShell = ({ title, variant, projectId, taskId }: Props) => {
 									</Chip>
 									<span className="workflow-trello-modal-project-chip">{task.project.name}</span>
 								</div>
-								<h2 id="workflow-task-dialog-title">{task.title}</h2>
+								<div className="workflow-trello-modal-heading">
+									<h2
+										id="workflow-task-dialog-title"
+										ref={cardTitleHeading}
+											className={taskMutable && modalTitleDraft?.id === task.id ? 'sr-only' : undefined}
+											data-editable={taskMutable}
+											tabIndex={taskMutable ? (modalTitleDraft?.id === task.id ? -1 : 0) : undefined}
+											title={taskMutable ? messageFor('Double-cliquez pour renommer', 'Double-click to rename') : undefined}
+											onDoubleClick={() => { if (taskMutable) setModalTitleDraft({ id: task.id, title: task.title, original: task.title }); }}
+											onKeyDown={(event) => {
+												if (taskMutable && ['Enter', 'F2'].includes(event.key)) {
+													event.preventDefault();
+													setModalTitleDraft({ id: task.id, title: task.title, original: task.title });
+												}
+											}}
+									>
+										{task.title}
+									</h2>
+									{taskMutable && modalTitleDraft?.id === task.id ? (
+										<form
+											className="workflow-trello-modal-title-edit"
+											aria-label={messageFor('Renommer la carte', 'Rename card')}
+											onSubmit={(event) => {
+												event.preventDefault();
+												const draft = modalTitleDraft;
+												const title = draft.title.trim();
+												if (!title || title === task.title || title.length > 255 || renameLock.current || updateTaskState.isLoading) return;
+												renameLock.current = true;
+												void runWithCleanup(
+													() => runPrimaryAction(async () => {
+														await updateTask({ id: task.id, data: { title, expected_values: { title: draft.original } } }).unwrap();
+														setModalTitleDraft((current) => current === draft ? null : current);
+													}, messageFor('Carte renommée avec succès.', 'Card renamed successfully.'),
+													messageFor('Impossible de renommer la carte.', 'Could not rename the card.')),
+													() => { renameLock.current = false; },
+												);
+											}}
+										>
+											<div>
+												<FieldLabel htmlFor="workflow-card-title">{messageFor('Titre de la carte', 'Card title')}</FieldLabel>
+												<input
+													id="workflow-card-title"
+													className="app-input"
+													value={modalTitleDraft.title}
+													onChange={(event) => setModalTitleDraft({ ...modalTitleDraft, title: event.target.value })}
+													maxLength={255}
+													required
+													autoFocus
+													disabled={updateTaskState.isLoading}
+												/>
+											</div>
+											<div className="workflow-trello-modal-inline-actions">
+												<button
+													type="submit"
+													className="workflow-trello-modal-save"
+													disabled={updateTaskState.isLoading || !modalTitleDraft.title.trim() || modalTitleDraft.title.trim() === task.title}
+												>
+													{updateTaskState.isLoading ? workflow.buttons.saving : t.common.save}
+												</button>
+												<button type="button" className="workflow-trello-modal-cancel" onClick={() => {
+													setModalTitleDraft(null);
+													cardTitleHeading.current?.focus();
+												}}>
+													{t.common.cancel}
+												</button>
+											</div>
+										</form>
+									) : null}
+								</div>
 							</div>
 						</div>
 
 						{renderSourceChatLink('modal')}
+						{taskConflictNotice}
 
 						<div className="workflow-trello-modal-actions">
 							{canSubmitReview ? (
 								<button
 									type="button"
 									disabled={reviewLocked}
-									onClick={() => setReviewConfirmation({ reviewState: 'needs_review', resetNotes: false })}
+									onClick={() => setReviewConfirmation({ taskId: task.id, reviewState: 'needs_review', resetNotes: false })}
 									className="workflow-trello-modal-action"
 									data-tone="blue"
 								>
@@ -4993,7 +5330,7 @@ const DesignWorkflowShell = ({ title, variant, projectId, taskId }: Props) => {
 									<button
 										type="button"
 										disabled={reviewLocked}
-										onClick={() => setReviewConfirmation({ reviewState: 'approved', resetNotes: false })}
+											onClick={() => setReviewConfirmation({ taskId: task.id, reviewState: 'approved', resetNotes: false })}
 										className="workflow-trello-modal-action"
 										data-tone="green"
 									>
@@ -5328,35 +5665,7 @@ const DesignWorkflowShell = ({ title, variant, projectId, taskId }: Props) => {
 											</div>
 										) : null}
 										{taskAddPanel === 'attachments' ? (
-											<div className="workflow-trello-modal-upload-row">
-												<div className="workflow-media-label-field">
-													<Field
-														value={taskAttachmentLabel}
-														onChange={setTaskAttachmentLabel}
-														placeholder={workflow.labels.attachmentLabelPlaceholder ?? 'Décrivez ce fichier'}
-													/>
-												</div>
-												<input
-													id={`${attachmentInputId}-floating`}
-													type="file"
-													onChange={(event) => selectTaskAttachment(event.target.files?.[0] ?? null)}
-													disabled={uploadTaskAttachmentState.isLoading}
-													className="workflow-hidden-file-input"
-												/>
-												<label htmlFor={`${attachmentInputId}-floating`}>
-													<Paperclip size={16} />
-													{taskAttachmentFile?.name ?? workflow.labels.uploadFile ?? 'Upload file'}
-												</label>
-												<button
-													type="button"
-													disabled={!taskAttachmentFile || !taskAttachmentLabel.trim() || uploadTaskAttachmentState.isLoading}
-													onClick={() => void handleUploadTaskAttachment(task.id)}
-												>
-													{uploadTaskAttachmentState.isLoading ? workflow.buttons.saving : t.common.add}
-												</button>
-												<small className="workflow-upload-hint">{messageFor('10 Go maximum par fichier · Qualité originale', 'Up to 10 GB per file · Original quality')}</small>
-												<UploadProgress progress={attachmentUploadProgress} />
-											</div>
+											renderTaskAttachmentPicker(task.id, `${attachmentInputId}-floating`)
 										) : null}
 									</div>
 								) : null}
@@ -5473,7 +5782,7 @@ const DesignWorkflowShell = ({ title, variant, projectId, taskId }: Props) => {
 														async () => {
 															await updateTask({
 																id: task.id,
-																data: buildTaskPayload(task.project.id, taskEditForm, { includeTime: isManager }),
+																data: taskUpdatePayload(isManager),
 															}).unwrap();
 															setModalDescriptionEditing(false);
 														},
@@ -5488,7 +5797,9 @@ const DesignWorkflowShell = ({ title, variant, projectId, taskId }: Props) => {
 												type="button"
 												className="workflow-trello-modal-cancel"
 												onClick={() => {
-													setTaskEditForm(buildTaskEditForm(task));
+													const latest = buildTaskEditForm(task);
+													taskEditBaseline.current = latest;
+													setTaskEditForm(latest);
 													setModalDescriptionEditing(false);
 												}}
 											>
@@ -5559,7 +5870,7 @@ const DesignWorkflowShell = ({ title, variant, projectId, taskId }: Props) => {
 													async () => {
 														await updateTask({
 															id: task.id,
-															data: buildTaskPayload(task.project.id, taskEditForm, { includeTime: isManager }),
+														data: taskUpdatePayload(isManager),
 														}).unwrap();
 													},
 													messageFor('Tâche enregistrée avec succès.', 'Task saved successfully.'),
@@ -5835,36 +6146,7 @@ const DesignWorkflowShell = ({ title, variant, projectId, taskId }: Props) => {
 									})}
 								</div>
 								{taskMediaMutable ? (
-									<div className="workflow-trello-modal-media-actions">
-										<div className="workflow-media-label-field">
-											<Field
-												value={taskAttachmentLabel}
-												onChange={setTaskAttachmentLabel}
-												placeholder={workflow.labels.attachmentLabelPlaceholder ?? 'Décrivez ce fichier'}
-											/>
-										</div>
-										<input
-											id={attachmentInputId}
-											type="file"
-											onChange={(event) => selectTaskAttachment(event.target.files?.[0] ?? null)}
-											disabled={uploadTaskAttachmentState.isLoading}
-											className="workflow-hidden-file-input"
-										/>
-										<label htmlFor={attachmentInputId} className="workflow-trello-modal-file-button">
-											<Paperclip size={16} />
-											{taskAttachmentFile?.name ?? workflow.labels.uploadFile ?? 'Upload file'}
-										</label>
-										<button
-											type="button"
-											className="workflow-trello-modal-save"
-											disabled={!taskAttachmentFile || !taskAttachmentLabel.trim() || uploadTaskAttachmentState.isLoading}
-											onClick={() => void handleUploadTaskAttachment(task.id)}
-										>
-											{uploadTaskAttachmentState.isLoading ? workflow.buttons.saving : t.common.add}
-										</button>
-										<small className="workflow-upload-hint">{messageFor('10 Go maximum par fichier · Qualité originale', 'Up to 10 GB per file · Original quality')}</small>
-										<UploadProgress progress={attachmentUploadProgress} />
-									</div>
+									renderTaskAttachmentPicker(task.id, attachmentInputId)
 								) : null}
 							</section>
 						) : null}
@@ -5999,6 +6281,7 @@ const DesignWorkflowShell = ({ title, variant, projectId, taskId }: Props) => {
 								<Chip tone={taskDueDelivery?.tone}>{taskDueDelivery?.label ?? dateFor(task.due_date)}</Chip>
 							</div>
 							{renderSourceChatLink('detail')}
+							{taskConflictNotice}
 						</div>
 						{isManager ? (
 							<div className="workflow-task-stats grid gap-3 p-4">
@@ -6090,7 +6373,7 @@ const DesignWorkflowShell = ({ title, variant, projectId, taskId }: Props) => {
 													type="button"
 													className="app-button"
 													disabled={reviewLocked}
-													onClick={() => setReviewConfirmation({ reviewState: 'needs_review', resetNotes: true })}
+													onClick={() => setReviewConfirmation({ taskId: task.id, reviewState: 'needs_review', resetNotes: true })}
 												>
 													<ShieldCheck size={16} />
 													<span>{requestReviewLabel}</span>
@@ -6111,7 +6394,7 @@ const DesignWorkflowShell = ({ title, variant, projectId, taskId }: Props) => {
 														type="button"
 														className="app-button app-button-secondary"
 														disabled={reviewLocked}
-														onClick={() => setReviewConfirmation({ reviewState: 'approved', resetNotes: true })}
+														onClick={() => setReviewConfirmation({ taskId: task.id, reviewState: 'approved', resetNotes: true })}
 													>
 														<CheckCircle2 size={16} />
 														<span>{workflow.buttons.approve ?? 'Approve'}</span>
@@ -6943,37 +7226,7 @@ const DesignWorkflowShell = ({ title, variant, projectId, taskId }: Props) => {
 											) : null}
 										</div>
 										{taskMediaMutable ? (
-											<div className="workflow-upload-actions workflow-upload-actions-flat">
-												<div className="workflow-media-label-field">
-													<Field
-														value={taskAttachmentLabel}
-														onChange={setTaskAttachmentLabel}
-														placeholder={workflow.labels.attachmentLabelPlaceholder ?? 'Décrivez ce fichier'}
-													/>
-												</div>
-												<input
-													id={attachmentInputId}
-													type="file"
-													onChange={(event) => selectTaskAttachment(event.target.files?.[0] ?? null)}
-													disabled={uploadTaskAttachmentState.isLoading}
-													className="workflow-hidden-file-input"
-												/>
-												<label htmlFor={attachmentInputId} className="workflow-upload-picker">
-													<Paperclip size={15} />
-													<span>{taskAttachmentFile?.name ?? workflow.labels.uploadFile ?? 'Importer un fichier'}</span>
-												</label>
-												<button
-													type="button"
-													disabled={!taskAttachmentFile || !taskAttachmentLabel.trim() || uploadTaskAttachmentState.isLoading}
-													onClick={() => void handleUploadTaskAttachment(task.id)}
-													className="app-button workflow-upload-submit"
-												>
-													<Paperclip size={16} />
-													<span>{uploadTaskAttachmentState.isLoading ? workflow.buttons.saving : t.common.add}</span>
-												</button>
-												<small className="workflow-upload-hint">{messageFor('10 Go maximum par fichier · Qualité originale', 'Up to 10 GB per file · Original quality')}</small>
-												<UploadProgress progress={attachmentUploadProgress} />
-											</div>
+											renderTaskAttachmentPicker(task.id, attachmentInputId)
 										) : null}
 									</div>
 								) : null}
@@ -7158,7 +7411,7 @@ const DesignWorkflowShell = ({ title, variant, projectId, taskId }: Props) => {
 										async () => {
 											await updateTask({
 												id: task.id,
-												data: buildTaskPayload(task.project.id, taskEditForm, { includeTime: isManager }),
+												data: taskUpdatePayload(isManager),
 											}).unwrap();
 										},
 										messageFor('Tâche enregistrée avec succès.', 'Task saved successfully.'),
@@ -8683,7 +8936,7 @@ const DesignWorkflowShell = ({ title, variant, projectId, taskId }: Props) => {
 										: 0;
 							const chatHref =
 								Number.isFinite(chatThreadId) && chatThreadId > 0
-									? `${DASHBOARD_CHAT}?thread=${chatThreadId}`
+									? `${DASHBOARD_CHAT}?thread=${chatThreadId}${Number.isSafeInteger(Number(notification.payload.message_id)) && Number(notification.payload.message_id) > 0 ? `&message=${Number(notification.payload.message_id)}` : ''}`
 									: DASHBOARD_CHAT;
 							return (
 								<article
@@ -8846,9 +9099,13 @@ const DesignWorkflowShell = ({ title, variant, projectId, taskId }: Props) => {
 				? (workflow.buttons.requestNewReview ?? 'Request a new review')
 				: (workflow.buttons.requestReview ?? 'Request review');
 	const reviewConfirmationIsApproval = reviewConfirmation?.reviewState === 'approved';
+	if (workflowDataReady && !isManager && ['team', 'report-time', 'overview'].includes(variant)) {
+		return <NavigationBar title={pageHeading}><p className="p-4">{messageFor('Vous n’avez plus accès à cette page.', 'You no longer have access to this page.')}</p></NavigationBar>;
+	}
 
 	return (
 		<NavigationBar title={pageHeading}>
+			{projectConflictNotice}
 			<div className={isKanbanView ? '' : 'space-y-4'}>
 				{isKanbanView ? null : renderHeader()}
 				{content}
@@ -8877,6 +9134,7 @@ const DesignWorkflowShell = ({ title, variant, projectId, taskId }: Props) => {
 							<EmptyState {...workflow.emptyStates.loadingTask} />
 						) : (
 							<>
+								{taskConflictNotice}
 								<div className="workflow-task-edit-grid">
 									<div>
 										<FieldLabel htmlFor="workflow-project-task-title">{workflow.labels.taskTitle}</FieldLabel>
@@ -8972,6 +9230,7 @@ const DesignWorkflowShell = ({ title, variant, projectId, taskId }: Props) => {
 											className="workflow-task-edit-save"
 											disabled={
 												!taskEditForm.title.trim() ||
+												!task.can_edit ||
 												updateTaskState.isLoading ||
 												task.archived ||
 												task.project.archived
@@ -8981,7 +9240,7 @@ const DesignWorkflowShell = ({ title, variant, projectId, taskId }: Props) => {
 													async () => {
 														await updateTask({
 															id: task.id,
-															data: buildTaskPayload(task.project.id, taskEditForm, { includeTime: true }),
+															data: taskUpdatePayload(true),
 														}).unwrap();
 														closeProjectTaskEdit();
 													},
@@ -9061,9 +9320,9 @@ const DesignWorkflowShell = ({ title, variant, projectId, taskId }: Props) => {
 							color: reviewConfirmationIsApproval ? '#16a34a' : '#d97706',
 							disabled: updateTaskReviewState.isLoading,
 							onClick: () => {
-								const { reviewState, ...options } = reviewConfirmation;
+								const { reviewState, resetNotes } = reviewConfirmation;
 								setReviewConfirmation(null);
-								void submitReviewUpdate(reviewState, options);
+								void submitReviewUpdate(reviewState, { resetNotes });
 							},
 						},
 					]}
@@ -9106,13 +9365,13 @@ const DesignWorkflowShell = ({ title, variant, projectId, taskId }: Props) => {
 					</div>
 				</div>
 			) : null}
-			{projectArchiveOpen && project ? (
+			{projectArchiveTarget && project ? (
 				<div
 					className="workflow-media-confirm-backdrop"
 					role="dialog"
 					aria-modal="true"
 					aria-labelledby="workflow-project-archive-title"
-					onClick={() => setProjectArchiveOpen(false)}
+					onClick={() => setProjectArchiveTarget(null)}
 				>
 					<div
 						className="workflow-media-confirm workflow-project-archive-confirm"
@@ -9137,7 +9396,7 @@ const DesignWorkflowShell = ({ title, variant, projectId, taskId }: Props) => {
 							<button
 								type="button"
 								className="workflow-media-confirm-cancel"
-								onClick={() => setProjectArchiveOpen(false)}
+								onClick={() => setProjectArchiveTarget(null)}
 								disabled={projectArchiveState.isLoading}
 							>
 								{t.common.cancel}

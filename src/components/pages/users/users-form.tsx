@@ -1,7 +1,7 @@
 'use client';
 
 import {runWithCleanup, runAsyncWithErrorHandler} from '@/utils/runWithCleanup';
-import { useState, type FC, type MouseEvent} from 'react';
+import { useEffect, useEffectEvent, useRef, useState, type FC, type MouseEvent} from 'react';
 import type { ApiErrorResponseType, ResponseDataInterface, SessionProps } from '@/types/_initTypes';
 import NavigationBar from '@/components/layouts/navigationBar/navigationBar';
 import {
@@ -38,6 +38,8 @@ import {
 import { useInitAccessToken } from '@/contexts/InitContext';
 import { Protected } from '@/components/layouts/protected/protected';
 import { WorkflowIconPill, WorkflowPageHero } from '@/components/shared/workflow/workflowPrimitives';
+import { mergeLiveDraft } from '@/utils/liveDraft';
+import type { UserClass } from '@/models/classes';
 
 interface UserFormValues {
 	first_name: string;
@@ -63,6 +65,24 @@ type FormikContentProps = {
 };
 
 const normalizeGenderValue = (value?: string | null) => (value === 'Homme' ? 'H' : value === 'Femme' ? 'F' : value ?? '');
+
+const userFormValues = (user?: Partial<UserClass>): UserFormValues => ({
+	first_name: user?.first_name ?? '',
+	last_name: user?.last_name ?? '',
+	email: user?.email ?? '',
+	gender: normalizeGenderValue(user?.gender) || 'H',
+	role: user?.role ?? 'designer',
+	is_active: user?.is_active ?? true,
+	is_staff: user?.is_staff ?? false,
+	can_view: user?.can_view ?? false,
+	can_print: user?.can_print ?? false,
+	can_create: user?.can_create ?? false,
+	can_edit: user?.can_edit ?? false,
+	can_delete: user?.can_delete ?? false,
+	avatar: user?.avatar ?? '',
+	avatar_cropped: user?.avatar_cropped ?? '',
+	globalError: '',
+});
 
 const ToggleRow = ({
 	label,
@@ -92,7 +112,7 @@ const ToggleRow = ({
 
 const FormikContent: FC<FormikContentProps> = ({ token, id }) => {
 	const { onSuccess, onError } = useToast();
-	const { t } = useLanguage();
+	const { t, language } = useLanguage();
 	const isEditMode = id !== undefined;
 	const router = useRouter();
 
@@ -113,33 +133,23 @@ const FormikContent: FC<FormikContentProps> = ({ token, id }) => {
 
 	const [isPending, setIsPending] = useState(false);
 	const [hasAttemptedSubmit, setHasAttemptedSubmit] = useState(false);
+	const serverValues = useRef(userFormValues(rawData));
+	const [conflictedFields, setConflictedFields] = useState<Array<keyof UserFormValues>>([]);
 
 	const formik = useFormik<UserFormValues>({
-		initialValues: {
-			first_name: rawData?.first_name ?? '',
-			last_name: rawData?.last_name ?? '',
-			email: rawData?.email ?? '',
-			gender: normalizeGenderValue(rawData?.gender) || 'H',
-			role: rawData?.role ?? 'designer',
-			is_active: rawData?.is_active ?? true,
-			is_staff: rawData?.is_staff ?? false,
-			can_view: rawData?.can_view ?? false,
-			can_print: rawData?.can_print ?? false,
-			can_create: rawData?.can_create ?? false,
-			can_edit: rawData?.can_edit ?? false,
-			can_delete: rawData?.can_delete ?? false,
-			avatar: rawData?.avatar ?? '',
-			avatar_cropped: rawData?.avatar_cropped ?? '',
-			globalError: '',
-		},
-		enableReinitialize: true,
+		initialValues: userFormValues(rawData),
+		enableReinitialize: false,
 		validateOnMount: true,
 		validationSchema: toFormikValidationSchema(userSchema),
 		onSubmit: async (data, { setFieldError }) => {
 			setHasAttemptedSubmit(true);
 			setIsPending(true);
-			const { globalError, ...fields } = data;
+			const { globalError, ...allFields } = data;
 			void globalError;
+			// The endpoint accepts partial PUTs: never overwrite unrelated live edits.
+			const fields = isEditMode
+				? Object.fromEntries(Object.entries(allFields).filter(([key, value]) => value !== serverValues.current[key as keyof UserFormValues]))
+				: allFields;
 			await runWithCleanup(
 			  async () => {
 			    await runAsyncWithErrorHandler(async () => {
@@ -166,6 +176,21 @@ const FormikContent: FC<FormikContentProps> = ({ token, id }) => {
 			);
 		},
 	});
+
+	const refreshServerValues = useEffectEvent(() => {
+		if (!rawData || !isEditMode) return;
+		const next = userFormValues(rawData);
+		const previous = serverValues.current;
+		const draft = formik.values;
+		const conflicts = (Object.keys(next) as Array<keyof UserFormValues>).filter((key) =>
+			key !== 'globalError' && next[key] !== previous[key] && draft[key] !== previous[key] && draft[key] !== next[key],
+		);
+		setConflictedFields((current) => [...new Set([...current, ...conflicts])].filter((key) => draft[key] !== next[key]));
+		serverValues.current = next;
+		void formik.setValues(mergeLiveDraft(draft, previous, next), false);
+	});
+	useEffect(() => { refreshServerValues(); }, [rawData]);
+	const hasRemoteConflict = conflictedFields.some((key) => formik.values[key] !== userFormValues(rawData)[key]);
 
 	const fieldLabels: Record<string, string> = {
 		email: t.users.email,
@@ -206,6 +231,13 @@ const FormikContent: FC<FormikContentProps> = ({ token, id }) => {
 					</button>
 				}
 			/>
+			{hasRemoteConflict ? (
+				<div role="status" className="workflow-user-form-alert text-sm text-[color:var(--muted)]">
+					{language === 'en'
+						? 'This user was changed elsewhere. Your edits are kept. Check them before saving; saving replaces the changed fields.'
+						: 'Cet utilisateur a été modifié ailleurs. Vos saisies sont conservées. Vérifiez-les avant d’enregistrer : les champs modifiés seront remplacés.'}
+				</div>
+			) : null}
 
 			{validationErrors.length > 0 ? (
 				<div className="workflow-user-form-alert">
@@ -387,7 +419,7 @@ const UsersFormClient: FC<Props> = ({ session, id }) => {
 		<NavigationBar title={isEditMode ? t.users.editUser : t.users.createUser}>
 			<main className="min-h-[calc(100vh-120px)]">
 				<Protected>
-					<FormikContent token={token} id={id} />
+					<FormikContent key={id ?? 'new'} token={token} id={id} />
 				</Protected>
 			</main>
 		</NavigationBar>

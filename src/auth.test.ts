@@ -33,6 +33,33 @@ import { postApi } from '@/utils/apiHelpers';
 const mockedNextAuth = NextAuth as jest.Mock;
 const mockedPostApi = postApi as jest.Mock;
 const mockedAllowAnyInstance = allowAnyInstance as jest.Mock;
+let getAuthenticatedWorkflowUser: typeof import('./auth').getAuthenticatedWorkflowUser;
+
+const signedUser = {
+	id: '1',
+	pk: 1,
+	email: 'test@example.com',
+	emailVerified: null,
+	name: 'John Doe',
+	first_name: 'John',
+	last_name: 'Doe',
+	role: 'manager' as const,
+	is_staff: true,
+	is_superuser: true,
+	image: null,
+};
+
+const currentProfile = {
+	id: 1,
+	email: 'updated@example.com',
+	first_name: 'Jane',
+	last_name: 'Doe',
+	role: 'designer',
+	is_staff: false,
+	is_superuser: false,
+	avatar: '/media/avatar.jpg',
+	avatar_cropped: '/media/avatar-small.jpg',
+};
 
 // Helper to extract config passed to NextAuth
 const getNextAuthConfig = () => {
@@ -62,7 +89,7 @@ describe('auth.ts', () => {
 		// Re-import to trigger NextAuth call
 		jest.isolateModules(() => {
 			// eslint-disable-next-line @typescript-eslint/no-require-imports
-			require('./auth');
+			getAuthenticatedWorkflowUser = require('./auth').getAuthenticatedWorkflowUser;
 		});
 	});
 
@@ -384,6 +411,101 @@ describe('auth.ts', () => {
 
 			expect(mockedPostApi).not.toHaveBeenCalled();
 			expect(result.access).toBe('current-access-token');
+		});
+
+		it('refreshes role and profile from the backend, never the client update payload', async () => {
+			const profileGet = jest.fn().mockResolvedValue({ status: 200, data: currentProfile });
+			mockedAllowAnyInstance.mockReturnValueOnce({ get: profileGet });
+			const token = {
+				access: 'signed-access', refresh: 'signed-refresh',
+				access_expiration: Date.now() + 60 * 60 * 1000,
+				user: signedUser,
+			};
+			const result = await getCallbacks().jwt({
+				token, trigger: 'update',
+				session: { access: 'forged-access', user: { ...signedUser, pk: 999, role: 'manager', is_superuser: true } },
+			});
+
+			expect(profileGet).toHaveBeenCalledWith(expect.any(String), {
+				headers: { Authorization: 'Bearer signed-access' }, timeout: 10_000,
+			});
+			expect(result.access).toBe('signed-access');
+			expect(result.user).toMatchObject({
+				pk: 1, name: 'Jane Doe', email: 'updated@example.com', role: 'designer',
+				is_staff: false, is_superuser: false, image: '/media/avatar-small.jpg',
+			});
+			expect(mockedPostApi).not.toHaveBeenCalled();
+		});
+
+		it('uses the rotated access token to refresh roles during routine token refresh', async () => {
+			const profileGet = jest.fn().mockResolvedValue({ status: 200, data: currentProfile });
+			mockedAllowAnyInstance.mockReturnValueOnce({}).mockReturnValueOnce({ get: profileGet });
+			mockedPostApi.mockResolvedValueOnce({
+				status: 200, data: { access: 'rotated-access', access_expiration: new Date(Date.now() + 3600000).toISOString() },
+			});
+			const result = await getCallbacks().jwt({ token: {
+				access: 'expired-access', refresh: 'signed-refresh', access_expiration: 0, user: signedUser,
+			} });
+
+			expect(profileGet).toHaveBeenCalledWith(expect.any(String), {
+				headers: { Authorization: 'Bearer rotated-access' }, timeout: 10_000,
+			});
+			expect(result.user.role).toBe('designer');
+		});
+
+		it('does not fetch a profile during ordinary session polling with a current access token', async () => {
+			await getCallbacks().jwt({ token: {
+				access: 'signed-access', refresh: 'signed-refresh',
+				access_expiration: Date.now() + 3600000, user: signedUser,
+			} });
+			expect(mockedAllowAnyInstance).not.toHaveBeenCalled();
+		});
+
+		it.each([401, 403])('clears a session when the profile rejects access (%s)', async (status) => {
+			mockedAllowAnyInstance.mockReturnValueOnce({ get: jest.fn().mockRejectedValue({ response: { status } }) });
+			const result = await getCallbacks().jwt({ token: {
+				access: 'signed-access', access_expiration: Date.now() + 3600000, user: signedUser,
+			}, trigger: 'update' });
+			expect(result).toBeNull();
+		});
+
+		it('does not adopt client privileges if the backend is unavailable', async () => {
+			mockedAllowAnyInstance.mockReturnValueOnce({ get: jest.fn().mockRejectedValue(new Error('Offline')) });
+			const user = { ...signedUser, role: 'designer', is_staff: false, is_superuser: false };
+			const token = { access: 'signed-access', access_expiration: Date.now() + 3600000, user };
+			const result = await getCallbacks().jwt({
+				token, trigger: 'update', session: { user: { ...user, role: 'manager', is_staff: true } },
+			});
+			expect(result.user).toEqual(user);
+		});
+
+		it('rejects a profile belonging to a different account', async () => {
+			mockedAllowAnyInstance.mockReturnValueOnce({ get: jest.fn().mockResolvedValue({
+				status: 200, data: { ...currentProfile, id: 999 },
+			}) });
+			const result = await getCallbacks().jwt({ token: {
+				access: 'signed-access', access_expiration: Date.now() + 3600000, user: signedUser,
+			}, trigger: 'update' });
+			expect(result).toBeNull();
+		});
+	});
+
+	describe('authoritative server page user', () => {
+		it('returns current backend permissions instead of the role captured at login', async () => {
+			mockedAllowAnyInstance.mockReturnValueOnce({ get: jest.fn().mockResolvedValue({ status: 200, data: currentProfile }) });
+			const result = await getAuthenticatedWorkflowUser({ accessToken: 'signed-access', user: signedUser });
+			expect(result).toMatchObject({ role: 'designer', is_staff: false, is_superuser: false });
+		});
+
+		it.each([401, 403, 500])('fails closed on a backend error (%s)', async (status) => {
+			mockedAllowAnyInstance.mockReturnValueOnce({ get: jest.fn().mockRejectedValue({ error: { status_code: status } }) });
+			expect(await getAuthenticatedWorkflowUser({ accessToken: 'signed-access', user: signedUser })).toBeNull();
+		});
+
+		it('fails closed on a malformed profile and an absent session', async () => {
+			mockedAllowAnyInstance.mockReturnValueOnce({ get: jest.fn().mockResolvedValue({ status: 200, data: { role: 'manager' } }) });
+			expect(await getAuthenticatedWorkflowUser({ accessToken: 'signed-access', user: signedUser })).toBeNull();
+			expect(await getAuthenticatedWorkflowUser(null)).toBeNull();
 		});
 	});
 

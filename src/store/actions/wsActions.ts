@@ -21,10 +21,11 @@ export const WSReconnectedAction = () => {
 	};
 };
 
-export const WSDesignWorkflowInvalidateAction = (channel: 'TASK_EVENT' | 'NOTIFICATION') => {
+export const WSDesignWorkflowInvalidateAction = (channel: 'TASK_EVENT' | 'NOTIFICATION' | 'WORKFLOW_EVENT' | 'CHAT_EVENT', scope?: string) => {
 	return {
 		type: types.WS_DESIGN_WORKFLOW_INVALIDATE,
 		channel,
+		...(scope ? { scope } : {}),
 	};
 };
 

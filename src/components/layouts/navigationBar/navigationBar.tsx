@@ -45,6 +45,7 @@ import type { NotificationItem } from '@/types/designWorkflowTypes';
 import { getWorkflowNavigation, getWorkflowUtilities, type WorkflowNavItem as NavItem } from '@/components/shared/workflow/workflowNavigation';
 import { WorkflowAvatar } from '@/components/shared/workflow/workflowAvatar';
 import { ThemeToggle } from '@/components/shared/workflow/themeToggle';
+import RealtimeStatus from '@/components/shared/workflow/realtimeStatus';
 
 type Props = {
 	title: string;
@@ -120,11 +121,15 @@ const NavigationBar = ({ title, children, hideTopbar = false }: Props) => {
 		}
 		if (notification.type === 'chat_message') {
 			const sender = typeof notification.payload.title === 'string' ? notification.payload.title : '';
+			const threadId = Number(notification.payload.thread_id);
+			const messageId = Number(notification.payload.message_id);
 			return {
 				label: t.workflow.labels.notificationChat ?? 'Chat',
 				name: sender || labelForNotificationType(notification.type),
 				context: '',
-				href: DASHBOARD_CHAT,
+				href: Number.isInteger(threadId) && threadId > 0
+					? `${DASHBOARD_CHAT}?thread=${threadId}${Number.isInteger(messageId) && messageId > 0 ? `&message=${messageId}` : ''}`
+					: DASHBOARD_CHAT,
 				icon: <MessagesSquare size={16} />,
 				tone: 'bg-cyan-50 text-cyan-700 border-cyan-100',
 			};
@@ -139,6 +144,9 @@ const NavigationBar = ({ title, children, hideTopbar = false }: Props) => {
 		};
 	};
 	const notificationDetail = (notification: NotificationItem) => {
+		if (notification.payload.kind === 'reminder' && typeof notification.payload.note === 'string') {
+			return notification.payload.note;
+		}
 		if (notification.type === 'task_overdue' && typeof notification.payload.days_overdue === 'number') {
 			return `${notification.payload.days_overdue} ${t.workflow.labels.daysOverdue ?? 'days overdue'}`;
 		}
@@ -538,7 +546,7 @@ const NavigationBar = ({ title, children, hideTopbar = false }: Props) => {
 						hideTopbar ? '' : 'workflow-content-frame-with-topbar',
 					].join(' ')}
 				>
-					<main className="min-w-0 pb-6">{children}</main>
+					<main className="min-w-0 pb-6"><RealtimeStatus />{children}</main>
 				</div>
 			</div>
 

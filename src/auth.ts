@@ -1,9 +1,71 @@
-import NextAuth from 'next-auth';
+import NextAuth, { type Session } from 'next-auth';
 import Credentials from 'next-auth/providers/credentials';
 import z from 'zod';
 import { allowAnyInstance } from '@/utils/helpers';
 import { postApi } from '@/utils/apiHelpers';
 import type { AccountPostLoginResponseType } from '@/types/accountTypes';
+import type { tokenUser } from '@/types/next-auth';
+
+const workflowProfileSchema = z.object({
+	id: z.number().int().positive().optional(),
+	pk: z.number().int().positive().optional(),
+	email: z.email(),
+	first_name: z.string(),
+	last_name: z.string(),
+	role: z.enum(['manager', 'designer']),
+	is_staff: z.boolean(),
+	is_superuser: z.boolean(),
+	avatar: z.string().nullable().optional(),
+	avatar_cropped: z.string().nullable().optional(),
+});
+
+const getAuthErrorStatus = (error: unknown): number | undefined => {
+	const value = error as { error?: { status_code?: number }; response?: { status?: number } } | null;
+	return value?.error?.status_code ?? value?.response?.status;
+};
+
+const fetchAuthenticatedWorkflowUser = async (
+	accessToken: string,
+	currentUser: tokenUser,
+): Promise<tokenUser | null> => {
+	if (!accessToken || !currentUser?.pk) return null;
+	const response = await allowAnyInstance().get(`${process.env.NEXT_PUBLIC_ACCOUNT_PROFIL}`, {
+		headers: { Authorization: `Bearer ${accessToken}` },
+		timeout: 10_000,
+	});
+	if (response.status !== 200) return null;
+	const parsed = workflowProfileSchema.safeParse(response.data);
+	if (!parsed.success) return null;
+	const profile = parsed.data;
+	// Profile identity must match the signed session, never update()'s client payload.
+	if ((profile.id ?? profile.pk) !== currentUser.pk) return null;
+	return {
+		id: String(currentUser.pk),
+		pk: currentUser.pk,
+		email: profile.email,
+		emailVerified: currentUser.emailVerified,
+		name: `${profile.first_name} ${profile.last_name}`.trim(),
+		first_name: profile.first_name,
+		last_name: profile.last_name,
+		role: profile.role,
+		is_staff: profile.is_staff || profile.is_superuser,
+		is_superuser: profile.is_superuser,
+		image: profile.avatar_cropped || profile.avatar || null,
+	};
+};
+
+// Server-rendered authorization must not rely on the role captured at login.
+// The caller denies access when the authoritative profile cannot be checked.
+export const getAuthenticatedWorkflowUser = async (
+	session: Pick<Session, 'accessToken' | 'user'> | null,
+): Promise<tokenUser | null> => {
+	if (!session) return null;
+	try {
+		return await fetchAuthenticatedWorkflowUser(session.accessToken, session.user);
+	} catch {
+		return null;
+	}
+};
 
 const getAuthCookies = (prefix: string) => {
 	const secure = process.env.NEXTAUTH_URL?.startsWith('https://') ?? process.env.NODE_ENV === 'production';
@@ -252,7 +314,7 @@ export const { handlers, auth } = NextAuth({
 			return false;
 		},
 
-		async jwt({ token, account, user }) {
+		async jwt({ token, account, user, trigger }) {
 			if (account && user) {
 				// On initial login
 				token.access = user.access; // access token
@@ -273,13 +335,8 @@ export const { handlers, auth } = NextAuth({
 			// token lifetime, this ensures a refresh happens at ~t=12min instead
 			// of waiting until after expiry at t=16min.
 			const REFRESH_BUFFER_MS = 5 * 60 * 1000;
-			if (Date.now() >= parseExpirationToMs(token.access_expiration) - REFRESH_BUFFER_MS) {
-				// Guard: if refresh token is missing or empty, return stale token
-				// rather than destroying the session — the getSession() retry
-				// in the Axios interceptor will attempt recovery.
-				if (!token.refresh) {
-					return token;
-				}
+			let refreshProfile = trigger === 'update';
+			if (token.refresh && Date.now() >= parseExpirationToMs(token.access_expiration) - REFRESH_BUFFER_MS) {
 				try {
 					// Call your refresh token API if necessary
 					const instance = allowAnyInstance();
@@ -294,6 +351,7 @@ export const { handlers, auth } = NextAuth({
 						}
 
 						token.access = refreshedAccessToken;
+						refreshProfile = true;
 						const refreshedAccessExpiration =
 							refreshed.data.access_expiration ??
 							refreshed.data.accessTokenExpires ??
@@ -312,12 +370,24 @@ export const { handlers, auth } = NextAuth({
 				} catch (error) {
 					console.error('[Auth] Token refresh failed:', error instanceof Error ? error.message : error);
 					// Check if the backend explicitly rejected the refresh token (401)
-					const statusCode = (error as { error?: { status_code?: number } })?.error?.status_code;
+					const statusCode = getAuthErrorStatus(error);
 					if (statusCode === 401) {
 						return null;
 					}
 					// For transient errors (network, 5xx) keep the stale token so the
 					// session survives and retries on the next poll.
+				}
+			}
+			if (refreshProfile && token.user) {
+				try {
+					const currentUser = await fetchAuthenticatedWorkflowUser(token.access, token.user);
+					if (!currentUser) return null;
+					token.user = currentUser;
+				} catch (error) {
+					const statusCode = getAuthErrorStatus(error);
+					if (statusCode === 401 || statusCode === 403) return null;
+					// A temporary backend outage must not erase the session. Server page
+					// gates independently fail closed; the next update retries this fetch.
 				}
 			}
 			return token;

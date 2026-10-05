@@ -1,10 +1,9 @@
 'use client';
 
-import {runWithCleanup, runWithErrorHandler} from '@/utils/runWithCleanup';
 import Image from 'next/image';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useEffectEvent, useRef, useState } from 'react';
 import {
 	AlarmClock,
 	ArrowDown,
@@ -49,10 +48,11 @@ import {
 	useSendChatMessageMutation,
 } from '@/store/services/designWorkflow';
 import { useGetUsersListQuery } from '@/store/services/account';
+import { sendWorkflowSocket, subscribeWorkflowSocket } from '@/store/services/ws';
 import { useAppSelector, useLanguage, useToast } from '@/utils/hooks';
 import { extractApiErrorMessage } from '@/utils/helpers';
 import { UploadProgress } from '@/components/shared/workflow/uploadProgress';
-import { getAccessToken, getProfilState } from '@/store/selectors';
+import { getAccessToken, getProfilState, getWSOnlineUserIdsState } from '@/store/selectors';
 import { DASHBOARD_PROJECT_VIEW, DASHBOARD_TASK_VIEW } from '@/utils/routes';
 import type { ChatMessage, ChatThread, ProjectSummary, TaskCard, WorkflowUser } from '@/types/designWorkflowTypes';
 import type { UserClass } from '@/models/classes';
@@ -67,8 +67,9 @@ import {
 import { attachmentsExceedLimit } from '@/utils/attachments';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL ?? '';
-const WS_URL = API_URL.replace(/^http/, 'ws');
 const EMPTY_CHAT_MESSAGES: ChatMessage[] = [];
+const isSocketRecord = (value: unknown): value is Record<string, unknown> =>
+	typeof value === 'object' && value !== null;
 
 const formatTime = (value: string, locale: string) =>
 	new Intl.DateTimeFormat(locale, { hour: '2-digit', minute: '2-digit' }).format(new Date(value));
@@ -417,6 +418,7 @@ const DesignWorkflowChat = () => {
 	const statusLabelFor = (value?: string | null) => (value ? (t.workflow.statuses[value] ?? value) : '');
 	const profile = useAppSelector(getProfilState);
 	const token = useAppSelector(getAccessToken);
+	const onlineUserIds = useAppSelector(getWSOnlineUserIdsState);
 	const chatDataReady = Boolean(token && (typeof profile.id === 'number' || profile.email));
 	const [selectedThreadId, setSelectedThreadId] = useState<number | null>(null);
 	const [optimisticSelectedThread, setOptimisticSelectedThread] = useState<ChatThread | null>(null);
@@ -443,7 +445,6 @@ const DesignWorkflowChat = () => {
 	const [reminderDraft, setReminderDraft] = useState({ taskId: '', remindDate: '', remindTime: '', note: '' });
 	const [typingUsers, setTypingUsers] = useState<Record<number, WorkflowUser>>({});
 	const [recordingUsers, setRecordingUsers] = useState<Record<number, WorkflowUser>>({});
-	const [onlineUserIds, setOnlineUserIds] = useState<number[]>([]);
 	const [messagesBusyVisible, setMessagesBusyVisible] = useState(false);
 	const [recording, setRecording] = useState(false);
 	const [recordingSeconds, setRecordingSeconds] = useState(0);
@@ -452,13 +453,19 @@ const DesignWorkflowChat = () => {
 	const [taskDraft, setTaskDraft] = useState({ title: '', description: '', projectId: '' });
 	const [selectedComposerText, setSelectedComposerText] = useState('');
 	const [deleteTargetMessage, setDeleteTargetMessage] = useState<ChatMessage | null>(null);
+	const [pendingActionSources, setPendingActionSources] = useState<Set<number>>(new Set());
 	const [mentionActiveIndex, setMentionActiveIndex] = useState(0);
 	const [referenceActiveIndex, setReferenceActiveIndex] = useState(0);
 	const fileInputRef = useRef<HTMLInputElement | null>(null);
 	const composerInputRef = useRef<HTMLTextAreaElement | null>(null);
 	const scrollRef = useRef<HTMLDivElement | null>(null);
 	const markedReadIdsRef = useRef<Set<number>>(new Set());
-	const wsRef = useRef<WebSocket | null>(null);
+	const historyContextRef = useRef(0);
+	const actionContextRef = useRef(0);
+	const olderRequestRef = useRef<{ context: number } | null>(null);
+	const historyUpdatesRef = useRef(new Map<number, ChatMessage>());
+	const historyExpandedRef = useRef(false);
+	const currentPageSnapshotRef = useRef<{ context: number; messages: ChatMessage[] } | null>(null);
 	const typingTimeoutRef = useRef<number | null>(null);
 	const typingPresenceTimeoutsRef = useRef<Record<number, number>>({});
 	const recordingPresenceTimeoutsRef = useRef<Record<number, number>>({});
@@ -475,7 +482,6 @@ const DesignWorkflowChat = () => {
 		data: threads = [],
 		isLoading: threadsLoading,
 		isFetching: threadsFetching,
-		refetch: refetchThreads,
 	} = useGetChatThreadsQuery(undefined, { skip: !chatDataReady });
 	const chatThreads = (threads.filter((thread) => thread.kind !== 'task'));
 	const requestedThreadAvailable = (Boolean(requestedThreadId && chatThreads.some((thread) => thread.id === requestedThreadId)));
@@ -539,13 +545,13 @@ const DesignWorkflowChat = () => {
 		currentData: currentThreadMessages,
 		isLoading: messagesLoading,
 		isFetching: messagesFetching,
-		refetch: refetchMessages,
 	} = useGetChatMessagesQuery(
 		{ threadId: selectedThread?.id ?? 0, limit: PAGE_SIZE, q: searchTerm || undefined, ...searchFilters },
 		{ skip: !chatDataReady || !selectedThread?.id },
 	);
 	const currentMessages = (currentThreadMessages ?? EMPTY_CHAT_MESSAGES);
 	const [loadOlderMessages] = useLazyGetChatMessagesQuery();
+	const [loadActionSource] = useLazyGetChatMessagesQuery();
 	const [createThread] = useCreateChatThreadMutation();
 	const [sendMessage, sendMessageState] = useSendChatMessageMutation();
 	const [createTask, createTaskState] = useCreateTaskMutation();
@@ -650,6 +656,75 @@ const DesignWorkflowChat = () => {
 				thread.participants.some((participant) => participant.id !== profile.id && activeUserById.has(participant.id))),
 	);
 
+	const syncActionSource = useEffectEvent((updated: ChatMessage) => {
+		if (updated.thread !== selectedThread?.id) return;
+		const matches = (current: ChatMessage | null) => current?.id === updated.id && current.thread === updated.thread
+			&& Date.parse(current.updated_at) <= Date.parse(updated.updated_at);
+		const replace = (current: ChatMessage | null) => matches(current) ? updated : current;
+		const replaceOrClose = (current: ChatMessage | null) => matches(current) ? (updated.is_deleted ? null : updated) : current;
+		setReplyTarget(replaceOrClose);
+		setForwardMessage(replaceOrClose);
+		setDeleteTargetMessage(replaceOrClose);
+		setReminderMessage(replace);
+		setTaskSourceMessage(replace);
+		if (matches(editingMessage)) {
+			// Refresh an untouched editor, but never replace the user's typed draft.
+			if (!updated.is_deleted) setEditText(current => current === editingMessage?.body ? updated.body : current);
+			setEditingMessage(replace);
+		}
+		setPendingActionSources(current => {
+			if (!current.has(updated.id)) return current;
+			const next = new Set(current);
+			next.delete(updated.id);
+			return next;
+		});
+	});
+
+	const refreshActionSources = useEffectEvent(() => {
+		const sources = [replyTarget, forwardMessage, reminderMessage, editingMessage, taskSourceMessage, deleteTargetMessage]
+			.filter((source): source is ChatMessage => !!source && source.thread === selectedThread?.id);
+		const uniqueSources = [...new Map(sources.map(source => [source.id, source])).values()];
+		const context = ++actionContextRef.current;
+		setPendingActionSources(new Set(uniqueSources.map(source => source.id)));
+		// Sources can be outside the newest page or current search. Fetch each exact
+		// message, without changing visible history or replaying pre-reconnect data.
+		uniqueSources.forEach(source => {
+			void loadActionSource({ threadId: source.thread, before_id: source.id + 1, limit: 1 }).unwrap()
+				.then(messages => {
+					if (actionContextRef.current !== context) return;
+					const fetched = messages.find(message => message.id === source.id && message.thread === source.thread);
+					const live = historyUpdatesRef.current.get(source.id);
+					const updated = live && (!fetched || live.updated_at >= fetched.updated_at) ? live : fetched;
+					syncActionSource(updated ?? { ...source, body: '', is_deleted: true });
+				})
+				.catch(() => {
+					// Keep actions disabled on an unverified source; retain typed drafts.
+					if (actionContextRef.current === context) onError(t.errors.genericError);
+				});
+		});
+	});
+
+	useEffect(() => {
+		actionContextRef.current += 1;
+		setPendingActionSources(new Set());
+		setReplyTarget(null);
+		setForwardMessage(null);
+		setReminderMessage(null);
+		setEditingMessage(null);
+		setTaskSourceMessage(null);
+		setDeleteTargetMessage(null);
+		setTaskModalOpen(false);
+		return () => { actionContextRef.current += 1; };
+	}, [selectedThread?.id]);
+
+	useEffect(() => {
+		currentMessages.forEach(message => {
+			if (message.thread !== selectedThread?.id) return;
+			const live = historyUpdatesRef.current.get(message.id);
+			syncActionSource(live && live.updated_at >= message.updated_at ? live : message);
+		});
+	}, [currentMessages, selectedThread?.id]);
+
 	useEffect(() => {
 		const pendingRequestedThread = requestedThreadId && (threadsLoading || threadsFetching || requestedThreadAvailable);
 		if (!selectedThreadId && !pendingRequestedThread && preferredThread) {
@@ -658,19 +733,43 @@ const DesignWorkflowChat = () => {
 	}, [preferredThread, requestedThreadAvailable, requestedThreadId, selectedThreadId, threadsFetching, threadsLoading]);
 
 	useEffect(() => {
+		historyContextRef.current += 1;
+		olderRequestRef.current = null;
+		historyUpdatesRef.current.clear();
+		historyExpandedRef.current = false;
+		currentPageSnapshotRef.current = null;
 		setOlderMessages([]);
+		setLoadingOlder(false);
 		setHasOlder(false);
 		setTypingUsers({});
 		Object.values(typingPresenceTimeoutsRef.current).forEach((timeout) => window.clearTimeout(timeout));
 		typingPresenceTimeoutsRef.current = {};
 		setRecordingUsers({});
+		Object.values(recordingPresenceTimeoutsRef.current).forEach((timeout) => window.clearTimeout(timeout));
+		recordingPresenceTimeoutsRef.current = {};
 		setReactionPickerMessageId(null);
 		markedReadIdsRef.current.clear();
+		return () => { historyContextRef.current += 1; };
 	}, [selectedThread?.id, searchTerm, searchFilters]);
 
 	useEffect(() => {
-		setHasOlder(currentMessages.length >= PAGE_SIZE);
-	}, [currentMessages]);
+		const context = historyContextRef.current;
+		const previous = currentPageSnapshotRef.current;
+		currentPageSnapshotRef.current = { context, messages: currentMessages };
+		if (historyExpandedRef.current && previous?.context === context) {
+			// A refetched newest page slides forward when a message arrives. Keep its
+			// displaced entries beside loaded history so no gap appears between pages.
+			const currentIds = new Set(currentMessages.map(message => message.id));
+			const oldestCurrentId = currentMessages[0]?.id ?? 0;
+			const displaced = previous.messages
+				.filter(message => message.id < oldestCurrentId && !currentIds.has(message.id))
+				.map(message => historyUpdatesRef.current.get(message.id) ?? message);
+			if (displaced.length) setOlderMessages(current =>
+				context === historyContextRef.current ? dedupeMessages([...displaced, ...current]) : current);
+		} else {
+			setHasOlder(currentMessages.length >= PAGE_SIZE);
+		}
+	}, [currentMessages, selectedThread?.id, searchTerm, searchFilters]);
 
 	const latestCurrentMessageId = currentMessages[currentMessages.length - 1]?.id ?? 0;
 
@@ -698,126 +797,141 @@ const DesignWorkflowChat = () => {
 		return () => window.clearInterval(timer);
 	}, [recording]);
 
+	const receiveSocketEvent = useEffectEvent((payload: unknown) => {
+		if (!isSocketRecord(payload)) return;
+		const envelope = isSocketRecord(payload.message) ? payload.message : undefined;
+		const signalType = typeof envelope?.type === 'string' ? envelope.type : payload.type;
+		const incomingMessage = isSocketRecord(envelope?.message) ? envelope.message : envelope;
+		const incomingThreadId = Number(payload.thread_id ?? incomingMessage?.thread ?? 0);
+		const incomingSender = isSocketRecord(incomingMessage?.sender) ? incomingMessage.sender : undefined;
+		const incomingSenderId = Number(incomingSender?.id ?? 0);
+		if (signalType === 'reconnected' || signalType === 'USER_AVATAR' ||
+			(signalType === 'WORKFLOW_EVENT' && ['users', 'admin'].includes(String(envelope?.scope ?? payload.scope)))) {
+			// The shared saga reloads queries. Discard offline or outdated-user snapshots.
+			historyContextRef.current += 1;
+			olderRequestRef.current = null;
+			historyUpdatesRef.current.clear();
+			historyExpandedRef.current = false;
+			currentPageSnapshotRef.current = { context: historyContextRef.current, messages: currentMessages };
+			setOlderMessages([]);
+			setLoadingOlder(false);
+			setHasOlder(currentMessages.length >= PAGE_SIZE);
+			markedReadIdsRef.current.clear();
+			setTypingUsers({});
+			setRecordingUsers({});
+			refreshActionSources();
+			return;
+		}
+		if (
+			(signalType === 'chat.message' || signalType === 'chat_message') &&
+			incomingThreadId &&
+			incomingSenderId !== profile.id
+		) {
+			pendingIncomingThreadIdRef.current = incomingThreadId;
+			const incomingSection = threadSectionsRef.current.get(incomingThreadId);
+			if (incomingSection) {
+				setOpenSidebarSection(incomingSection);
+				pendingIncomingThreadIdRef.current = null;
+			}
+		}
+		const eventUser =
+			isSocketRecord(payload.user) && typeof payload.user.id === 'number' ? (payload.user as WorkflowUser) : undefined;
+		if (
+			(signalType === 'chat.typing' || signalType === 'chat_typing') &&
+			payload.thread_id === selectedThread?.id &&
+			eventUser?.id !== profile.id
+		) {
+			const typingUser = eventUser;
+			if (!typingUser?.id) return;
+			const existingTimeout = typingPresenceTimeoutsRef.current[typingUser.id];
+			if (existingTimeout) window.clearTimeout(existingTimeout);
+			if (payload.is_typing) {
+				setTypingUsers((current) => ({ ...current, [typingUser.id]: typingUser }));
+				typingPresenceTimeoutsRef.current[typingUser.id] = window.setTimeout(() => {
+					setTypingUsers((current) => {
+						const next = { ...current };
+						delete next[typingUser.id];
+						return next;
+					});
+					delete typingPresenceTimeoutsRef.current[typingUser.id];
+				}, 2400);
+			} else {
+				delete typingPresenceTimeoutsRef.current[typingUser.id];
+				setTypingUsers((current) => {
+					const next = { ...current };
+					delete next[typingUser.id];
+					return next;
+				});
+			}
+			return;
+		}
+		if (
+			(signalType === 'chat.recording' || signalType === 'chat_recording') &&
+			payload.thread_id === selectedThread?.id &&
+			eventUser?.id !== profile.id
+		) {
+			const recordingUser = eventUser;
+			if (!recordingUser?.id) return;
+			if (payload.is_recording) {
+				setRecordingUsers((current) => ({ ...current, [recordingUser.id]: recordingUser }));
+				const existingTimeout = recordingPresenceTimeoutsRef.current[recordingUser.id];
+				if (existingTimeout) window.clearTimeout(existingTimeout);
+				recordingPresenceTimeoutsRef.current[recordingUser.id] = window.setTimeout(() => {
+					setRecordingUsers((current) => {
+						const next = { ...current };
+						delete next[recordingUser.id];
+						return next;
+					});
+					delete recordingPresenceTimeoutsRef.current[recordingUser.id];
+				}, 3600);
+			} else {
+				const existingTimeout = recordingPresenceTimeoutsRef.current[recordingUser.id];
+				if (existingTimeout) window.clearTimeout(existingTimeout);
+				delete recordingPresenceTimeoutsRef.current[recordingUser.id];
+				setRecordingUsers((current) => {
+					const next = { ...current };
+					delete next[recordingUser.id];
+					return next;
+				});
+			}
+			return;
+		}
+		if (
+			[
+				'chat.message',
+				'chat.read',
+				'chat.deleted',
+				'chat.updated',
+				'chat.reaction',
+				'chat.decision',
+				'chat.reminder',
+				'chat_message',
+				'chat_read',
+				'chat_deleted',
+				'chat_updated',
+				'chat_reaction',
+				'chat_decision',
+				'chat_reminder',
+			].includes(String(signalType)) &&
+			incomingThreadId === selectedThread?.id &&
+			incomingMessage &&
+			typeof incomingMessage.id === 'number' &&
+			typeof incomingMessage.body === 'string' &&
+			Array.isArray(incomingMessage.attachments)
+		) {
+			const updated = incomingMessage as ChatMessage;
+			const previous = historyUpdatesRef.current.get(updated.id);
+			if (previous && Date.parse(previous.updated_at) > Date.parse(updated.updated_at)) return;
+			historyUpdatesRef.current.set(updated.id, updated);
+			setOlderMessages((current) => current.map((message) => (message.id === updated.id ? updated : message)));
+			syncActionSource(updated);
+		}
+	});
+
 	useEffect(() => {
-		if (!WS_URL || !token) return;
-		const ws = new WebSocket(`${WS_URL}/ws?token=${token}`);
-		wsRef.current = ws;
-		ws.onclose = () => {
-			if (wsRef.current === ws) wsRef.current = null;
-		};
-		ws.onmessage = (event) => {
-			runWithErrorHandler(() => {
-				const payload = JSON.parse(event.data);
-				const signalType = payload.type ?? payload.message?.type;
-				const incomingMessage = payload.message?.message ?? payload.message;
-				const incomingThreadId = Number(payload.thread_id ?? incomingMessage?.thread ?? 0);
-				const incomingSenderId = Number(incomingMessage?.sender?.id ?? 0);
-				if (
-					(signalType === 'chat.message' || signalType === 'chat_message') &&
-					incomingThreadId &&
-					incomingSenderId !== profile.id
-				) {
-					pendingIncomingThreadIdRef.current = incomingThreadId;
-					const incomingSection = threadSectionsRef.current.get(incomingThreadId);
-					if (incomingSection) {
-						setOpenSidebarSection(incomingSection);
-						pendingIncomingThreadIdRef.current = null;
-					}
-				}
-				if (payload.message?.type === 'USER_PRESENCE') {
-					setOnlineUserIds(payload.message.online_user_ids ?? []);
-					return;
-				}
-				if (
-					(signalType === 'chat.typing' || signalType === 'chat_typing') &&
-					payload.thread_id === selectedThread?.id &&
-					payload.user?.id !== profile.id
-				) {
-					const typingUser = payload.user as WorkflowUser | undefined;
-					if (!typingUser?.id) return;
-					const existingTimeout = typingPresenceTimeoutsRef.current[typingUser.id];
-					if (existingTimeout) window.clearTimeout(existingTimeout);
-					if (payload.is_typing) {
-						setTypingUsers((current) => ({ ...current, [typingUser.id]: typingUser }));
-						typingPresenceTimeoutsRef.current[typingUser.id] = window.setTimeout(() => {
-							setTypingUsers((current) => {
-								const next = { ...current };
-								delete next[typingUser.id];
-								return next;
-							});
-							delete typingPresenceTimeoutsRef.current[typingUser.id];
-						}, 2400);
-					} else {
-						delete typingPresenceTimeoutsRef.current[typingUser.id];
-						setTypingUsers((current) => {
-							const next = { ...current };
-							delete next[typingUser.id];
-							return next;
-						});
-					}
-					return;
-				}
-				if (
-					(signalType === 'chat.recording' || signalType === 'chat_recording') &&
-					payload.thread_id === selectedThread?.id &&
-					payload.user?.id !== profile.id
-				) {
-					const recordingUser = payload.user as WorkflowUser | undefined;
-					if (!recordingUser?.id) return;
-					if (payload.is_recording) {
-						setRecordingUsers((current) => ({ ...current, [recordingUser.id]: recordingUser }));
-						const existingTimeout = recordingPresenceTimeoutsRef.current[recordingUser.id];
-						if (existingTimeout) window.clearTimeout(existingTimeout);
-						recordingPresenceTimeoutsRef.current[recordingUser.id] = window.setTimeout(() => {
-							setRecordingUsers((current) => {
-								const next = { ...current };
-								delete next[recordingUser.id];
-								return next;
-							});
-							delete recordingPresenceTimeoutsRef.current[recordingUser.id];
-						}, 3600);
-					} else {
-						const existingTimeout = recordingPresenceTimeoutsRef.current[recordingUser.id];
-						if (existingTimeout) window.clearTimeout(existingTimeout);
-						delete recordingPresenceTimeoutsRef.current[recordingUser.id];
-						setRecordingUsers((current) => {
-							const next = { ...current };
-							delete next[recordingUser.id];
-							return next;
-						});
-					}
-					return;
-				}
-				if (
-					[
-						'chat.message',
-						'chat.read',
-						'chat.deleted',
-						'chat.updated',
-						'chat.reaction',
-						'chat.decision',
-						'chat.reminder',
-						'chat_message',
-						'chat_read',
-						'chat_deleted',
-						'chat_updated',
-						'chat_reaction',
-						'chat_decision',
-						'chat_reminder',
-					].includes(signalType)
-				) {
-					refetchThreads();
-					refetchMessages();
-				}
-			}, () => {
-				refetchThreads();
-			});
-		};
-		return () => {
-			if (wsRef.current === ws) wsRef.current = null;
-			ws.close();
-		};
-	}, [profile.id, refetchMessages, refetchThreads, selectedThread?.id, token]);
+		if (!chatDataReady) return;
+		return subscribeWorkflowSocket((payload) => receiveSocketEvent(payload));
+	}, [chatDataReady]);
 
 	useEffect(
 		() => () => {
@@ -927,38 +1041,51 @@ const DesignWorkflowChat = () => {
 		});
 	}, [markRead, messageList, profile.id]);
 
+	const loadMoreHistory = async (preserveScroll = false) => {
+		const oldest = messageList[0];
+		if (!oldest || !selectedThread?.id || !hasOlder || olderRequestRef.current) return;
+		const request = { context: historyContextRef.current };
+		olderRequestRef.current = request;
+		historyExpandedRef.current = true;
+		setLoadingOlder(true);
+		const scroller = scrollRef.current;
+		const previousHeight = scroller?.scrollHeight ?? 0;
+		try {
+			const older = await loadOlderMessages({
+				threadId: selectedThread.id,
+				before_id: oldest.id,
+				limit: PAGE_SIZE,
+				q: searchTerm || undefined,
+				...searchFilters,
+			}).unwrap();
+			if (request.context !== historyContextRef.current || olderRequestRef.current !== request) return;
+			const refreshed = older.map((message) => historyUpdatesRef.current.get(message.id) ?? message);
+			setOlderMessages((current) => dedupeMessages([...refreshed, ...current]));
+			setHasOlder(older.length >= PAGE_SIZE);
+			if (preserveScroll) requestAnimationFrame(() => {
+				if (request.context === historyContextRef.current && scroller && scrollRef.current === scroller) {
+					scroller.scrollTop = scroller.scrollHeight - previousHeight;
+				}
+			});
+		} catch (error) {
+			if (request.context === historyContextRef.current) onError(extractApiErrorMessage(error, t.errors.genericError));
+		} finally {
+			if (olderRequestRef.current === request) {
+				olderRequestRef.current = null;
+				setLoadingOlder(false);
+			}
+		}
+	};
+	const loadHistoryOnScroll = useEffectEvent(() => {
+		if (scrollRef.current && scrollRef.current.scrollTop <= 40) void loadMoreHistory(true);
+	});
 	useEffect(() => {
 		const scroller = scrollRef.current;
 		if (!scroller || !selectedThread?.id || !hasOlder || loadingOlder || searchTerm) return;
-		const onScroll = async () => {
-			if (!scrollRef.current || scrollRef.current.scrollTop > 40 || loadingOlder) return;
-			const oldest = messageList[0];
-			if (!oldest) return;
-			setLoadingOlder(true);
-			await runWithCleanup(
-			  async () => {
-			    const previousHeight = scroller.scrollHeight;
-			    const older = await loadOlderMessages({
-			      threadId: selectedThread.id,
-			      before_id: oldest.id,
-			      limit: PAGE_SIZE,
-			    }).unwrap();
-			    setOlderMessages((current) => dedupeMessages([...older, ...current]));
-			    setHasOlder(older.length >= PAGE_SIZE);
-			    requestAnimationFrame(() => {
-			      if (scrollRef.current) {
-			        scrollRef.current.scrollTop = scrollRef.current.scrollHeight - previousHeight;
-			      }
-			    });
-			  },
-			  () => {
-			    setLoadingOlder(false);
-			  },
-			);
-		};
+		const onScroll = () => loadHistoryOnScroll();
 		scroller.addEventListener('scroll', onScroll);
 		return () => scroller.removeEventListener('scroll', onScroll);
-	}, [hasOlder, loadOlderMessages, loadingOlder, messageList, searchTerm, selectedThread?.id]);
+	}, [hasOlder, loadingOlder, searchTerm, selectedThread?.id]);
 
 	const composerTrigger = body.match(/(^|\s)([@#])([\w:.-]*)$/);
 	const mentionMatch = composerTrigger?.[2] === '@' ? composerTrigger : null;
@@ -1028,6 +1155,7 @@ const DesignWorkflowChat = () => {
 
 	const submit = async () => {
 		if (!selectedThread?.id || sendMessageState.isLoading || (!body.trim() && files.length === 0)) return;
+		if (replyTarget && (replyTarget.thread !== selectedThread.id || pendingActionSources.has(replyTarget.id))) return;
 		if (attachmentsExceedLimit(files)) {
 			onError(t.errors.attachmentTooLarge);
 			return;
@@ -1090,32 +1218,34 @@ const DesignWorkflowChat = () => {
 	};
 
 	const emitTyping = (isTyping = true) => {
-		if (!selectedThread?.id || !wsRef.current || wsRef.current.readyState !== WebSocket.OPEN) return;
-		wsRef.current.send(JSON.stringify({ type: 'chat.typing', thread_id: selectedThread.id, is_typing: isTyping }));
+		if (!selectedThread?.id) return;
+		const threadId = selectedThread.id;
+		if (!sendWorkflowSocket({ type: 'chat.typing', thread_id: threadId, is_typing: isTyping })) return;
 		if (typingTimeoutRef.current) window.clearTimeout(typingTimeoutRef.current);
 		if (isTyping) {
-			typingTimeoutRef.current = window.setTimeout(() => emitTyping(false), 1400);
+			typingTimeoutRef.current = window.setTimeout(() => {
+				sendWorkflowSocket({ type: 'chat.typing', thread_id: threadId, is_typing: false });
+				typingTimeoutRef.current = null;
+			}, 1400);
 		} else {
 			typingTimeoutRef.current = null;
 		}
 	};
 
 	const emitRecording = (isRecording: boolean) => {
-		if (!selectedThread?.id || !wsRef.current || wsRef.current.readyState !== WebSocket.OPEN) return;
-		wsRef.current.send(
-			JSON.stringify({ type: 'chat.recording', thread_id: selectedThread.id, is_recording: isRecording }),
-		);
+		if (!selectedThread?.id) return;
+		sendWorkflowSocket({ type: 'chat.recording', thread_id: selectedThread.id, is_recording: isRecording });
 	};
 
 	const submitEdit = async () => {
-		if (!editingMessage || !editText.trim()) return;
+		if (!editingMessage || editingMessage.is_deleted || pendingActionSources.has(editingMessage.id) || !editText.trim()) return;
 		await editChatMessage({ id: editingMessage.id, body: editText.trim() }).unwrap();
 		setEditingMessage(null);
 		setEditText('');
 	};
 
 	const forwardToThread = async (thread: ChatThread) => {
-		if (!forwardMessage) return;
+		if (!forwardMessage || forwardMessage.is_deleted || pendingActionSources.has(forwardMessage.id)) return;
 		const readableBody =
 			readableReferenceText(forwardMessage.body, tasks, projects) || forwardMessage.attachments[0]?.name || '';
 		const data = new FormData();
@@ -1177,7 +1307,7 @@ const DesignWorkflowChat = () => {
 	};
 
 	const submitReminder = async () => {
-		if (!reminderMessage) return;
+		if (!reminderMessage || reminderMessage.is_deleted || pendingActionSources.has(reminderMessage.id)) return;
 		await addChatReminder({
 			id: reminderMessage.id,
 			task_id: reminderDraft.taskId ? Number(reminderDraft.taskId) : null,
@@ -1231,7 +1361,7 @@ const DesignWorkflowChat = () => {
 	};
 
 	const confirmDeleteMessage = async () => {
-		if (!deleteTargetMessage) return;
+		if (!deleteTargetMessage || deleteTargetMessage.is_deleted || pendingActionSources.has(deleteTargetMessage.id)) return;
 		await deleteChatMessage(deleteTargetMessage.id).unwrap();
 		setDeleteTargetMessage(null);
 	};
@@ -1261,6 +1391,7 @@ const DesignWorkflowChat = () => {
 
 	const submitTaskFromMessage = async () => {
 		const projectId = Number(taskDraft.projectId);
+		if (taskSourceMessage && (taskSourceMessage.is_deleted || pendingActionSources.has(taskSourceMessage.id))) return;
 		if (!projectId || !taskDraft.title.trim() || !writableProjects.some((project) => project.id === projectId)) return;
 		const createdTask = await createTask({
 			project_id: projectId,
@@ -1288,6 +1419,11 @@ const DesignWorkflowChat = () => {
 			return next;
 		});
 	};
+	const actionSourcePreview = (source: ChatMessage) => pendingActionSources.has(source.id)
+		? t.common.loading
+		: source.is_deleted
+			? (t.workflow.labels.messageDeleted ?? 'Message deleted')
+			: readableReferenceText(source.body, tasks, projects);
 
 	return (
 		<div className="workflow-chat-shell">
@@ -1647,25 +1783,7 @@ const DesignWorkflowChat = () => {
 								<button
 									type="button"
 									disabled={loadingOlder}
-									onClick={async () => {
-										const oldest = messageList[0];
-										if (!oldest || !selectedThread?.id) return;
-										setLoadingOlder(true);
-										await runWithCleanup(
-										  async () => {
-										    const older = await loadOlderMessages({
-										      threadId: selectedThread.id,
-										      before_id: oldest.id,
-										      limit: PAGE_SIZE,
-										    }).unwrap();
-										    setOlderMessages((current) => dedupeMessages([...older, ...current]));
-										    setHasOlder(older.length >= PAGE_SIZE);
-										  },
-										  () => {
-										    setLoadingOlder(false);
-										  },
-										);
-									}}
+									onClick={() => { void loadMoreHistory(); }}
 									className="workflow-chat-load-older"
 								>
 									<ArrowDown size={15} />
@@ -1935,6 +2053,9 @@ const DesignWorkflowChat = () => {
 															) : null}
 															{editingMessage?.id === message.id ? (
 																<div className="workflow-chat-edit-box">
+																	{editingMessage.is_deleted || pendingActionSources.has(editingMessage.id) ? (
+																		<p role="status">{actionSourcePreview(editingMessage)}</p>
+																	) : null}
 																	<textarea
 																		value={editText}
 																		onChange={(event) => setEditText(event.target.value)}
@@ -1949,7 +2070,7 @@ const DesignWorkflowChat = () => {
 																		>
 																			{t.common.cancel}
 																		</button>
-																		<button type="button" className="app-button" onClick={submitEdit}>
+																		<button type="button" className="app-button" onClick={submitEdit} disabled={editingMessage.is_deleted || pendingActionSources.has(editingMessage.id)}>
 																			{t.common.save ?? 'Save'}
 																		</button>
 																	</div>
@@ -2171,7 +2292,7 @@ const DesignWorkflowChat = () => {
 									</p>
 									<p className="truncate text-sm font-semibold text-(--ink)">{userLabel(replyTarget.sender)}</p>
 									<p className="truncate text-sm text-(--ink-soft)">
-										{readableReferenceText(replyTarget.body, tasks, projects) ||
+										{actionSourcePreview(replyTarget) ||
 											(t.workflow.labels.messageDeleted ?? 'Message deleted')}
 									</p>
 								</div>
@@ -2595,7 +2716,7 @@ const DesignWorkflowChat = () => {
 							</span>
 							<div>
 								<p>{t.workflow.buttons.forwardMessage ?? 'Forward message'}</p>
-								<small>{readableReferenceText(forwardMessage.body, tasks, projects)}</small>
+								<small>{actionSourcePreview(forwardMessage)}</small>
 							</div>
 						</div>
 						<div className="workflow-chat-forward-list">
@@ -2608,7 +2729,7 @@ const DesignWorkflowChat = () => {
 										: undefined;
 								const peerOnline = privatePeer ? onlineUserIds.includes(privatePeer.id) : false;
 								return (
-									<button key={thread.id} type="button" onClick={() => forwardToThread(thread)}>
+									<button key={thread.id} type="button" onClick={() => forwardToThread(thread)} disabled={forwardMessage.is_deleted || pendingActionSources.has(forwardMessage.id)}>
 										{privatePeer ? (
 											<WorkflowAvatar
 												user={privatePeer}
@@ -2668,7 +2789,7 @@ const DesignWorkflowChat = () => {
 							</span>
 							<div>
 								<p>{t.workflow.buttons.addReminder ?? 'Add reminder'}</p>
-								<small>{readableReferenceText(reminderMessage.body, tasks, projects)}</small>
+								<small>{actionSourcePreview(reminderMessage)}</small>
 							</div>
 						</div>
 						<label className="workflow-form-field">
@@ -2721,7 +2842,7 @@ const DesignWorkflowChat = () => {
 							<button type="button" className="app-button app-button-ghost" onClick={() => setReminderMessage(null)}>
 								{t.common.cancel}
 							</button>
-							<button type="submit" className="app-button">
+							<button type="submit" className="app-button" disabled={reminderMessage.is_deleted || pendingActionSources.has(reminderMessage.id)}>
 								<AlarmClock size={16} />
 								{t.workflow.buttons.addReminder ?? 'Add reminder'}
 							</button>
@@ -2747,7 +2868,7 @@ const DesignWorkflowChat = () => {
 								<p>{t.workflow.buttons.createTaskFromMessage ?? 'Create task from message'}</p>
 								<small>
 									{taskSourceMessage
-										? userLabel(taskSourceMessage.sender)
+										? (taskSourceMessage.is_deleted || pendingActionSources.has(taskSourceMessage.id) ? actionSourcePreview(taskSourceMessage) : userLabel(taskSourceMessage.sender))
 										: (t.workflow.labels.selectedText ?? 'Selected text')}
 								</small>
 							</div>
@@ -2791,6 +2912,7 @@ const DesignWorkflowChat = () => {
 								className="app-button"
 								disabled={
 									createTaskState.isLoading ||
+									Boolean(taskSourceMessage && (taskSourceMessage.is_deleted || pendingActionSources.has(taskSourceMessage.id))) ||
 									!taskDraft.title.trim() ||
 									!taskDraft.projectId ||
 									!writableProjects.some((project) => String(project.id) === taskDraft.projectId)
@@ -2848,7 +2970,7 @@ const DesignWorkflowChat = () => {
 							>
 								{t.common.cancel}
 							</button>
-							<button type="button" className="app-button workflow-chat-danger-button" onClick={confirmDeleteMessage}>
+							<button type="button" className="app-button workflow-chat-danger-button" onClick={confirmDeleteMessage} disabled={pendingActionSources.has(deleteTargetMessage.id)}>
 								<Trash2 size={16} />
 								{t.common.delete}
 							</button>

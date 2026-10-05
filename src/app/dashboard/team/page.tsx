@@ -1,5 +1,5 @@
 import { redirect } from 'next/navigation';
-import { auth } from '@/auth';
+import { auth, getAuthenticatedWorkflowUser } from '@/auth';
 import { AUTH_LOGIN, DASHBOARD_BOARD } from '@/utils/routes';
 import DesignWorkflowShell from '@/components/pages/design-workflow/designWorkflowShell';
 import { hasWorkflowManagerAccess } from '@/utils/workflowAccess';
@@ -9,7 +9,7 @@ const DashboardTeamPage = async () => {
 	if (!session) {
 		redirect(AUTH_LOGIN);
 	}
-	if (!hasWorkflowManagerAccess(session.user)) {
+	if (!hasWorkflowManagerAccess(await getAuthenticatedWorkflowUser(session))) {
 		redirect(DASHBOARD_BOARD);
 	}
 	return <DesignWorkflowShell title="Team workload" variant="team" />;

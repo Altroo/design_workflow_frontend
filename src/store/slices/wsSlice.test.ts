@@ -1,4 +1,4 @@
-import reducer, {setWSMaintenance, setWSOnlineUsers} from './wsSlice';
+import reducer, {setWSMaintenance, setWSOnlineUsers, setWSConnectionStatus} from './wsSlice';
 
 describe('wsSlice reducer', () => {
   it('should return the initial state when passed an empty action', () => {
@@ -6,6 +6,7 @@ describe('wsSlice reducer', () => {
     expect(result).toEqual({
       maintenance: false,
       onlineUserIds: [],
+      connectionStatus: 'connecting',
     });
   });
 
@@ -14,6 +15,7 @@ describe('wsSlice reducer', () => {
     expect(result).toEqual({
       maintenance: true,
       onlineUserIds: [],
+      connectionStatus: 'connecting',
     });
   });
 
@@ -22,6 +24,14 @@ describe('wsSlice reducer', () => {
     expect(result).toEqual({
       maintenance: false,
       onlineUserIds: [1, 3],
+      connectionStatus: 'connecting',
+    });
+  });
+
+  it('clears stale online users while reconnecting', () => {
+    const online = reducer(undefined, setWSOnlineUsers([1, 2]));
+    expect(reducer(online, setWSConnectionStatus('reconnecting'))).toEqual({
+      maintenance: false, onlineUserIds: [], connectionStatus: 'reconnecting',
     });
   });
 });

@@ -5,9 +5,11 @@ import type {ReactElement} from 'react';
 type Session = { user: { pk: number; email: string; role?: string } } | null;
 
 const mockAuth = jest.fn() as jest.MockedFunction<() => Promise<Session>>;
+const mockAuthoritativeUser = jest.fn() as jest.MockedFunction<(session: NonNullable<Session>) => Promise<NonNullable<Session>['user'] | null>>;
 jest.mock('@/auth', () => ({
 	__esModule: true,
 	auth: mockAuth,
+	getAuthenticatedWorkflowUser: mockAuthoritativeUser,
 }));
 
 const mockHasWorkflowManagerAccess = jest.fn();
@@ -44,6 +46,18 @@ jest.mock('@/utils/routes', () => ({
 beforeEach(() => {
 	jest.resetModules();
 	jest.clearAllMocks();
+	mockAuthoritativeUser.mockImplementation(async session => session.user);
+});
+
+it('uses current backend privileges instead of stale login privileges', async () => {
+	mockAuth.mockResolvedValueOnce({ user: { pk: 1, email: 'changed@example.test', role: 'manager' } });
+	const current = { pk: 1, email: 'changed@example.test', role: 'designer' };
+	mockAuthoritativeUser.mockResolvedValueOnce(current);
+	mockHasWorkflowManagerAccess.mockReturnValueOnce(false);
+	// eslint-disable-next-line @typescript-eslint/no-require-imports
+	const Page = require('./page').default as () => Promise<unknown>;
+	await expect(Page()).rejects.toThrow(`redirect:${DASHBOARD_BOARD}`);
+	expect(mockHasWorkflowManagerAccess).toHaveBeenCalledWith(current);
 });
 
 describe('DashboardReportsTimePage server component', () => {

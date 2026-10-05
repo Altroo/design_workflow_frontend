@@ -5,12 +5,14 @@ import type {
 	WSReconnectedAction,
 	WSUserPresenceAction,
 } from '@/store/actions/wsActions';
+import type { setWSConnectionStatus } from '@/store/slices/wsSlice';
 
 export interface WSMaintenanceBootstrap {
 	maintenance: boolean;
 }
 
 export type WSAction =
+	| ReturnType<typeof setWSConnectionStatus>
 	| ReturnType<typeof WSUserAvatarAction>
 	| ReturnType<typeof WSMaintenanceAction>
 	| ReturnType<typeof WSReconnectedAction>
@@ -19,6 +21,7 @@ export type WSAction =
 
 type WSMessage = {
 	type: string;
+	scope?: string;
 	pk?: number;
 	avatar?: string;
 	maintenance?: boolean;

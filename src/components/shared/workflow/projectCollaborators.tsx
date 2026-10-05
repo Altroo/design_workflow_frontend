@@ -36,7 +36,7 @@ export const ProjectCollaborators = ({ id, users, ownerId, value, onChange }: {
 			</li>)}
 		</ul>}
 		<p className="mt-2 text-xs leading-5 text-(--ink-muted)">{french
-			? 'Ils peuvent créer des tâches et participer au chat du projet. Chacun modifie les tâches qui lui sont assignées.'
-			: 'They can create tasks and join the project chat. Each person edits the tasks assigned to them.'}</p>
+			? 'Ils peuvent créer, modifier et déplacer toutes les tâches du projet, ainsi que participer au chat.'
+			: 'They can create, edit and move all tasks in the project, and participate in its chat.'}</p>
 	</div>;
 };

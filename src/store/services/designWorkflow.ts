@@ -40,6 +40,8 @@ const DESIGN_WORKFLOW_ROOT = `${process.env.NEXT_PUBLIC_API_URL}/api/design-work
 
 export const designWorkflowApi = createApi({
 	reducerPath: 'designWorkflowApi',
+	refetchOnFocus: true,
+	refetchOnReconnect: true,
 	tagTypes: [
 		'Dashboard',
 		'Project',
@@ -51,6 +53,7 @@ export const designWorkflowApi = createApi({
 		'Label',
 		'Chat',
 		'SavedView',
+		'Search',
 	],
 	baseQuery: axiosBaseQuery((api) =>
 		isAuthenticatedInstance(
@@ -100,6 +103,7 @@ export const designWorkflowApi = createApi({
 				method: 'GET',
 				params,
 			}),
+			providesTags: ['Search'],
 		}),
 		getProjects: builder.query<ProjectSummary[], { archived?: boolean; all?: boolean } | void>({
 			query: (params) => ({
