@@ -1300,7 +1300,7 @@ describe('Design workflow acceptance flows', () => {
 		return screen.getAllByTestId('task-attachment-picker')[0];
 	};
 
-	it('lets a designer select, label, remove, and upload several files without duplicates', async () => {
+	it('prefills filenames and preserves optional edits when adding or reselecting files', async () => {
 		const user = userEvent.setup();
 		mockProfile(designerA);
 		render(<DesignWorkflowShell title="Board" variant="board" />);
@@ -1309,22 +1309,43 @@ describe('Design workflow acceptance flows', () => {
 		expect(input).toHaveAttribute('multiple');
 		const files = ['plan.pdf', 'render.mp4', 'remove.txt'].map(name => new File(['contents'], name, { lastModified: 1 }));
 		await user.upload(input, files.slice(0, 2));
+		expect(within(picker).getByLabelText('Description for plan.pdf')).toHaveValue('plan.pdf');
+		expect(within(picker).getByLabelText('Description for render.mp4')).toHaveValue('render.mp4');
+		expect(within(picker).getByRole('button', { name: 'Add 2 files' })).toBeEnabled();
+		await user.clear(within(picker).getByLabelText('Description for plan.pdf'));
+		await user.type(within(picker).getByLabelText('Description for plan.pdf'), 'Floor plan');
 		await user.upload(input, [files[0], files[2]]);
 		expect(within(picker).getAllByRole('textbox')).toHaveLength(3);
-		expect(within(picker).getByRole('button', { name: 'Add 3 files' })).toBeDisabled();
-		expect(within(picker).getByLabelText('Description for plan.pdf')).toHaveValue('');
+		expect(within(picker).getByRole('button', { name: 'Add 3 files' })).toBeEnabled();
+		expect(within(picker).getByLabelText('Description for plan.pdf')).toHaveValue('Floor plan');
+		expect(within(picker).getByLabelText('Description for remove.txt')).toHaveValue('remove.txt');
 		await user.click(within(picker).getByRole('button', { name: 'Remove remove.txt' }));
-		await user.type(within(picker).getByLabelText('Description for plan.pdf'), 'Floor plan');
-		await user.type(within(picker).getByLabelText('Description for render.mp4'), 'Final render');
 		await user.click(within(picker).getByRole('button', { name: 'Add 2 files' }));
 		await waitFor(() => expect(mockUploadTaskAttachment).toHaveBeenCalledTimes(2));
-		for (const [index, label] of ['Floor plan', 'Final render'].entries()) {
+		for (const [index, label] of ['Floor plan', 'render.mp4'].entries()) {
 			const args = mockUploadTaskAttachment.mock.calls[index][0];
 			expect(args.id).toBe(taskDetail.id);
 			expect(args.data.get('file')).toBe(files[index]);
 			expect(args.data.get('name')).toBe(label);
 		}
 		expect(within(picker).queryByRole('textbox')).not.toBeInTheDocument();
+	});
+
+	it('keeps spaces, accents and extensions in the default name and validates a cleared field', async () => {
+		const user = userEvent.setup();
+		mockProfile(designerA);
+		render(<DesignWorkflowShell title="Board" variant="board" />);
+		const picker = await openAttachmentPicker(user);
+		const file = new File(['contents'], 'Présentation finale.v2.pdf');
+		await user.upload(within(picker).getByLabelText('Choose files'), file);
+		const name = within(picker).getByLabelText(`Description for ${file.name}`);
+		expect(name).toHaveValue(file.name);
+		await user.clear(name);
+		expect(within(picker).getByRole('button', { name: 'Add 1 file' })).toBeDisabled();
+		await user.type(name, 'Présentation client');
+		await user.click(within(picker).getByRole('button', { name: 'Add 1 file' }));
+		await waitFor(() => expect(mockUploadTaskAttachment).toHaveBeenCalledTimes(1));
+		expect(mockUploadTaskAttachment.mock.calls[0][0].data.get('name')).toBe('Présentation client');
 	});
 
 	it('continues after one upload fails and retries only the failed file with its label', async () => {
@@ -1338,7 +1359,11 @@ describe('Design workflow acceptance flows', () => {
 		const picker = await openAttachmentPicker(user);
 		const files = ['one.pdf', 'two.pdf', 'three.pdf'].map(name => new File(['contents'], name));
 		await user.upload(within(picker).getByLabelText('Choose files'), files);
-		for (const file of files) await user.type(within(picker).getByLabelText(`Description for ${file.name}`), `Label ${file.name}`);
+		for (const file of files) {
+			const name = within(picker).getByLabelText(`Description for ${file.name}`);
+			await user.clear(name);
+			await user.type(name, `Label ${file.name}`);
+		}
 		await user.click(within(picker).getByRole('button', { name: 'Add 3 files' }));
 		await waitFor(() => expect(mockUploadTaskAttachment).toHaveBeenCalledTimes(3));
 		expect(within(picker).getByLabelText('Description for two.pdf')).toHaveValue('Label two.pdf');
@@ -1360,7 +1385,6 @@ describe('Design workflow acceptance flows', () => {
 		await user.upload(within(picker).getByLabelText('Choose files'), files);
 		expect(within(picker).getAllByRole('textbox')).toHaveLength(2);
 		expect(within(picker).queryByText('too-large.mp4')).not.toBeInTheDocument();
-		for (const file of files.slice(0, 2)) await user.type(within(picker).getByLabelText(`Description for ${file.name}`), file.name);
 		await user.click(within(picker).getByRole('button', { name: 'Add 2 files' }));
 		await waitFor(() => expect(mockUploadTaskAttachment).toHaveBeenCalledTimes(2));
 	});
@@ -1374,7 +1398,6 @@ describe('Design workflow acceptance flows', () => {
 		const picker = await openAttachmentPicker(user);
 		const files = ['one.pdf', 'two.pdf'].map(name => new File(['contents'], name));
 		await user.upload(within(picker).getByLabelText('Choose files'), files);
-		for (const file of files) await user.type(within(picker).getByLabelText(`Description for ${file.name}`), file.name);
 		await user.click(within(picker).getByRole('button', { name: 'Add 2 files' }));
 		expect(mockUploadTaskAttachment).toHaveBeenCalledTimes(1);
 		expect(within(picker).getByLabelText('Choose files')).toBeDisabled();
@@ -1395,7 +1418,6 @@ describe('Design workflow acceptance flows', () => {
 		const picker = await openAttachmentPicker(user);
 		const files = ['one.pdf', 'two.pdf'].map(name => new File(['contents'], name));
 		await user.upload(within(picker).getByLabelText('Choose files'), files);
-		for (const file of files) await user.type(within(picker).getByLabelText(`Description for ${file.name}`), file.name);
 		await user.click(within(picker).getByRole('button', { name: 'Add 2 files' }));
 		await user.click(document.querySelector('.workflow-trello-modal-close') as HTMLButtonElement);
 		await act(async () => { finishFirst(); });

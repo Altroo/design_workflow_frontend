@@ -2778,7 +2778,7 @@ const DesignWorkflowShell = ({ title, variant, projectId, taskId }: Props) => {
 		if (attachmentUploadLock.current) return;
 		const validFiles = files.filter(file => !attachmentsExceedLimit([file]));
 		if (validFiles.length !== files.length) onError(t.errors.attachmentTooLarge);
-		const additions = validFiles.map(file => ({ id: nextAttachmentId.current++, file, label: '' }));
+		const additions = validFiles.map(file => ({ id: nextAttachmentId.current++, file, label: file.name }));
 		setTaskAttachments(current => {
 			const result = [...current];
 			for (const entry of additions) {
