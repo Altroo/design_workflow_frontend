@@ -1,6 +1,6 @@
 import { jest } from '@jest/globals';
 import { renderToStaticMarkup } from 'react-dom/server';
-import type {ReactElement} from 'react';
+import type { ReactElement } from 'react';
 
 type SessionUser = { pk: number; email: string };
 type Session = { user: SessionUser } | null;
@@ -30,7 +30,7 @@ jest.mock('@/components/pages/auth/reset-password/enterCode', () => ({
 	__esModule: true,
 	default: () => {
 		// eslint-disable-next-line @typescript-eslint/no-require-imports
-		const {createElement} = require('react');
+		const { createElement } = require('react');
 		return createElement('div', null, 'ENTER_CODE_CLIENT_MARKER');
 	},
 }));
@@ -48,6 +48,18 @@ beforeEach(() => {
 	jest.clearAllMocks();
 });
 
+it.each(['en', 'fr'] as const)('metadata follows the selected server language (%s)', async (language) => {
+	jest.resetModules();
+	const { translations } = await import('@/translations');
+	const t = translations[language];
+	jest.doMock('@/utils/serverTranslations', () => ({ getServerTranslations: async () => t }));
+	const { generateMetadata } = await import('./page');
+	await expect(generateMetadata()).resolves.toEqual({
+		title: t.metadata.enterCodeTitle,
+		description: t.metadata.enterCodeDescription,
+	});
+});
+
 afterEach(() => {
 	jest.clearAllMocks();
 });
@@ -59,7 +71,6 @@ describe('EnterCodePage server component', () => {
 
 		let Page: () => Promise<unknown>;
 		jest.isolateModules(() => {
-			 
 			// eslint-disable-next-line @typescript-eslint/no-require-imports
 			const mod = require('./page');
 			Page = mod.default as () => Promise<unknown>;
@@ -75,7 +86,6 @@ describe('EnterCodePage server component', () => {
 
 		let Page: () => Promise<unknown>;
 		jest.isolateModules(() => {
-			 
 			// eslint-disable-next-line @typescript-eslint/no-require-imports
 			const mod = require('./page');
 			Page = mod.default as () => Promise<unknown>;
@@ -93,7 +103,6 @@ describe('EnterCodePage server component', () => {
 
 		let Page: () => Promise<unknown>;
 		jest.isolateModules(() => {
-			 
 			// eslint-disable-next-line @typescript-eslint/no-require-imports
 			const mod = require('./page');
 			Page = mod.default as () => Promise<unknown>;

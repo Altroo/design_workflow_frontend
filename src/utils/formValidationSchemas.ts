@@ -9,7 +9,6 @@ import {
 } from '@/utils/formValidationErrorMessages';
 import { getT } from '@/utils/helpers';
 
-
 const base64ImageField = z.url().or(z.string().startsWith('data:image/')).nullable().optional();
 
 const passwordField = z.preprocess(
@@ -117,10 +116,9 @@ export const changePasswordSchema = z
 	.superRefine((data, ctx) => {
 		if (data.new_password !== data.new_password2) {
 			ctx.addIssue({
-				code: z.ZodIssueCode.custom,
+				code: 'custom',
 				message: getT().validation.passwordMismatch,
 				path: ['new_password2'],
 			});
 		}
 	});
-

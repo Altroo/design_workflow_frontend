@@ -4,7 +4,8 @@ import path from 'path';
 
 const isDev = process.env.NODE_ENV === 'development';
 const isProd = process.env.NODE_ENV === 'production';
-const devWatchIgnored = /(?:^|[\\/])(?:node_modules|\.git)(?:[\\/]|$)|^[a-z]:[\\/](?:DumpStack\.log\.tmp|hiberfil\.sys|pagefile\.sys|swapfile\.sys)$/i;
+const devWatchIgnored =
+	/(?:^|[\\/])(?:node_modules|\.git)(?:[\\/]|$)|^[a-z]:[\\/](?:DumpStack\.log\.tmp|hiberfil\.sys|pagefile\.sys|swapfile\.sys)$/i;
 
 type http = 'http' | 'https' | undefined;
 
@@ -98,21 +99,15 @@ const nextConfig: NextConfig = {
 			},
 			{
 				source: '/assets/images/:path*',
-				headers: [
-					{ key: 'Cache-Control', value: 'public, max-age=31536000, immutable' },
-				],
+				headers: [{ key: 'Cache-Control', value: 'public, max-age=31536000, immutable' }],
 			},
 			{
 				source: '/assets/ico/:path*',
-				headers: [
-					{ key: 'Cache-Control', value: 'public, max-age=31536000, immutable' },
-				],
+				headers: [{ key: 'Cache-Control', value: 'public, max-age=31536000, immutable' }],
 			},
 			{
 				source: '/assets/:path*',
-				headers: [
-					{ key: 'Cache-Control', value: 'public, max-age=31536000, immutable' },
-				],
+				headers: [{ key: 'Cache-Control', value: 'public, max-age=31536000, immutable' }],
 			},
 			{
 				source: '/(.*)',
@@ -129,9 +124,9 @@ const nextConfig: NextConfig = {
 							"script-src 'self' 'unsafe-inline' 'unsafe-eval'",
 							"style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
 							"font-src 'self' https://fonts.gstatic.com data:",
-						`img-src 'self' https://design-workflow-api.elbouazzatiholding.ma data: blob:${isDev ? ' http://localhost:8004 http://127.0.0.1:8004' : ''}`,
-						`media-src 'self' https://design-workflow-api.elbouazzatiholding.ma blob:${isDev ? ' http://localhost:8004 http://127.0.0.1:8004' : ''}`,
-						`connect-src 'self' https://design-workflow-api.elbouazzatiholding.ma wss://design-workflow-api.elbouazzatiholding.ma${isDev ? ' http://localhost:8004 http://127.0.0.1:8004 ws://localhost:8004 ws://127.0.0.1:8004' : ''}`,
+							`img-src 'self' https://design-workflow-api.elbouazzatiholding.ma data: blob:${isDev ? ' http://localhost:8004 http://127.0.0.1:8004' : ''}`,
+							`media-src 'self' https://design-workflow-api.elbouazzatiholding.ma blob:${isDev ? ' http://localhost:8004 http://127.0.0.1:8004' : ''}`,
+							`connect-src 'self' https://design-workflow-api.elbouazzatiholding.ma wss://design-workflow-api.elbouazzatiholding.ma${isDev ? ' http://localhost:8004 http://127.0.0.1:8004 ws://localhost:8004 ws://127.0.0.1:8004' : ''}`,
 
 							"frame-ancestors 'self'",
 							"base-uri 'self'",

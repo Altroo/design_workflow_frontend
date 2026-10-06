@@ -18,7 +18,19 @@ type WSChannelAction = Action & {
 	onlineUserIds?: number[];
 };
 
-const allWorkflowTags = ['Task', 'Project', 'Dashboard', 'Workload', 'Report', 'Notification', 'Chat', 'Label', 'SavedView', 'NotificationPreference', 'Search'] as const;
+const allWorkflowTags = [
+	'Task',
+	'Project',
+	'Dashboard',
+	'Workload',
+	'Report',
+	'Notification',
+	'Chat',
+	'Label',
+	'SavedView',
+	'NotificationPreference',
+	'Search',
+] as const;
 const taskTags = ['Task', 'Project', 'Dashboard', 'Workload', 'Report', 'Chat', 'Search', 'Notification'] as const;
 
 export function workflowTagsForEvent(action: WSChannelAction): readonly (typeof allWorkflowTags)[number][] {
@@ -40,7 +52,9 @@ function* refreshAccountCaches(): SagaIterator<void> {
 function* refreshMaintenance(): SagaIterator<void> {
 	try {
 		yield race({ refresh: call(initMaintenanceSaga), timeout: delay(10_000) });
-	} catch { /* Maintenance HTTP failure must not stop live updates. */ }
+	} catch {
+		/* Maintenance HTTP failure must not stop live updates. */
+	}
 }
 
 // A minute-level reconciliation also refreshes running time/date boundaries and
@@ -84,7 +98,11 @@ export function* watchWS(): SagaIterator<void> {
 			while (true) {
 				const { action, loggedOut }: { action?: WSChannelAction; loggedOut?: string | null } = yield race({
 					action: take(channel),
-					loggedOut: call(monitorToken, (state: RootState) => getAccessToken(state) ? 'authenticated' : null, 'authenticated'),
+					loggedOut: call(
+						monitorToken,
+						(state: RootState) => (getAccessToken(state) ? 'authenticated' : null),
+						'authenticated',
+					),
 				});
 				if (loggedOut === null || !action) break;
 				if (action.type === Types.WS_MAINTENANCE && typeof action.maintenance === 'boolean') {

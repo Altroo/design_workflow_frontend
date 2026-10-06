@@ -1,4 +1,4 @@
-import {type ChangeEvent, type ComponentType, type FC} from 'react';
+import { type ChangeEvent, type ComponentType, type FC } from 'react';
 
 export interface DropdownFilterOption {
 	value: string;
@@ -33,7 +33,7 @@ const DropdownFilter: FC<DropdownFilterProps> = (props) => {
 	};
 
 	return (
-		<select value={item.value || ''} onChange={handleFilterChange} className="app-input min-w-[180px]">
+		<select value={item.value || ''} onChange={handleFilterChange} className="app-input min-w-45">
 			<option value="">{placeholder ?? 'All'}</option>
 			{options.map((option) => (
 				<option key={option.value} value={option.value}>

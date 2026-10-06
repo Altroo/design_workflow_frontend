@@ -1,4 +1,4 @@
-import {type FC, type ReactNode} from 'react';
+import { type FC, type ReactNode } from 'react';
 
 type Props = {
 	buttonText: string;
@@ -13,7 +13,10 @@ const TextButton: FC<Props> = (props: Props) => {
 	return (
 		<button
 			type="button"
-			className={['ui-button-ghost inline-flex items-center gap-2 text-sm font-semibold text-(--ink-soft) transition hover:text-(--ink)', props.cssClass ?? ''].join(' ')}
+			className={[
+				'ui-button-ghost inline-flex items-center gap-2 text-sm font-semibold text-(--ink-soft) transition hover:text-(--ink)',
+				props.cssClass ?? '',
+			].join(' ')}
 			disabled={props.disabled}
 			onClick={props.onClick}
 		>

@@ -1,4 +1,4 @@
-import {type ChangeEventHandler, type ReactElement, type ReactNode} from 'react';
+import { type ChangeEventHandler, type ReactElement, type ReactNode } from 'react';
 import { act, render, screen, cleanup, fireEvent, waitFor } from '@testing-library/react';
 import '@testing-library/jest-dom';
 import { Provider } from 'react-redux';
@@ -11,8 +11,7 @@ const mockStore = configureStore({
 		_init: () => ({}),
 		account: () => ({}),
 	},
-	middleware: (getDefaultMiddleware) =>
-		getDefaultMiddleware({ serializableCheck: false }),
+	middleware: (getDefaultMiddleware) => getDefaultMiddleware({ serializableCheck: false }),
 });
 
 // Mock next/navigation
@@ -50,8 +49,7 @@ const mockCheckEmailMutation = jest.fn();
 
 jest.mock('@/store/services/account', () => ({
 	__esModule: true,
-	useGetUserQuery: (params: { id: number }, options: { skip: boolean }) =>
-		mockUseGetUserQuery(params, options),
+	useGetUserQuery: (params: { id: number }, options: { skip: boolean }) => mockUseGetUserQuery(params, options),
 	useAddUserMutation: () => [mockAddUserMutation, { isLoading: false, error: undefined }],
 	useCheckEmailMutation: () => [mockCheckEmailMutation, { isLoading: false, error: undefined }],
 	useEditUserMutation: () => [mockEditUserMutation, { isLoading: false, error: undefined }],
@@ -69,10 +67,20 @@ jest.mock('@/components/layouts/navigationBar/navigationBar', () => {
 	return { __esModule: true, default: Mock };
 });
 
-// Mock form sub-components
+// Mock form subcomponents
 jest.mock('@/components/formikElements/customTextInput/customTextInput', () => ({
 	__esModule: true,
-	default: ({ id, label, value, onChange }: { id: string; label: string; value: string; onChange: ChangeEventHandler<HTMLInputElement> }) => (
+	default: ({
+		id,
+		label,
+		value,
+		onChange,
+	}: {
+		id: string;
+		label: string;
+		value: string;
+		onChange: ChangeEventHandler<HTMLInputElement>;
+	}) => (
 		<div data-testid={`input-${id}`}>
 			<label htmlFor={id}>{label}</label>
 			<input id={id} value={value ?? ''} onChange={onChange} />
@@ -119,12 +127,14 @@ jest.mock('@/utils/themes', () => ({
 }));
 
 jest.mock('@/utils/helpers', () => ({
-	getLabelForKey: jest.fn((labels: Record<string, string>, key: string) => labels[key] || key),
 	setFormikAutoErrors: jest.fn(),
 }));
 
 jest.mock('@/utils/rawData', () => ({
-	genderItemsList: jest.fn(() => [{ value: 'H', label: 'Homme' }, { value: 'F', label: 'Femme' }]),
+	genderItemsList: jest.fn(() => [
+		{ value: 'H', label: 'Homme' },
+		{ value: 'F', label: 'Femme' },
+	]),
 }));
 
 jest.mock('@/utils/formValidationSchemas', () => ({
@@ -278,20 +288,32 @@ describe('UsersFormClient', () => {
 
 	describe('live updates while editing', () => {
 		const user = {
-			id: 55, email: 'user@test.com', first_name: 'John', last_name: 'Doe', gender: 'H',
-			role: 'designer', is_active: true, is_staff: false, can_edit: false,
+			id: 55,
+			email: 'user@test.com',
+			first_name: 'John',
+			last_name: 'Doe',
+			gender: 'H',
+			role: 'designer',
+			is_active: true,
+			is_staff: false,
+			can_edit: false,
 		};
 		const setServerUser = (data: typeof user) => mockUseGetUserQuery.mockReturnValue({ data, isLoading: false });
-		const editFirstName = async (value: string) => act(async () => {
-			fireEvent.change(screen.getByTestId('input-first_name').querySelector('input')!, { target: { value } });
-		});
+		const editFirstName = async (value: string) =>
+			act(async () => {
+				fireEvent.change(screen.getByTestId('input-first_name').querySelector('input')!, { target: { value } });
+			});
 
 		it('keeps a dirty field while updating clean fields and permissions', async () => {
 			setServerUser(user);
 			const view = renderWithProviders(<UsersFormClient session={mockSession} id={55} />);
 			await editFirstName('Local draft');
 			setServerUser({ ...user, last_name: 'Remote last name', is_staff: true, can_edit: true });
-			view.rerender(<Provider store={mockStore}><UsersFormClient session={mockSession} id={55} /></Provider>);
+			view.rerender(
+				<Provider store={mockStore}>
+					<UsersFormClient session={mockSession} id={55} />
+				</Provider>,
+			);
 
 			expect(screen.getByTestId('input-first_name').querySelector('input')).toHaveValue('Local draft');
 			expect(screen.getByTestId('input-last_name').querySelector('input')).toHaveValue('Remote last name');
@@ -306,11 +328,19 @@ describe('UsersFormClient', () => {
 			const view = renderWithProviders(<UsersFormClient session={mockSession} id={55} />);
 			await editFirstName('Local draft');
 			setServerUser({ ...user, first_name: 'Remote first name', last_name: 'Remote last name', is_staff: true });
-			view.rerender(<Provider store={mockStore}><UsersFormClient session={mockSession} id={55} /></Provider>);
+			view.rerender(
+				<Provider store={mockStore}>
+					<UsersFormClient session={mockSession} id={55} />
+				</Provider>,
+			);
 
 			expect(screen.getByRole('status')).toHaveTextContent('Vos saisies sont conservées');
-			await act(async () => { fireEvent.submit(screen.getByTestId('submit-button').closest('form')!); });
-			await waitFor(() => expect(mockEditUserMutation).toHaveBeenCalledWith({ id: 55, data: { first_name: 'Local draft' } }));
+			await act(async () => {
+				fireEvent.submit(screen.getByTestId('submit-button').closest('form')!);
+			});
+			await waitFor(() =>
+				expect(mockEditUserMutation).toHaveBeenCalledWith({ id: 55, data: { first_name: 'Local draft' } }),
+			);
 			expect(mockCheckEmailMutation).not.toHaveBeenCalled();
 		});
 
@@ -319,7 +349,11 @@ describe('UsersFormClient', () => {
 			const view = renderWithProviders(<UsersFormClient session={mockSession} id={55} />);
 			await editFirstName('Local draft');
 			setServerUser({ ...user, id: 77, first_name: 'Another user' });
-			view.rerender(<Provider store={mockStore}><UsersFormClient session={mockSession} id={77} /></Provider>);
+			view.rerender(
+				<Provider store={mockStore}>
+					<UsersFormClient session={mockSession} id={77} />
+				</Provider>,
+			);
 			expect(screen.getByTestId('input-first_name').querySelector('input')).toHaveValue('Another user');
 		});
 	});

@@ -14,17 +14,22 @@ test('dirty fields keep their original baseline while untouched fields follow li
 	const baseline = mergeDraftBaseline(draft, original, live);
 	expect(baseline).toEqual({ ...live, title: 'Before' });
 	expect(guardedChanges(mergeLiveDraft(draft, original, live), baseline)).toEqual({
-		title: 'My title', expected_values: { title: 'Before' },
+		title: 'My title',
+		expected_values: { title: 'Before' },
 	});
 });
 
 test('clean drafts do not send fields which could overwrite remote edits', () => {
-	expect(guardedChanges({ title: 'Saved', members: [1] }, { title: 'Saved', members: [1] })).toEqual({ expected_values: {} });
+	expect(guardedChanges({ title: 'Saved', members: [1] }, { title: 'Saved', members: [1] })).toEqual({
+		expected_values: {},
+	});
 });
 
 test('a saved draft becomes clean for subsequent updates', () => {
 	const previous = { description: 'Old' };
 	const saved = { description: 'Saved' };
 	const merged = mergeLiveDraft(saved, previous, saved);
-	expect(mergeLiveDraft(merged, saved, { description: 'New remote value' })).toEqual({ description: 'New remote value' });
+	expect(mergeLiveDraft(merged, saved, { description: 'New remote value' })).toEqual({
+		description: 'New remote value',
+	});
 });

@@ -1,4 +1,4 @@
-import {type ReactNode} from 'react';
+import { type ReactNode } from 'react';
 import { render, screen } from '@testing-library/react';
 import '@testing-library/jest-dom';
 import { Provider } from 'react-redux';
@@ -18,7 +18,14 @@ jest.mock('@/utils/hooks', () => {
 	return {
 		useToast: () => ({ onSuccess: jest.fn(), onError: jest.fn() }),
 		useAppSelector: jest.fn(),
-		usePermission: () => ({ is_staff: true, can_view: true, can_print: true, can_create: true, can_edit: true, can_delete: true }),
+		usePermission: () => ({
+			is_staff: true,
+			can_view: true,
+			can_print: true,
+			can_create: true,
+			can_edit: true,
+			can_delete: true,
+		}),
 		useLanguage: () => ({ t: translations.fr }),
 	};
 });

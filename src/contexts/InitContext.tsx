@@ -1,6 +1,6 @@
 'use client';
 
-import {createContext, PropsWithChildren, useContext, type FC} from 'react';
+import { createContext, PropsWithChildren, useContext, type FC } from 'react';
 import { useAppSelector } from '@/utils/hooks';
 import type { AppSession, InitStateInterface, InitStateToken } from '@/types/_initTypes';
 import { emptyInitStateToken } from '@/store/slices/_initSlice';
@@ -16,7 +16,7 @@ export const InitContextProvider: FC<PropsWithChildren<Record<string, unknown>>>
 	const contextValue: InitStateInterface<InitStateToken> = {
 		initStateToken: initState || emptyInitStateToken,
 	};
-	return <InitContext.Provider value={contextValue}>{props.children}</InitContext.Provider>;
+	return <InitContext value={contextValue}>{props.children}</InitContext>;
 };
 
 export const useInitContext = (): InitStateInterface<InitStateToken> => useContext(InitContext);

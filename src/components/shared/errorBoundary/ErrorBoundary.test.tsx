@@ -1,8 +1,10 @@
-
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import '@testing-library/jest-dom';
 import { ErrorBoundary } from './errorBoundary';
+import { LanguageContextProvider } from '@/contexts/languageContext';
+import { notFound, redirect } from 'next/navigation';
+import { AppRouterContext, type AppRouterInstance } from 'next/dist/shared/lib/app-router-context.shared-runtime';
 
 // A component that throws on render
 const ThrowingComponent = ({ shouldThrow }: { shouldThrow: boolean }) => {
@@ -82,5 +84,56 @@ describe('ErrorBoundary', () => {
 		);
 		// In test/dev environment the error message should be shown
 		expect(screen.getByText('Test error')).toBeInTheDocument();
+	});
+
+	it('uses the current language context rather than a stale storage preference', () => {
+		localStorage.setItem('app-language', 'fr');
+		render(
+			<LanguageContextProvider initialLanguage="en">
+				<ErrorBoundary>
+					<ThrowingComponent shouldThrow />
+				</ErrorBoundary>
+			</LanguageContextProvider>,
+		);
+		expect(screen.getByRole('button', { name: /retry/i })).toBeInTheDocument();
+		localStorage.removeItem('app-language');
+	});
+
+	it('retries server content through the Next router', async () => {
+		const router: AppRouterInstance = {
+			bfcacheId: 'test-route',
+			back: jest.fn(),
+			forward: jest.fn(),
+			refresh: jest.fn(),
+			push: jest.fn(),
+			replace: jest.fn(),
+			prefetch: jest.fn(),
+		};
+		render(
+			<AppRouterContext value={router}>
+				<ErrorBoundary>
+					<ThrowingComponent shouldThrow />
+				</ErrorBoundary>
+			</AppRouterContext>,
+		);
+		await userEvent.click(screen.getByRole('button', { name: /réessayer/i }));
+		expect(router.refresh).toHaveBeenCalledTimes(1);
+	});
+
+	it.each([
+		['redirect', () => redirect('/login'), 'NEXT_REDIRECT'],
+		['not found', () => notFound(), 'NEXT_HTTP_ERROR_FALLBACK;404'],
+	])('does not swallow a Next.js %s response', (_name, navigate, expected) => {
+		const Navigation = () => {
+			navigate();
+			return null;
+		};
+		expect(() =>
+			render(
+				<ErrorBoundary>
+					<Navigation />
+				</ErrorBoundary>,
+			),
+		).toThrow(expected);
 	});
 });

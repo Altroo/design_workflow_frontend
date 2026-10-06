@@ -1,7 +1,7 @@
 'use client';
 
-import {runWithCleanup} from '@/utils/runWithCleanup';
-import {useEffect, useEffectEvent, useRef, useState, type FC} from 'react';
+import { runWithCleanup } from '@/utils/runWithCleanup';
+import { useEffect, useEffectEvent, useRef, useState, type FC } from 'react';
 import { Camera, PencilLine, UserRound } from 'lucide-react';
 import { useFormik } from 'formik';
 import { profilSchema } from '@/utils/formValidationSchemas';
@@ -27,7 +27,8 @@ type FormikContentType = {
 	token: string | undefined;
 };
 
-const normalizeGenderValue = (value?: string | null) => (value === 'Homme' ? 'H' : value === 'Femme' ? 'F' : value ?? '');
+const normalizeGenderValue = (value?: string | null) =>
+	value === 'Homme' ? 'H' : value === 'Femme' ? 'F' : (value ?? '');
 
 const profileFormValues = (profile?: Partial<UserClass>) => ({
 	first_name: profile?.first_name ?? '',
@@ -58,28 +59,30 @@ const FormikContent: FC<FormikContentType> = ({ token }) => {
 			setIsPending(true);
 			const { globalError, ...fields } = data;
 			void globalError;
-			const payload = Object.fromEntries(Object.entries(fields).filter(([key, value]) => value !== serverValues.current[key as keyof ProfileFormValues]));
+			const payload = Object.fromEntries(
+				Object.entries(fields).filter(([key, value]) => value !== serverValues.current[key as keyof ProfileFormValues]),
+			);
 			await runWithCleanup(
-			  async () => {
-			    try {
-			      const response = await editProfil({data: payload}).unwrap();
-			      if (response) {
-			        const savedValues = profileFormValues(response);
-			        serverValues.current = savedValues;
-			        setConflictedFields([]);
-			        // Preserve any typing that happened while the save was in flight.
-			        void formik.setValues((current) => mergeLiveDraft(current, data, savedValues), false);
-			        dispatch(accountEditProfilAction(response));
-			        onSuccess(t.settings.updateSuccess);
-			      }
-			    } catch (e) {
-			      onError(t.settings.updateError);
-			      setFormikAutoErrors({e, setFieldError});
-			    }
-			  },
-			  () => {
-			    setIsPending(false);
-			  },
+				async () => {
+					try {
+						const response = await editProfil({ data: payload }).unwrap();
+						if (response) {
+							const savedValues = profileFormValues(response);
+							serverValues.current = savedValues;
+							setConflictedFields([]);
+							// Preserve any typing that happened while the save was in flight.
+							void formik.setValues((current) => mergeLiveDraft(current, data, savedValues), false);
+							dispatch(accountEditProfilAction(response));
+							onSuccess(t.settings.updateSuccess);
+						}
+					} catch (e) {
+						onError(t.settings.updateError);
+						setFormikAutoErrors({ e, setFieldError });
+					}
+				},
+				() => {
+					setIsPending(false);
+				},
 			);
 		},
 	});
@@ -89,22 +92,37 @@ const FormikContent: FC<FormikContentType> = ({ token }) => {
 		const next = profileFormValues(profilData);
 		const previous = serverValues.current;
 		const draft = formik.values;
-		const conflicts = (Object.keys(next) as Array<keyof ProfileFormValues>).filter((key) =>
-			key !== 'globalError' && next[key] !== previous[key] && draft[key] !== previous[key] && draft[key] !== next[key],
+		const conflicts = (Object.keys(next) as Array<keyof ProfileFormValues>).filter(
+			(key) =>
+				key !== 'globalError' &&
+				next[key] !== previous[key] &&
+				draft[key] !== previous[key] &&
+				draft[key] !== next[key],
 		);
-		setConflictedFields((current) => [...new Set([...current, ...conflicts])].filter((key) => draft[key] !== next[key]));
+		setConflictedFields((current) =>
+			[...new Set([...current, ...conflicts])].filter((key) => draft[key] !== next[key]),
+		);
 		serverValues.current = next;
 		void formik.setValues(mergeLiveDraft(draft, previous, next), false);
 	});
-	useEffect(() => { refreshServerValues(); }, [profilData]);
+	useEffect(() => {
+		refreshServerValues();
+	}, [profilData]);
 	const hasRemoteConflict = conflictedFields.some((key) => formik.values[key] !== profileFormValues(profilData)[key]);
 
 	return (
 		<div className="workflow-user-form-shell workflow-profile-shell">
-			{(isEditLoading || isPending || isProfilLoading) && <ApiProgress backdropColor="#FFFFFF" circularColor="var(--accent)" />}
-			<WorkflowPageHero element="div" className="workflow-user-form-hero" eyebrow={t.settings.profileStudio} title={t.navigation.myProfile} />
+			{(isEditLoading || isPending || isProfilLoading) && (
+				<ApiProgress backdropColor="#FFFFFF" circularColor="var(--accent)" />
+			)}
+			<WorkflowPageHero
+				element="div"
+				className="workflow-user-form-hero"
+				eyebrow={t.settings.profileStudio}
+				title={t.navigation.myProfile}
+			/>
 			{hasRemoteConflict ? (
-				<div role="status" className="workflow-user-form-alert text-sm text-[color:var(--muted)]">
+				<div role="status" className="workflow-user-form-alert text-sm text-(--muted)">
 					{language === 'en'
 						? 'Your profile was changed elsewhere. Your edits are kept. Check them before saving; saving replaces the changed fields.'
 						: 'Votre profil a été modifié ailleurs. Vos saisies sont conservées. Vérifiez-les avant d’enregistrer : les champs modifiés seront remplacés.'}

@@ -74,11 +74,21 @@ export const WorkflowAvatar = ({
 	};
 	const avatar = avatarUrl ? (
 		<span className={cx('relative block shrink-0 overflow-hidden rounded-full', avatarClassName)} style={avatarStyle}>
-			<Image src={avatarUrl} alt={avatarLabel} fill sizes={`${size}px`} unoptimized className="rounded-full object-cover" />
+			<Image
+				src={avatarUrl}
+				alt={avatarLabel}
+				fill
+				sizes={`${size}px`}
+				unoptimized
+				className="rounded-full object-cover"
+			/>
 		</span>
 	) : (
 		<span
-			className={cx('workflow-avatar-initials inline-flex shrink-0 items-center justify-center rounded-full bg-(--surface-strong) text-center text-xs font-bold leading-none text-(--ink)', avatarClassName)}
+			className={cx(
+				'workflow-avatar-initials inline-flex shrink-0 items-center justify-center rounded-full bg-(--surface-strong) text-center text-xs font-bold leading-none text-(--ink)',
+				avatarClassName,
+			)}
 			style={avatarStyle}
 		>
 			{initialsFor(user, fallbackInitials)}

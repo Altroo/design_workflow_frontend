@@ -1,6 +1,6 @@
 'use client';
 
-import {useRef, useState, type ChangeEvent, type FC} from 'react';
+import { useRef, useState, type ChangeEvent, type FC } from 'react';
 import Image from 'next/image';
 import { X } from 'lucide-react';
 import SquareImageInputFile from '../../htmlElements/buttons/squareImageInputFile/squareImageInputFile';
@@ -59,8 +59,12 @@ const CustomSquareImageUploading: FC<Props> = ({ image, croppedImage, onChange, 
 				className="hidden"
 			/>
 			{canRenderPreview ? (
-				<div className="relative w-full max-w-[380px]">
-					<button type="button" onClick={() => fileInputRef.current?.click()} className="workflow-square-image-preview relative block h-[260px] w-full overflow-hidden rounded-[18px] border border-[color:var(--line-strong)] bg-white shadow-(--shadow-sm) transition hover:-translate-y-0.5 hover:shadow-(--shadow-md)">
+				<div className="relative w-full max-w-95">
+					<button
+						type="button"
+						onClick={() => fileInputRef.current?.click()}
+						className="workflow-square-image-preview relative block h-65 w-full overflow-hidden rounded-[18px] border border-(--line-strong) bg-white shadow-(--shadow-sm) transition hover:-translate-y-0.5 hover:shadow-(--shadow-md)"
+					>
 						<Image
 							src={previewSrc}
 							alt={t.common.croppedPreview}
@@ -77,7 +81,7 @@ const CustomSquareImageUploading: FC<Props> = ({ image, croppedImage, onChange, 
 					<button
 						type="button"
 						onClick={clearImage}
-						className="absolute right-3 top-3 rounded-full border border-[color:var(--line)] bg-white p-2 text-(--ink) shadow-(--shadow-sm)"
+						className="absolute right-3 top-3 rounded-full border border-(--line) bg-white p-2 text-(--ink) shadow-(--shadow-sm)"
 						aria-label={t.common.delete}
 					>
 						<X size={18} />

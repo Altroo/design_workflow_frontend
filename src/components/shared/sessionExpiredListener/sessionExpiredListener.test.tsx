@@ -4,7 +4,11 @@ import { ToastContext, type ToastContextType } from '@/contexts/toastContext';
 import SessionExpiredListener from './sessionExpiredListener';
 
 jest.mock('@/utils/hooks', () => ({
-	useLanguage: () => ({ language: 'fr', setLanguage: jest.fn(), t: jest.requireActual('@/translations').translations.fr }),
+	useLanguage: () => ({
+		language: 'fr',
+		setLanguage: jest.fn(),
+		t: jest.requireActual('@/translations').translations.fr,
+	}),
 }));
 
 afterEach(() => {

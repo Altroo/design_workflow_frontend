@@ -290,6 +290,7 @@ export const en: TranslationDictionary = {
 			daysOverdue: 'days overdue',
 			businessDaysLeft: 'work days left',
 			businessDaysOverdue: 'work days overdue',
+			completed: 'Completed',
 			dueToday: 'Target date today',
 			dueSoon: 'Target date soon',
 			statusLabel: 'Status',

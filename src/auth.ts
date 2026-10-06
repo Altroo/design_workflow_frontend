@@ -284,11 +284,11 @@ export const { handlers, auth } = NextAuth({
 	secret: process.env.NEXTAUTH_SECRET, // Ensure this is set securely
 	session: {
 		strategy: 'jwt', // Persist the session using JWTs
-		maxAge: 6 * 24 * 60 * 60,    // 6 days — safely within 7-day backend refresh window
+		maxAge: 6 * 24 * 60 * 60, // 6 days — safely within 7-day backend refresh window
 		updateAge: 60 * 60, // Update JWT every 1 hour
 	},
 	jwt: {
-		maxAge: 6 * 24 * 60 * 60,    // 6 days
+		maxAge: 6 * 24 * 60 * 60, // 6 days
 	},
 
 	cookies: getAuthCookies('ebh-design-workflow'),

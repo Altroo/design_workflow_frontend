@@ -26,7 +26,14 @@ const AuthLayout = ({ children }: { children?: ReactNode }) => {
 								aria-label={language === 'fr' ? 'Passer en anglais' : 'Switch to French'}
 								className="workflow-topbar-control workflow-language-toggle workflow-focus-ring inline-flex items-center gap-2 px-3 py-2 text-sm font-bold"
 							>
-								<Image src={language === 'fr' ? FlagFR : FlagGB} alt="" width={22} height={15} aria-hidden="true" className="workflow-language-flag" />
+								<Image
+									src={language === 'fr' ? FlagFR : FlagGB}
+									alt=""
+									width={22}
+									height={15}
+									aria-hidden="true"
+									className="workflow-language-flag"
+								/>
 								<span>{language === 'fr' ? 'FR' : 'EN'}</span>
 							</button>
 						</div>

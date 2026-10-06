@@ -33,7 +33,7 @@ export const WorkflowPageHero = ({
 			<Title>{title}</Title>
 			{description ? <span>{description}</span> : null}
 		</div>
-		{actions ? (actionsWrapper ? <div className={actionsClassName}>{actions}</div> : actions) : null}
+		{actions ? actionsWrapper ? <div className={actionsClassName}>{actions}</div> : actions : null}
 	</Element>
 );
 
@@ -78,7 +78,13 @@ type WorkflowPanelPillProps = {
 	labelElement?: 'b' | 'span';
 };
 
-export const WorkflowPanelPill = ({ baseClassName = 'workflow-overview-panel-pill', className, label, value, labelElement = 'b' }: WorkflowPanelPillProps) => {
+export const WorkflowPanelPill = ({
+	baseClassName = 'workflow-overview-panel-pill',
+	className,
+	label,
+	value,
+	labelElement = 'b',
+}: WorkflowPanelPillProps) => {
 	const Label = labelElement;
 
 	return (

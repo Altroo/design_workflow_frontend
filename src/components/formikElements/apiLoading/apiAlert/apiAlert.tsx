@@ -1,6 +1,6 @@
 'use client';
 
-import {type CSSProperties, type FC, type ReactNode} from 'react';
+import { type CSSProperties, type FC, type ReactNode } from 'react';
 import { useLanguage } from '@/utils/hooks';
 
 type Props = {
@@ -30,13 +30,17 @@ const ApiAlert: FC<Props> = (props: Props) => {
 				} else {
 					errorResult[key].push(String(value));
 				}
-				errorMessage.push(errorResult);
 			}
+			errorMessage.push(errorResult);
 		}
 	}
 
 	return (
-		<div role="alert" className="ui-alert rounded-[14px] border border-[color:var(--accent)] bg-(--accent-soft) px-4 py-3 text-sm font-semibold text-(--accent-strong)" style={props.cssStyle}>
+		<div
+			role="alert"
+			className="ui-alert rounded-[14px] border border-(--accent) bg-(--accent-soft) px-4 py-3 text-sm font-semibold text-(--accent-strong)"
+			style={props.cssStyle}
+		>
 			{errorMessage.length > 0
 				? errorMessage.map((error) => {
 						return Object.keys(error).map((k) => {

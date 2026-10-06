@@ -1,6 +1,6 @@
 'use client';
 
-import {createContext, useEffect, useState, type FC, type ReactNode} from 'react';
+import { createContext, useEffect, useState, type FC, type ReactNode } from 'react';
 import type { Language, TranslationDictionary } from '@/types/languageTypes';
 import { translations } from '@/translations';
 import { setHelpersLanguage } from '@/utils/helpers';
@@ -20,7 +20,10 @@ export const LanguageContext = createContext<LanguageContextType>({
 	t: translations[DEFAULT_LANGUAGE],
 });
 
-export const LanguageContextProvider: FC<{ children: ReactNode; initialLanguage?: Language }> = ({ children, initialLanguage }) => {
+export const LanguageContextProvider: FC<{ children: ReactNode; initialLanguage?: Language }> = ({
+	children,
+	initialLanguage,
+}) => {
 	const [language, setLanguageState] = useState<Language>(initialLanguage ?? DEFAULT_LANGUAGE);
 
 	useEffect(() => {
@@ -40,9 +43,5 @@ export const LanguageContextProvider: FC<{ children: ReactNode; initialLanguage?
 
 	const t = translations[language];
 
-	return (
-		<LanguageContext.Provider value={{ language, setLanguage, t }}>
-			{children}
-		</LanguageContext.Provider>
-	);
+	return <LanguageContext value={{ language, setLanguage, t }}>{children}</LanguageContext>;
 };

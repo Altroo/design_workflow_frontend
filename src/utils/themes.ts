@@ -15,7 +15,3 @@ export const textInputTheme = (primaryColor?: string) => makeTheme('text-input',
 export const navigationBarTheme = (primaryColor?: string) => makeTheme('navigation', { primaryColor });
 export const customDropdownTheme = (primaryColor?: string) => makeTheme('dropdown', { primaryColor });
 export const codeTextInputTheme = (error?: boolean) => makeTheme('code-input', { error });
-export const chipSelectFilterTheme = (primaryColor?: string) => makeTheme('chip-filter', { primaryColor });
-export const customToastTheme = (primaryColor?: string) => makeTheme('toast', { primaryColor });
-export const gridInputTheme = (primaryColor?: string) => makeTheme('grid-input', { primaryColor });
-export const customGridDropdownTheme = (primaryColor?: string) => makeTheme('grid-dropdown', { primaryColor });

@@ -1,6 +1,9 @@
 // change on production to specific domains
-const allowedOrigins: string[] = process.env.ALLOWED_ORIGINS?.split(',').map(o => o.trim()).filter(Boolean)
-	|| (process.env.NODE_ENV !== 'production' ? ['http://localhost:3004'] : ['https://example.elbouazzatiholding.ma']);
+const allowedOrigins: string[] =
+	process.env.ALLOWED_ORIGINS?.split(',')
+		.map((o) => o.trim())
+		.filter(Boolean) ||
+	(process.env.NODE_ENV !== 'production' ? ['http://localhost:3004'] : ['https://example.elbouazzatiholding.ma']);
 
 export const getCorsHeaders = (origin: string | null): HeadersInit => {
 	const headers: HeadersInit = {

@@ -1,6 +1,6 @@
 'use client';
 
-import {type FC} from 'react';
+import { type FC } from 'react';
 import Image from 'next/image';
 import { useLanguage } from '@/utils/hooks';
 import { Desktop, TabletAndMobile } from '@/utils/clientHelpers';

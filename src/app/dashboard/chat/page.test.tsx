@@ -1,6 +1,6 @@
 import { jest } from '@jest/globals';
 import { renderToStaticMarkup } from 'react-dom/server';
-import type {ReactElement, ReactNode} from 'react';
+import type { ReactElement, ReactNode } from 'react';
 
 type Session = { user: { pk: number; email: string } } | null;
 
@@ -20,7 +20,7 @@ jest.mock('@/components/layouts/navigationBar/navigationBar', () => ({
 	__esModule: true,
 	default: ({ children, title }: { children: ReactNode; title?: string }) => {
 		// eslint-disable-next-line @typescript-eslint/no-require-imports
-		const {createElement} = require('react');
+		const { createElement } = require('react');
 		return createElement('section', null, `NAV:${title}`, children);
 	},
 }));
@@ -29,7 +29,7 @@ jest.mock('@/components/pages/design-workflow/designWorkflowChat', () => ({
 	__esModule: true,
 	default: () => {
 		// eslint-disable-next-line @typescript-eslint/no-require-imports
-		const {createElement} = require('react');
+		const { createElement } = require('react');
 		return createElement('div', null, 'WORKFLOW_CHAT');
 	},
 }));

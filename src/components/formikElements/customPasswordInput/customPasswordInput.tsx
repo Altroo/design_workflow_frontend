@@ -1,4 +1,4 @@
-import {useState, type ChangeEvent, type FocusEvent, type ReactNode, type Ref} from 'react';
+import { useState, type ChangeEvent, type FocusEvent, type ReactNode, type Ref } from 'react';
 import { Eye, EyeOff } from 'lucide-react';
 import { useLanguage } from '@/utils/hooks';
 
@@ -21,7 +21,7 @@ type Props = {
 	ref?: Ref<HTMLInputElement>;
 };
 
-const CustomPasswordInput = ({ref, ...props}: Props) => {
+const CustomPasswordInput = ({ ref, ...props }: Props) => {
 	const [showPassword, setShowPassword] = useState(false);
 	const { t } = useLanguage();
 
@@ -50,7 +50,12 @@ const CustomPasswordInput = ({ref, ...props}: Props) => {
 					disabled={props.disabled}
 					onClick={props.onClick}
 					suppressHydrationWarning
-					className={['app-input w-full', props.startIcon ? 'pl-14' : '', 'pr-14', props.error ? 'border-red-300 bg-red-50' : ''].join(' ')}
+					className={[
+						'app-input w-full',
+						props.startIcon ? 'pl-14' : '',
+						'pr-14',
+						props.error ? 'border-red-300 bg-red-50' : '',
+					].join(' ')}
 				/>
 				<button
 					type="button"

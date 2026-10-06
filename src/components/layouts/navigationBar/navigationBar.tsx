@@ -1,6 +1,6 @@
 'use client';
 
-import {useEffect, useRef, useState, type MouseEvent as ReactMouseEvent, type ReactNode} from 'react';
+import { useEffect, useRef, useState, type MouseEvent as ReactMouseEvent, type ReactNode } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import FlagGB from '../../../../public/assets/images/flags/gb.svg';
@@ -42,7 +42,11 @@ import {
 	useMarkNotificationReadMutation,
 } from '@/store/services/designWorkflow';
 import type { NotificationItem } from '@/types/designWorkflowTypes';
-import { getWorkflowNavigation, getWorkflowUtilities, type WorkflowNavItem as NavItem } from '@/components/shared/workflow/workflowNavigation';
+import {
+	getWorkflowNavigation,
+	getWorkflowUtilities,
+	type WorkflowNavItem as NavItem,
+} from '@/components/shared/workflow/workflowNavigation';
 import { WorkflowAvatar } from '@/components/shared/workflow/workflowAvatar';
 import { ThemeToggle } from '@/components/shared/workflow/themeToggle';
 import RealtimeStatus from '@/components/shared/workflow/realtimeStatus';
@@ -127,9 +131,10 @@ const NavigationBar = ({ title, children, hideTopbar = false }: Props) => {
 				label: t.workflow.labels.notificationChat ?? 'Chat',
 				name: sender || labelForNotificationType(notification.type),
 				context: '',
-				href: Number.isInteger(threadId) && threadId > 0
-					? `${DASHBOARD_CHAT}?thread=${threadId}${Number.isInteger(messageId) && messageId > 0 ? `&message=${messageId}` : ''}`
-					: DASHBOARD_CHAT,
+				href:
+					Number.isInteger(threadId) && threadId > 0
+						? `${DASHBOARD_CHAT}?thread=${threadId}${Number.isInteger(messageId) && messageId > 0 ? `&message=${messageId}` : ''}`
+						: DASHBOARD_CHAT,
 				icon: <MessagesSquare size={16} />,
 				tone: 'bg-cyan-50 text-cyan-700 border-cyan-100',
 			};
@@ -232,13 +237,13 @@ const NavigationBar = ({ title, children, hideTopbar = false }: Props) => {
 		});
 	}, [t.workflow.activities, t.workflow.labels.notificationFallback, unreadNotificationsQuery.data]);
 
-	const workflowItems = (getWorkflowNavigation(t, hasManagerAccess, unreadNotifications, unreadChatMessages));
+	const workflowItems = getWorkflowNavigation(t, hasManagerAccess, unreadNotifications, unreadChatMessages);
 
-	const utilityItems = (getWorkflowUtilities(t, Boolean(profile.is_staff || isSuperuser)));
-	const profileMenuItems = ([
-			{ label: t.navigation.myProfile, path: DASHBOARD_EDIT_PROFILE, icon: <CircleUserRound size={16} /> },
-			{ label: t.navigation.changePassword, path: DASHBOARD_PASSWORD, icon: <KeyRound size={16} /> },
-		]);
+	const utilityItems = getWorkflowUtilities(t, Boolean(profile.is_staff || isSuperuser));
+	const profileMenuItems = [
+		{ label: t.navigation.myProfile, path: DASHBOARD_EDIT_PROFILE, icon: <CircleUserRound size={16} /> },
+		{ label: t.navigation.changePassword, path: DASHBOARD_PASSWORD, icon: <KeyRound size={16} /> },
+	];
 
 	const greeting =
 		profile.gender === 'Femme'
@@ -287,8 +292,8 @@ const NavigationBar = ({ title, children, hideTopbar = false }: Props) => {
 					'app-pill workflow-focus-ring workflow-nav-link',
 					'flex w-full items-center gap-3 px-3 py-2.5 text-sm font-semibold transition',
 					active
-						? 'border-[color:var(--accent)] bg-(--accent-soft) text-(--accent-strong) shadow-(--shadow-sm)'
-						: 'text-(--ink-soft) hover:border-[color:var(--line-strong)] hover:bg-(--surface-muted) hover:text-(--ink)',
+						? 'border-(--accent) bg-(--accent-soft) text-(--accent-strong) shadow-(--shadow-sm)'
+						: 'text-(--ink-soft) hover:border-(--line-strong) hover:bg-(--surface-muted) hover:text-(--ink)',
 				].join(' ')}
 			>
 				<span className={active ? 'text-(--accent-strong)' : 'text-(--ink-soft)'}>{item.icon}</span>
@@ -297,7 +302,7 @@ const NavigationBar = ({ title, children, hideTopbar = false }: Props) => {
 					<span
 						aria-label={`${item.badge} ${item.label}`}
 						data-tone={item.path === DASHBOARD_CHAT ? 'chat' : 'notification'}
-						className="workflow-nav-badge inline-flex size-[24px] shrink-0 items-center justify-center rounded-full p-0 text-[11px] font-semibold leading-none text-white"
+						className="workflow-nav-badge inline-flex size-6 shrink-0 items-center justify-center rounded-full p-0 text-[11px] font-semibold leading-none text-white"
 					>
 						{item.badge > 99 ? '99+' : item.badge}
 					</span>
@@ -306,8 +311,9 @@ const NavigationBar = ({ title, children, hideTopbar = false }: Props) => {
 		);
 	};
 
-	const profileAvatarUrl = (typeof profile.avatar_cropped === 'string' && profile.avatar_cropped)
-		|| (typeof profile.avatar === 'string' ? profile.avatar : '');
+	const profileAvatarUrl =
+		(typeof profile.avatar_cropped === 'string' && profile.avatar_cropped) ||
+		(typeof profile.avatar === 'string' ? profile.avatar : '');
 	const profileAvatar = (
 		<WorkflowAvatar
 			user={{
@@ -330,7 +336,7 @@ const NavigationBar = ({ title, children, hideTopbar = false }: Props) => {
 					railOpen ? 'workflow-rail-expanded' : 'items-center',
 				].join(' ')}
 			>
-				<div className="flex w-full items-center justify-between gap-3 border-b border-[color:var(--line)] pb-4">
+				<div className="flex w-full items-center justify-between gap-3 border-b border-(--line) pb-4">
 					<div className="workflow-rail-title min-w-0 flex-1">
 						<p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-(--ink-muted)">
 							{t.navigation.productName}
@@ -355,7 +361,7 @@ const NavigationBar = ({ title, children, hideTopbar = false }: Props) => {
 						{t.navigation.workspace}
 					</p>
 					{workflowItems.map(renderNavLink)}
-					<div className="mt-5 w-full border-t border-[color:var(--line)] pt-4">
+					<div className="mt-5 w-full border-t border-(--line) pt-4">
 						<p className="workflow-nav-section mb-2 px-2 text-[11px] font-semibold uppercase tracking-[0.18em] text-(--ink-muted)">
 							{profile.is_staff ? t.navigation.users : t.navigation.settings}
 						</p>
@@ -363,7 +369,7 @@ const NavigationBar = ({ title, children, hideTopbar = false }: Props) => {
 					</div>
 				</nav>
 
-				<div className="workflow-rail-user mt-5 rounded-lg border border-[color:var(--line)] bg-(--accent-tint) p-3">
+				<div className="workflow-rail-user mt-5 rounded-lg border border-(--line) bg-(--accent-tint) p-3">
 					<div className="workflow-rail-user-content">
 						{profileAvatar}
 						<div className="min-w-0">
@@ -374,7 +380,9 @@ const NavigationBar = ({ title, children, hideTopbar = false }: Props) => {
 								{profile.first_name} {profile.last_name}
 							</p>
 							{profile.is_staff || profile.role === 'manager' ? (
-								<p className="mt-1 text-xs text-(--ink-soft)">{profile.is_staff ? t.users.adminAccount : t.users.managerRole}</p>
+								<p className="mt-1 text-xs text-(--ink-soft)">
+									{profile.is_staff ? t.users.adminAccount : t.users.managerRole}
+								</p>
 							) : null}
 						</div>
 					</div>
@@ -411,7 +419,7 @@ const NavigationBar = ({ title, children, hideTopbar = false }: Props) => {
 										) : null}
 									</button>
 									{notificationsOpen ? (
-										<div className="workflow-topbar-menu workflow-notification-menu absolute right-0 top-[calc(100%+10px)] z-[110] flex w-[360px] max-w-[calc(100vw-24px)] flex-col gap-2 rounded-2xl border border-[color:var(--line)] bg-white p-3 shadow-(--shadow-lg)">
+										<div className="workflow-topbar-menu workflow-notification-menu absolute right-0 top-[calc(100%+10px)] z-110 flex w-90 max-w-[calc(100vw-24px)] flex-col gap-2 rounded-2xl border border-(--line) bg-white p-3 shadow-(--shadow-lg)">
 											<div className="flex items-center justify-between gap-3 px-1">
 												<p className="text-sm font-bold text-(--ink)">{t.navigation.notifications}</p>
 												<Link
@@ -519,7 +527,7 @@ const NavigationBar = ({ title, children, hideTopbar = false }: Props) => {
 									</button>
 
 									{profileMenuOpen ? (
-										<div className="workflow-topbar-menu absolute right-0 top-[calc(100%+10px)] z-[100] flex min-w-[270px] flex-col gap-2 rounded-2xl border border-[color:var(--line)] bg-white p-3 shadow-(--shadow-lg)">
+										<div className="workflow-topbar-menu absolute right-0 top-[calc(100%+10px)] z-100 flex min-w-67.5 flex-col gap-2 rounded-2xl border border-(--line) bg-white p-3 shadow-(--shadow-lg)">
 											<div className="flex flex-col gap-2">{profileMenuItems.map(renderNavLink)}</div>
 											<button
 												type="button"
@@ -542,11 +550,14 @@ const NavigationBar = ({ title, children, hideTopbar = false }: Props) => {
 
 				<div
 					className={[
-						'workflow-content-frame mx-auto flex w-full max-w-[1520px] flex-col gap-4',
+						'workflow-content-frame mx-auto flex w-full max-w-380 flex-col gap-4',
 						hideTopbar ? '' : 'workflow-content-frame-with-topbar',
 					].join(' ')}
 				>
-					<main className="min-w-0 pb-6"><RealtimeStatus />{children}</main>
+					<main className="min-w-0 pb-6">
+						<RealtimeStatus />
+						{children}
+					</main>
 				</div>
 			</div>
 

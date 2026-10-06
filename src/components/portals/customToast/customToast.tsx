@@ -1,4 +1,4 @@
-import {useEffect, type Dispatch, type FC, type ReactNode, type SetStateAction} from 'react';
+import { useEffect, type Dispatch, type FC, type ReactNode, type SetStateAction } from 'react';
 import { AlertCircle, CheckCircle2, Info, TriangleAlert, X } from 'lucide-react';
 import type { ToastType } from '@/contexts/toastContext';
 
@@ -21,7 +21,7 @@ const toneMap = {
 	},
 	info: {
 		icon: <Info className="h-5 w-5" />,
-		accent: 'border-l-[var(--accent)]',
+		accent: 'border-l-(--accent)',
 	},
 	warning: {
 		icon: <TriangleAlert className="h-5 w-5" />,
@@ -49,11 +49,11 @@ const CustomToast: FC<Props> = ({ type, show, setShow, message }) => {
 	const tone = toneMap[type];
 
 	return (
-		<div className="pointer-events-none fixed bottom-4 left-4 z-[120]">
+		<div className="pointer-events-none fixed bottom-4 left-4 z-120">
 			<div
 				role="alert"
 				className={[
-					'ui-toast pointer-events-auto flex min-w-[280px] max-w-[420px] items-start gap-3 rounded-2xl border border-[color:var(--line-strong)] bg-white p-4 shadow-(--shadow-lg)',
+					'ui-toast pointer-events-auto flex min-w-70 max-w-105 items-start gap-3 rounded-2xl border border-(--line-strong) bg-white p-4 shadow-(--shadow-lg)',
 					'border-l-4',
 					tone.accent,
 				].join(' ')}

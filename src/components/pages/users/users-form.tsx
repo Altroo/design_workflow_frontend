@@ -1,20 +1,10 @@
 'use client';
 
-import {runWithCleanup, runAsyncWithErrorHandler} from '@/utils/runWithCleanup';
-import { useEffect, useEffectEvent, useRef, useState, type FC, type MouseEvent} from 'react';
+import { runWithCleanup, runAsyncWithErrorHandler } from '@/utils/runWithCleanup';
+import { useEffect, useEffectEvent, useRef, useState, type FC, type MouseEvent } from 'react';
 import type { ApiErrorResponseType, ResponseDataInterface, SessionProps } from '@/types/_initTypes';
 import NavigationBar from '@/components/layouts/navigationBar/navigationBar';
-import {
-	ArrowLeft,
-	BadgeCheck,
-	Mail,
-	PencilLine,
-	Plus,
-	Shield,
-	TriangleAlert,
-	UserRound,
-	Users,
-} from 'lucide-react';
+import { ArrowLeft, BadgeCheck, Mail, PencilLine, Plus, Shield, TriangleAlert, UserRound, Users } from 'lucide-react';
 import { useFormik } from 'formik';
 import { toFormikValidationSchema } from 'zod-formik-adapter';
 import CustomTextInput from '@/components/formikElements/customTextInput/customTextInput';
@@ -64,7 +54,8 @@ type FormikContentProps = {
 	id?: number;
 };
 
-const normalizeGenderValue = (value?: string | null) => (value === 'Homme' ? 'H' : value === 'Femme' ? 'F' : value ?? '');
+const normalizeGenderValue = (value?: string | null) =>
+	value === 'Homme' ? 'H' : value === 'Femme' ? 'F' : (value ?? '');
 
 const userFormValues = (user?: Partial<UserClass>): UserFormValues => ({
 	first_name: user?.first_name ?? '',
@@ -148,31 +139,38 @@ const FormikContent: FC<FormikContentProps> = ({ token, id }) => {
 			void globalError;
 			// The endpoint accepts partial PUTs: never overwrite unrelated live edits.
 			const fields = isEditMode
-				? Object.fromEntries(Object.entries(allFields).filter(([key, value]) => value !== serverValues.current[key as keyof UserFormValues]))
+				? Object.fromEntries(
+						Object.entries(allFields).filter(
+							([key, value]) => value !== serverValues.current[key as keyof UserFormValues],
+						),
+					)
 				: allFields;
 			await runWithCleanup(
-			  async () => {
-			    await runAsyncWithErrorHandler(async () => {
-			      if (rawData?.email !== data.email) {
-			        await checkEmail({email: data.email}).unwrap();
-			      }
-			      if (isEditMode) {
-			        await editUser({id: id!, data: fields}).unwrap();
-			        onSuccess(t.users.userUpdatedSuccess);
-			        router.push(USERS_VIEW(id!));
-			      } else {
-			        await addUser({data: fields}).unwrap();
-			        onSuccess(t.users.userCreatedSuccess);
-			        router.push(USERS_LIST);
-			      }
-			    }, (e) => {
-			      onError(isEditMode ? t.users.userUpdateError : t.users.userCreateError);
-			      setFormikAutoErrors({e, setFieldError});
-			    });
-			  },
-			  () => {
-			    setIsPending(false);
-			  },
+				async () => {
+					await runAsyncWithErrorHandler(
+						async () => {
+							if (rawData?.email !== data.email) {
+								await checkEmail({ email: data.email }).unwrap();
+							}
+							if (isEditMode) {
+								await editUser({ id: id!, data: fields }).unwrap();
+								onSuccess(t.users.userUpdatedSuccess);
+								router.push(USERS_VIEW(id!));
+							} else {
+								await addUser({ data: fields }).unwrap();
+								onSuccess(t.users.userCreatedSuccess);
+								router.push(USERS_LIST);
+							}
+						},
+						(e) => {
+							onError(isEditMode ? t.users.userUpdateError : t.users.userCreateError);
+							setFormikAutoErrors({ e, setFieldError });
+						},
+					);
+				},
+				() => {
+					setIsPending(false);
+				},
 			);
 		},
 	});
@@ -182,14 +180,22 @@ const FormikContent: FC<FormikContentProps> = ({ token, id }) => {
 		const next = userFormValues(rawData);
 		const previous = serverValues.current;
 		const draft = formik.values;
-		const conflicts = (Object.keys(next) as Array<keyof UserFormValues>).filter((key) =>
-			key !== 'globalError' && next[key] !== previous[key] && draft[key] !== previous[key] && draft[key] !== next[key],
+		const conflicts = (Object.keys(next) as Array<keyof UserFormValues>).filter(
+			(key) =>
+				key !== 'globalError' &&
+				next[key] !== previous[key] &&
+				draft[key] !== previous[key] &&
+				draft[key] !== next[key],
 		);
-		setConflictedFields((current) => [...new Set([...current, ...conflicts])].filter((key) => draft[key] !== next[key]));
+		setConflictedFields((current) =>
+			[...new Set([...current, ...conflicts])].filter((key) => draft[key] !== next[key]),
+		);
 		serverValues.current = next;
 		void formik.setValues(mergeLiveDraft(draft, previous, next), false);
 	});
-	useEffect(() => { refreshServerValues(); }, [rawData]);
+	useEffect(() => {
+		refreshServerValues();
+	}, [rawData]);
 	const hasRemoteConflict = conflictedFields.some((key) => formik.values[key] !== userFormValues(rawData)[key]);
 
 	const fieldLabels: Record<string, string> = {
@@ -221,18 +227,14 @@ const FormikContent: FC<FormikContentProps> = ({ token, id }) => {
 				title={isEditMode ? t.users.editUser : t.users.createUser}
 				actionsWrapper={false}
 				actions={
-					<button
-						type="button"
-						onClick={() => router.push(USERS_LIST)}
-						className="workflow-user-form-back"
-					>
+					<button type="button" onClick={() => router.push(USERS_LIST)} className="workflow-user-form-back">
 						<ArrowLeft className="h-4 w-4" />
 						<span>{t.navigation.usersList}</span>
 					</button>
 				}
 			/>
 			{hasRemoteConflict ? (
-				<div role="status" className="workflow-user-form-alert text-sm text-[color:var(--muted)]">
+				<div role="status" className="workflow-user-form-alert text-sm text-(--muted)">
 					{language === 'en'
 						? 'This user was changed elsewhere. Your edits are kept. Check them before saving; saving replaces the changed fields.'
 						: 'Cet utilisateur a été modifié ailleurs. Vos saisies sont conservées. Vérifiez-les avant d’enregistrer : les champs modifiés seront remplacés.'}
@@ -285,7 +287,11 @@ const FormikContent: FC<FormikContentProps> = ({ token, id }) => {
 						</div>
 
 						<div className="workflow-user-form-panel">
-							<WorkflowIconPill tone="green" icon={<BadgeCheck className="h-4 w-4" />} label={t.users.accountSettings} />
+							<WorkflowIconPill
+								tone="green"
+								icon={<BadgeCheck className="h-4 w-4" />}
+								label={t.users.accountSettings}
+							/>
 							<div className="workflow-user-form-toggle-stack">
 								<ToggleRow
 									label={t.users.activeAccount}
@@ -370,10 +376,30 @@ const FormikContent: FC<FormikContentProps> = ({ token, id }) => {
 						<div className="workflow-user-form-panel">
 							<WorkflowIconPill tone="cyan" icon={<Shield className="h-4 w-4" />} label={t.users.permissions} />
 							<div className="workflow-user-form-permissions">
-								<ToggleRow label={t.users.canView} name="can_view" checked={formik.values.can_view} onChange={(checked) => void formik.setFieldValue('can_view', checked)} />
-								<ToggleRow label={t.users.canCreate} name="can_create" checked={formik.values.can_create} onChange={(checked) => void formik.setFieldValue('can_create', checked)} />
-								<ToggleRow label={t.users.canEdit} name="can_edit" checked={formik.values.can_edit} onChange={(checked) => void formik.setFieldValue('can_edit', checked)} />
-								<ToggleRow label={t.users.canDelete} name="can_delete" checked={formik.values.can_delete} onChange={(checked) => void formik.setFieldValue('can_delete', checked)} />
+								<ToggleRow
+									label={t.users.canView}
+									name="can_view"
+									checked={formik.values.can_view}
+									onChange={(checked) => void formik.setFieldValue('can_view', checked)}
+								/>
+								<ToggleRow
+									label={t.users.canCreate}
+									name="can_create"
+									checked={formik.values.can_create}
+									onChange={(checked) => void formik.setFieldValue('can_create', checked)}
+								/>
+								<ToggleRow
+									label={t.users.canEdit}
+									name="can_edit"
+									checked={formik.values.can_edit}
+									onChange={(checked) => void formik.setFieldValue('can_edit', checked)}
+								/>
+								<ToggleRow
+									label={t.users.canDelete}
+									name="can_delete"
+									checked={formik.values.can_delete}
+									onChange={(checked) => void formik.setFieldValue('can_delete', checked)}
+								/>
 							</div>
 						</div>
 
@@ -383,9 +409,7 @@ const FormikContent: FC<FormikContentProps> = ({ token, id }) => {
 								buttonText={isEditMode ? t.users.updateUser : t.users.addUser}
 								active={!isPending}
 								loading={isPending}
-								startIcon={
-									isEditMode ? <PencilLine className="h-4 w-4" /> : <Plus className="h-4 w-4" />
-								}
+								startIcon={isEditMode ? <PencilLine className="h-4 w-4" /> : <Plus className="h-4 w-4" />}
 								onClick={(e: MouseEvent<HTMLButtonElement>) => {
 									setHasAttemptedSubmit(true);
 									if (!formik.isValid) {

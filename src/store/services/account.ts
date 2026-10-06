@@ -78,7 +78,13 @@ export const usersApi = createApi({
 	endpoints: (builder) => ({
 		getUsersList: builder.query<
 			SuccessResponseType<Array<Partial<UserClass>>> | PaginationResponseType<Partial<UserClass>>,
-			{ with_pagination?: boolean; page?: number; pageSize?: number; search?: string; [key: string]: string | number | boolean | undefined }
+			{
+				with_pagination?: boolean;
+				page?: number;
+				pageSize?: number;
+				search?: string;
+				[key: string]: string | number | boolean | undefined;
+			}
 		>({
 			query: ({ with_pagination, page, pageSize, search, ...rest }) => ({
 				url: process.env.NEXT_PUBLIC_USERS_ROOT,

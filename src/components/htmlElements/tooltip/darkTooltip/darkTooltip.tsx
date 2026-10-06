@@ -1,4 +1,4 @@
-import {type ReactNode, isValidElement} from 'react';
+import { type ReactNode, isValidElement } from 'react';
 
 type TooltipProps = {
 	title?: ReactNode;

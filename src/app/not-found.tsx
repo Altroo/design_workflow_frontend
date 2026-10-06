@@ -11,7 +11,7 @@ const NotFound = () => {
 
 	return (
 		<div className="flex min-h-screen items-center justify-center px-4 py-8">
-			<div className="app-card w-full max-w-[560px] p-8 text-center">
+			<div className="app-card w-full max-w-140 p-8 text-center">
 				<div className="mx-auto flex h-20 w-20 items-center justify-center rounded-lg bg-(--surface-muted) text-(--ink-soft)">
 					<OctagonAlert size={42} />
 				</div>

@@ -1,4 +1,4 @@
-import {useState, type ComponentType, type FC} from 'react';
+import { useState, type ComponentType, type FC } from 'react';
 import { formatLocalDate } from '@/utils/helpers';
 import { useLanguage } from '@/utils/hooks';
 
@@ -34,13 +34,13 @@ const DateRangeFilterInput: FC<GridFilterInputValueProps> = (props) => {
 	const handleFromChange = (date: Date | null) => {
 		setFromDate(date);
 		let effectiveToDate = toDate;
-		
+
 		// If new from date is after to date, adjust to date
 		if (date && toDate && date > toDate) {
 			effectiveToDate = date;
 			setToDate(date);
 		}
-		
+
 		const newValue: DateRangeValue = {
 			from: date ? formatLocalDate(date) : undefined,
 			to: effectiveToDate ? formatLocalDate(effectiveToDate) : formatLocalDate(new Date()),
@@ -69,7 +69,7 @@ const DateRangeFilterInput: FC<GridFilterInputValueProps> = (props) => {
 					type="date"
 					value={fromDate ? formatLocalDate(fromDate) : ''}
 					onChange={(event) => handleFromChange(event.target.value ? new Date(event.target.value) : null)}
-					className="app-input min-w-[180px]"
+					className="app-input min-w-45"
 				/>
 			</label>
 			<label className="flex flex-col gap-1 text-xs font-medium text-(--ink-soft)">
@@ -78,7 +78,7 @@ const DateRangeFilterInput: FC<GridFilterInputValueProps> = (props) => {
 					type="date"
 					value={toDate ? formatLocalDate(toDate) : ''}
 					onChange={(event) => handleToChange(event.target.value ? new Date(event.target.value) : null)}
-					className="app-input min-w-[180px]"
+					className="app-input min-w-45"
 				/>
 			</label>
 		</div>

@@ -16,11 +16,11 @@ describe('account slice', () => {
 		'2024-01-01T00:00:00Z',
 		'2024-06-01T00:00:00Z',
 		'2024-06-01T00:00:00Z',
-		true,   // can_view
-		false,  // can_print
-		true,   // can_create
-		false,  // can_edit
-		false,  // can_delete
+		true, // can_view
+		false, // can_print
+		true, // can_create
+		false, // can_edit
+		false, // can_delete
 	);
 
 	it('returns the initial state when given undefined state', () => {

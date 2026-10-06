@@ -10,7 +10,11 @@ jest.mock('@/utils/hooks', () => ({
 	usePermission: jest.fn(),
 	useAppSelector: jest.fn(),
 	useAppDispatch: jest.fn(),
-	useLanguage: () => ({ language: 'fr', setLanguage: jest.fn(), t: jest.requireActual('@/translations').translations.fr }),
+	useLanguage: () => ({
+		language: 'fr',
+		setLanguage: jest.fn(),
+		t: jest.requireActual('@/translations').translations.fr,
+	}),
 }));
 jest.mock('next-auth/react', () => ({ useSession: jest.fn() }));
 jest.mock('@/contexts/InitContext', () => ({ useInitAccessToken: jest.fn() }));

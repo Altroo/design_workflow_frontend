@@ -67,4 +67,25 @@ describe('makeStore', () => {
 	it('dispatch is available', () => {
 		expect(typeof dispatch).toBe('function');
 	});
+
+	it('keeps RTK Query file arguments excluded using the default action paths', () => {
+		const error = jest.spyOn(console, 'error').mockImplementation(() => {});
+		try {
+			dispatch({ type: 'query/upload', meta: { arg: new File(['test'], 'test.txt'), baseQueryMeta: new Date() } });
+			expect(error).not.toHaveBeenCalled();
+		} finally {
+			error.mockRestore();
+		}
+	});
+
+	it('still detects non-serializable application payloads and unused persist actions', () => {
+		const error = jest.spyOn(console, 'error').mockImplementation(() => {});
+		try {
+			dispatch({ type: 'persist/PERSIST', payload: { timestamp: new Date() } });
+			expect(error).toHaveBeenCalled();
+			expect(String(error.mock.calls[0][0])).toContain('payload.timestamp');
+		} finally {
+			error.mockRestore();
+		}
+	});
 });

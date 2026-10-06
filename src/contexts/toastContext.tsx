@@ -1,6 +1,6 @@
 'use client';
 
-import {createContext, useState, type FC, type ReactNode} from 'react';
+import { createContext, useState, type FC, type ReactNode } from 'react';
 import Portal from '@/contexts/portal';
 import CustomToast from '@/components/portals/customToast/customToast';
 
@@ -31,11 +31,11 @@ export const ToastContextProvider: FC<{ children: ReactNode }> = ({ children }) 
 	};
 
 	return (
-		<ToastContext.Provider value={{ onSuccess, onError }}>
+		<ToastContext value={{ onSuccess, onError }}>
 			{children}
 			<Portal id="snackbar_portal">
 				<CustomToast type={type} message={message} setShow={setShow} show={show} />
 			</Portal>
-		</ToastContext.Provider>
+		</ToastContext>
 	);
 };

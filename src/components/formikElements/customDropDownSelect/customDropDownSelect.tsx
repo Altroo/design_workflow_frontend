@@ -1,4 +1,4 @@
-import {type ChangeEvent, type FC, type FocusEvent, type ReactNode} from 'react';
+import { type ChangeEvent, type FC, type FocusEvent, type ReactNode } from 'react';
 import * as Select from '@radix-ui/react-select';
 import { ChevronDown } from 'lucide-react';
 import { DropDownType } from '@/types/accountTypes';
@@ -34,11 +34,11 @@ const CustomDropDownSelect: FC<Props> = (props: Props) => {
 		props.onChange?.(event);
 	};
 
-	const options = props.items.map((item, index) => {
-		const isObject = typeof item === 'object' && item !== null && 'value' in item;
-		const optionValue = String(isObject && 'code' in item ? item.code : item);
-		const optionLabel = String(isObject ? item.value : item || t.common.selectValue);
-		return { key: `${optionValue}-${index}`, value: optionValue, label: optionLabel };
+	const options = props.items.flatMap((item, index) => {
+		if (item == null) return [];
+		const optionValue = String(typeof item === 'object' ? item.code : item);
+		const optionLabel = String(typeof item === 'object' ? item.value : item || t.common.selectValue);
+		return optionValue ? [{ key: `${optionValue}-${index}`, value: optionValue, label: optionLabel }] : [];
 	});
 
 	return (
@@ -57,7 +57,11 @@ const CustomDropDownSelect: FC<Props> = (props: Props) => {
 						id={props.id}
 						data-testid={`dropdown-${props.id}`}
 						aria-label={props.label}
-						onBlur={() => props.onBlur?.({ target: { id: props.id, name: props.id, value: props.value ?? '' } } as unknown as FocusEvent<HTMLSelectElement>)}
+						onBlur={() =>
+							props.onBlur?.({
+								target: { id: props.id, name: props.id, value: props.value ?? '' },
+							} as unknown as FocusEvent<HTMLSelectElement>)
+						}
 						className={[
 							'app-input app-select-trigger w-full text-left',
 							props.startIcon ? 'pl-14' : '',
@@ -69,7 +73,7 @@ const CustomDropDownSelect: FC<Props> = (props: Props) => {
 						<Select.Icon asChild>{props.endIcon ?? <ChevronDown size={18} />}</Select.Icon>
 					</Select.Trigger>
 					<Select.Portal>
-						<Select.Content className="app-select-content z-[9999]" position="popper" sideOffset={8}>
+						<Select.Content className="app-select-content z-9999" position="popper" sideOffset={8}>
 							<Select.Viewport className="p-1">
 								{options.map((option) => (
 									<Select.Item key={option.key} value={option.value} className="app-select-item">

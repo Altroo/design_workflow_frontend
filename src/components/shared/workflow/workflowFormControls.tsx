@@ -17,7 +17,7 @@ const cx = (...parts: Array<string | false | null | undefined>) => parts.filter(
 type WorkflowSelectFieldProps = {
 	id?: string;
 	value: string;
-	onChange: (value: string) => void;
+	onChangeAction: (value: string) => void;
 	options: Array<{ value: string | number; label: string }>;
 	startIcon?: ReactNode;
 	placeholder?: string;
@@ -29,7 +29,7 @@ type WorkflowSelectFieldProps = {
 export const WorkflowSelectField = ({
 	id,
 	value,
-	onChange,
+	onChangeAction,
 	options,
 	startIcon,
 	placeholder,
@@ -44,7 +44,7 @@ export const WorkflowSelectField = ({
 		<Select.Root
 			disabled={disabled}
 			value={normalizedValue}
-			onValueChange={(nextValue) => onChange(nextValue === EMPTY_SELECT_VALUE ? '' : nextValue)}
+			onValueChange={(nextValue) => onChangeAction(nextValue === EMPTY_SELECT_VALUE ? '' : nextValue)}
 		>
 			<Select.Trigger
 				id={id}
@@ -63,7 +63,7 @@ export const WorkflowSelectField = ({
 				</Select.Icon>
 			</Select.Trigger>
 			<Select.Portal>
-				<Select.Content className="app-select-content z-[9999]" position="popper" sideOffset={8}>
+				<Select.Content className="app-select-content z-9999" position="popper" sideOffset={8}>
 					<Select.Viewport className="app-select-viewport p-1">
 						{options.map((option) => {
 							const optionValue = option.value === '' ? EMPTY_SELECT_VALUE : String(option.value);
@@ -83,7 +83,7 @@ export const WorkflowSelectField = ({
 type WorkflowDateFieldProps = {
 	id?: string;
 	value?: string | null;
-	onChange: (value: string) => void;
+	onChangeAction: (value: string) => void;
 	placeholder?: string;
 	ariaLabel?: string;
 	clearLabel?: string;
@@ -94,7 +94,7 @@ type WorkflowDateFieldProps = {
 export const WorkflowDateField = ({
 	id,
 	value,
-	onChange,
+	onChangeAction,
 	placeholder,
 	ariaLabel,
 	clearLabel,
@@ -137,7 +137,7 @@ export const WorkflowDateField = ({
 						type="button"
 						aria-label={resolvedClearLabel}
 						className="absolute right-4 top-1/2 z-10 -translate-y-1/2 text-(--ink-soft)"
-						onClick={() => onChange('')}
+						onClick={() => onChangeAction('')}
 					>
 						<X size={16} />
 					</button>
@@ -150,7 +150,7 @@ export const WorkflowDateField = ({
 						mode="single"
 						selected={selectedDate ?? undefined}
 						onSelect={(date) => {
-							onChange(date ? format(date, 'yyyy-MM-dd') : '');
+							onChangeAction(date ? format(date, 'yyyy-MM-dd') : '');
 							if (date) setOpen(false);
 						}}
 						captionLayout="label"

@@ -1,7 +1,7 @@
 'use client';
 
-import {runWithCleanup} from '@/utils/runWithCleanup';
-import {useState, type FC} from 'react';
+import { runWithCleanup } from '@/utils/runWithCleanup';
+import { useState, type FC } from 'react';
 import { LockKeyhole, PencilLine, ShieldCheck, TriangleAlert } from 'lucide-react';
 import { setFormikAutoErrors } from '@/utils/helpers';
 import { useFormik } from 'formik';
@@ -35,25 +35,25 @@ const FormikContent: FC = () => {
 		onSubmit: async (values, { setFieldError, resetForm }) => {
 			setIsPending(true);
 			await runWithCleanup(
-			  async () => {
-			    try {
-			      await changePassword({
-			        data: {
-			          old_password: values.old_password,
-			          new_password: values.new_password,
-			          new_password2: values.new_password2,
-			        },
-			      }).unwrap();
-			      onSuccess(t.settings.passwordChangeSuccess);
-			      resetForm();
-			    } catch (e) {
-			      onError(t.settings.passwordChangeError);
-			      setFormikAutoErrors({e, setFieldError});
-			    }
-			  },
-			  () => {
-			    setIsPending(false);
-			  },
+				async () => {
+					try {
+						await changePassword({
+							data: {
+								old_password: values.old_password,
+								new_password: values.new_password,
+								new_password2: values.new_password2,
+							},
+						}).unwrap();
+						onSuccess(t.settings.passwordChangeSuccess);
+						resetForm();
+					} catch (e) {
+						onError(t.settings.passwordChangeError);
+						setFormikAutoErrors({ e, setFieldError });
+					}
+				},
+				() => {
+					setIsPending(false);
+				},
 			);
 		},
 	});
@@ -61,7 +61,12 @@ const FormikContent: FC = () => {
 	return (
 		<div className="workflow-user-form-shell workflow-password-shell">
 			{(isChangePasswordLoading || isPending) && <ApiProgress backdropColor="#FFFFFF" circularColor="var(--accent)" />}
-			<WorkflowPageHero element="div" className="workflow-user-form-hero" eyebrow={t.settings.passwordStudio} title={t.settings.changePassword} />
+			<WorkflowPageHero
+				element="div"
+				className="workflow-user-form-hero"
+				eyebrow={t.settings.passwordStudio}
+				title={t.settings.changePassword}
+			/>
 
 			<form className="workflow-user-form-grid workflow-password-grid" onSubmit={formik.handleSubmit}>
 				<section className="workflow-user-form-side">

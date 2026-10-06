@@ -1,9 +1,21 @@
 'use client';
 
-import {runWithCleanup} from '@/utils/runWithCleanup';
-import { useState, type FC} from 'react';
+import { runWithCleanup } from '@/utils/runWithCleanup';
+import { useState, type FC } from 'react';
 import { useRouter } from 'next/navigation';
-import { ArrowLeft, CheckCircle2, Eye, PencilLine, Plus, Search, ShieldCheck, ShieldX, Trash2, Users, XCircle } from 'lucide-react';
+import {
+	ArrowLeft,
+	CheckCircle2,
+	Eye,
+	PencilLine,
+	Plus,
+	Search,
+	ShieldCheck,
+	ShieldX,
+	Trash2,
+	Users,
+	XCircle,
+} from 'lucide-react';
 import { useInitAccessToken } from '@/contexts/InitContext';
 import NavigationBar from '@/components/layouts/navigationBar/navigationBar';
 import { useDeleteUserMutation, useGetUsersListQuery, useBulkDeleteUsersMutation } from '@/store/services/account';
@@ -63,40 +75,40 @@ const UsersListClient: FC<SessionProps> = ({ session }) => {
 	const totalPages = Math.max(1, Math.ceil((data?.count ?? 0) / paginationModel.pageSize));
 	const allVisibleSelected = rows.length > 0 && rows.every((user) => selectedUserIds.includes(user.id));
 
-	const pageLabel = (`${paginationModel.page + 1} / ${totalPages}`);
+	const pageLabel = `${paginationModel.page + 1} / ${totalPages}`;
 
 	const deleteHandler = async () => {
 		await runWithCleanup(
-		  async () => {
-		    try {
-		      await deleteRecord({id: selectedUserId!}).unwrap();
-		      onSuccess(t.users.userDeletedSuccess);
-		      refetch();
-		    } catch (err) {
-		      onError(extractApiErrorMessage(err, t.users.userDeleteError));
-		    }
-		  },
-		  () => {
-		    setShowDeleteModal(false);
-		  },
+			async () => {
+				try {
+					await deleteRecord({ id: selectedUserId! }).unwrap();
+					onSuccess(t.users.userDeletedSuccess);
+					refetch();
+				} catch (err) {
+					onError(extractApiErrorMessage(err, t.users.userDeleteError));
+				}
+			},
+			() => {
+				setShowDeleteModal(false);
+			},
 		);
 	};
 
 	const bulkDeleteHandler = async () => {
 		await runWithCleanup(
-		  async () => {
-		    try {
-		      await bulkDeleteUsers({ids: selectedUserIds}).unwrap();
-		      onSuccess(t.users.bulkUserDeletedSuccess(selectedUserIds.length));
-		    } catch (err) {
-		      onError(extractApiErrorMessage(err, t.users.userDeleteError));
-		    }
-		  },
-		  () => {
-		    setSelectedUserIds([]);
-		    setShowBulkDeleteModal(false);
-		    refetch();
-		  },
+			async () => {
+				try {
+					await bulkDeleteUsers({ ids: selectedUserIds }).unwrap();
+					onSuccess(t.users.bulkUserDeletedSuccess(selectedUserIds.length));
+				} catch (err) {
+					onError(extractApiErrorMessage(err, t.users.userDeleteError));
+				}
+			},
+			() => {
+				setSelectedUserIds([]);
+				setShowBulkDeleteModal(false);
+				refetch();
+			},
 		);
 	};
 
@@ -116,7 +128,10 @@ const UsersListClient: FC<SessionProps> = ({ session }) => {
 	const fullNameFor = (user: UserClass) => [user.first_name, user.last_name].filter(Boolean).join(' ') || user.email;
 
 	const userAvatar = (user: UserClass) => {
-		const avatar = typeof (user.avatar_cropped || user.avatar) === 'string' ? (user.avatar_cropped || user.avatar) as string : null;
+		const avatar =
+			typeof (user.avatar_cropped || user.avatar) === 'string'
+				? ((user.avatar_cropped || user.avatar) as string)
+				: null;
 		return (
 			<WorkflowAvatar
 				user={{ first_name: user.first_name, last_name: user.last_name, email: user.email, avatar }}
@@ -128,10 +143,24 @@ const UsersListClient: FC<SessionProps> = ({ session }) => {
 	};
 
 	const statusIcon = (enabled: boolean, label: string, tone: 'active' | 'admin') => (
-		<span className="workflow-users-status-icon" data-active={enabled} data-tone={tone} title={label} aria-label={label}>
-			{tone === 'admin'
-				? (enabled ? <ShieldCheck className="h-4 w-4" /> : <ShieldX className="h-4 w-4" />)
-				: (enabled ? <CheckCircle2 className="h-4 w-4" /> : <XCircle className="h-4 w-4" />)}
+		<span
+			className="workflow-users-status-icon"
+			data-active={enabled}
+			data-tone={tone}
+			title={label}
+			aria-label={label}
+		>
+			{tone === 'admin' ? (
+				enabled ? (
+					<ShieldCheck className="h-4 w-4" />
+				) : (
+					<ShieldX className="h-4 w-4" />
+				)
+			) : enabled ? (
+				<CheckCircle2 className="h-4 w-4" />
+			) : (
+				<XCircle className="h-4 w-4" />
+			)}
 		</span>
 	);
 
@@ -170,10 +199,34 @@ const UsersListClient: FC<SessionProps> = ({ session }) => {
 						/>
 
 						<div className="workflow-users-metrics">
-							<WorkflowSimpleMetric className="workflow-users-metric" tone="indigo" icon={<Users size={18} />} label={t.users.totalUsers} value={totalUsers} />
-							<WorkflowSimpleMetric className="workflow-users-metric" tone="green" icon={<CheckCircle2 size={18} />} label={t.users.activeUsers} value={activeUsers} />
-							<WorkflowSimpleMetric className="workflow-users-metric" tone="cyan" icon={<ShieldCheck size={18} />} label={t.users.adminUsers} value={adminUsers} />
-							<WorkflowSimpleMetric className="workflow-users-metric" tone="rose" icon={<Trash2 size={18} />} label={t.users.selectedUsers} value={selectedUserIds.length} />
+							<WorkflowSimpleMetric
+								className="workflow-users-metric"
+								tone="indigo"
+								icon={<Users size={18} />}
+								label={t.users.totalUsers}
+								value={totalUsers}
+							/>
+							<WorkflowSimpleMetric
+								className="workflow-users-metric"
+								tone="green"
+								icon={<CheckCircle2 size={18} />}
+								label={t.users.activeUsers}
+								value={activeUsers}
+							/>
+							<WorkflowSimpleMetric
+								className="workflow-users-metric"
+								tone="cyan"
+								icon={<ShieldCheck size={18} />}
+								label={t.users.adminUsers}
+								value={adminUsers}
+							/>
+							<WorkflowSimpleMetric
+								className="workflow-users-metric"
+								tone="rose"
+								icon={<Trash2 size={18} />}
+								label={t.users.selectedUsers}
+								value={selectedUserIds.length}
+							/>
 						</div>
 
 						<div className="workflow-users-board">
@@ -182,7 +235,9 @@ const UsersListClient: FC<SessionProps> = ({ session }) => {
 									<p>{t.users.usersRegister}</p>
 									<h2>{t.navigation.usersList}</h2>
 								</div>
-								<span>{totalUsers} {t.users.totalUsers}</span>
+								<span>
+									{totalUsers} {t.users.totalUsers}
+								</span>
 							</div>
 							<div className="workflow-users-toolbar">
 								<div className="relative w-full max-w-md">
@@ -201,19 +256,19 @@ const UsersListClient: FC<SessionProps> = ({ session }) => {
 									<button
 										type="button"
 										onClick={toggleVisibleRows}
-										className="app-pill inline-flex items-center gap-2 border border-[color:var(--line)] bg-(--surface-muted) px-4 py-2 text-sm font-medium text-(--ink)"
+										className="app-pill inline-flex items-center gap-2 border border-(--line) bg-(--surface-muted) px-4 py-2 text-sm font-medium text-(--ink)"
 									>
 										<Users className="h-4 w-4" />
 										<span>{allVisibleSelected ? t.users.unselectPage : t.users.selectPage}</span>
 									</button>
-									<span className="workflow-users-page-pill">{t.users.page} {pageLabel}</span>
+									<span className="workflow-users-page-pill">
+										{t.users.page} {pageLabel}
+									</span>
 									<button
 										type="button"
-										onClick={() =>
-											setPaginationModel((prev) => ({ ...prev, page: Math.max(0, prev.page - 1) }))
-										}
+										onClick={() => setPaginationModel((prev) => ({ ...prev, page: Math.max(0, prev.page - 1) }))}
 										disabled={paginationModel.page <= 0}
-										className="app-pill border border-[color:var(--line)] px-3 py-2 text-sm disabled:opacity-50"
+										className="app-pill border border-(--line) px-3 py-2 text-sm disabled:opacity-50"
 									>
 										{t.users.previous}
 									</button>
@@ -223,7 +278,7 @@ const UsersListClient: FC<SessionProps> = ({ session }) => {
 											setPaginationModel((prev) => ({ ...prev, page: Math.min(totalPages - 1, prev.page + 1) }))
 										}
 										disabled={paginationModel.page >= totalPages - 1}
-										className="app-pill border border-[color:var(--line)] px-3 py-2 text-sm disabled:opacity-50"
+										className="app-pill border border-(--line) px-3 py-2 text-sm disabled:opacity-50"
 									>
 										{t.users.next}
 									</button>
@@ -237,10 +292,15 @@ const UsersListClient: FC<SessionProps> = ({ session }) => {
 									<ApiAlert errorDetails={undefined} />
 								) : (
 									<table className="workflow-users-table min-w-full text-left text-sm">
-										<thead className="border-b border-[color:var(--line)] text-(--ink-soft)">
+										<thead className="border-b border-(--line) text-(--ink-soft)">
 											<tr>
 												<th className="px-4 py-3">
-													<input type="checkbox" checked={allVisibleSelected} onChange={toggleVisibleRows} className="app-check" />
+													<input
+														type="checkbox"
+														checked={allVisibleSelected}
+														onChange={toggleVisibleRows}
+														className="app-check"
+													/>
 												</th>
 												<th className="px-4 py-3 font-medium">{t.users.user}</th>
 												<th className="px-4 py-3 font-medium">{t.users.email}</th>
@@ -255,7 +315,7 @@ const UsersListClient: FC<SessionProps> = ({ session }) => {
 											{rows.map((user) => {
 												const checked = selectedUserIds.includes(user.id);
 												return (
-													<tr key={user.id} className="border-b border-[color:var(--line)] last:border-b-0 hover:bg-(--surface-muted)">
+													<tr key={user.id} className="border-b border-(--line) hover:bg-(--surface-muted)">
 														<td className="px-4 py-4">
 															<input
 																type="checkbox"
@@ -263,9 +323,7 @@ const UsersListClient: FC<SessionProps> = ({ session }) => {
 																className="app-check"
 																onChange={(event) => {
 																	setSelectedUserIds((prev) =>
-																		event.target.checked
-																			? [...prev, user.id]
-																			: prev.filter((id) => id !== user.id),
+																		event.target.checked ? [...prev, user.id] : prev.filter((id) => id !== user.id),
 																	);
 																}}
 															/>
@@ -274,9 +332,7 @@ const UsersListClient: FC<SessionProps> = ({ session }) => {
 															<div className="workflow-users-person">
 																{userAvatar(user)}
 																<div className="min-w-0">
-																	<p className="font-medium text-(--ink)">
-																		{fullNameFor(user)}
-																	</p>
+																	<p className="font-medium text-(--ink)">{fullNameFor(user)}</p>
 																	<p className="text-xs text-(--ink-soft)">#{user.id}</p>
 																</div>
 															</div>
@@ -284,30 +340,30 @@ const UsersListClient: FC<SessionProps> = ({ session }) => {
 														<td className="px-4 py-4 text-(--ink)">{user.email}</td>
 														<td className="px-4 py-4 text-(--ink)">{user.gender || '-'}</td>
 														<td className="px-4 py-4">
-													{statusIcon(user.is_active, user.is_active ? t.common.yes : t.common.no, 'active')}
+															{statusIcon(user.is_active, user.is_active ? t.common.yes : t.common.no, 'active')}
 														</td>
 														<td className="px-4 py-4">
-													{statusIcon(user.is_staff, user.is_staff ? t.common.yes : t.common.no, 'admin')}
+															{statusIcon(user.is_staff, user.is_staff ? t.common.yes : t.common.no, 'admin')}
 														</td>
 														<td className="px-4 py-4 text-(--ink-soft)">{formatDate(user.date_joined)}</td>
 														<td className="px-4 py-4">
 															<div className="workflow-users-row-actions">
 																<button
 																	type="button"
-																onClick={() => router.push(USERS_VIEW(user.id))}
-																className="workflow-users-icon-button"
-																data-tone="view"
-																title={t.common.view}
+																	onClick={() => router.push(USERS_VIEW(user.id))}
+																	className="workflow-users-icon-button"
+																	data-tone="view"
+																	title={t.common.view}
 																	aria-label={t.common.view}
 																>
 																	<Eye className="h-4 w-4" />
 																</button>
 																<button
 																	type="button"
-																onClick={() => router.push(USERS_EDIT(user.id))}
-																className="workflow-users-icon-button"
-																data-tone="edit"
-																title={t.common.edit}
+																	onClick={() => router.push(USERS_EDIT(user.id))}
+																	className="workflow-users-icon-button"
+																	data-tone="edit"
+																	title={t.common.edit}
 																	aria-label={t.common.edit}
 																>
 																	<PencilLine className="h-4 w-4" />
@@ -318,8 +374,8 @@ const UsersListClient: FC<SessionProps> = ({ session }) => {
 																		setSelectedUserId(user.id);
 																		setShowDeleteModal(true);
 																	}}
-																className="workflow-users-icon-button workflow-users-icon-button-danger"
-																data-tone="delete"
+																	className="workflow-users-icon-button workflow-users-icon-button-danger"
+																	data-tone="delete"
 																	title={t.common.delete}
 																	aria-label={t.common.delete}
 																>
@@ -332,7 +388,10 @@ const UsersListClient: FC<SessionProps> = ({ session }) => {
 											})}
 											{rows.length === 0 ? (
 												<tr className="workflow-users-empty-row">
-													<td colSpan={8} className="workflow-users-empty-cell px-4 py-12 text-center text-sm text-(--ink-soft)">
+													<td
+														colSpan={8}
+														className="workflow-users-empty-cell px-4 py-12 text-center text-sm text-(--ink-soft)"
+													>
 														{t.users.noUsersFound}
 													</td>
 												</tr>
@@ -369,16 +428,40 @@ const UsersListClient: FC<SessionProps> = ({ session }) => {
 													</div>
 												</div>
 												<div className="workflow-users-mobile-meta">
-													<span>{t.users.gender}: <b>{user.gender || '-'}</b></span>
-											<span>{t.users.active}: <b>{statusIcon(user.is_active, user.is_active ? t.common.yes : t.common.no, 'active')}</b></span>
-											<span>{t.users.admin}: <b>{statusIcon(user.is_staff, user.is_staff ? t.common.yes : t.common.no, 'admin')}</b></span>
-													<span>{t.users.registrationDate}: <b>{formatDate(user.date_joined)}</b></span>
+													<span>
+														{t.users.gender}: <b>{user.gender || '-'}</b>
+													</span>
+													<span>
+														{t.users.active}:{' '}
+														<b>{statusIcon(user.is_active, user.is_active ? t.common.yes : t.common.no, 'active')}</b>
+													</span>
+													<span>
+														{t.users.admin}:{' '}
+														<b>{statusIcon(user.is_staff, user.is_staff ? t.common.yes : t.common.no, 'admin')}</b>
+													</span>
+													<span>
+														{t.users.registrationDate}: <b>{formatDate(user.date_joined)}</b>
+													</span>
 												</div>
 												<div className="workflow-users-mobile-actions">
-											<button type="button" onClick={() => router.push(USERS_VIEW(user.id))} className="workflow-users-icon-button" data-tone="view" title={t.common.view} aria-label={t.common.view}>
+													<button
+														type="button"
+														onClick={() => router.push(USERS_VIEW(user.id))}
+														className="workflow-users-icon-button"
+														data-tone="view"
+														title={t.common.view}
+														aria-label={t.common.view}
+													>
 														<Eye className="h-4 w-4" />
 													</button>
-											<button type="button" onClick={() => router.push(USERS_EDIT(user.id))} className="workflow-users-icon-button" data-tone="edit" title={t.common.edit} aria-label={t.common.edit}>
+													<button
+														type="button"
+														onClick={() => router.push(USERS_EDIT(user.id))}
+														className="workflow-users-icon-button"
+														data-tone="edit"
+														title={t.common.edit}
+														aria-label={t.common.edit}
+													>
 														<PencilLine className="h-4 w-4" />
 													</button>
 													<button
@@ -387,8 +470,8 @@ const UsersListClient: FC<SessionProps> = ({ session }) => {
 															setSelectedUserId(user.id);
 															setShowDeleteModal(true);
 														}}
-												className="workflow-users-icon-button workflow-users-icon-button-danger"
-												data-tone="delete"
+														className="workflow-users-icon-button workflow-users-icon-button-danger"
+														data-tone="delete"
 														title={t.common.delete}
 														aria-label={t.common.delete}
 													>

@@ -11,6 +11,18 @@ const mockRedirect = jest.fn(() => {
 	throw new Error('redirect');
 });
 
+it.each(['en', 'fr'] as const)('metadata follows the selected server language (%s)', async (language) => {
+	jest.resetModules();
+	const { translations } = await import('@/translations');
+	const t = translations[language];
+	jest.doMock('@/utils/serverTranslations', () => ({ getServerTranslations: async () => t }));
+	const { generateMetadata } = await import('./page');
+	await expect(generateMetadata()).resolves.toEqual({
+		title: t.metadata.homeTitle,
+		description: t.metadata.homeDescription,
+	});
+});
+
 jest.mock('next/navigation', () => ({
 	__esModule: true,
 	redirect: mockRedirect,

@@ -37,12 +37,16 @@ export const Protected = (props: ProtectedProps) => {
 	const storePermissions = usePermission();
 	const profil = useAppSelector(getProfilState);
 	const shouldFetchProfile = !profil.id && status === 'authenticated' && !!token;
-	const { data: fetchedProfile, isLoading, isFetching } = useGetProfilQuery(undefined, {
+	const {
+		data: fetchedProfile,
+		isLoading,
+		isFetching,
+	} = useGetProfilQuery(undefined, {
 		skip: !shouldFetchProfile,
 	});
 	const required = props.permission ?? 'is_staff';
-	const sessionProfile = (getUserProfileFromSession(session ?? undefined));
-	const activeProfile = profil.id ? profil : fetchedProfile ?? sessionProfile;
+	const sessionProfile = getUserProfileFromSession(session ?? undefined);
+	const activeProfile = profil.id ? profil : (fetchedProfile ?? sessionProfile);
 	const permissions = profil.id ? storePermissions : permissionsFor(fetchedProfile ?? sessionProfile);
 
 	useEffect(() => {
@@ -57,7 +61,7 @@ export const Protected = (props: ProtectedProps) => {
 		if (status === 'loading' || isLoading || isFetching) {
 			return (
 				<div className="flex items-center justify-center py-12">
-					<div className="h-10 w-10 animate-spin rounded-full border-4 border-[color:var(--line)] border-t-[color:var(--accent)]" />
+					<div className="h-10 w-10 animate-spin rounded-full border-4 border-(--line) border-t-(--accent)" />
 				</div>
 			);
 		}

@@ -48,9 +48,7 @@ describe('InitEffects', () => {
 		render(<InitEffects />);
 
 		await waitFor(() => {
-			expect(mockDispatch).toHaveBeenCalledWith(
-				expect.objectContaining({ type: 'INIT_APP_SESSION_TOKENS' }),
-			);
+			expect(mockDispatch).toHaveBeenCalledWith(expect.objectContaining({ type: 'INIT_APP_SESSION_TOKENS' }));
 		});
 	});
 
@@ -75,9 +73,7 @@ describe('InitEffects', () => {
 		render(<InitEffects />);
 
 		await waitFor(() => {
-			const initCalls = mockDispatch.mock.calls.filter(
-				([action]) => action?.type === 'INIT_APP_SESSION_TOKENS',
-			);
+			const initCalls = mockDispatch.mock.calls.filter(([action]) => action?.type === 'INIT_APP_SESSION_TOKENS');
 			expect(initCalls.length).toBe(0);
 		});
 	});

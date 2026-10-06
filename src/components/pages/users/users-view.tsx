@@ -1,20 +1,13 @@
 'use client';
 
-import {runWithCleanup} from '@/utils/runWithCleanup';
-import { useState, type FC} from 'react';
+import { runWithCleanup } from '@/utils/runWithCleanup';
+import { useState, type FC } from 'react';
 import { useRouter } from 'next/navigation';
 import type { ApiErrorResponseType, ResponseDataInterface, SessionProps } from '@/types/_initTypes';
 import { useInitAccessToken } from '@/contexts/InitContext';
 import { useGetUserQuery, useDeleteUserMutation } from '@/store/services/account';
 import NavigationBar from '@/components/layouts/navigationBar/navigationBar';
-import {
-	ArrowLeft,
-	CalendarClock,
-	Mail,
-	PencilLine,
-	Shield,
-	Trash2,
-} from 'lucide-react';
+import { ArrowLeft, CalendarClock, Mail, PencilLine, Shield, Trash2 } from 'lucide-react';
 import { USERS_LIST, USERS_EDIT } from '@/utils/routes';
 import ApiProgress from '@/components/formikElements/apiLoading/apiProgress/apiProgress';
 import { formatDate, extractApiErrorMessage } from '@/utils/helpers';
@@ -51,7 +44,7 @@ const UsersViewClient: FC<Props> = ({ session, id }) => {
 	const router = useRouter();
 	const token = useInitAccessToken(session);
 	const { data: userData, isLoading, error } = useGetUserQuery({ id }, { skip: !token });
-	const axiosError = ((error ? (error as ResponseDataInterface<ApiErrorResponseType>) : undefined));
+	const axiosError = error ? (error as ResponseDataInterface<ApiErrorResponseType>) : undefined;
 
 	const [deleteRecord] = useDeleteUserMutation();
 	const { onSuccess, onError } = useToast();
@@ -60,18 +53,18 @@ const UsersViewClient: FC<Props> = ({ session, id }) => {
 
 	const handleDelete = async () => {
 		await runWithCleanup(
-		  async () => {
-		    try {
-		      await deleteRecord({id}).unwrap();
-		      onSuccess(t.users.userDeletedSuccess);
-		      router.push(USERS_LIST);
-		    } catch (err) {
-		      onError(extractApiErrorMessage(err, t.users.userDeleteError));
-		    }
-		  },
-		  () => {
-		    setShowDeleteModal(false);
-		  },
+			async () => {
+				try {
+					await deleteRecord({ id }).unwrap();
+					onSuccess(t.users.userDeletedSuccess);
+					router.push(USERS_LIST);
+				} catch (err) {
+					onError(extractApiErrorMessage(err, t.users.userDeleteError));
+				}
+			},
+			() => {
+				setShowDeleteModal(false);
+			},
 		);
 	};
 
@@ -85,15 +78,15 @@ const UsersViewClient: FC<Props> = ({ session, id }) => {
 							className="workflow-user-detail-hero"
 							eyebrow={t.users.usersStudio}
 							title={t.users.userDetails}
-							description={userData ? ([userData.first_name, userData.last_name].filter(Boolean).join(' ') || userData.email) : undefined}
+							description={
+								userData
+									? [userData.first_name, userData.last_name].filter(Boolean).join(' ') || userData.email
+									: undefined
+							}
 							actionsClassName="workflow-user-detail-actions"
 							actions={
 								<>
-									<button
-										type="button"
-										onClick={() => router.push(USERS_LIST)}
-										className="workflow-user-detail-back"
-									>
+									<button type="button" onClick={() => router.push(USERS_LIST)} className="workflow-user-detail-back">
 										<ArrowLeft className="h-4 w-4" />
 										<span>{t.navigation.usersList}</span>
 									</button>
@@ -126,9 +119,7 @@ const UsersViewClient: FC<Props> = ({ session, id }) => {
 						) : (axiosError?.status as number) > 400 ? (
 							<ApiAlert errorDetails={axiosError?.data.details} />
 						) : !userData ? (
-							<div className="workflow-user-detail-empty">
-								{t.users.userNotFound}
-							</div>
+							<div className="workflow-user-detail-empty">{t.users.userNotFound}</div>
 						) : (
 							<div className="workflow-user-detail-content">
 								<section className="workflow-user-detail-profile-card">
@@ -138,7 +129,10 @@ const UsersViewClient: FC<Props> = ({ session, id }) => {
 												first_name: userData.first_name,
 												last_name: userData.last_name,
 												email: userData.email,
-												avatar: typeof (userData.avatar_cropped || userData.avatar) === 'string' ? (userData.avatar_cropped || userData.avatar) as string : null,
+												avatar:
+													typeof (userData.avatar_cropped || userData.avatar) === 'string'
+														? ((userData.avatar_cropped || userData.avatar) as string)
+														: null,
 											}}
 											size={80}
 											avatarClassName="workflow-user-detail-avatar"
@@ -146,13 +140,9 @@ const UsersViewClient: FC<Props> = ({ session, id }) => {
 										/>
 										<div className="workflow-user-detail-profile-copy">
 											<p>{t.users.userDetails}</p>
-											<h2>
-												{[userData.first_name, userData.last_name].filter(Boolean).join(' ') || userData.email}
-											</h2>
+											<h2>{[userData.first_name, userData.last_name].filter(Boolean).join(' ') || userData.email}</h2>
 											<div className="workflow-user-detail-badges">
-												<span className="workflow-user-detail-badge">
-													ID: {userData.id}
-												</span>
+												<span className="workflow-user-detail-badge">ID: {userData.id}</span>
 												<BoolBadge value={userData.is_staff} yes={t.users.admin} no={t.common.no} />
 												<BoolBadge value={userData.is_active} yes={t.users.active} no={t.users.inactive} />
 											</div>

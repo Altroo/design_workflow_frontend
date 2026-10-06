@@ -1,4 +1,4 @@
-import {type FC, type MouseEventHandler, type ReactNode} from 'react';
+import { type FC, type MouseEventHandler, type ReactNode } from 'react';
 
 type Props = {
 	buttonText: string;

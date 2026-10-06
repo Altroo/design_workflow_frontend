@@ -31,6 +31,8 @@ const config: Config = {
 		'!src/**/index.{js,ts}',
 		// exclude files ending with .test.*
 		'!src/**/*.test.{js,jsx,ts,tsx}',
+		// shared test fixtures and mock setup are not application code
+		'!src/**/__testutils__/**',
 	],
 };
 

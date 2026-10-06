@@ -1,3 +1,4 @@
+import { toFormikValidationSchema } from 'zod-formik-adapter';
 import {
 	loginSchema,
 	emailSchema,
@@ -9,35 +10,33 @@ import {
 } from './formValidationSchemas';
 
 describe('Zod Schema Validation', () => {
+	it('exposes Formik-compatible asynchronous schema validation', async () => {
+		const validation = toFormikValidationSchema(loginSchema);
+		await expect(validation.validate({ email: 'user@example.com', password: 'securePass1' })).resolves.toBeUndefined();
+		await expect(validation.validate({ email: 'not-an-email', password: 'securePass1' })).rejects.toMatchObject({
+			name: 'ValidationError',
+			inner: expect.arrayContaining([expect.objectContaining({ path: 'email' })]),
+		});
+	});
 	// ── loginSchema ──
 	describe('loginSchema', () => {
 		it('validates correct credentials', () => {
-			expect(() =>
-				loginSchema.parse({ email: 'user@example.com', password: 'securePass1' }),
-			).not.toThrow();
+			expect(() => loginSchema.parse({ email: 'user@example.com', password: 'securePass1' })).not.toThrow();
 		});
 		it('fails with invalid email', () => {
-			expect(() =>
-				loginSchema.parse({ email: 'bad-email', password: 'securePass1' }),
-			).toThrow();
+			expect(() => loginSchema.parse({ email: 'bad-email', password: 'securePass1' })).toThrow();
 		});
 		it('fails with short password', () => {
-			expect(() =>
-				loginSchema.parse({ email: 'user@example.com', password: 'short' }),
-			).toThrow();
+			expect(() => loginSchema.parse({ email: 'user@example.com', password: 'short' })).toThrow();
 		});
 		it('fails with missing email', () => {
 			expect(() => loginSchema.parse({ password: 'securePass1' })).toThrow();
 		});
 		it('fails with empty password', () => {
-			expect(() =>
-				loginSchema.parse({ email: 'user@example.com', password: '' }),
-			).toThrow();
+			expect(() => loginSchema.parse({ email: 'user@example.com', password: '' })).toThrow();
 		});
 		it('handles undefined password via preprocess', () => {
-			expect(() =>
-				loginSchema.parse({ email: 'user@example.com', password: undefined }),
-			).toThrow();
+			expect(() => loginSchema.parse({ email: 'user@example.com', password: undefined })).toThrow();
 		});
 		it('accepts optional globalError', () => {
 			expect(() =>
@@ -67,9 +66,7 @@ describe('Zod Schema Validation', () => {
 			).not.toThrow();
 		});
 		it('fails with short password', () => {
-			expect(() =>
-				passwordResetConfirmationSchema.parse({ new_password: 'short', new_password2: 'short' }),
-			).toThrow();
+			expect(() => passwordResetConfirmationSchema.parse({ new_password: 'short', new_password2: 'short' })).toThrow();
 		});
 		it('handles undefined via preprocess', () => {
 			expect(() =>
@@ -145,13 +142,15 @@ describe('Zod Schema Validation', () => {
 			expect(result.success).toBe(false);
 		});
 		it('accepts optional avatar fields', () => {
-			expect(() =>
-				userSchema.parse({ ...validUser, avatar: null, avatar_cropped: null }),
-			).not.toThrow();
+			expect(() => userSchema.parse({ ...validUser, avatar: null, avatar_cropped: null })).not.toThrow();
 		});
 		it('accepts base64 image avatar', () => {
 			expect(() =>
-				userSchema.parse({ ...validUser, avatar: 'data:image/png;base64,abc', avatar_cropped: 'data:image/png;base64,def' }),
+				userSchema.parse({
+					...validUser,
+					avatar: 'data:image/png;base64,abc',
+					avatar_cropped: 'data:image/png;base64,def',
+				}),
 			).not.toThrow();
 		});
 	});
@@ -168,19 +167,13 @@ describe('Zod Schema Validation', () => {
 			expect(() => profilSchema.parse({ first_name: 'Al' })).toThrow();
 		});
 		it('accepts optional gender', () => {
-			expect(() =>
-				profilSchema.parse({ first_name: 'Al', last_name: 'User', gender: 'H' }),
-			).not.toThrow();
+			expect(() => profilSchema.parse({ first_name: 'Al', last_name: 'User', gender: 'H' })).not.toThrow();
 		});
 		it('handles undefined gender via preprocess', () => {
-			expect(() =>
-				profilSchema.parse({ first_name: 'Al', last_name: 'User', gender: undefined }),
-			).not.toThrow();
+			expect(() => profilSchema.parse({ first_name: 'Al', last_name: 'User', gender: undefined })).not.toThrow();
 		});
 		it('handles empty gender via preprocess', () => {
-			expect(() =>
-				profilSchema.parse({ first_name: 'Al', last_name: 'User', gender: '' }),
-			).not.toThrow();
+			expect(() => profilSchema.parse({ first_name: 'Al', last_name: 'User', gender: '' })).not.toThrow();
 		});
 		it('accepts null avatar fields', () => {
 			expect(() =>

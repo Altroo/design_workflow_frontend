@@ -31,20 +31,9 @@ export const makeStore = (): SagaStore => {
 	const s = configureStore({
 		reducer: reducers,
 		middleware: (getDefaultMiddleware) =>
-			getDefaultMiddleware({
-				serializableCheck: {
-					ignoredActions: ['persist/PERSIST', 'persist/REHYDRATE'],
-					ignoredPaths: ['meta.arg', 'meta.baseQueryMeta', 'payload.timestamp'],
-				},
-				thunk: true,
-			})
+			getDefaultMiddleware()
 				.prepend(sagaMw)
-				.concat(
-					accountApi.middleware,
-					profilApi.middleware,
-					usersApi.middleware,
-					designWorkflowApi.middleware,
-				),
+				.concat(accountApi.middleware, profilApi.middleware, usersApi.middleware, designWorkflowApi.middleware),
 		devTools: process.env.NODE_ENV !== 'production',
 	}) as SagaStore;
 	s.sagaTask = sagaMw.run(rootSaga);

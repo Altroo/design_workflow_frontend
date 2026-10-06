@@ -4,7 +4,7 @@ import { AUTH_LOGIN, USERS_LIST } from '@/utils/routes';
 import UsersViewClient from '@/components/pages/users/users-view';
 import type { Metadata } from 'next';
 import { getServerTranslations } from '@/utils/serverTranslations';
-import type {IdRouteProps} from '@/types/routeTypes';
+import type { IdRouteProps } from '@/types/routeTypes';
 
 export async function generateMetadata(): Promise<Metadata> {
 	const t = await getServerTranslations();

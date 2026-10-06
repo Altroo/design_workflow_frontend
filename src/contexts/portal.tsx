@@ -1,55 +1,49 @@
 'use client';
 
-import {useEffect, type FC, type ReactNode} from 'react';
-import { createPortal } from 'react-dom';
-import { useIsClient } from '@/utils/hooks';
+import { Suspense, use, useState, type FC, type ReactNode } from 'react';
+import { browser, createPortal } from 'react-dom';
 
 interface PortalProps {
 	id: string;
 	children: ReactNode;
 }
 
-const Portal: FC<PortalProps> = ({ id, children }) => {
-	const isClient = useIsClient();
+const PortalContent: FC<PortalProps> = ({ id, children }) => {
+	use(browser());
+	const [existingContainer] = useState(() => document.getElementById(id));
 
-	useEffect(() => {
-		if (!isClient) return;
-
-		// Get or create container
-		let el = document.getElementById(id);
-		if (!el) {
-			el = document.createElement('div');
-			el.id = id;
-
-			el.style.position = 'fixed';
-			el.style.bottom = '20px';
-			el.style.left = '20px';
-			el.style.zIndex = '9999';
-			el.style.width = 'auto';
-			el.style.maxWidth = '100vw';
-			el.style.pointerEvents = 'none';
-			el.style.display = 'flex';
-			el.style.flexDirection = 'column';
-			el.style.alignItems = 'flex-start';
-
-			document.body.appendChild(el);
-		}
-
-		// Cleanup
-		return () => {
-			if (el && el.childNodes.length === 0 && el.parentNode) {
-				el.parentNode.removeChild(el);
-			}
-		};
-	}, [id, isClient]);
-
-	// Don't render on server or before client hydration
-	if (!isClient) return null;
-
-	const container = document.getElementById(id);
-	if (!container) return null;
-
-	return createPortal(children, container);
+	return createPortal(
+		existingContainer ? (
+			children
+		) : (
+			<div
+				id={id}
+				style={{
+					position: 'fixed',
+					bottom: 20,
+					left: 20,
+					zIndex: 9999,
+					width: 'auto',
+					maxWidth: '100vw',
+					pointerEvents: 'none',
+					display: 'flex',
+					flexDirection: 'column',
+					alignItems: 'flex-start',
+				}}
+			>
+				{children}
+			</div>
+		),
+		existingContainer ?? document.body,
+	);
 };
+
+const Portal: FC<PortalProps> = ({ id, children }) => (
+	<Suspense fallback={null}>
+		<PortalContent key={id} id={id}>
+			{children}
+		</PortalContent>
+	</Suspense>
+);
 
 export default Portal;

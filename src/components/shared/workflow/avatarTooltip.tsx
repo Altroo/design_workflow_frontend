@@ -17,31 +17,66 @@ export const AvatarTooltip = ({ name, children }: { name: string; children: Reac
 		if (closeTimer.current) clearTimeout(closeTimer.current);
 		closeTimer.current = setTimeout(() => setOpen(false), 120);
 	};
-	useEffect(() => () => { if (closeTimer.current) clearTimeout(closeTimer.current); }, []);
-	return <Popover.Root open={open} onOpenChange={setOpen}>
-		<Popover.Anchor asChild>
-			<span ref={anchor} className="workflow-avatar-tooltip-trigger" role="button" tabIndex={0} data-no-card-open
-				aria-label={name} aria-describedby={open ? id : undefined}
-				onPointerEnter={event => { if (event.pointerType !== 'touch') show(); }}
-				onPointerLeave={hide} onFocus={show} onBlur={() => setOpen(false)}
-				onPointerDown={event => event.stopPropagation()}
-				onClick={event => { event.stopPropagation(); show(); }}
-				onKeyDown={event => {
-					event.stopPropagation();
-					if (event.key === 'Escape') setOpen(false);
-					if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); show(); }
-				}}>
-				{children}
-			</span>
-		</Popover.Anchor>
-		<Popover.Portal>
-			<Popover.Content id={id} role="tooltip" side="top" sideOffset={8} collisionPadding={12}
-				className="workflow-avatar-tooltip" onPointerEnter={show} onPointerLeave={hide}
-				onInteractOutside={event => { if (event.target instanceof Node && anchor.current?.contains(event.target)) event.preventDefault(); }}
-				onOpenAutoFocus={event => event.preventDefault()} onCloseAutoFocus={event => event.preventDefault()}>
-				{name}
-				<Popover.Arrow className="workflow-avatar-tooltip-arrow" />
-			</Popover.Content>
-		</Popover.Portal>
-	</Popover.Root>;
+	useEffect(
+		() => () => {
+			if (closeTimer.current) clearTimeout(closeTimer.current);
+		},
+		[],
+	);
+	return (
+		<Popover.Root open={open} onOpenChange={setOpen}>
+			<Popover.Anchor asChild>
+				<span
+					ref={anchor}
+					className="workflow-avatar-tooltip-trigger"
+					role="button"
+					tabIndex={0}
+					data-no-card-open
+					aria-label={name}
+					aria-describedby={open ? id : undefined}
+					onPointerEnter={(event) => {
+						if (event.pointerType !== 'touch') show();
+					}}
+					onPointerLeave={hide}
+					onFocus={show}
+					onBlur={() => setOpen(false)}
+					onPointerDown={(event) => event.stopPropagation()}
+					onClick={(event) => {
+						event.stopPropagation();
+						show();
+					}}
+					onKeyDown={(event) => {
+						event.stopPropagation();
+						if (event.key === 'Escape') setOpen(false);
+						if (event.key === 'Enter' || event.key === ' ') {
+							event.preventDefault();
+							show();
+						}
+					}}
+				>
+					{children}
+				</span>
+			</Popover.Anchor>
+			<Popover.Portal>
+				<Popover.Content
+					id={id}
+					role="tooltip"
+					side="top"
+					sideOffset={8}
+					collisionPadding={12}
+					className="workflow-avatar-tooltip"
+					onPointerEnter={show}
+					onPointerLeave={hide}
+					onInteractOutside={(event) => {
+						if (event.target instanceof Node && anchor.current?.contains(event.target)) event.preventDefault();
+					}}
+					onOpenAutoFocus={(event) => event.preventDefault()}
+					onCloseAutoFocus={(event) => event.preventDefault()}
+				>
+					{name}
+					<Popover.Arrow className="workflow-avatar-tooltip-arrow" />
+				</Popover.Content>
+			</Popover.Portal>
+		</Popover.Root>
+	);
 };

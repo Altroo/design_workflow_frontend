@@ -26,7 +26,9 @@ const socketListeners = new Set<(payload: unknown) => void>();
 
 export function subscribeWorkflowSocket(listener: (payload: unknown) => void): () => void {
 	socketListeners.add(listener);
-	return () => { socketListeners.delete(listener); };
+	return () => {
+		socketListeners.delete(listener);
+	};
 }
 
 function notifySocketListeners(payload: unknown): void {
@@ -74,7 +76,11 @@ export function initWebsocket(getToken: () => Promise<string | null>): EventChan
 			if (!ownedSocket) return;
 			if (activeSendSocket === ownedSocket) activeSendSocket = null;
 			ownedSocket.onopen = ownedSocket.onmessage = ownedSocket.onerror = ownedSocket.onclose = null;
-			try { ownedSocket.close(); } catch { /* Already closed. */ }
+			try {
+				ownedSocket.close();
+			} catch {
+				/* Already closed. */
+			}
 		}
 
 		function scheduleReconnect() {
@@ -98,7 +104,10 @@ export function initWebsocket(getToken: () => Promise<string | null>): EventChan
 			heartbeatTimer = setTimeout(() => {
 				heartbeatTimer = undefined;
 				if (disposed || socket !== candidate) return;
-				if (candidate.readyState !== 1) { retireSocket(candidate); return; }
+				if (candidate.readyState !== 1) {
+					retireSocket(candidate);
+					return;
+				}
 				try {
 					candidate.send(JSON.stringify({ type: 'ping' }));
 					heartbeatDeadline = setTimeout(() => retireSocket(candidate), WS_HEARTBEAT_TIMEOUT_MS);
@@ -115,7 +124,10 @@ export function initWebsocket(getToken: () => Promise<string | null>): EventChan
 			try {
 				const token = await getToken();
 				if (disposed) return;
-				if (!token) { scheduleReconnect(); return; }
+				if (!token) {
+					scheduleReconnect();
+					return;
+				}
 				const candidate = new WebSocket(`${wsUrl}${wsUrl.includes('?') ? '&' : '?'}token=${encodeURIComponent(token)}`);
 				socket = candidate;
 				connectionTimer = setTimeout(() => retireSocket(candidate), WS_CONNECT_TIMEOUT_MS);
@@ -139,8 +151,8 @@ export function initWebsocket(getToken: () => Promise<string | null>): EventChan
 					try {
 						const payload: unknown = JSON.parse(event.data as string);
 						if (!isObjectRecord(payload)) return;
-						const message = isObjectRecord(payload.message) && typeof payload.message.type === 'string'
-							? payload.message : payload;
+						const message =
+							isObjectRecord(payload.message) && typeof payload.message.type === 'string' ? payload.message : payload;
 						const signalType = message.type;
 						if (typeof signalType !== 'string') return;
 						if (signalType === 'pong') {
@@ -155,18 +167,36 @@ export function initWebsocket(getToken: () => Promise<string | null>): EventChan
 							}
 						} else if (signalType === 'MAINTENANCE') {
 							if (typeof message.maintenance === 'boolean') emitter(WSMaintenanceAction(message.maintenance));
-						} else if (signalType === 'TASK_EVENT' || signalType === 'NOTIFICATION' || signalType === 'WORKFLOW_EVENT') {
-							emitter(WSDesignWorkflowInvalidateAction(signalType, typeof message.scope === 'string' ? message.scope : undefined));
+						} else if (
+							signalType === 'TASK_EVENT' ||
+							signalType === 'NOTIFICATION' ||
+							signalType === 'WORKFLOW_EVENT'
+						) {
+							emitter(
+								WSDesignWorkflowInvalidateAction(
+									signalType,
+									typeof message.scope === 'string' ? message.scope : undefined,
+								),
+							);
 						} else if (/^chat[._]/.test(signalType) && CHAT_MUTATIONS.has(signalType.slice(5))) {
 							emitter(WSDesignWorkflowInvalidateAction('CHAT_EVENT'));
 						} else if (signalType === 'USER_PRESENCE') {
-							if (typeof message.user_id === 'number' && typeof message.online === 'boolean' && Array.isArray(message.online_user_ids)) {
+							if (
+								typeof message.user_id === 'number' &&
+								typeof message.online === 'boolean' &&
+								Array.isArray(message.online_user_ids)
+							) {
 								if (typeof message.revision === 'number' && Number.isFinite(message.revision)) {
 									if (message.revision < latestPresenceRevision) return;
 									latestPresenceRevision = message.revision;
 								}
-								emitter(WSUserPresenceAction(message.user_id, message.online,
-									message.online_user_ids.filter((id): id is number => typeof id === 'number')));
+								emitter(
+									WSUserPresenceAction(
+										message.user_id,
+										message.online,
+										message.online_user_ids.filter((id): id is number => typeof id === 'number'),
+									),
+								);
 							}
 						}
 						notifySocketListeners(payload);

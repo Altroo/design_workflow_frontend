@@ -4,7 +4,7 @@ import EnterCodeClient from './enterCode';
 import '@testing-library/jest-dom';
 import { Provider } from 'react-redux';
 import { store } from '@/store/store';
-import {type ReactNode} from 'react';
+import { type ReactNode } from 'react';
 
 // Dynamic mock for search params
 let searchParamsMock = new URLSearchParams();
@@ -89,11 +89,9 @@ describe('EnterCodeClient', () => {
 		expect(screen.getAllByText('Renvoyer le code').length).toBeGreaterThanOrEqual(1);
 	});
 
-	it(
-		'typing digits moves focus and updates combined code then submits successfully',
-		async () => {
-			await act(async () => {
-				render(
+	it('typing digits moves focus and updates combined code then submits successfully', async () => {
+		await act(async () => {
+			render(
 				<Provider store={store}>
 					<EnterCodeClient email={testEmail} />
 				</Provider>,

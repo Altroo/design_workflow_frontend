@@ -1,4 +1,4 @@
-import {type ChangeEventHandler, type ReactElement, type ReactNode} from 'react';
+import { type ChangeEventHandler, type ReactElement, type ReactNode } from 'react';
 import { act, render, screen, cleanup, fireEvent, waitFor } from '@testing-library/react';
 import '@testing-library/jest-dom';
 import { Provider } from 'react-redux';
@@ -64,7 +64,17 @@ jest.mock('@/store/actions/accountActions', () => ({
 // Mock form sub-components
 jest.mock('@/components/formikElements/customTextInput/customTextInput', () => ({
 	__esModule: true,
-	default: ({ id, label, value, onChange }: { id: string; label: string; value: string; onChange: ChangeEventHandler<HTMLInputElement> }) => (
+	default: ({
+		id,
+		label,
+		value,
+		onChange,
+	}: {
+		id: string;
+		label: string;
+		value: string;
+		onChange: ChangeEventHandler<HTMLInputElement>;
+	}) => (
 		<div data-testid={`input-${id}`}>
 			<label htmlFor={id}>{label}</label>
 			<input id={id} value={value ?? ''} onChange={onChange} />
@@ -74,10 +84,24 @@ jest.mock('@/components/formikElements/customTextInput/customTextInput', () => (
 
 jest.mock('@/components/formikElements/customDropDownSelect/customDropDownSelect', () => ({
 	__esModule: true,
-	default: ({ id, label, onChange, value }: { id: string; label: string; onChange?: (e: { target: { value: string } }) => void; value?: string }) => (
+	default: ({
+		id,
+		label,
+		onChange,
+		value,
+	}: {
+		id: string;
+		label: string;
+		onChange?: (e: { target: { value: string } }) => void;
+		value?: string;
+	}) => (
 		<div data-testid={`select-${id}`}>
 			<label>{label}</label>
-			<select data-testid={`dropdown-${id}`} value={value ?? ''} onChange={(e) => onChange?.({ target: { value: e.target.value } })}>
+			<select
+				data-testid={`dropdown-${id}`}
+				value={value ?? ''}
+				onChange={(e) => onChange?.({ target: { value: e.target.value } })}
+			>
 				<option value="Homme">Homme</option>
 				<option value="Femme">Femme</option>
 			</select>
@@ -87,12 +111,26 @@ jest.mock('@/components/formikElements/customDropDownSelect/customDropDownSelect
 
 jest.mock('@/components/formikElements/customSquareImageUploading/customSquareImageUploading', () => ({
 	__esModule: true,
-	default: ({ onChange, onCrop, image, croppedImage }: { onChange: (img: string) => void; onCrop: (cropped: string) => void; image: string; croppedImage: string }) => (
+	default: ({
+		onChange,
+		onCrop,
+		image,
+		croppedImage,
+	}: {
+		onChange: (img: string) => void;
+		onCrop: (cropped: string) => void;
+		image: string;
+		croppedImage: string;
+	}) => (
 		<div data-testid="avatar-upload">
 			<span data-testid="avatar-image">{image}</span>
 			<span data-testid="avatar-cropped">{croppedImage}</span>
-			<button type="button" data-testid="avatar-change" onClick={() => onChange('data:image/png;base64,new')}>Change</button>
-			<button type="button" data-testid="avatar-crop" onClick={() => onCrop('data:image/png;base64,cropped')}>Crop</button>
+			<button type="button" data-testid="avatar-change" onClick={() => onChange('data:image/png;base64,new')}>
+				Change
+			</button>
+			<button type="button" data-testid="avatar-crop" onClick={() => onCrop('data:image/png;base64,cropped')}>
+				Crop
+			</button>
 		</div>
 	),
 }));
@@ -100,7 +138,9 @@ jest.mock('@/components/formikElements/customSquareImageUploading/customSquareIm
 jest.mock('@/components/htmlElements/buttons/primaryLoadingButton/primaryLoadingButton', () => ({
 	__esModule: true,
 	default: ({ buttonText, onClick }: { buttonText: string; onClick?: () => void }) => (
-		<button data-testid="submit-button" onClick={onClick}>{buttonText}</button>
+		<button data-testid="submit-button" onClick={onClick}>
+			{buttonText}
+		</button>
 	),
 }));
 
@@ -294,17 +334,23 @@ describe('EditProfileClient', () => {
 
 	describe('live profile edits', () => {
 		const profile = { first_name: 'Test', last_name: 'User', gender: 'H', avatar: '', avatar_cropped: '' };
-		const setServerProfile = (data: typeof profile) => mockUseGetProfilQuery.mockReturnValue({ data, isLoading: false });
-		const editName = async (field: 'first_name' | 'last_name', value: string) => act(async () => {
-			fireEvent.change(screen.getByTestId(`input-${field}`).querySelector('input')!, { target: { value } });
-		});
+		const setServerProfile = (data: typeof profile) =>
+			mockUseGetProfilQuery.mockReturnValue({ data, isLoading: false });
+		const editName = async (field: 'first_name' | 'last_name', value: string) =>
+			act(async () => {
+				fireEvent.change(screen.getByTestId(`input-${field}`).querySelector('input')!, { target: { value } });
+			});
 
 		it('updates untouched profile fields without losing unfinished edits', async () => {
 			setServerProfile(profile);
 			const view = renderWithProviders(<EditProfileClient session={mockSession} />);
 			await editName('first_name', 'Local draft');
 			setServerProfile({ ...profile, last_name: 'Remote surname', avatar: '/media/updated.jpg' });
-			view.rerender(<Provider store={mockStore}><EditProfileClient session={mockSession} /></Provider>);
+			view.rerender(
+				<Provider store={mockStore}>
+					<EditProfileClient session={mockSession} />
+				</Provider>,
+			);
 			expect(screen.getByTestId('input-first_name').querySelector('input')).toHaveValue('Local draft');
 			expect(screen.getByTestId('input-last_name').querySelector('input')).toHaveValue('Remote surname');
 			expect(screen.getByTestId('avatar-image')).toHaveTextContent('/media/updated.jpg');
@@ -313,13 +359,21 @@ describe('EditProfileClient', () => {
 
 		it('warns about same-field changes and sends only the locally edited field', async () => {
 			setServerProfile(profile);
-			mockEditProfil.mockReturnValue({ unwrap: jest.fn().mockResolvedValue({ ...profile, first_name: 'Local draft', last_name: 'Remote surname' }) });
+			mockEditProfil.mockReturnValue({
+				unwrap: jest.fn().mockResolvedValue({ ...profile, first_name: 'Local draft', last_name: 'Remote surname' }),
+			});
 			const view = renderWithProviders(<EditProfileClient session={mockSession} />);
 			await editName('first_name', 'Local draft');
 			setServerProfile({ ...profile, first_name: 'Remote first name', last_name: 'Remote surname' });
-			view.rerender(<Provider store={mockStore}><EditProfileClient session={mockSession} /></Provider>);
+			view.rerender(
+				<Provider store={mockStore}>
+					<EditProfileClient session={mockSession} />
+				</Provider>,
+			);
 			expect(screen.getByRole('status')).toHaveTextContent('Vos saisies sont conservées');
-			await act(async () => { fireEvent.submit(screen.getByTestId('submit-button').closest('form')!); });
+			await act(async () => {
+				fireEvent.submit(screen.getByTestId('submit-button').closest('form')!);
+			});
 			await waitFor(() => expect(mockEditProfil).toHaveBeenCalledWith({ data: { first_name: 'Local draft' } }));
 			expect(screen.queryByRole('status')).not.toBeInTheDocument();
 		});
@@ -327,14 +381,20 @@ describe('EditProfileClient', () => {
 		it('keeps typing performed while a profile save is in flight', async () => {
 			setServerProfile(profile);
 			let finishSave!: (value: typeof profile) => void;
-			const pending = new Promise<typeof profile>((resolve) => { finishSave = resolve; });
+			const pending = new Promise<typeof profile>((resolve) => {
+				finishSave = resolve;
+			});
 			mockEditProfil.mockReturnValue({ unwrap: () => pending });
 			renderWithProviders(<EditProfileClient session={mockSession} />);
 			await editName('first_name', 'Submitted name');
-			await act(async () => { fireEvent.submit(screen.getByTestId('submit-button').closest('form')!); });
+			await act(async () => {
+				fireEvent.submit(screen.getByTestId('submit-button').closest('form')!);
+			});
 			await waitFor(() => expect(mockEditProfil).toHaveBeenCalledWith({ data: { first_name: 'Submitted name' } }));
 			await editName('first_name', 'Newer draft');
-			await act(async () => { finishSave({ ...profile, first_name: 'Submitted name' }); });
+			await act(async () => {
+				finishSave({ ...profile, first_name: 'Submitted name' });
+			});
 			expect(screen.getByTestId('input-first_name').querySelector('input')).toHaveValue('Newer draft');
 		});
 
@@ -343,7 +403,9 @@ describe('EditProfileClient', () => {
 			mockEditProfil.mockReturnValue({ unwrap: jest.fn().mockRejectedValue(new Error('Unavailable')) });
 			renderWithProviders(<EditProfileClient session={mockSession} />);
 			await editName('first_name', 'Local draft');
-			await act(async () => { fireEvent.submit(screen.getByTestId('submit-button').closest('form')!); });
+			await act(async () => {
+				fireEvent.submit(screen.getByTestId('submit-button').closest('form')!);
+			});
 			expect(screen.getByTestId('input-first_name').querySelector('input')).toHaveValue('Local draft');
 			expect(mockOnError).toHaveBeenCalled();
 		});

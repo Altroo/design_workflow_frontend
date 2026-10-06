@@ -1,7 +1,7 @@
 'use client';
 
-import {runWithCleanup} from '@/utils/runWithCleanup';
-import {useEffect, useState, type FC} from 'react';
+import { runWithCleanup } from '@/utils/runWithCleanup';
+import { useEffect, useState, type FC } from 'react';
 import { useFormik } from 'formik';
 import { toFormikValidationSchema } from 'zod-formik-adapter';
 import { ArrowLeft, ArrowRight, Mail } from 'lucide-react';
@@ -32,18 +32,18 @@ const ResetPasswordPageContent = () => {
 		onSubmit: async (values, { setFieldError }) => {
 			setIsPending(true);
 			await runWithCleanup(
-			  async () => {
-			    try {
-			      await sendPasswordResetCode({email: values.email}).unwrap();
-			      await cookiesPoster('/api/cookies', {new_email: values.email});
-			      router.push(AUTH_RESET_PASSWORD_ENTER_CODE);
-			    } catch (e) {
-			      setFormikAutoErrors({e, setFieldError});
-			    }
-			  },
-			  () => {
-			    setIsPending(false);
-			  },
+				async () => {
+					try {
+						await sendPasswordResetCode({ email: values.email }).unwrap();
+						await cookiesPoster('/api/cookies', { new_email: values.email });
+						router.push(AUTH_RESET_PASSWORD_ENTER_CODE);
+					} catch (e) {
+						setFormikAutoErrors({ e, setFieldError });
+					}
+				},
+				() => {
+					setIsPending(false);
+				},
 			);
 		},
 	});
@@ -62,7 +62,10 @@ const ResetPasswordPageContent = () => {
 						{t.auth.emailAddress}
 					</label>
 					<div className="relative">
-						<Mail size={18} className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-(--ink-muted)" />
+						<Mail
+							size={18}
+							className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-(--ink-muted)"
+						/>
 						<input
 							id="email"
 							name="email"
@@ -81,7 +84,7 @@ const ResetPasswordPageContent = () => {
 				</div>
 
 				{formik.errors.globalError ? (
-					<div className="rounded-lg border border-[color:var(--line)] bg-(--surface-muted) px-4 py-3 text-sm text-(--ink-soft)">
+					<div className="rounded-lg border border-(--line) bg-(--surface-muted) px-4 py-3 text-sm text-(--ink-soft)">
 						{formik.errors.globalError}
 					</div>
 				) : null}

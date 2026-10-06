@@ -52,15 +52,15 @@ describe('profilApi', () => {
 	});
 
 	it('editProfil mutation completes without error', async () => {
-		const result = await storeRef.store.dispatch(
-			profilApi.endpoints.editProfil.initiate({ data: new FormData() }),
-		);
+		const result = await storeRef.store.dispatch(profilApi.endpoints.editProfil.initiate({ data: new FormData() }));
 		expect('error' in result).toBe(false);
 	});
 
 	it('editPassword mutation completes without error', async () => {
 		const result = await storeRef.store.dispatch(
-			profilApi.endpoints.editPassword.initiate({ data: { old_password: 'old', new_password: 'new', new_password2: 'new' } }),
+			profilApi.endpoints.editPassword.initiate({
+				data: { old_password: 'old', new_password: 'new', new_password2: 'new' },
+			}),
 		);
 		expect('error' in result).toBe(false);
 	});
@@ -70,9 +70,7 @@ describe('usersApi', () => {
 	const storeRef = setupApiStore(usersApi);
 
 	it('getUsersList query (no pagination) completes without error', async () => {
-		const result = await storeRef.store.dispatch(
-			usersApi.endpoints.getUsersList.initiate({ with_pagination: false }),
-		);
+		const result = await storeRef.store.dispatch(usersApi.endpoints.getUsersList.initiate({ with_pagination: false }));
 		expect('error' in result).toBe(false);
 	});
 
@@ -89,9 +87,7 @@ describe('usersApi', () => {
 	});
 
 	it('checkEmail mutation completes without error', async () => {
-		const result = await storeRef.store.dispatch(
-			usersApi.endpoints.checkEmail.initiate({ email: 'test@example.com' }),
-		);
+		const result = await storeRef.store.dispatch(usersApi.endpoints.checkEmail.initiate({ email: 'test@example.com' }));
 		expect('error' in result).toBe(false);
 	});
 

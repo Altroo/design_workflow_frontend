@@ -1,4 +1,13 @@
-import {type ChangeEvent, type ClipboardEvent, type FocusEvent, type HTMLInputTypeAttribute, type InputEvent, type InputHTMLAttributes, type KeyboardEvent, type Ref} from 'react';
+import {
+	type ChangeEvent,
+	type ClipboardEvent,
+	type FocusEvent,
+	type HTMLInputTypeAttribute,
+	type InputEvent,
+	type InputHTMLAttributes,
+	type KeyboardEvent,
+	type Ref,
+} from 'react';
 
 type Props = {
 	type: HTMLInputTypeAttribute;
@@ -90,8 +99,8 @@ const CustomOutlinedText = (props: Props) => {
 				{...mergedHtmlInput}
 				className={[
 					'app-input w-full text-center text-lg font-semibold tracking-[0.32em]',
-					size === 'small' ? 'min-h-[46px]' : 'min-h-[54px]',
-					error ? 'border-[color:var(--accent)]' : '',
+					size === 'small' ? 'min-h-11.5' : 'min-h-13.5',
+					error ? 'border-(--accent)' : '',
 				].join(' ')}
 			/>
 			{helperText ? <p className="mt-2 text-center text-sm text-(--ink-soft)">{helperText}</p> : null}

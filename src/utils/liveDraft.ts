@@ -10,12 +10,19 @@ export function mergeLiveDraft<T extends object>(draft: T, previous: T, next: T)
 export function mergeDraftBaseline<T extends object>(draft: T, baseline: T, next: T): T {
 	const result = { ...next };
 	for (const key of Object.keys(next) as Array<keyof T>) {
-		if (JSON.stringify(draft[key]) !== JSON.stringify(baseline[key]) && JSON.stringify(draft[key]) !== JSON.stringify(next[key])) result[key] = baseline[key];
+		if (
+			JSON.stringify(draft[key]) !== JSON.stringify(baseline[key]) &&
+			JSON.stringify(draft[key]) !== JSON.stringify(next[key])
+		)
+			result[key] = baseline[key];
 	}
 	return result;
 }
 
-export function guardedChanges<T extends object>(draft: T, baseline: T): Partial<T> & { expected_values: Record<string, unknown> } {
+export function guardedChanges<T extends object>(
+	draft: T,
+	baseline: T,
+): Partial<T> & { expected_values: Record<string, unknown> } {
 	const changes: Partial<T> = {};
 	const expected: Record<string, unknown> = {};
 	for (const key of Object.keys(draft) as Array<keyof T>) {

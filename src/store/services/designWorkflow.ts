@@ -280,7 +280,10 @@ export const designWorkflowApi = createApi({
 			}),
 			invalidatesTags: (_result, _error, { id }) => ['Task', { type: 'Task', id }],
 		}),
-		uploadTaskAttachment: builder.mutation<TaskAttachment, { id: number; data: FormData; onUploadProgress?: (event: AxiosProgressEvent) => void }>({
+		uploadTaskAttachment: builder.mutation<
+			TaskAttachment,
+			{ id: number; data: FormData; onUploadProgress?: (event: AxiosProgressEvent) => void }
+		>({
 			query: ({ id, data, onUploadProgress }) => ({
 				url: `${DESIGN_WORKFLOW_ROOT}tasks/${id}/attachments/`,
 				method: 'POST',
@@ -387,8 +390,12 @@ export const designWorkflowApi = createApi({
 			}),
 			invalidatesTags: (_result, _error, { id }) => ['Task', { type: 'Task', id }, 'Notification'],
 		}),
-		getTaskTimeEntries: builder.query<TimeEntry[], number>({
-			query: (id) => ({ url: `${DESIGN_WORKFLOW_ROOT}tasks/${id}/time-entries/`, method: 'GET' }),
+		getTaskTimeEntries: builder.query<{ count: number; results: TimeEntry[] }, { id: number; page: number }>({
+			query: ({ id, page }) => ({
+				url: `${DESIGN_WORKFLOW_ROOT}tasks/${id}/time-entries/`,
+				method: 'GET',
+				params: { page, page_size: 5 },
+			}),
 			providesTags: ['Task'],
 		}),
 		addTaskTimeEntry: builder.mutation<TimeEntry, { id: number; minutes: number; work_date: string; note: string }>({
@@ -461,7 +468,10 @@ export const designWorkflowApi = createApi({
 			}),
 			providesTags: (_result, _error, { threadId }) => [{ type: 'Chat', id: threadId }],
 		}),
-		sendChatMessage: builder.mutation<ChatMessage, { threadId: number; data: FormData; onUploadProgress?: (event: AxiosProgressEvent) => void }>({
+		sendChatMessage: builder.mutation<
+			ChatMessage,
+			{ threadId: number; data: FormData; onUploadProgress?: (event: AxiosProgressEvent) => void }
+		>({
 			query: ({ threadId, data, onUploadProgress }) => ({
 				url: `${DESIGN_WORKFLOW_ROOT}chat/threads/${threadId}/messages/`,
 				method: 'POST',

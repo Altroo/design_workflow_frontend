@@ -1,7 +1,7 @@
 'use client';
 
-import {runWithCleanup} from '@/utils/runWithCleanup';
-import {useEffect, useRef, useState, type FC} from 'react';
+import { runWithCleanup } from '@/utils/runWithCleanup';
+import { useEffect, useRef, useState, type FC } from 'react';
 import { useFormik } from 'formik';
 import { toFormikValidationSchema } from 'zod-formik-adapter';
 import { ArrowRight, Eye, EyeOff, KeyRound, Lock, Mail } from 'lucide-react';
@@ -42,35 +42,35 @@ const LoginPageContent = () => {
 		onSubmit: async (values, { setFieldError }) => {
 			setIsPending(true);
 			await runWithCleanup(
-			  async () => {
-			    try {
-			      const instance = allowAnyInstance();
-			      const response: AccountPostLoginResponseType = await postApi(
-			        `${process.env.NEXT_PUBLIC_ACCOUNT_LOGIN}`,
-			        instance,
-			        {
-			          email: values.email,
-			          password: values.password,
-			        },
-			      );
+				async () => {
+					try {
+						const instance = allowAnyInstance();
+						const response: AccountPostLoginResponseType = await postApi(
+							`${process.env.NEXT_PUBLIC_ACCOUNT_LOGIN}`,
+							instance,
+							{
+								email: values.email,
+								password: values.password,
+							},
+						);
 
-			      if (response.status === 200) {
-			        const result = await signIn('credentials', {
-			          email: values.email,
-			          password: values.password,
-			          redirect: false,
-			        });
-			        if (result?.error) setFieldError('globalError', loginErrorMessage(result.error));
-			      }
-			    } catch (e) {
-			      const status = (e as { error?: { status_code?: number } })?.error?.status_code;
-			      if (status === 400 || status === 401) setFieldError('globalError', t.errors.invalidCredentials);
-			      else setFormikAutoErrors({e, setFieldError});
-			    }
-			  },
-			  () => {
-			    setIsPending(false);
-			  },
+						if (response.status === 200) {
+							const result = await signIn('credentials', {
+								email: values.email,
+								password: values.password,
+								redirect: false,
+							});
+							if (result?.error) setFieldError('globalError', loginErrorMessage(result.error));
+						}
+					} catch (e) {
+						const status = (e as { error?: { status_code?: number } })?.error?.status_code;
+						if (status === 400 || status === 401) setFieldError('globalError', t.errors.invalidCredentials);
+						else setFormikAutoErrors({ e, setFieldError });
+					}
+				},
+				() => {
+					setIsPending(false);
+				},
 			);
 		},
 	});
@@ -111,7 +111,9 @@ const LoginPageContent = () => {
 							/>
 						</div>
 						{formik.touched.email && formik.errors.email ? (
-							<p id="login-email-error" role="alert" className="auth-field-error">{formik.errors.email}</p>
+							<p id="login-email-error" role="alert" className="auth-field-error">
+								{formik.errors.email}
+							</p>
 						) : null}
 					</div>
 
@@ -132,7 +134,9 @@ const LoginPageContent = () => {
 								onBlur={formik.handleBlur}
 								className="auth-login-input app-input pl-14 pr-14"
 								aria-invalid={Boolean(formik.touched.password && formik.errors.password)}
-								aria-describedby={formik.touched.password && formik.errors.password ? 'login-password-error' : undefined}
+								aria-describedby={
+									formik.touched.password && formik.errors.password ? 'login-password-error' : undefined
+								}
 							/>
 							<button
 								type="button"
@@ -144,7 +148,9 @@ const LoginPageContent = () => {
 							</button>
 						</div>
 						{formik.touched.password && formik.errors.password ? (
-							<p id="login-password-error" role="alert" className="auth-field-error">{formik.errors.password}</p>
+							<p id="login-password-error" role="alert" className="auth-field-error">
+								{formik.errors.password}
+							</p>
 						) : null}
 					</div>
 
@@ -156,7 +162,7 @@ const LoginPageContent = () => {
 
 					<div className="flex flex-col gap-3 pt-2">
 						<button type="submit" disabled={isPending} className="app-button min-w-full">
-							<span>{isPending ? t.common.loading ?? 'Loading...' : t.auth.loginButton}</span>
+							<span>{isPending ? (t.common.loading ?? 'Loading...') : t.auth.loginButton}</span>
 							<ArrowRight size={16} />
 						</button>
 						<button

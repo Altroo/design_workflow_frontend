@@ -8,7 +8,11 @@ const ThemeControl = () => {
 
 describe('color mode', () => {
 	it('uses the server preference and persists toggles for the next navigation', () => {
-		render(<ThemeProvider initialTheme="dark"><ThemeControl /></ThemeProvider>);
+		render(
+			<ThemeProvider initialTheme="dark">
+				<ThemeControl />
+			</ThemeProvider>,
+		);
 		expect(document.documentElement.dataset.theme).toBe('dark');
 		expect(document.cookie).toContain('app-theme=dark');
 		fireEvent.click(screen.getByRole('button', { name: 'dark' }));

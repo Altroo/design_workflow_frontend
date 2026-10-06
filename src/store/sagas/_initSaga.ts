@@ -1,6 +1,11 @@
 import { call, put, takeLatest } from 'redux-saga/effects';
 import * as Types from '../actions';
-import type { InitStateInterface, InitStateToken, AppSession, MaintenanceGetRootResponseType } from '@/types/_initTypes';
+import type {
+	InitStateInterface,
+	InitStateToken,
+	AppSession,
+	MaintenanceGetRootResponseType,
+} from '@/types/_initTypes';
 import { setInitState } from '../slices/_initSlice';
 import { setWSMaintenance } from '../slices/wsSlice';
 import { allowAnyInstance } from '@/utils/helpers';

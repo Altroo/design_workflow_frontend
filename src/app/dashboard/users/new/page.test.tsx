@@ -1,6 +1,6 @@
 import { jest } from '@jest/globals';
 import { renderToStaticMarkup } from 'react-dom/server';
-import type {ReactElement} from 'react';
+import type { ReactElement } from 'react';
 
 type SessionUser = { pk: number; email: string };
 type Session = { user: SessionUser } | null;
@@ -22,7 +22,7 @@ jest.mock('@/components/pages/users/users-form', () => ({
 	__esModule: true,
 	default: (props: { session?: Session }) => {
 		// eslint-disable-next-line @typescript-eslint/no-require-imports
-		const {createElement} = require('react');
+		const { createElement } = require('react');
 		return createElement('div', null, `USERS_FORM_CLIENT_MARKER:${JSON.stringify(props?.session ?? null)}`);
 	},
 }));
@@ -36,6 +36,18 @@ jest.mock('@/utils/routes', () => ({
 beforeEach(() => {
 	jest.resetModules();
 	jest.clearAllMocks();
+});
+
+it.each(['en', 'fr'] as const)('metadata follows the selected server language (%s)', async (language) => {
+	jest.resetModules();
+	const { translations } = await import('@/translations');
+	const t = translations[language];
+	jest.doMock('@/utils/serverTranslations', () => ({ getServerTranslations: async () => t }));
+	const { generateMetadata } = await import('./page');
+	await expect(generateMetadata()).resolves.toEqual({
+		title: t.metadata.newUserTitle,
+		description: t.metadata.newUserDescription,
+	});
 });
 
 afterEach(() => {

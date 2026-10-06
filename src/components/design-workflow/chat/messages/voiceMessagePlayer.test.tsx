@@ -1,0 +1,53 @@
+import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
+import { VoiceMessagePlayer } from './voiceMessagePlayer';
+
+afterEach(() => jest.restoreAllMocks());
+it('synchronizes external play/time events, handles unknown duration and resets at the end', () => {
+	const { container } = render(<VoiceMessagePlayer src="/voice.webm" label="Voice note" seed="" compact />);
+	const audio = container.querySelector('audio')!;
+	Object.defineProperty(audio, 'duration', { configurable: true, value: Infinity });
+	fireEvent.durationChange(audio);
+	expect(screen.getByRole('slider')).toHaveAttribute('max', '0');
+	Object.defineProperty(audio, 'duration', { configurable: true, value: 90 });
+	fireEvent.durationChange(audio);
+	fireEvent.play(audio);
+	audio.currentTime = 45;
+	fireEvent.timeUpdate(audio);
+	expect(container.firstChild).toHaveAttribute('data-playing', 'true');
+	expect(screen.getByText('0:45')).toBeInTheDocument();
+	expect(container.querySelectorAll('[data-active="true"]')).toHaveLength(17);
+	Object.defineProperty(audio, 'ended', { configurable: true, value: true });
+	fireEvent.ended(audio);
+	expect(container.firstChild).toHaveAttribute('data-playing', 'false');
+	expect(screen.getByRole('slider')).toHaveValue('0');
+});
+it('plays, seeks and pauses audio while updating its progress', async () => {
+	const play = jest.spyOn(HTMLMediaElement.prototype, 'play').mockResolvedValue();
+	const pause = jest.spyOn(HTMLMediaElement.prototype, 'pause').mockImplementation(() => {});
+	const { container } = render(<VoiceMessagePlayer src="/voice.webm" label="Voice note" seed="note-1" />);
+	const audio = container.querySelector('audio')!;
+	Object.defineProperty(audio, 'duration', { configurable: true, value: 90 });
+	fireEvent.loadedMetadata(audio);
+	expect(screen.getByText('1:30')).toBeInTheDocument();
+	await userEvent.setup().click(screen.getByRole('button', { name: 'Voice note' }));
+	expect(play).toHaveBeenCalledTimes(1);
+	fireEvent.change(screen.getByRole('slider'), { target: { value: '30' } });
+	expect(audio.currentTime).toBe(30);
+	expect(screen.getByText('0:30')).toBeInTheDocument();
+	await userEvent.setup().click(screen.getByRole('button', { name: 'Voice note' }));
+	expect(pause).toHaveBeenCalledTimes(1);
+	fireEvent.pause(audio);
+	expect(container.firstChild).toHaveAttribute('data-playing', 'false');
+});
+it('recovers from rejected playback and removes media listeners on unmount', async () => {
+	jest.spyOn(HTMLMediaElement.prototype, 'play').mockRejectedValue(new Error('Playback blocked'));
+	const { container, unmount } = render(<VoiceMessagePlayer src="/voice.webm" label="Voice note" seed="note-1" />);
+	const audio = container.querySelector('audio')!;
+	const remove = jest.spyOn(audio, 'removeEventListener');
+	await userEvent.setup().click(screen.getByRole('button', { name: 'Voice note' }));
+	await waitFor(() => expect(container.firstChild).toHaveAttribute('data-playing', 'false'));
+	unmount();
+	expect(remove).toHaveBeenCalledWith('timeupdate', expect.any(Function));
+	expect(remove).toHaveBeenCalledWith('play', expect.any(Function));
+});

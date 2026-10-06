@@ -1,6 +1,6 @@
 'use client';
 
-import {type FC} from 'react';
+import { type FC } from 'react';
 import Image from 'next/image';
 import { Wrench } from 'lucide-react';
 import { useAppSelector, useLanguage } from '@/utils/hooks';
@@ -17,20 +17,12 @@ const Maintenance: FC = () => {
 	}
 
 	return (
-		<div
-			data-testid="maintenance-gate"
-			className="fixed inset-0 z-[140] overflow-y-auto bg-white"
-		>
+		<div data-testid="maintenance-gate" className="fixed inset-0 z-140 overflow-y-auto bg-white">
 			<div className="grid min-h-screen md:grid-cols-[minmax(280px,32%)_1fr]">
 				<div className="hidden flex-col justify-between overflow-hidden bg-(--surface-muted) p-10 md:flex">
-					<Image
-						src={Logo}
-						alt={t.common.appLogo}
-						priority
-						style={{ width: '150px', height: 'auto' }}
-					/>
-					<div className="w-full max-w-[420px]">
-						<Image src={IlluSVG} alt="" priority style={{ width: '100%', height: 'auto' }} />
+					<Image src={Logo} alt={t.common.appLogo} preload style={{ width: '150px', height: 'auto' }} />
+					<div className="w-full max-w-105">
+						<Image src={IlluSVG} alt="" preload style={{ width: '100%', height: 'auto' }} />
 					</div>
 				</div>
 
@@ -43,16 +35,11 @@ const Maintenance: FC = () => {
 				>
 					<div className="w-full max-w-xl">
 						<div className="mb-6 flex justify-center md:hidden">
-						<Image
-							src={Logo}
-							alt={t.common.appLogo}
-							priority
-							style={{ width: '88px', height: 'auto' }}
-						/>
+							<Image src={Logo} alt={t.common.appLogo} preload style={{ width: '88px', height: 'auto' }} />
 						</div>
 
-						<div className="app-card border border-[color:var(--line-strong)] bg-white p-6 sm:p-8">
-							<div className="inline-flex items-center gap-2 rounded-full border border-[color:var(--line-strong)] bg-(--surface-muted) px-4 py-2 text-sm font-medium text-(--ink)">
+						<div className="app-card border border-(--line-strong) bg-white p-6 sm:p-8">
+							<div className="inline-flex items-center gap-2 rounded-full border border-(--line-strong) bg-(--surface-muted) px-4 py-2 text-sm font-medium text-(--ink)">
 								<Wrench className="h-4 w-4" />
 								<span>{t.errors.maintenanceChip}</span>
 							</div>

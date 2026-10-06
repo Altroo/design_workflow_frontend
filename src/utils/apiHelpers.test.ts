@@ -1,5 +1,5 @@
 import axios from 'axios';
-import { cookiesPoster, cookiesDeleter, fetchFileBlob, postApi } from './apiHelpers';
+import { cookiesPoster, cookiesDeleter, fetchFileBlob, postApi, getApi } from './apiHelpers';
 
 jest.mock('axios', () => {
 	const mockPost = jest.fn();
@@ -24,6 +24,25 @@ const mockedAxios = axios as jest.Mocked<typeof axios> & {
 	__mockGet: jest.Mock;
 };
 
+describe('getApi', () => {
+	it.each([undefined, { page: 2, search: 'Plans' }])(
+		'forwards query parameters (%j) and preserves status and response data',
+		async (params) => {
+			mockedAxios.__mockGet.mockResolvedValueOnce({ status: 200, data: { maintenance: false } });
+			expect(await getApi('/maintenance/', axios.create(), params)).toEqual({
+				status: 200,
+				data: { maintenance: false },
+			});
+			expect(mockedAxios.__mockGet).toHaveBeenLastCalledWith('/maintenance/', { params });
+		},
+	);
+	it('propagates network failures to the caller', async () => {
+		const error = new Error('Offline');
+		mockedAxios.__mockGet.mockRejectedValueOnce(error);
+		await expect(getApi('/maintenance/', axios.create())).rejects.toBe(error);
+	});
+});
+
 describe('cookiesPoster', () => {
 	it('posts to the given URL and returns status', async () => {
 		(mockedAxios as unknown as { __mockPost: jest.Mock }).__mockPost.mockResolvedValueOnce({ status: 200 });
@@ -44,10 +63,9 @@ describe('cookiesDeleter', () => {
 
 		const result = await cookiesDeleter('/api/cookies', { key: 'token' });
 		expect(result).toEqual({ status: 204 });
-		expect((mockedAxios as unknown as { __mockDelete: jest.Mock }).__mockDelete).toHaveBeenCalledWith(
-			'/api/cookies',
-			{ data: { key: 'token' } },
-		);
+		expect((mockedAxios as unknown as { __mockDelete: jest.Mock }).__mockDelete).toHaveBeenCalledWith('/api/cookies', {
+			data: { key: 'token' },
+		});
 	});
 });
 

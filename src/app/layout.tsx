@@ -12,7 +12,7 @@ import '@/styles/workflow/visual-system.css';
 import '@/styles/workflow/color-modes.css';
 import SessionProvider from '@/providers/sessionProvider';
 import StoreProvider from '@/providers/storeProvider';
-import type {RootLayoutProps} from '@/types/routeTypes';
+import type { RootLayoutProps } from '@/types/routeTypes';
 import { InitContextProvider } from '@/contexts/InitContext';
 import ThemeProvider from '@/providers/themeProvider';
 import { InitEffects } from '@/contexts/initEffects';
@@ -104,7 +104,7 @@ export const viewport: Viewport = {
 	themeColor: '#111827',
 };
 
-const RootLayout = async ({children}: RootLayoutProps) => {
+const RootLayout = async ({ children }: RootLayoutProps) => {
 	const t = await getServerTranslations();
 	const cookieStore = await cookies();
 	const lang = cookieStore.get('app-language')?.value === 'en' ? 'en' : 'fr';

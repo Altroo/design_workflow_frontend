@@ -1,7 +1,7 @@
 'use client';
 
-import {runWithCleanup} from '@/utils/runWithCleanup';
-import {useRef, useState, type ClipboardEvent, type FC} from 'react';
+import { runWithCleanup } from '@/utils/runWithCleanup';
+import { useRef, useState, type ClipboardEvent, type FC } from 'react';
 import { useFormik } from 'formik';
 import { toFormikValidationSchema } from 'zod-formik-adapter';
 import { ArrowRight, RotateCcw } from 'lucide-react';
@@ -56,18 +56,18 @@ const EnterCodePageContent = ({ email }: Props) => {
 			setIsPending(true);
 			const code = fields.map((field) => values[field]).join('');
 			await runWithCleanup(
-			  async () => {
-			    try {
-			      await passwordReset({email, code}).unwrap();
-			      await cookiesPoster('/api/cookies', {code});
-			      router.push(AUTH_RESET_PASSWORD_SET_PASSWORD);
-			    } catch (e) {
-			      setFormikAutoErrors({e, setFieldError});
-			    }
-			  },
-			  () => {
-			    setIsPending(false);
-			  },
+				async () => {
+					try {
+						await passwordReset({ email, code }).unwrap();
+						await cookiesPoster('/api/cookies', { code });
+						router.push(AUTH_RESET_PASSWORD_SET_PASSWORD);
+					} catch (e) {
+						setFormikAutoErrors({ e, setFieldError });
+					}
+				},
+				() => {
+					setIsPending(false);
+				},
 			);
 		},
 	});
@@ -139,23 +139,19 @@ const EnterCodePageContent = ({ email }: Props) => {
 								}
 							}}
 							inputMode="numeric"
-							className="h-14 rounded-lg border border-[color:var(--line-strong)] bg-white text-center text-xl font-semibold outline-none transition focus:border-[color:var(--accent)] focus:shadow-[0_0_0_4px_rgba(17,24,39,0.16)]"
+							className="h-14 rounded-lg border border-(--line-strong) bg-white text-center text-xl font-semibold outline-none transition focus:shadow-[0_0_0_4px_rgba(17,24,39,0.16)]"
 						/>
 					))}
 				</div>
 
 				{formik.errors.globalError ? (
-					<div className="rounded-lg border border-[color:var(--line)] bg-(--surface-muted) px-4 py-3 text-sm text-(--ink-soft)">
+					<div className="rounded-lg border border-(--line) bg-(--surface-muted) px-4 py-3 text-sm text-(--ink-soft)">
 						{formik.errors.globalError}
 					</div>
 				) : null}
 
 				<div className="flex flex-col gap-3 sm:flex-row">
-					<button
-						type="submit"
-						disabled={isPending || passwordResetState.isLoading}
-						className="app-button flex-1"
-					>
+					<button type="submit" disabled={isPending || passwordResetState.isLoading} className="app-button flex-1">
 						<span>{t.auth.confirmCode}</span>
 						<ArrowRight size={16} />
 					</button>

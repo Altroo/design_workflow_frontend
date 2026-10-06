@@ -1,5 +1,5 @@
 import { render, waitFor } from '@testing-library/react';
-import {type ComponentType} from 'react';
+import { type ComponentType } from 'react';
 
 const mockSignIn = jest.fn();
 jest.mock('next-auth/react', () => ({

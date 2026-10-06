@@ -1,4 +1,4 @@
-import {type ReactNode} from 'react';
+import { type ReactNode } from 'react';
 import { renderHook } from '@testing-library/react';
 import { Provider } from 'react-redux';
 import { configureStore } from '@reduxjs/toolkit';
@@ -6,11 +6,12 @@ import '@testing-library/jest-dom';
 
 // ─── useAppDispatch / useAppSelector ─────────────────────────────────────────
 import { useAppDispatch, useAppSelector } from './hooks';
-import { store } from '@/store/store';
+import initReducer from '@/store/slices/_initSlice';
+import accountReducer from '@/store/slices/accountSlice';
 
-const wrapper = ({ children }: { children: ReactNode }) => (
-	<Provider store={store}>{children}</Provider>
-);
+const store = configureStore({ reducer: { _init: initReducer, account: accountReducer } });
+
+const wrapper = ({ children }: { children: ReactNode }) => <Provider store={store}>{children}</Provider>;
 
 describe('useAppDispatch', () => {
 	it('returns a dispatch function', () => {
@@ -60,6 +61,18 @@ describe('usePermission', () => {
 		expect(result.current.can_create).toBe(true);
 		expect(result.current.can_edit).toBe(true);
 		expect(result.current.can_delete).toBe(true);
+	});
+
+	it('defaults to denied while the profile has not loaded', () => {
+		const { result } = renderHook(() => usePermission(), { wrapper: makeWrapper({}) });
+		expect(result.current).toEqual({
+			is_staff: false,
+			can_view: false,
+			can_print: false,
+			can_create: false,
+			can_edit: false,
+			can_delete: false,
+		});
 	});
 
 	it('returns individual flags for non-staff user', () => {

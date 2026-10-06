@@ -1,4 +1,4 @@
-import {type CSSProperties, type FC, type ReactNode} from 'react';
+import { type CSSProperties, type FC, type ReactNode } from 'react';
 
 type Action = {
 	active: boolean;
@@ -45,14 +45,14 @@ const ActionModals: FC<Props> = ({
 
 	return (
 		<div
-			className="ui-modal-backdrop fixed inset-0 z-[130] flex items-center justify-center bg-black/45 px-4 py-6"
+			className="ui-modal-backdrop fixed inset-0 z-130 flex items-center justify-center bg-black/45 px-4 py-6"
 			onClick={handleClose}
 		>
 			<div
 				role="dialog"
 				aria-modal="true"
 				aria-label={title}
-				className="ui-modal app-card w-full max-w-[456px] border border-[color:var(--line)] bg-white p-6 shadow-(--shadow-lg)"
+				className="ui-modal app-card w-full max-w-114 border border-(--line) bg-white p-6 shadow-(--shadow-lg)"
 				onClick={(event) => event.stopPropagation()}
 			>
 				<div className="flex items-start gap-4">
@@ -82,7 +82,7 @@ const ActionModals: FC<Props> = ({
 							aria-label={action.text}
 							data-active={action.active}
 							className={[
-								'ui-modal-action min-h-11 px-[18px] py-2.5 text-sm font-semibold transition',
+								'ui-modal-action min-h-11 px-4.5 py-2.5 text-sm font-semibold transition',
 								action.active ? 'app-button' : 'app-button app-button-secondary',
 								action.disabled ? 'cursor-not-allowed opacity-50' : '',
 							].join(' ')}

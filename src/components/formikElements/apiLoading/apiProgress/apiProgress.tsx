@@ -1,4 +1,4 @@
-import {type FC, type ReactNode} from 'react';
+import { type FC, type ReactNode } from 'react';
 import type { CSSProperties } from 'react';
 
 type Props = {
@@ -18,11 +18,11 @@ const ApiProgress: FC<Props> = (props: Props) => {
 	return (
 		<div
 			style={{ backgroundColor: props.backdropColor, ...(props.cssStyle ?? {}) }}
-			className="api-progress-overlay fixed inset-0 z-[100] flex items-center justify-center"
+			className="api-progress-overlay fixed inset-0 z-100 flex items-center justify-center"
 		>
 			<div
 				data-testid="api-loader"
-				className="api-progress-spinner h-12 w-12 animate-spin rounded-full border-4 border-[color:var(--line)] border-t-[color:var(--accent)]"
+				className="api-progress-spinner h-12 w-12 animate-spin rounded-full border-4 border-(--line) border-t-(--accent)"
 				style={{ borderTopColor: props.circularColor }}
 			/>
 		</div>

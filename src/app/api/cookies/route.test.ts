@@ -45,9 +45,7 @@ const createMockRequest = (
 			get: jest.fn((name: string) => (name === 'origin' ? origin || null : null)),
 		},
 		cookies: cookies || {},
-		json: body
-			? jest.fn().mockResolvedValue(body)
-			: jest.fn().mockRejectedValue(new Error('Invalid JSON')),
+		json: body ? jest.fn().mockResolvedValue(body) : jest.fn().mockRejectedValue(new Error('Invalid JSON')),
 	}) as unknown as NextRequest;
 
 describe('Cookies Route Handlers', () => {
@@ -93,11 +91,7 @@ describe('Cookies Route Handlers', () => {
 
 			await POST(createMockRequest('POST', { code: '123456', maxAge: 300 }, 'http://localhost:3004'));
 
-			expect(mockCookieStore.set).toHaveBeenCalledWith(
-				'@code',
-				'123456',
-				expect.objectContaining({ maxAge: 300 }),
-			);
+			expect(mockCookieStore.set).toHaveBeenCalledWith('@code', '123456', expect.objectContaining({ maxAge: 300 }));
 		});
 
 		it('sets pass_updated cookie', async () => {
@@ -107,7 +101,11 @@ describe('Cookies Route Handlers', () => {
 
 			await POST(createMockRequest('POST', { pass_updated: 'true', maxAge: 60 }, 'http://localhost:3004'));
 
-			expect(mockCookieStore.set).toHaveBeenCalledWith('@pass_updated', 'true', expect.objectContaining({ maxAge: 60 }));
+			expect(mockCookieStore.set).toHaveBeenCalledWith(
+				'@pass_updated',
+				'true',
+				expect.objectContaining({ maxAge: 60 }),
+			);
 		});
 
 		it('sets multiple cookies at once', async () => {
@@ -115,7 +113,9 @@ describe('Cookies Route Handlers', () => {
 			mockNextResponseJson.mockReturnValueOnce(mockResponse);
 			mockAddCorsHeaders.mockReturnValueOnce(mockResponse);
 
-			await POST(createMockRequest('POST', { new_email: 'a@b.com', code: '111', maxAge: 3600 }, 'http://localhost:3004'));
+			await POST(
+				createMockRequest('POST', { new_email: 'a@b.com', code: '111', maxAge: 3600 }, 'http://localhost:3004'),
+			);
 
 			expect(mockCookieStore.set).toHaveBeenCalledTimes(2);
 			expect(mockCookieStore.set).toHaveBeenCalledWith('@new_email', 'a@b.com', expect.any(Object));

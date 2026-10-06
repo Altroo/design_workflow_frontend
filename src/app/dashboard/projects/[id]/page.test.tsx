@@ -1,6 +1,6 @@
 import { jest } from '@jest/globals';
 import { renderToStaticMarkup } from 'react-dom/server';
-import type {ReactElement} from 'react';
+import type { ReactElement } from 'react';
 
 type Session = { user: { pk: number; email: string } } | null;
 
@@ -11,7 +11,9 @@ jest.mock('@/auth', () => ({
 }));
 
 const mockRedirect = jest.fn((url: string | URL) => ({ redirectedTo: String(url) }));
-const mockNotFound = jest.fn(() => { throw new Error('not found'); });
+const mockNotFound = jest.fn(() => {
+	throw new Error('not found');
+});
 jest.mock('next/navigation', () => ({
 	__esModule: true,
 	redirect: mockRedirect,
@@ -22,7 +24,7 @@ jest.mock('@/components/pages/design-workflow/designWorkflowShell', () => ({
 	__esModule: true,
 	default: (props: { title?: string; variant?: string; projectId?: number }) => {
 		// eslint-disable-next-line @typescript-eslint/no-require-imports
-		const {createElement} = require('react');
+		const { createElement } = require('react');
 		return createElement('div', null, `WORKFLOW_SHELL:${props.title}:${props.variant}:${props.projectId}`);
 	},
 }));

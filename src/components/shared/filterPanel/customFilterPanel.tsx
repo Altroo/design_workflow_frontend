@@ -1,6 +1,6 @@
 'use client';
 
-import {type FC} from 'react';
+import { type FC } from 'react';
 
 export interface DateRangeFilterValue {
 	from?: string;
@@ -26,21 +26,14 @@ interface CustomFilterPanelProps {
 	onChange: (model: CustomFilterModel) => void;
 }
 
-export function filterHasValue(item: CustomFilterItem): boolean {
-	if (typeof item.value === 'string') {
-		return item.value.trim() !== '';
-	}
-	return Boolean(item.value.from || item.value.to);
-}
-
 const CustomFilterPanel: FC<CustomFilterPanelProps> = ({ filterModel, onChange }) => {
 	return (
-		<div className="ui-filter-panel app-card border border-[color:var(--line)] bg-white p-4">
+		<div className="ui-filter-panel app-card border border-(--line) bg-white p-4">
 			<div className="flex items-center justify-between gap-3">
 				<p className="text-sm font-medium text-(--ink)">Filters</p>
 				<button
 					type="button"
-					className="app-pill ui-button-ghost border border-[color:var(--line)] px-3 py-2 text-sm"
+					className="app-pill ui-button-ghost border border-(--line) px-3 py-2 text-sm"
 					onClick={() => onChange({ ...filterModel, items: [] })}
 				>
 					Clear

@@ -60,11 +60,7 @@ describe('account sagas', () => {
 		const payload = { type: Types.WS_USER_AVATAR, pk: 1, avatar: 'avatar-url' };
 		const dispatched: unknown[] = [];
 
-		await runSaga(
-			{ dispatch: (action: unknown) => dispatched.push(action) },
-			wsUserAvatarSaga,
-			payload,
-		).toPromise();
+		await runSaga({ dispatch: (action: unknown) => dispatched.push(action) }, wsUserAvatarSaga, payload).toPromise();
 
 		expect(dispatched).toEqual([setWSUserAvatar({ avatar: 'avatar-url' })]);
 	});

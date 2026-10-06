@@ -3,7 +3,7 @@ import SetPasswordCompleteClient from './setPasswordComplete';
 import '@testing-library/jest-dom';
 import { Provider } from 'react-redux';
 import { store } from '@/store/store';
-import {type ReactNode} from 'react';
+import { type ReactNode } from 'react';
 
 // Mocks
 jest.mock('next-auth/react', () => ({

@@ -1,9 +1,53 @@
 import { runSaga } from 'redux-saga';
 import * as Types from '../actions';
-import { initAppSaga, initAppSessionTokensSaga, refreshAppTokenStatesSaga, watchInit } from './_initSaga';
+import {
+	initAppSaga,
+	initMaintenanceSaga,
+	initAppSessionTokensSaga,
+	refreshAppTokenStatesSaga,
+	watchInit,
+} from './_initSaga';
 import { setInitState } from '../slices/_initSlice';
 import type { InitStateInterface, InitStateToken } from '@/types/_initTypes';
 import { takeLatest } from 'redux-saga/effects';
+import { getApi } from '@/utils/apiHelpers';
+import { allowAnyInstance } from '@/utils/helpers';
+import { setWSMaintenance } from '../slices/wsSlice';
+
+jest.mock('@/utils/apiHelpers', () => ({ getApi: jest.fn() }));
+jest.mock('@/utils/helpers', () => ({ allowAnyInstance: jest.fn(() => ({})) }));
+
+describe('maintenance startup', () => {
+	const originalEnv = process.env;
+	beforeEach(() => {
+		process.env = { ...originalEnv };
+		jest.clearAllMocks();
+	});
+	afterEach(() => {
+		process.env = originalEnv;
+	});
+	it('skips maintenance requests when no endpoint is configured', async () => {
+		Reflect.deleteProperty(process.env, 'NEXT_PUBLIC_WS_MAINTENANCE_ROOT');
+		await runSaga({}, initAppSaga).toPromise();
+		expect(getApi).not.toHaveBeenCalled();
+	});
+	it.each([true, false])('initializes maintenance=%s from the public endpoint', async (maintenance) => {
+		process.env.NEXT_PUBLIC_WS_MAINTENANCE_ROOT = '/maintenance/';
+		jest.mocked(getApi).mockResolvedValueOnce({ status: 200, data: { maintenance } });
+		const dispatch = jest.fn();
+		await runSaga({ dispatch }, initAppSaga).toPromise();
+		expect(allowAnyInstance).toHaveBeenCalledTimes(1);
+		expect(getApi).toHaveBeenCalledWith('/maintenance/', {});
+		expect(dispatch).toHaveBeenCalledWith(setWSMaintenance(maintenance));
+	});
+	it('does not replace maintenance state after a non-success response', async () => {
+		process.env.NEXT_PUBLIC_WS_MAINTENANCE_ROOT = '/maintenance/';
+		jest.mocked(getApi).mockResolvedValueOnce({ status: 503, data: {} });
+		const dispatch = jest.fn();
+		await runSaga({ dispatch }, initMaintenanceSaga).toPromise();
+		expect(dispatch).not.toHaveBeenCalled();
+	});
+});
 
 describe('init sagas', () => {
 	it('initAppSessionTokensSaga dispatches setInitState with correct payload', async () => {
@@ -25,11 +69,10 @@ describe('init sagas', () => {
 		};
 
 		const dispatched: unknown[] = [];
-		await runSaga(
-			{ dispatch: (action: unknown) => dispatched.push(action) },
-			initAppSessionTokensSaga,
-			{ type: Types.INIT_APP_SESSION_TOKENS, session: mockSession as never },
-		).toPromise();
+		await runSaga({ dispatch: (action: unknown) => dispatched.push(action) }, initAppSessionTokensSaga, {
+			type: Types.INIT_APP_SESSION_TOKENS,
+			session: mockSession as never,
+		}).toPromise();
 
 		const expectedToken: InitStateToken = {
 			user: mockSession.user,
@@ -66,11 +109,10 @@ describe('init sagas', () => {
 		};
 
 		const dispatched: unknown[] = [];
-		await runSaga(
-			{ dispatch: (action: unknown) => dispatched.push(action) },
-			initAppSessionTokensSaga,
-			{ type: Types.INIT_APP_SESSION_TOKENS, session: mockSession as never },
-		).toPromise();
+		await runSaga({ dispatch: (action: unknown) => dispatched.push(action) }, initAppSessionTokensSaga, {
+			type: Types.INIT_APP_SESSION_TOKENS,
+			session: mockSession as never,
+		}).toPromise();
 
 		expect(dispatched).toEqual([
 			setInitState({
@@ -124,18 +166,12 @@ describe('init sagas', () => {
 		const gen = watchInit();
 
 		const firstEffect = gen.next().value;
-		expect(firstEffect).toEqual(
-			takeLatest(Types.INIT_APP, initAppSaga),
-		);
+		expect(firstEffect).toEqual(takeLatest(Types.INIT_APP, initAppSaga));
 
 		const secondEffect = gen.next().value;
-		expect(secondEffect).toEqual(
-			takeLatest(Types.INIT_APP_SESSION_TOKENS, initAppSessionTokensSaga),
-		);
+		expect(secondEffect).toEqual(takeLatest(Types.INIT_APP_SESSION_TOKENS, initAppSessionTokensSaga));
 
 		const thirdEffect = gen.next().value;
-		expect(thirdEffect).toEqual(
-			takeLatest(Types.REFRESH_APP_TOKEN_STATES, refreshAppTokenStatesSaga),
-		);
+		expect(thirdEffect).toEqual(takeLatest(Types.REFRESH_APP_TOKEN_STATES, refreshAppTokenStatesSaga));
 	});
 });

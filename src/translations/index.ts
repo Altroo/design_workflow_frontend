@@ -3,6 +3,6 @@ import { fr } from './fr';
 import { en } from './en';
 
 export const translations: Record<Language, TranslationDictionary> = {
-  fr,
-  en,
+	fr,
+	en,
 };

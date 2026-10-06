@@ -3,7 +3,7 @@ import LoginClient from './login';
 import '@testing-library/jest-dom';
 import { Provider } from 'react-redux';
 import { store } from '@/store/store';
-import {type ReactNode} from 'react';
+import { type ReactNode } from 'react';
 import { DASHBOARD } from '@/utils/routes';
 import { translations } from '@/translations';
 
@@ -91,36 +91,50 @@ describe('LoginClient', () => {
 		mockPostApi.mockResolvedValue({ status: 500 });
 	});
 
-	it.each((['fr', 'en'] as const).flatMap(language => [
-		{ language, code: 'CredentialsSignin', expected: 'invalidCredentials' as const },
-		{ language, code: 'SSOConfiguration', expected: 'ssoLoginFailed' as const },
-		{ language, code: 'SSOCodeMissing', expected: 'ssoLoginFailed' as const },
-		{ language, code: 'SSOFailed', expected: 'ssoLoginFailed' as const },
-		{ language, code: 'AccessDenied', expected: 'serviceUnavailable' as const },
-		{ language, code: 'Configuration', expected: 'serviceUnavailable' as const },
-		{ language, code: 'UnknownFailure', expected: 'serviceUnavailable' as const },
-	]))('shows the correct $language message for $code', async ({ language, code, expected }) => {
+	it.each(
+		(['fr', 'en'] as const).flatMap((language) => [
+			{ language, code: 'CredentialsSignin', expected: 'invalidCredentials' as const },
+			{ language, code: 'SSOConfiguration', expected: 'ssoLoginFailed' as const },
+			{ language, code: 'SSOCodeMissing', expected: 'ssoLoginFailed' as const },
+			{ language, code: 'SSOFailed', expected: 'ssoLoginFailed' as const },
+			{ language, code: 'AccessDenied', expected: 'serviceUnavailable' as const },
+			{ language, code: 'Configuration', expected: 'serviceUnavailable' as const },
+			{ language, code: 'UnknownFailure', expected: 'serviceUnavailable' as const },
+		]),
+	)('shows the correct $language message for $code', async ({ language, code, expected }) => {
 		mockLanguage = language;
 		searchParamsMock = new URLSearchParams({ error: code });
 		await act(async () => {
-			render(<Provider store={store}><LoginClient /></Provider>);
+			render(
+				<Provider store={store}>
+					<LoginClient />
+				</Provider>,
+			);
 		});
 		expect(screen.getByRole('alert')).toHaveTextContent(translations[language].errors[expected]);
 		expect(screen.getByRole('alert')).toHaveClass('auth-login-error');
 	});
 
-	it.each(['CredentialsSignin', 'Configuration'])('classifies %s returned by signIn', async code => {
+	it.each(['CredentialsSignin', 'Configuration'])('classifies %s returned by signIn', async (code) => {
 		mockPostApi.mockResolvedValue({ status: 200 });
 		mockSignIn.mockResolvedValue({ error: code });
 		await act(async () => {
-			render(<Provider store={store}><LoginClient /></Provider>);
+			render(
+				<Provider store={store}>
+					<LoginClient />
+				</Provider>,
+			);
 		});
 		fireEvent.change(screen.getAllByLabelText(/Adresse email/i)[0], { target: { value: 'user@example.com' } });
 		fireEvent.change(screen.getAllByLabelText(/Mot de passe/i)[0], { target: { value: 'password123' } });
 		fireEvent.click(screen.getAllByRole('button', { name: /Me connecter/i })[0]);
-		await waitFor(() => expect(screen.getByRole('alert')).toHaveTextContent(
-			code === 'CredentialsSignin' ? translations.fr.errors.invalidCredentials : translations.fr.errors.serviceUnavailable,
-		));
+		await waitFor(() =>
+			expect(screen.getByRole('alert')).toHaveTextContent(
+				code === 'CredentialsSignin'
+					? translations.fr.errors.invalidCredentials
+					: translations.fr.errors.serviceUnavailable,
+			),
+		);
 	});
 
 	it('renders login form with title and button', async () => {

@@ -1,46 +1,8 @@
 'use client';
 
-import {type Dispatch, type ReactNode, type SetStateAction} from 'react';
+import type { PaginatedDataGridProps } from '@/types/paginatedDataGridTypes';
 
-export type GridColDef = {
-	field: string;
-	headerName?: string;
-	renderCell?: (params: { row: Record<string, unknown>; value: unknown }) => ReactNode;
-};
-
-export type GridLogicOperator = 'and' | 'or';
-
-export type GridFilterModel = {
-	items: Array<Record<string, unknown>>;
-	logicOperator?: GridLogicOperator;
-};
-
-export type GridRowParams = {
-	row: Record<string, unknown>;
-};
-
-type PaginatedDataGridProps<T> = {
-	data?: { count: number; results: T[] };
-	isLoading?: boolean;
-	columns: GridColDef[];
-	paginationModel: { page: number; pageSize: number };
-	setPaginationModel: Dispatch<SetStateAction<{ page: number; pageSize: number }>>;
-	searchTerm: string;
-	setSearchTerm: Dispatch<SetStateAction<string>>;
-	onSelectionChange?: (ids: number[]) => void;
-	selectedIds?: number[];
-	onRowClick?: (params: GridRowParams) => void;
-};
-
-export function isDateRangeValue(value: unknown): value is { from?: string; to?: string } {
-	return typeof value === 'object' && value !== null && 'from' in value;
-}
-
-export function mapOperatorToParam(field: string, operator: string, value: unknown): Record<string, string> {
-	return { [`${field}__${operator}`]: String(value) };
-}
-
-const PaginatedDataGrid = <T extends { id?: number | string },>({
+const PaginatedDataGrid = <T extends { id?: number | string }>({
 	data,
 	isLoading,
 	columns,
@@ -60,8 +22,8 @@ const PaginatedDataGrid = <T extends { id?: number | string },>({
 	}
 
 	return (
-		<div className="workflow-data-grid app-card overflow-hidden border border-[color:var(--line)] bg-white">
-			<div className="flex flex-col gap-3 border-b border-[color:var(--line)] p-4 sm:flex-row sm:items-center sm:justify-between">
+		<div className="workflow-data-grid app-card overflow-hidden border border-(--line) bg-white">
+			<div className="flex flex-col gap-3 border-b border-(--line) p-4 sm:flex-row sm:items-center sm:justify-between">
 				<input
 					value={searchTerm}
 					onChange={(event) => setSearchTerm(event.target.value)}
@@ -109,7 +71,7 @@ const PaginatedDataGrid = <T extends { id?: number | string },>({
 							return (
 								<tr
 									key={String(row.id ?? index)}
-									className="border-t border-[color:var(--line)] hover:bg-(--surface-muted)"
+									className="border-t border-(--line) hover:bg-(--surface-muted)"
 									onClick={() => onRowClick?.({ row: row as Record<string, unknown> })}
 								>
 									{onSelectionChange ? (
@@ -118,12 +80,11 @@ const PaginatedDataGrid = <T extends { id?: number | string },>({
 												type="checkbox"
 												checked={checked}
 												className="app-check"
+												onClick={(event) => event.stopPropagation()}
 												onChange={(event) => {
 													event.stopPropagation();
 													onSelectionChange(
-														event.target.checked
-															? [...selectedIds, rowId]
-															: selectedIds.filter((id) => id !== rowId),
+														event.target.checked ? [...selectedIds, rowId] : selectedIds.filter((id) => id !== rowId),
 													);
 												}}
 											/>

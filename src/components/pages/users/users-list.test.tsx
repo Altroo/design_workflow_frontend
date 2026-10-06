@@ -1,4 +1,4 @@
-import {type ReactNode} from 'react';
+import { type ReactNode } from 'react';
 import { render, screen, cleanup, fireEvent, act, waitFor } from '@testing-library/react';
 import '@testing-library/jest-dom';
 
@@ -292,23 +292,33 @@ describe('UsersListClient', () => {
 
 		it('opens delete modal', async () => {
 			render(<UsersListClient />);
-			await act(async () => { fireEvent.click(screen.getAllByRole('button', { name: 'Supprimer' })[0]); });
+			await act(async () => {
+				fireEvent.click(screen.getAllByRole('button', { name: 'Supprimer' })[0]);
+			});
 			expect(screen.getByTestId('action-modal')).toBeInTheDocument();
 			expect(screen.getByText('Supprimer cet utilisateur ?')).toBeInTheDocument();
 		});
 
 		it('closes delete modal on Annuler', async () => {
 			render(<UsersListClient />);
-			await act(async () => { fireEvent.click(screen.getAllByRole('button', { name: 'Supprimer' })[0]); });
-			await act(async () => { fireEvent.click(screen.getByText('Annuler')); });
+			await act(async () => {
+				fireEvent.click(screen.getAllByRole('button', { name: 'Supprimer' })[0]);
+			});
+			await act(async () => {
+				fireEvent.click(screen.getByText('Annuler'));
+			});
 			expect(screen.queryByTestId('action-modal')).not.toBeInTheDocument();
 		});
 
 		it('deletes user on confirm', async () => {
 			render(<UsersListClient />);
-			await act(async () => { fireEvent.click(screen.getAllByRole('button', { name: 'Supprimer' })[0]); });
+			await act(async () => {
+				fireEvent.click(screen.getAllByRole('button', { name: 'Supprimer' })[0]);
+			});
 			const btns = screen.getAllByRole('button', { name: 'Supprimer' });
-			await act(async () => { fireEvent.click(btns[btns.length - 1]); });
+			await act(async () => {
+				fireEvent.click(btns[btns.length - 1]);
+			});
 			await waitFor(() => {
 				expect(mockDeleteUser).toHaveBeenCalled();
 				expect(mockOnSuccess).toHaveBeenCalledWith('Utilisateur supprimé avec succès');
@@ -318,9 +328,13 @@ describe('UsersListClient', () => {
 		it('handles delete error', async () => {
 			mockDeleteUser.mockReturnValueOnce({ unwrap: () => Promise.reject(new Error('fail')) });
 			render(<UsersListClient />);
-			await act(async () => { fireEvent.click(screen.getAllByRole('button', { name: 'Supprimer' })[0]); });
+			await act(async () => {
+				fireEvent.click(screen.getAllByRole('button', { name: 'Supprimer' })[0]);
+			});
 			const btns = screen.getAllByRole('button', { name: 'Supprimer' });
-			await act(async () => { fireEvent.click(btns[btns.length - 1]); });
+			await act(async () => {
+				fireEvent.click(btns[btns.length - 1]);
+			});
 			await waitFor(() => {
 				expect(mockOnError).toHaveBeenCalledWith("Erreur lors de la suppression de l'utilisateur");
 			});
@@ -338,13 +352,21 @@ describe('UsersListClient', () => {
 
 	describe('Loading and empty states', () => {
 		it('keeps the users shell when loading', () => {
-			mockUseGetUsersListQuery.mockReturnValueOnce({ data: { results: [], count: 0, next: null, previous: null }, isLoading: true, refetch: mockRefetch });
+			mockUseGetUsersListQuery.mockReturnValueOnce({
+				data: { results: [], count: 0, next: null, previous: null },
+				isLoading: true,
+				refetch: mockRefetch,
+			});
 			render(<UsersListClient />);
 			expect(screen.getByText('Registre utilisateurs')).toBeInTheDocument();
 		});
 
 		it('renders empty state when empty', () => {
-			mockUseGetUsersListQuery.mockReturnValueOnce({ data: { results: [], count: 0, next: null, previous: null }, isLoading: false, refetch: mockRefetch });
+			mockUseGetUsersListQuery.mockReturnValueOnce({
+				data: { results: [], count: 0, next: null, previous: null },
+				isLoading: false,
+				refetch: mockRefetch,
+			});
 			render(<UsersListClient />);
 			expect(screen.getAllByText('Aucun utilisateur trouvé.').length).toBeGreaterThan(0);
 		});

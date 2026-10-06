@@ -1,4 +1,4 @@
-import {type FC, useContext} from 'react';
+import { type FC, useContext } from 'react';
 import { render, screen, act } from '@testing-library/react';
 import '@testing-library/jest-dom';
 import { ToastContext, ToastContextProvider, type ToastContextType } from './toastContext';

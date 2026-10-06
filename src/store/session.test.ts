@@ -87,7 +87,9 @@ describe('getAccessTokenFromSession', () => {
 describe('getUserProfileFromSession', () => {
 	it('returns undefined when session has no usable user id', () => {
 		expect(getUserProfileFromSession(undefined)).toBeUndefined();
-		expect(getUserProfileFromSession({ expires: '2099-12-31', user: { email: 'test@example.com' } } as AppSession)).toBeUndefined();
+		expect(
+			getUserProfileFromSession({ expires: '2099-12-31', user: { email: 'test@example.com' } } as AppSession),
+		).toBeUndefined();
 	});
 
 	it('builds a staff profile from session user data', () => {
@@ -106,15 +108,17 @@ describe('getUserProfileFromSession', () => {
 			},
 		} as AppSession);
 
-		expect(profile).toEqual(expect.objectContaining({
-			id: 9,
-			first_name: 'Admin',
-			last_name: 'User',
-			email: 'admin@example.com',
-			is_staff: true,
-			can_view: true,
-			can_create: true,
-			role: 'manager',
-		}));
+		expect(profile).toEqual(
+			expect.objectContaining({
+				id: 9,
+				first_name: 'Admin',
+				last_name: 'User',
+				email: 'admin@example.com',
+				is_staff: true,
+				can_view: true,
+				can_create: true,
+				role: 'manager',
+			}),
+		);
 	});
 });

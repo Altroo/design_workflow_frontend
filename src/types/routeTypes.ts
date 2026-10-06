@@ -1,4 +1,4 @@
-import type {ReactNode} from 'react';
+import type { ReactNode } from 'react';
 
-export type RootLayoutProps = {children: ReactNode};
-export type IdRouteProps = {params: Promise<{id: string}>};
+export type RootLayoutProps = { children: ReactNode };
+export type IdRouteProps = { params: Promise<{ id: string }> };

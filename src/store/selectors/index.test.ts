@@ -1,4 +1,11 @@
-import { getInitStateToken, getAccessToken, getProfilState, getWSOnlineUserIdsState } from './index';
+import {
+	getInitStateToken,
+	getAccessToken,
+	getProfilState,
+	getWSOnlineUserIdsState,
+	getWSMaintenanceState,
+} from './index';
+import type { RootState } from '@/store/store';
 import { UserClass } from '@/models/classes';
 
 describe('Redux selectors', () => {
@@ -16,11 +23,11 @@ describe('Redux selectors', () => {
 		'2023-01-01T12:00:00Z',
 		'2023-12-01T08:30:00Z',
 		'2023-12-01T08:30:00Z',
-		true,   // can_view
-		false,  // can_print
-		true,   // can_create
-		false,  // can_edit
-		false,  // can_delete
+		true, // can_view
+		false, // can_print
+		true, // can_create
+		false, // can_edit
+		false, // can_delete
 	);
 
 	const mockState = {
@@ -60,5 +67,10 @@ describe('Redux selectors', () => {
 	it('getWSOnlineUserIdsState returns online user ids', () => {
 		// eslint-disable-next-line @typescript-eslint/no-explicit-any
 		expect(getWSOnlineUserIdsState(mockState as any)).toEqual([2, 5]);
+	});
+	it.each([true, false])('reads the maintenance flag (%s) without coercing it', (maintenance) => {
+		expect(getWSMaintenanceState({ ...mockState, ws: { ...mockState.ws, maintenance } } as RootState)).toBe(
+			maintenance,
+		);
 	});
 });

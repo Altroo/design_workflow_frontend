@@ -1,6 +1,6 @@
 'use client';
 
-import {useEffect, useRef, type FC} from 'react';
+import { useEffect, useRef, type FC } from 'react';
 import { useAppDispatch, useAppSelector } from '@/utils/hooks';
 import { useSession } from 'next-auth/react';
 import { useRouter, usePathname } from 'next/navigation';
@@ -36,8 +36,12 @@ export const InitEffects: FC = () => {
 
 	// Sync Redux tokens whenever the access token changes (covers initial login + every refresh)
 	useEffect(() => {
-		if (status === 'authenticated' && session && sessionAccessToken &&
-			lastAccessTokenRef.current !== sessionAccessToken) {
+		if (
+			status === 'authenticated' &&
+			session &&
+			sessionAccessToken &&
+			lastAccessTokenRef.current !== sessionAccessToken
+		) {
 			lastAccessTokenRef.current = sessionAccessToken;
 			dispatch(initAppSessionTokensAction(session));
 		}
@@ -52,14 +56,24 @@ export const InitEffects: FC = () => {
 	}, [dispatch, user]);
 
 	useEffect(() => {
-		if (status !== 'authenticated') { lastPermissionsRef.current = null; return; }
+		if (status !== 'authenticated') {
+			lastPermissionsRef.current = null;
+			return;
+		}
 		if (!user) return;
-		const signature = JSON.stringify([user.id, user.role, user.is_staff, (user as { is_superuser?: boolean }).is_superuser]);
+		const signature = JSON.stringify([
+			user.id,
+			user.role,
+			user.is_staff,
+			(user as { is_superuser?: boolean }).is_superuser,
+		]);
 		const previous = lastPermissionsRef.current;
 		lastPermissionsRef.current = signature;
 		if (previous && previous !== signature && update) {
 			// Server re-reads the profile; no privileges are accepted from this browser.
-			void update().then(() => router.refresh()).catch(() => {});
+			void update()
+				.then(() => router.refresh())
+				.catch(() => {});
 		}
 	}, [user, status, update, router]);
 

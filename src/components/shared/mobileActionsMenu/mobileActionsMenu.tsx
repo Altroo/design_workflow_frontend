@@ -1,6 +1,6 @@
 'use client';
 
-import {type FC, type MouseEvent, type ReactNode} from 'react';
+import { type FC, type MouseEvent, type ReactNode } from 'react';
 
 export type ActionItem = {
 	label: string;
@@ -28,7 +28,7 @@ const MobileActionsMenu: FC<MobileActionsMenuProps> = ({ actions }) => {
 					}}
 					aria-label={action.label}
 					type="button"
-					className="app-pill ui-button-ghost inline-flex items-center gap-2 border border-[color:var(--line)] bg-white px-3 py-2 text-sm font-semibold text-(--ink) transition hover:bg-(--surface-muted)"
+					className="app-pill ui-button-ghost inline-flex items-center gap-2 border border-(--line) bg-white px-3 py-2 text-sm font-semibold text-(--ink) transition hover:bg-(--surface-muted)"
 				>
 					{action.icon}
 					<span>{action.label}</span>

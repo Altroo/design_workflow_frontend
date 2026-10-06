@@ -6,14 +6,6 @@ export const runWithCleanup = async <T>(action: () => Promise<T>, cleanup: () =>
 	}
 };
 
-export const runWithErrorHandler = (action: () => void, onError: () => void): void => {
-	try {
-		action();
-	} catch {
-		onError();
-	}
-};
-
 export const runAsyncWithErrorHandler = async (
 	action: () => Promise<void>,
 	onError: (error: unknown) => void,
