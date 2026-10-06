@@ -42,7 +42,7 @@ it('shares notification controls across pages and disables access when signed ou
 	);
 	expect(screen.getByText('enabled')).toBeInTheDocument();
 	expect(mockHook).toHaveBeenLastCalledWith(expect.objectContaining({ userId: 1, language: 'en' }));
-	mockHook.mock.calls.at(-1)?.[0].onNavigate('/dashboard/chat?thread=7');
+	mockHook.mock.calls.at(-1)?.[0].onNavigateAction('/dashboard/chat?thread=7');
 	expect(mockPush).toHaveBeenCalledWith('/dashboard/chat?thread=7');
 	mockSession = null;
 	rerender(

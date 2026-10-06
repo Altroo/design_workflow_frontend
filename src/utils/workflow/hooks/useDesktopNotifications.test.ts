@@ -31,7 +31,7 @@ const props = (notifications: NotificationItem[] | undefined = []) => ({
 	notifications,
 	copy: en.workflow,
 	language: 'en',
-	onNavigate: jest.fn(),
+	onNavigateAction: jest.fn(),
 });
 const emit = (event: unknown) => act(() => mockListeners.forEach((listener) => listener(event)));
 const chat = (id = 55, senderId = 2) => ({

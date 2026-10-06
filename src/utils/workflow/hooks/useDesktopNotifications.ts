@@ -30,13 +30,13 @@ export const useDesktopNotifications = ({
 	notifications,
 	copy,
 	language,
-	onNavigate,
+	onNavigateAction,
 }: {
 	userId: number | null;
 	notifications: NotificationItem[] | undefined;
 	copy: WorkflowCopy;
 	language: string;
-	onNavigate: (href: string) => void;
+	onNavigateAction: (href: string) => void;
 }) => {
 	const [permission, setPermission] = useState<DesktopNotificationPermission>('unsupported');
 	const [preferences, setPreferences] = useState<DesktopNotificationPreferences>({ enabled: true, sound: true });
@@ -83,7 +83,7 @@ export const useDesktopNotifications = ({
 				notice,
 				preferences,
 				language,
-				onNavigate,
+				onNavigateAction,
 				() => current.active && readDesktopPreferences(userId).enabled,
 			);
 		} catch {

@@ -32,7 +32,7 @@ const DesktopNotificationsProvider = ({ children }: { children: ReactNode }) => 
 		notifications: data,
 		copy: t.workflow,
 		language,
-		onNavigate: (href) => router.push(href),
+		onNavigateAction: (href) => router.push(href),
 	});
 	return <DesktopNotificationsContext value={controls}>{children}</DesktopNotificationsContext>;
 };
