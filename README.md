@@ -81,7 +81,9 @@ open before this feature first ships needs one normal reload to acquire it.
 
 `/dashboard/changelog` is visible to all signed-in users, directly below
 Notifications. Django admin → Changelog stores one dated entry per day with a
-French/English title and plain-text changes (one change per line). Draft and future
+French/English title and plain-text changes (one change per line). Entries
+also carry a release version, such as `1.0.0`. Older entries without a
+recorded release keep this field empty rather than inventing version numbers. Draft and future
 entries are hidden; both languages are required to publish. Saving, unpublishing
 or deleting an entry refreshes open changelog pages through WebSocket.
 

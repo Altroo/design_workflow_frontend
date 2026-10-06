@@ -53,6 +53,8 @@ const poppins = localFont({
 	],
 	variable: '--font-poppins',
 	display: 'swap',
+	// The workspace uses system fonts first; load this fallback only when used.
+	preload: false,
 });
 
 export const generateMetadata = async (): Promise<Metadata> => {

@@ -9,7 +9,17 @@ import RootLayout, { generateMetadata, viewport } from './layout';
 const mockProvider = ({ children }: PropsWithChildren) => children;
 jest.mock('next/headers', () => ({ cookies: jest.fn() }));
 jest.mock('@/utils/serverTranslations', () => ({ getServerTranslations: jest.fn() }));
-jest.mock('next/font/local', () => ({ __esModule: true, default: () => ({ variable: 'font-poppins' }) }));
+jest.mock('next/font/local', () => {
+	const optionsSeen = { current: {} };
+	return {
+		__esModule: true,
+		optionsSeen,
+		default: (options: object) => {
+			optionsSeen.current = options;
+			return { variable: 'font-poppins' };
+		},
+	};
+});
 jest.mock('@/providers/sessionProvider', () => ({
 	__esModule: true,
 	default: (props: PropsWithChildren) => mockProvider(props),
@@ -39,6 +49,14 @@ jest.mock('@/components/shared/sessionExpiredListener/sessionExpiredListener', (
 }));
 jest.mock('@/components/shared/maintenance/Maintenance', () => ({ __esModule: true, default: () => null }));
 jest.mock('@/components/shared/appUpdate/appUpdate', () => ({ __esModule: true, default: () => null }));
+
+it('loads fallback Poppins fonts only when a page actually uses them', () => {
+	expect(jest.requireMock('next/font/local').optionsSeen.current).toMatchObject({
+		preload: false,
+		display: 'swap',
+		variable: '--font-poppins',
+	});
+});
 
 it.each([en, fr])('generates localized app metadata with indexing disabled', async (translation) => {
 	jest.mocked(getServerTranslations).mockResolvedValue(translation);
