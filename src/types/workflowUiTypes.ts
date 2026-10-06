@@ -96,6 +96,14 @@ export type PrintableReportCopy = {
 	page: string;
 	noProjectTimeWindow: string;
 	noForecastRows: string;
+	workdayBasis: string;
+	schedule: string;
+	trackingHint: string;
+	collaborationHint: string;
+	periodHint: string;
+	calendarHint: string;
+	capacityHint: string;
+	workDuration: string;
 };
 
 export type ChecklistTemplate = {

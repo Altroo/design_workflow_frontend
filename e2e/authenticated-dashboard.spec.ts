@@ -97,7 +97,7 @@ test.describe('authenticated dashboard', () => {
 		await expect(page.getByRole('button', { name: /Export analytics|Exporter (analytics|l'analyse)/i })).toBeVisible();
 		await expect(page.getByRole('button', { name: /Export PDF|Exporter PDF/i })).toBeVisible();
 		await expect(page.locator('body')).toContainText(
-			/Lead and cycle time|Review bottlenecks|Capacity forecast|Studio analytics|D.lai et temps de cycle|Goulots de revue|Pr.vision capacit.|Studio analyse|Analytics/i,
+			/Remaining work per person|Travail restant par personne/i,
 		);
 	});
 

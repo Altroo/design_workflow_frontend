@@ -1,12 +1,13 @@
 'use client';
 
 import { getColumnId, getTaskDragId, isCardInteractiveTarget } from '@/utils/workflow/workflowBoardHelpers';
-import { AvatarBadge, Chip } from '@/components/shared/workflow/workflowFields';
+import { Chip } from '@/components/shared/workflow/workflowFields';
+import { TaskPeople } from '@/components/shared/workflow/taskPeople';
 import { cn, formatMinutes, getDueDeliveryInfo, resolveMediaUrl } from '@/utils/workflow/workflowFormatting';
 import { toneForPriority } from '@/utils/workflow/workflowFormHelpers';
 import { BOARD_STATUS_META } from '@/components/shared/workflow/boardAppearance';
 import { WorkflowSelectField as SelectField } from '@/components/shared/workflow/workflowFormControls';
-import type { ProjectSummary, TaskCard, TaskStatus, WorkflowUser } from '@/types/designWorkflowTypes';
+import type { ProjectSummary, TaskCard, TaskStatus } from '@/types/designWorkflowTypes';
 import type { WorkflowCopy } from '@/types/workflowUiTypes';
 import { useLanguage } from '@/utils/hooks';
 import { DASHBOARD_TASK_VIEW } from '@/utils/routes';
@@ -31,25 +32,6 @@ import Image from 'next/image';
 import Link from 'next/link';
 import type { CSSProperties, ReactNode } from 'react';
 import { useEffect, useState } from 'react';
-
-export const TaskPeople = ({ task }: { task: TaskCard }) => {
-	const people = [task.current_assignee, task.project.manager].filter(
-		(user, index, list): user is WorkflowUser =>
-			Boolean(user) && list.findIndex((item) => item?.id === user?.id) === index,
-	);
-	if (people.length === 0) {
-		return <span className="text-xs font-semibold text-(--ink-muted)">{task.project.name}</span>;
-	}
-	return (
-		<div className="flex items-center">
-			{people.map((user, index) => (
-				<span key={user.id} className={cn('workflow-avatar-stack', index > 0 && '-ml-2')}>
-					<AvatarBadge user={user} size={26} showTooltip />
-				</span>
-			))}
-		</div>
-	);
-};
 
 export const BoardTaskCover = ({ task }: { task: TaskCard }) => {
 	const [failedCoverUrl, setFailedCoverUrl] = useState<string | null>(null);
@@ -198,7 +180,7 @@ export const TaskCardItem = ({
 								</span>
 							) : null}
 						</div>
-						{task.current_assignee ? <AvatarBadge user={task.current_assignee} size={24} showTooltip /> : null}
+						<TaskPeople task={task} size={24} />
 					</div>
 				</div>
 			</div>

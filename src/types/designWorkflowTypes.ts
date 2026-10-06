@@ -359,6 +359,8 @@ export type NotificationPreference = {
 };
 
 export type DashboardSummary = {
+	backlog_tasks: number;
+	daily_activity: Array<{ date: string; created: number; completed: number }>;
 	active_projects: number;
 	todo_tasks: number;
 	in_progress_tasks: number;

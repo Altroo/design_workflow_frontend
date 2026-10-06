@@ -73,7 +73,7 @@ it('covers manager project creation, task creation, board visibility, and dashbo
 	expect(within(calendar as HTMLElement).getByText('Finalize material board')).toBeInTheDocument();
 
 	rerender(<DesignWorkflowShell title="Overview" variant="overview" />);
-	expect(screen.getByText('Active projects')).toBeInTheDocument();
+	expect(screen.getByText('Projects being tracked')).toBeInTheDocument();
 	expect(screen.getAllByText('Overdue tasks')).toHaveLength(2);
 	expect(screen.getByText('Capacity snapshot')).toBeInTheDocument();
 	expect(screen.getByText('3 open • 1 overdue')).toBeInTheDocument();
@@ -130,11 +130,11 @@ it('covers overdue signal across dashboard, workload, report, and notifications'
 	rerender(<DesignWorkflowShell title="Time report" variant="report-time" />);
 	expect(screen.getByText('Start date')).toBeInTheDocument();
 	expect(screen.getAllByText('Showroom Refresh').length).toBeGreaterThan(0);
-	expect(screen.getAllByText('3h').length).toBeGreaterThan(0);
-	expect(screen.getByText('Lead and cycle time')).toBeInTheDocument();
-	expect(screen.getByText('Review bottlenecks')).toBeInTheDocument();
-	expect(screen.getByText('Capacity forecast')).toBeInTheDocument();
-	expect(screen.getByText('5.2d')).toBeInTheDocument();
+	expect(screen.getAllByText('3 h').length).toBeGreaterThan(0);
+	expect(screen.getByText('Average completion times')).toBeInTheDocument();
+	expect(screen.getByText('Review progress')).toBeInTheDocument();
+	expect(screen.getByText('Remaining work per person')).toBeInTheDocument();
+	expect(screen.getByText('No completed tasks to calculate these durations.')).toBeInTheDocument();
 	const printMock = jest.fn();
 	const printDocument = document.implementation.createHTMLDocument('Report');
 	const openMock = jest.spyOn(window, 'open').mockReturnValue({

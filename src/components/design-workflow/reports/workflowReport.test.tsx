@@ -63,7 +63,7 @@ it('filters reports by project and user', async () => {
 
 	render(<DesignWorkflowShell title="Time report" variant="report-time" />);
 	await selectMuiOption(user, 'Project', projectSummary.name);
-	await selectMuiOption(user, 'Assignee', `${designerA.first_name} ${designerA.last_name}`);
+	await selectMuiOption(user, en.workflow.labels.reportMember, `${designerA.first_name} ${designerA.last_name}`);
 
 	await waitFor(() => {
 		expect(mockUseGetTimeReportQuery).toHaveBeenCalledWith(
@@ -75,4 +75,28 @@ it('filters reports by project and user', async () => {
 			expect.objectContaining({ skip: false }),
 		);
 	});
+	expect(screen.getByText(en.workflow.labels.reportPersonalTime)).toBeVisible();
+	await user.click(screen.getByRole('button', { name: en.workflow.buttons.clearFilters }));
+	await waitFor(() =>
+		expect(mockUseGetTimeReportQuery).toHaveBeenLastCalledWith(
+			expect.objectContaining({ project: undefined, user: undefined }),
+			expect.anything(),
+		),
+	);
+	expect(screen.getByText(en.workflow.labels.reportTeamTime)).toBeVisible();
+});
+
+it('shows working-day equivalents and the full team instead of only the forecast shortlist', async () => {
+	mockProfile(manager);
+	mockUseGetTimeReportQuery.mockReturnValue({ data: [{ ...reportRows[0], minutes: 2220 }] });
+	mockUseGetWorkflowReportQuery.mockReturnValue({
+		data: { ...workflowReport, designer_forecast: [], capacity: workflowReport.capacity },
+	});
+	render(<DesignWorkflowShell title="Time report" variant="report-time" />);
+	expect(screen.getAllByText('4 d 5 h').length).toBeGreaterThan(0);
+	expect(screen.getAllByText('37 h').length).toBeGreaterThan(0);
+	expect(screen.getByRole('heading', { name: `${designerA.first_name} ${designerA.last_name}` })).toBeVisible();
+	expect(screen.queryByRole('heading', { name: en.workflow.labels.effortCurve })).not.toBeInTheDocument();
+	await userEvent.click(screen.getByText(en.workflow.labels.reportTimeRules));
+	expect(screen.getByText(en.workflow.labels.reportSchedule)).toBeVisible();
 });

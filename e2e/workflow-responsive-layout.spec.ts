@@ -590,20 +590,7 @@ const expectMobileReportAnalytics = async (page: Page) => {
 	const barHeight = await barBody.evaluate((body) => body.getBoundingClientRect().height);
 	expect(barHeight).toBeLessThanOrEqual(260);
 
-	const doughnutCenter = await page.locator('.workflow-report-chart-body-doughnut').evaluate((body) => {
-		const center = body.querySelector<HTMLElement>('.workflow-report-doughnut-center');
-		const bodyBox = body.getBoundingClientRect();
-		const centerBox = center?.getBoundingClientRect();
-		return {
-			centerBottomRatio: centerBox ? (centerBox.bottom - bodyBox.top) / bodyBox.height : 1,
-			centerHeight: centerBox?.height ?? 0,
-			centerTopRatio: centerBox ? (centerBox.top - bodyBox.top) / bodyBox.height : 1,
-		};
-	});
-	expect(doughnutCenter.centerHeight).toBeGreaterThan(16);
-	expect(doughnutCenter.centerHeight).toBeLessThanOrEqual(38);
-	expect(doughnutCenter.centerTopRatio).toBeGreaterThan(0.22);
-	expect(doughnutCenter.centerBottomRatio).toBeLessThan(0.52);
+	await expect(page.locator('.workflow-report-line-card, .workflow-report-doughnut-card')).toHaveCount(0);
 
 	const keyLayout = await page.locator('.workflow-report-chart-keys').first().evaluate((keys) => {
 		const box = keys.getBoundingClientRect();
@@ -624,32 +611,10 @@ const expectMobileReportAnalytics = async (page: Page) => {
 		expect(chip.rightOverflow).toBe(false);
 	}
 
-	const insightLayout = await page.locator('.workflow-report-insights').evaluate((insights) => {
-		const cards = Array.from(insights.querySelectorAll<HTMLElement>('.workflow-report-insight'));
-		const box = insights.getBoundingClientRect();
-		const rows = new Set(cards.map((card) => Math.round(card.getBoundingClientRect().top)));
-		return {
-			cards: cards.map((card) => {
-				const cardBox = card.getBoundingClientRect();
-				return {
-					height: cardBox.height,
-					leftOverflow: cardBox.left < box.left - 1,
-					rightOverflow: cardBox.right > box.right + 1,
-					widthRatio: box.width ? cardBox.width / box.width : 1,
-				};
-			}),
-			rowCount: rows.size,
-		};
-	});
-	expect(insightLayout.cards).toHaveLength(3);
-	expect(insightLayout.rowCount).toBe(3);
-	for (const card of insightLayout.cards) {
-		expect(card.height).toBeLessThanOrEqual(96);
-		expect(card.widthRatio).toBeGreaterThan(0.92);
-		expect(card.widthRatio).toBeLessThanOrEqual(1);
-		expect(card.leftOverflow).toBe(false);
-		expect(card.rightOverflow).toBe(false);
-	}
+	const clippedDurations = await page.locator('.workflow-report-duration').evaluateAll((values) =>
+		values.filter((value) => value.scrollWidth > value.clientWidth + 1).length,
+	);
+	expect(clippedDurations).toBe(0);
 };
 
 const waitForChatReady = async (page: Page) => {

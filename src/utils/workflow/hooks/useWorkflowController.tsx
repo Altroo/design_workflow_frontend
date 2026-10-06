@@ -373,9 +373,12 @@ export const useWorkflowController = ({ title, variant, projectId, taskId }: Pro
 			setSelectedTaskId(taskId);
 		}
 	}, [taskId, variant]);
-	const { data: summary } = useGetDashboardSummaryQuery(undefined, {
+	const { data: summary, isLoading: summaryLoading } = useGetDashboardSummaryQuery(undefined, {
 		skip: !workflowDataReady || variant !== 'overview' || !isManager,
+		pollingInterval: 60_000,
+		skipPollingIfUnfocused: true,
 	});
+	const summaryBusy = !workflowDataReady || Boolean(summaryLoading);
 	const { data: usersResponse, isLoading: usersLoading } = useGetUsersListQuery(
 		{ with_pagination: false },
 		{ skip: !workflowDataReady },
@@ -1519,6 +1522,7 @@ export const useWorkflowController = ({ title, variant, projectId, taskId }: Pro
 		pageHighlights,
 		projects,
 		summary,
+		summaryBusy,
 		chartTextColor,
 		labelFor,
 		chartSurfaceColor,

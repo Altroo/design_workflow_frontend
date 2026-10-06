@@ -1,6 +1,12 @@
 'use client';
 import { AvatarBadge, Chip, EmptyState, FieldLabel } from '@/components/shared/workflow/workflowFields';
-import { formatMinutes } from '@/utils/workflow/workflowFormatting';
+import {
+	formatReportDate,
+	formatReportHours,
+	formatReportWorkDuration,
+} from '@/utils/workflow/workflowReportFormatting';
+import { WorkflowReportDuration } from './workflowReportDuration';
+import { WorkflowReportSummary } from './workflowReportSummary';
 import { downloadCsv, formatExportDateTime, openPrintableReport } from '@/utils/workflow/workflowReportExport';
 import { STATUS_COLUMNS } from '@/components/shared/workflow/boardAppearance';
 import {
@@ -14,18 +20,19 @@ import { useIsClient, useToast } from '@/utils/hooks';
 import { WORKFLOW_CHART_PALETTE } from '@/utils/rawData';
 import type { ChartData, ChartOptions } from 'chart.js';
 import {
-	BriefcaseBusiness,
+	CircleAlert,
+	CircleCheck,
 	CalendarDays,
 	Clock3,
 	FileText,
 	FolderKanban,
 	RefreshCcw,
 	Save,
-	ShieldCheck,
+	ClipboardCheck,
 	Table2,
 	Users,
 } from 'lucide-react';
-import { Bar, Doughnut, Line } from 'react-chartjs-2';
+import { Bar } from 'react-chartjs-2';
 import type { WorkflowController } from '@/utils/workflow/hooks/useWorkflowController';
 export const WorkflowReport = ({
 	model,
@@ -35,7 +42,6 @@ export const WorkflowReport = ({
 		| 'timeReport'
 		| 'workflow'
 		| 'chartTextColor'
-		| 'chartSurfaceColor'
 		| 'reportFilters'
 		| 'projects'
 		| 'assignableUsers'
@@ -55,7 +61,6 @@ export const WorkflowReport = ({
 		timeReport,
 		workflow,
 		chartTextColor,
-		chartSurfaceColor,
 		reportFilters,
 		projects,
 		assignableUsers,
@@ -74,10 +79,6 @@ export const WorkflowReport = ({
 	const maxMinutes = Math.max(...timeReport.map((row) => row.minutes), 1);
 	const averageMinutes = timeReport.length ? Math.round(totalMinutes / timeReport.length) : 0;
 	const chartRows = sortedReport.slice(0, 8);
-	const topDistributionRows = sortedReport.slice(0, 5);
-	const otherMinutes = sortedReport.slice(5).reduce((sum, row) => sum + row.minutes, 0);
-	const topSharePercent = totalMinutes && topRow ? Math.round((topRow.minutes / totalMinutes) * 100) : 0;
-	const remainingProjectCount = Math.max(0, timeReport.length - topDistributionRows.length);
 	const reportBarHeight = Math.min(430, Math.max(260, chartRows.length * 44 + 150));
 	const reportPalette = WORKFLOW_CHART_PALETTE;
 	const reportBarData: ChartData<'bar', number[], string> = {
@@ -101,7 +102,7 @@ export const WorkflowReport = ({
 			legend: { display: false },
 			tooltip: {
 				callbacks: {
-					label: (context) => `${workflow.labels.trackedTime}: ${formatMinutes(Number(context.raw) || 0)}`,
+					label: (context) => formatReportHours(Number(context.raw) || 0),
 				},
 			},
 		},
@@ -116,7 +117,7 @@ export const WorkflowReport = ({
 					maxRotation: 0,
 					maxTicksLimit: 4,
 					minRotation: 0,
-					callback: (value) => formatMinutes(Number(value) || 0),
+					callback: (value) => formatReportHours(Number(value) || 0),
 				},
 			},
 			y: {
@@ -130,101 +131,9 @@ export const WorkflowReport = ({
 			},
 		},
 	};
-	const doughnutLabels = [
-		...topDistributionRows.map((row) => row.project.name),
-		...(otherMinutes > 0 ? [workflow.labels.otherProjects] : []),
-	];
-	const doughnutValues = [
-		...topDistributionRows.map((row) => row.minutes),
-		...(otherMinutes > 0 ? [otherMinutes] : []),
-	];
-	const reportDoughnutData: ChartData<'doughnut', number[], string> = {
-		labels: doughnutLabels,
-		datasets: [
-			{
-				data: doughnutValues,
-				backgroundColor: doughnutValues.map((_, index) => reportPalette[index % reportPalette.length]),
-				borderColor: chartSurfaceColor,
-				borderWidth: 4,
-				hoverOffset: 8,
-			},
-		],
-	};
-	const reportDoughnutOptions: ChartOptions<'doughnut'> = {
-		responsive: true,
-		maintainAspectRatio: false,
-		cutout: '66%',
-		plugins: {
-			legend: {
-				position: 'bottom',
-				labels: {
-					boxWidth: 8,
-					boxHeight: 8,
-					color: chartTextColor,
-					font: { weight: 'bold' },
-					padding: 14,
-					usePointStyle: true,
-				},
-			},
-			tooltip: {
-				callbacks: {
-					label: (context) => `${context.label}: ${formatMinutes(Number(context.raw) || 0)}`,
-				},
-			},
-		},
-	};
-	const reportCurveData: ChartData<'line', number[], string> = {
-		labels: chartRows.map((_, index) => `#${index + 1}`),
-		datasets: [
-			{
-				label: workflow.labels.effortCurve,
-				data: chartRows.map((row) => row.minutes),
-				borderColor: '#4f46e5',
-				backgroundColor: 'rgba(79, 70, 229, 0.08)',
-				fill: true,
-				pointBackgroundColor: '#4f46e5',
-				pointBorderColor: chartSurfaceColor,
-				pointBorderWidth: 3,
-				pointRadius: 5,
-				tension: 0.42,
-			},
-		],
-	};
-	const reportCurveOptions: ChartOptions<'line'> = {
-		responsive: true,
-		maintainAspectRatio: false,
-		plugins: {
-			legend: { display: false },
-			tooltip: {
-				callbacks: {
-					label: (context) => `${workflow.labels.trackedTime}: ${formatMinutes(Number(context.raw) || 0)}`,
-				},
-			},
-		},
-		scales: {
-			x: {
-				border: { display: false },
-				grid: { display: false },
-				ticks: { color: chartTextColor, font: { weight: 'bold' } },
-			},
-			y: {
-				border: { display: false },
-				grid: { color: 'rgba(148, 163, 184, 0.16)' },
-				ticks: {
-					color: chartTextColor,
-					font: { weight: 'bold' },
-					autoSkip: true,
-					maxRotation: 0,
-					maxTicksLimit: 5,
-					minRotation: 0,
-					callback: (value) => formatMinutes(Number(value) || 0),
-				},
-			},
-		},
-	};
 	const dateWindow =
 		reportFilters.start_date || reportFilters.end_date
-			? `${reportFilters.start_date || workflow.labels.noDate} - ${reportFilters.end_date || workflow.labels.noDate}`
+			? `${reportFilters.start_date ? formatReportDate(reportFilters.start_date, locale) : '…'} – ${reportFilters.end_date ? formatReportDate(reportFilters.end_date, locale) : '…'}`
 			: workflow.labels.allTimeWindow;
 	const selectedReportProject = projects.find((item) => String(item.id) === reportFilters.project);
 	const selectedReportUser = assignableUsers.find((item) => String(item.id) === reportFilters.user);
@@ -233,6 +142,7 @@ export const WorkflowReport = ({
 	const selectedScopeLabel = [selectedProjectName, selectedUserName].filter(Boolean).join(' - ');
 	const reportScopeLabel = selectedScopeLabel || workflow.labels.allProjects;
 	const generatedAt = workflowReport?.generated_at ?? new Date().toISOString();
+	const timeLabel = reportFilters.user ? workflow.labels.reportPersonalTime : workflow.labels.reportTeamTime;
 	const generatedLabel = formatExportDateTime(generatedAt, locale);
 	const reportFileDate = new Date(generatedAt).toISOString().slice(0, 10);
 	const printableReportCopy: PrintableReportCopy = {
@@ -246,14 +156,14 @@ export const WorkflowReport = ({
 		allProjects: workflow.labels.allProjects,
 		summary: workflow.labels.reportSummary,
 		projectsIncluded: workflow.labels.projectsIncluded,
-		trackedTime: workflow.labels.trackedTime,
+		trackedTime: timeLabel,
 		leadTime: workflow.labels.leadTime,
 		cycleTime: workflow.labels.cycleTime,
 		blockedTime: workflow.labels.blockedTime,
 		blockedTasks: workflow.labels.blockedTasks,
 		projectTime: workflow.labels.timeByProject,
 		project: workflow.labels.project,
-		manager: workflow.labels.manager,
+		manager: workflow.labels.reportProjectOwner,
 		status: workflow.labels.status,
 		priority: workflow.labels.priority,
 		minutes: workflow.labels.minutesUnit,
@@ -267,15 +177,15 @@ export const WorkflowReport = ({
 		needsReview: workflow.labels.needsReview,
 		changesRequested: workflow.labels.changesRequested,
 		approved: workflow.labels.approved,
-		pendingReviewMinutes: workflow.labels.pendingReviewMinutes,
-		estimatedMinutes: workflow.labels.estimatedMinutesMetric,
-		actualMinutes: workflow.labels.actualMinutes,
-		varianceMinutes: workflow.labels.varianceMinutes,
+		pendingReviewMinutes: workflow.labels.reportReviewWait,
+		estimatedMinutes: workflow.labels.estimatedLoad,
+		actualMinutes: timeLabel,
+		varianceMinutes: workflow.labels.variance,
 		designerForecast: workflow.labels.designerForecast,
 		designer: messageFor('Membre', 'Member'),
 		openTasks: workflow.labels.openTasksLabel,
 		overdueTasks: workflow.labels.overdueTasksLabel,
-		remainingMinutes: workflow.labels.remainingMinutes,
+		remainingMinutes: workflow.labels.reportRemaining,
 		loadPercent: workflow.labels.loadPercent,
 		forecastDays: workflow.labels.forecastDays,
 		risk: workflow.labels.risk,
@@ -283,12 +193,24 @@ export const WorkflowReport = ({
 		page: workflow.labels.reportPage,
 		noProjectTimeWindow: workflow.labels.noProjectTimeWindow,
 		noForecastRows: workflow.labels.noForecastRows,
+		workdayBasis: workflow.labels.reportWorkdayBasis,
+		schedule: workflow.labels.reportSchedule,
+		trackingHint: workflow.labels.reportTrackingHint,
+		collaborationHint: workflow.labels.reportCollaborationHint,
+		periodHint: workflow.labels.reportPeriodHint,
+		calendarHint: workflow.labels.reportCalendarHint,
+		capacityHint: workflow.labels.reportCapacityHint,
+		workDuration: workflow.labels.reportWorkDuration,
 	};
 	const exportMetadataRows: Array<Array<string | number | null | undefined>> = [
 		[printableReportCopy.title],
 		[printableReportCopy.generatedOn, generatedLabel],
 		[printableReportCopy.period, dateWindow],
 		[printableReportCopy.scope, reportScopeLabel],
+		[workflow.labels.reportWorkdayBasis],
+		[workflow.labels.reportSchedule],
+		[workflow.labels.reportPeriodHint],
+		[workflow.labels.reportCollaborationHint],
 		[],
 	];
 	const exportTimeReport = () => {
@@ -296,7 +218,7 @@ export const WorkflowReport = ({
 			...exportMetadataRows,
 			[printableReportCopy.summary],
 			[workflow.labels.metric, t.common.value, workflow.labels.reportUnit],
-			[workflow.labels.trackedTime, totalMinutes, workflow.labels.minutesUnit],
+			[timeLabel, totalMinutes, workflow.labels.minutesUnit],
 			[workflow.labels.activeReportProjects, timeReport.length, workflow.labels.projectsIncluded],
 			[workflow.labels.averagePerProject, averageMinutes, workflow.labels.minutesUnit],
 			[workflow.labels.topProject, topRow?.project.name ?? workflow.labels.noReportProject, ''],
@@ -310,6 +232,7 @@ export const WorkflowReport = ({
 				workflow.labels.minutesUnit,
 				workflow.labels.hoursUnit,
 				workflow.labels.reportShare,
+				workflow.labels.reportWorkDuration,
 			],
 			...sortedReport.map((row) => [
 				row.project.name,
@@ -319,6 +242,7 @@ export const WorkflowReport = ({
 				row.minutes,
 				(row.minutes / 60).toFixed(2),
 				totalMinutes ? `${Math.round((row.minutes / totalMinutes) * 100)}%` : '0%',
+				formatReportWorkDuration(row.minutes, locale),
 			]),
 		]);
 	};
@@ -327,6 +251,7 @@ export const WorkflowReport = ({
 		downloadCsv(`flux-design-analytics-report-${reportFileDate}.csv`, [
 			...exportMetadataRows,
 			[workflow.labels.deliveryFlow],
+			[workflow.labels.reportCalendarHint],
 			[workflow.labels.metric, t.common.value, workflow.labels.reportUnit],
 			[workflow.labels.tasksSampled, report.tasks_sampled],
 			[workflow.labels.leadTimeDays, report.lead_time_days, workflow.labels.daysUnit],
@@ -339,7 +264,11 @@ export const WorkflowReport = ({
 			[workflow.labels.needsReview, report.review_bottlenecks.needs_review],
 			[workflow.labels.changesRequested, report.review_bottlenecks.changes_requested],
 			[workflow.labels.approved, report.review_bottlenecks.approved],
-			[workflow.labels.pendingReviewMinutes, report.review_bottlenecks.pending_review_minutes],
+			[
+				workflow.labels.pendingReviewMinutes,
+				report.review_bottlenecks.pending_review_minutes,
+				workflow.labels.minutesUnit,
+			],
 			[
 				workflow.labels.averageReviewWait,
 				report.review_bottlenecks.average_pending_review_minutes,
@@ -348,16 +277,21 @@ export const WorkflowReport = ({
 			[],
 			[workflow.labels.estimateVsActual],
 			[workflow.labels.metric, t.common.value, workflow.labels.reportUnit],
-			[workflow.labels.estimatedMinutesMetric, report.estimate_vs_actual.estimated_minutes],
-			[workflow.labels.actualMinutes, report.estimate_vs_actual.actual_minutes],
-			[workflow.labels.varianceMinutes, report.estimate_vs_actual.variance_minutes],
-			[workflow.labels.actualRatio, report.estimate_vs_actual.actual_to_estimate_ratio],
+			[
+				workflow.labels.estimatedMinutesMetric,
+				report.estimate_vs_actual.estimated_minutes,
+				workflow.labels.minutesUnit,
+			],
+			[workflow.labels.actualMinutes, report.estimate_vs_actual.actual_minutes, workflow.labels.minutesUnit],
+			[workflow.labels.varianceMinutes, report.estimate_vs_actual.variance_minutes, workflow.labels.minutesUnit],
+			[workflow.labels.actualRatio, Math.round(report.estimate_vs_actual.actual_to_estimate_ratio * 100), '%'],
 			[],
 			[workflow.labels.statusDistribution],
 			[workflow.labels.status, workflow.labels.tasksSampled],
 			...STATUS_COLUMNS.map((status) => [labelFor(status), report.status_counts[status] ?? 0]),
 			[],
 			[workflow.labels.designerForecast],
+			[workflow.labels.reportCapacityHint],
 			[
 				messageFor('Membre', 'Member'),
 				workflow.labels.openTasksLabel,
@@ -367,7 +301,7 @@ export const WorkflowReport = ({
 				workflow.labels.forecastDays,
 				workflow.labels.risk,
 			],
-			...report.designer_forecast.map((row) => [
+			...report.capacity.map((row) => [
 				`${row.user.first_name} ${row.user.last_name}`.trim() || row.user.email,
 				row.open_tasks,
 				row.overdue_tasks,
@@ -399,9 +333,10 @@ export const WorkflowReport = ({
 			),
 		);
 	};
-	const reviewBottlenecks = workflowReport?.review_bottlenecks;
-	const estimateVsActual = workflowReport?.estimate_vs_actual;
-	const forecastRows = workflowReport?.designer_forecast ?? [];
+	const forecastRows = [...(workflowReport?.capacity ?? [])].sort(
+		(left, right) => right.overdue_tasks - left.overdue_tasks || right.load_percent - left.load_percent,
+	);
+	const completedCount = workflowReport?.status_counts.done ?? 0;
 	const statusRows = workflowReport
 		? STATUS_COLUMNS.map((statusValue) => ({
 				status: statusValue,
@@ -415,6 +350,7 @@ export const WorkflowReport = ({
 			<WorkflowPageHero
 				className="workflow-report-hero"
 				title={workflow.pageTitles['report-time']}
+				description={workflow.labels.reportIntro}
 				actionsWrapper={false}
 				actions={
 					<div className="workflow-report-window">
@@ -456,13 +392,13 @@ export const WorkflowReport = ({
 						/>
 					</div>
 					<div>
-						<FieldLabel htmlFor="workflow-report-user">{workflow.labels.assignee}</FieldLabel>
+						<FieldLabel htmlFor="workflow-report-user">{workflow.labels.reportMember}</FieldLabel>
 						<SelectField
 							id="workflow-report-user"
 							value={reportFilters.user}
 							onChangeAction={(value) => setReportFilters((current) => ({ ...current, user: value }))}
 							options={[
-								{ value: '', label: workflow.labels.allAssignees },
+								{ value: '', label: workflow.labels.reportAllMembers },
 								...assignableUsers.map((item) => ({ value: item.id, label: userOptionLabel(item) })),
 							]}
 							startIcon={<Users size={16} />}
@@ -507,106 +443,47 @@ export const WorkflowReport = ({
 				</div>
 			</section>
 
+			<aside className="workflow-report-guidance">
+				<p>{workflow.labels.reportWorkdayBasis}</p>
+				<details>
+					<summary>{workflow.labels.reportTimeRules}</summary>
+					<p>{workflow.labels.reportSchedule}</p>
+					<p>{workflow.labels.reportTrackingHint}</p>
+					<p>{workflow.labels.reportCollaborationHint}</p>
+					<p>{workflow.labels.reportPeriodHint}</p>
+				</details>
+				{reportFilters.start_date || reportFilters.end_date ? <p>{workflow.labels.reportPeriodHint}</p> : null}
+			</aside>
+
 			<section className="workflow-report-metrics">
 				<WorkflowSimpleMetric
 					className="workflow-report-metric workflow-report-metric-dark"
 					icon={<Clock3 size={18} />}
-					label={workflow.labels.trackedTime}
-					value={formatMinutes(totalMinutes)}
+					label={timeLabel}
+					value={<WorkflowReportDuration minutes={totalMinutes} locale={locale} />}
 				/>
 				<WorkflowSimpleMetric
 					className="workflow-report-metric workflow-report-metric-cyan"
-					icon={<FolderKanban size={18} />}
-					label={workflow.labels.activeReportProjects}
-					value={timeReport.length}
+					icon={<ClipboardCheck size={18} />}
+					label={workflow.labels.reportInReview}
+					value={workflowReport?.status_counts.in_review ?? '—'}
 				/>
 				<WorkflowSimpleMetric
 					className="workflow-report-metric workflow-report-metric-green"
-					icon={<BriefcaseBusiness size={18} />}
-					label={workflow.labels.averagePerProject}
-					value={formatMinutes(averageMinutes)}
+					icon={<CircleCheck size={18} />}
+					label={workflow.labels.reportCompleted}
+					value={workflowReport ? completedCount : '—'}
 				/>
 				<WorkflowSimpleMetric
 					className="workflow-report-metric workflow-report-metric-rose"
-					icon={<ShieldCheck size={18} />}
-					label={workflow.labels.topProject}
-					value={topRow ? topRow.project.name : workflow.labels.noReportProject}
+					icon={<CircleAlert size={18} />}
+					label={workflow.labels.blockedTasks}
+					value={workflowReport?.blocked_tasks ?? '—'}
 				/>
 			</section>
 
 			{workflowReport ? (
-				<section className="workflow-analytics-grid">
-					<article className="workflow-analytics-panel workflow-analytics-panel-strong">
-						<div className="workflow-analytics-panel-head">
-							<p>{workflow.labels.deliveryFlow ?? 'Delivery flow'}</p>
-							<h2>{workflow.labels.leadCycleTime ?? 'Lead and cycle time'}</h2>
-						</div>
-						<div className="workflow-analytics-kpis">
-							<div>
-								<span>{workflow.labels.leadTime ?? 'Lead time'}</span>
-								<strong>{workflowReport.lead_time_days}d</strong>
-							</div>
-							<div>
-								<span>{workflow.labels.cycleTime ?? 'Cycle time'}</span>
-								<strong>{workflowReport.cycle_time_days}d</strong>
-							</div>
-							<div>
-								<span>{workflow.labels.blockedTime ?? 'Blocked time'}</span>
-								<strong>{formatMinutes(workflowReport.blocked_time_minutes)}</strong>
-							</div>
-							<div>
-								<span>{workflow.labels.blockedTasks ?? 'Blocked tasks'}</span>
-								<strong>{workflowReport.blocked_tasks}</strong>
-							</div>
-						</div>
-					</article>
-
-					<article className="workflow-analytics-panel">
-						<div className="workflow-analytics-panel-head">
-							<p>{workflow.labels.reviewBottlenecks ?? 'Review bottlenecks'}</p>
-							<h2>{formatMinutes(reviewBottlenecks?.pending_review_minutes ?? 0)}</h2>
-						</div>
-						<div className="workflow-analytics-stack">
-							<span>
-								{workflow.labels.needsReview ?? 'Needs review'} <b>{reviewBottlenecks?.needs_review ?? 0}</b>
-							</span>
-							<span>
-								{workflow.labels.changesRequested ?? 'Changes requested'}{' '}
-								<b>{reviewBottlenecks?.changes_requested ?? 0}</b>
-							</span>
-							<span>
-								{workflow.labels.approved ?? 'Approved'} <b>{reviewBottlenecks?.approved ?? 0}</b>
-							</span>
-							<span>
-								{workflow.labels.averageReviewWait ?? 'Average wait'}{' '}
-								<b>{formatMinutes(reviewBottlenecks?.average_pending_review_minutes ?? 0)}</b>
-							</span>
-						</div>
-					</article>
-
-					<article className="workflow-analytics-panel">
-						<div className="workflow-analytics-panel-head">
-							<p>{workflow.labels.estimateVsActual ?? 'Estimate vs actual'}</p>
-							<h2>{formatMinutes(Math.abs(estimateVsActual?.variance_minutes ?? 0))}</h2>
-						</div>
-						<div className="workflow-analytics-stack">
-							<span>
-								{workflow.labels.estimatedLoad ?? 'Estimated'}{' '}
-								<b>{formatMinutes(estimateVsActual?.estimated_minutes ?? 0)}</b>
-							</span>
-							<span>
-								{workflow.labels.trackedTime ?? 'Actual'} <b>{formatMinutes(estimateVsActual?.actual_minutes ?? 0)}</b>
-							</span>
-							<span>
-								{workflow.labels.variance ?? 'Variance'} <b>{formatMinutes(estimateVsActual?.variance_minutes ?? 0)}</b>
-							</span>
-							<span>
-								{workflow.labels.actualRatio ?? 'Actual ratio'}{' '}
-								<b>{Math.round((estimateVsActual?.actual_to_estimate_ratio ?? 0) * 100)}%</b>
-							</span>
-						</div>
-					</article>
-				</section>
+				<WorkflowReportSummary report={workflowReport} labels={workflow.labels} locale={locale} />
 			) : null}
 
 			{workflowReport ? (
@@ -631,27 +508,33 @@ export const WorkflowReport = ({
 												{row.user.first_name} {row.user.last_name}
 											</h3>
 											<p>
-												{row.open_tasks} {workflow.labels.openLower} - {row.overdue_tasks}{' '}
-												{workflow.labels.overdueLower}
+												{workflow.labels.openTasksLabel} : {row.open_tasks} · {workflow.labels.overdueTasksLabel} :{' '}
+												{row.overdue_tasks}
 											</p>
 										</div>
-										<strong>{row.load_percent}%</strong>
+										<strong className="workflow-report-load">
+											{new Intl.NumberFormat(locale, { maximumFractionDigits: 1 }).format(row.load_percent)}%
+											<small>{workflow.labels.reportWeekLoad}</small>
+										</strong>
 									</div>
 									<div className="workflow-forecast-track" aria-hidden="true">
 										<span style={{ width: `${Math.min(row.load_percent, 100)}%` }} />
 									</div>
 									<div className="workflow-forecast-card-foot">
-										<span>{formatMinutes(row.remaining_minutes)}</span>
+										<div>
+											<span>{workflow.labels.reportRemaining}</span>
+											<WorkflowReportDuration minutes={row.remaining_minutes} locale={locale} />
+										</div>
 										<span>
-											{row.forecast_days} {workflow.labels.daysUnit.toLowerCase()}
+											{workflow.labels.risk} : {riskLabelFor(row.risk)}
 										</span>
-										<span>{riskLabelFor(row.risk)}</span>
 									</div>
 								</article>
 							))}
 							{forecastRows.length === 0 ? <EmptyState {...workflow.emptyStates.noWorkloadData} /> : null}
 						</div>
 						<div className="workflow-status-distribution">
+							<h3>{workflow.labels.statusDistribution}</h3>
 							{statusRows.map((row) => (
 								<div key={row.status}>
 									<span>{labelFor(row.status)}</span>
@@ -660,6 +543,8 @@ export const WorkflowReport = ({
 							))}
 						</div>
 					</div>
+					<p className="workflow-report-note">{workflow.labels.reportCapacityHint}</p>
+					<p className="workflow-report-note">{workflow.labels.reportRemainingHint}</p>
 				</section>
 			) : null}
 
@@ -668,7 +553,6 @@ export const WorkflowReport = ({
 					<article className="workflow-report-chart-card workflow-report-chart-card-wide">
 						<div className="workflow-report-chart-head">
 							<div>
-								<p>{workflow.labels.analyticsStudio}</p>
 								<h2>{workflow.labels.timeByProject}</h2>
 							</div>
 							<span>{workflow.labels.topFiveProjects}</span>
@@ -677,7 +561,16 @@ export const WorkflowReport = ({
 							className="workflow-report-chart-body workflow-report-chart-body-bar"
 							style={{ height: reportBarHeight }}
 						>
-							{reportChartsMounted ? <Bar data={reportBarData} options={reportBarOptions} /> : renderChartPlaceholder()}
+							{reportChartsMounted ? (
+								<Bar
+									data={reportBarData}
+									options={reportBarOptions}
+									role="img"
+									aria-label={workflow.labels.timeByProject}
+								/>
+							) : (
+								renderChartPlaceholder()
+							)}
 						</div>
 						<div className="workflow-report-chart-keys">
 							{chartRows.map((row, index) => (
@@ -688,65 +581,13 @@ export const WorkflowReport = ({
 							))}
 						</div>
 					</article>
-
-					<article className="workflow-report-chart-card workflow-report-doughnut-card">
-						<div className="workflow-report-chart-head">
-							<div>
-								<p>{workflow.labels.reportCharts}</p>
-								<h2>{workflow.labels.effortDistribution}</h2>
-							</div>
-						</div>
-						<div className="workflow-report-chart-body workflow-report-chart-body-doughnut">
-							{reportChartsMounted ? (
-								<Doughnut data={reportDoughnutData} options={reportDoughnutOptions} />
-							) : (
-								renderChartPlaceholder()
-							)}
-							<div className="workflow-report-doughnut-center" aria-hidden="true">
-								<span>{workflow.labels.chartTotal}</span>
-								<strong>{formatMinutes(totalMinutes)}</strong>
-							</div>
-						</div>
-					</article>
-
-					<article className="workflow-report-chart-card workflow-report-line-card">
-						<div className="workflow-report-chart-head">
-							<div>
-								<p>{workflow.labels.reportChartsHint}</p>
-								<h2>{workflow.labels.effortCurve}</h2>
-							</div>
-						</div>
-						<div className="workflow-report-chart-body workflow-report-chart-body-line">
-							{reportChartsMounted ? (
-								<Line data={reportCurveData} options={reportCurveOptions} />
-							) : (
-								renderChartPlaceholder()
-							)}
-						</div>
-					</article>
-
-					<div className="workflow-report-insights">
-						<div className="workflow-report-insight">
-							<span>{workflow.labels.topShare}</span>
-							<strong>{topSharePercent}%</strong>
-						</div>
-						<div className="workflow-report-insight">
-							<span>{workflow.labels.remainingProjects}</span>
-							<strong>{remainingProjectCount}</strong>
-						</div>
-						<div className="workflow-report-insight">
-							<span>{workflow.labels.chartTotal}</span>
-							<strong>{formatMinutes(totalMinutes)}</strong>
-						</div>
-					</div>
 				</section>
 			) : null}
 
 			<section className="workflow-report-board">
 				<div className="workflow-report-board-head">
 					<div>
-						<p>{workflow.labels.timeLedger}</p>
-						<h2>{workflow.sections.projectTotals.title}</h2>
+						<h2>{workflow.labels.reportDetails}</h2>
 					</div>
 					<span>
 						{timeReport.length} {workflow.labels.projects}
@@ -754,7 +595,7 @@ export const WorkflowReport = ({
 				</div>
 				<div className="workflow-report-grid">
 					{sortedReport.map((row: TimeReportRow, index) => {
-						const percent = Math.max(8, Math.round((row.minutes / maxMinutes) * 100));
+						const percent = Math.round((row.minutes / maxMinutes) * 100);
 						return (
 							<article key={row.project.id} className="workflow-report-card">
 								<div className="workflow-report-card-top">
@@ -765,14 +606,19 @@ export const WorkflowReport = ({
 											{row.project.manager.first_name} {row.project.manager.last_name}
 										</p>
 									</div>
-									<Chip>{formatMinutes(row.minutes)}</Chip>
+									<Chip>
+										<WorkflowReportDuration minutes={row.minutes} locale={locale} />
+									</Chip>
 								</div>
 								<div className="workflow-report-bar" aria-hidden="true">
 									<span style={{ width: `${percent}%` }} />
 								</div>
 								<div className="workflow-report-card-foot">
-									<span>{workflow.labels.manager}</span>
-									<strong>{workflow.labels.loggedSuffix}</strong>
+									<span>{workflow.labels.reportProjectOwner}</span>
+									<strong>
+										{totalMinutes ? Math.round((row.minutes / totalMinutes) * 100) : 0}%{' '}
+										{workflow.labels.reportProjectShare}
+									</strong>
 								</div>
 							</article>
 						);

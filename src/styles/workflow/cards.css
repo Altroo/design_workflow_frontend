@@ -547,6 +547,57 @@
 	}
 }
 
+.workflow-task-people {
+	display: flex;
+	flex: 0 0 auto;
+	align-items: center;
+	gap: 4px;
+}
+
+.workflow-task-people-more {
+	display: grid;
+	flex: 0 0 auto;
+	place-items: center;
+	border: 1px solid var(--line);
+	border-radius: 50%;
+	background: var(--surface-strong);
+	color: var(--ink);
+	font-size: 0.6875rem;
+	font-weight: 700;
+	cursor: pointer;
+}
+
+.workflow-task-people-more:hover {
+	border-color: var(--accent);
+	color: var(--accent-strong);
+}
+
+.workflow-task-people-popover {
+	z-index: 10010;
+	width: min(18rem, calc(100vw - 24px));
+	max-height: min(28rem, var(--radix-popover-content-available-height));
+	overflow-y: auto;
+	overscroll-behavior: contain;
+	border: 1px solid var(--line);
+	border-radius: 0.875rem;
+	background: var(--surface-strong);
+	padding: 1rem;
+	color: var(--ink);
+	box-shadow: var(--shadow-md);
+}
+
+.workflow-trello-card-footer {
+	flex-wrap: wrap;
+}
+
+.workflow-trello-card-footer .workflow-trello-card-badges {
+	flex: 1 1 9rem;
+}
+
+.workflow-trello-card-footer .workflow-task-people {
+	margin-left: auto;
+}
+
 @media (max-width: 360px) {
 	.workflow-projects-metrics,
 	.workflow-project-card-stats,

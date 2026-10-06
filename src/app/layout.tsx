@@ -10,6 +10,8 @@ import '@/styles/workflow/neutral-chrome.css';
 import '@/styles/workflow/empty-states.css';
 import '@/styles/workflow/visual-system.css';
 import '@/styles/workflow/color-modes.css';
+import '@/styles/workflow/reports.css';
+import '@/styles/workflow/overview.css';
 import SessionProvider from '@/providers/sessionProvider';
 import StoreProvider from '@/providers/storeProvider';
 import type { RootLayoutProps } from '@/types/routeTypes';

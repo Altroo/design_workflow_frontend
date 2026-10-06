@@ -1,15 +1,17 @@
 'use client';
 import { TaskCardItem } from '@/components/design-workflow/board/workflowCards';
 import { AvatarBadge, Chip, EmptyState } from '@/components/shared/workflow/workflowFields';
-import { cn, formatMinutes } from '@/utils/workflow/workflowFormatting';
+import { cn } from '@/utils/workflow/workflowFormatting';
+import { formatReportHours, formatReportWorkDuration } from '@/utils/workflow/workflowReportFormatting';
+import { WorkflowActivityChart } from './workflowActivityChart';
 import { BOARD_STATUS_META } from '@/components/shared/workflow/boardAppearance';
 import {
 	WorkflowMetricCard as MetricCard,
 	WorkflowPageHero,
 	WorkflowPanelPill,
 } from '@/components/shared/workflow/workflowPrimitives';
-import { WORKFLOW_CHART_PALETTE } from '@/utils/rawData';
-import { DASHBOARD_PROJECT_VIEW } from '@/utils/routes';
+import { WORK_DAY_MINUTES, WORKFLOW_CHART_PALETTE } from '@/utils/rawData';
+import { DASHBOARD_BOARD, DASHBOARD_PROJECT_VIEW } from '@/utils/routes';
 import type { ChartData, ChartOptions } from 'chart.js';
 import { CircleAlert, Clock3, FolderKanban, ListTodo } from 'lucide-react';
 import Link from 'next/link';
@@ -23,6 +25,8 @@ export const WorkflowOverview = ({
 		| 'projects'
 		| 'workflow'
 		| 'summary'
+		| 'summaryBusy'
+		| 'locale'
 		| 'chartTextColor'
 		| 'labelFor'
 		| 'chartSurfaceColor'
@@ -41,6 +45,8 @@ export const WorkflowOverview = ({
 		projects,
 		workflow,
 		summary,
+		summaryBusy,
+		locale,
 		chartTextColor,
 		labelFor,
 		chartSurfaceColor,
@@ -58,26 +64,35 @@ export const WorkflowOverview = ({
 	const metricCards = [
 		{
 			icon: <FolderKanban size={16} />,
-			label: workflow.metrics.activeProjects,
-			value: summary?.active_projects ?? 0,
+			label: workflow.labels.overviewTrackedProjects,
+			value: summary?.active_projects ?? '—',
 			tone: 'indigo' as const,
 		},
 		{
 			icon: <ListTodo size={16} />,
 			label: workflow.metrics.todo,
-			value: summary?.todo_tasks ?? 0,
+			value: summary?.todo_tasks ?? '—',
 			tone: 'amber' as const,
 		},
 		{
 			icon: <CircleAlert size={16} />,
 			label: workflow.metrics.overdueTasks,
-			value: summary?.overdue_tasks ?? 0,
+			value: summary?.overdue_tasks ?? '—',
 			tone: 'rose' as const,
 		},
 		{
 			icon: <Clock3 size={16} />,
-			label: workflow.metrics.weekLogged,
-			value: formatMinutes(summary?.week_logged_minutes ?? 0),
+			label: workflow.labels.overviewWeekTime,
+			value: summary ? (
+				<span className="workflow-overview-time-value">
+					{formatReportWorkDuration(summary.week_logged_minutes, locale)}
+					{summary.week_logged_minutes >= WORK_DAY_MINUTES ? (
+						<small>{formatReportHours(summary.week_logged_minutes)}</small>
+					) : null}
+				</span>
+			) : (
+				'—'
+			),
 			tone: 'green' as const,
 		},
 	];
@@ -85,6 +100,7 @@ export const WorkflowOverview = ({
 		.sort((left, right) => right.open_tasks_count - left.open_tasks_count)
 		.slice(0, 6);
 	const taskMixValues = [
+		summary?.backlog_tasks ?? 0,
 		summary?.todo_tasks ?? 0,
 		summary?.in_progress_tasks ?? 0,
 		summary?.in_review_tasks ?? 0,
@@ -138,11 +154,19 @@ export const WorkflowOverview = ({
 		},
 	};
 	const overviewDoughnutData: ChartData<'doughnut', number[], string> = {
-		labels: [labelFor('todo'), labelFor('in_progress'), labelFor('in_review'), labelFor('blocked'), labelFor('done')],
+		labels: [
+			labelFor('backlog'),
+			labelFor('todo'),
+			labelFor('in_progress'),
+			labelFor('in_review'),
+			labelFor('blocked'),
+			labelFor('done'),
+		],
 		datasets: [
 			{
 				data: taskMixValues,
 				backgroundColor: [
+					BOARD_STATUS_META.backlog.accent,
 					BOARD_STATUS_META.todo.accent,
 					BOARD_STATUS_META.in_progress.accent,
 					BOARD_STATUS_META.in_review.accent,
@@ -185,19 +209,12 @@ export const WorkflowOverview = ({
 			<WorkflowPageHero
 				className="workflow-overview-header"
 				title={workflow.pageTitles.overview}
+				description={workflow.labels.overviewIntro}
 				actionsClassName="workflow-overview-actions"
 				actions={
-					<>
-						<span>
-							{workflow.labels.active} {summary?.active_projects ?? 0}
-						</span>
-						<span>
-							{workflow.labels.blocked} {summary?.blocked_tasks ?? 0}
-						</span>
-						<span>
-							{workflow.labels.overdue} {summary?.overdue_tasks ?? 0}
-						</span>
-					</>
+					<Link href={DASHBOARD_BOARD} className="app-button">
+						{workflow.labels.overviewOpenBoard}
+					</Link>
 				}
 			/>
 
@@ -206,32 +223,58 @@ export const WorkflowOverview = ({
 					<MetricCard key={metric.label} {...metric} />
 				))}
 			</section>
+			<p className="workflow-overview-explanation">
+				{workflow.labels.overviewScope} {workflow.labels.overviewWeekTimeHint}
+			</p>
+			{!summary ? (
+				<p role="status">{summaryBusy ? workflow.labels.overviewLoading : workflow.labels.overviewDataUnavailable}</p>
+			) : null}
+
+			<WorkflowActivityChart
+				summary={summary}
+				loading={summaryBusy}
+				labels={workflow.labels}
+				locale={locale}
+				textColor={chartTextColor}
+			/>
 
 			<section className="workflow-overview-analytics">
 				<article className="workflow-overview-chart-card">
 					<WorkflowPanelPill label={workflow.labels.projectLoad} value={projects.length} />
+					<p className="workflow-overview-explanation">{workflow.labels.overviewProjectCountHint}</p>
 					<div className="workflow-overview-chart-body workflow-overview-chart-body-bar">
 						{projectLoadRows.length ? (
-							<Bar data={overviewBarData} options={overviewBarOptions} />
+							<Bar
+								data={overviewBarData}
+								options={overviewBarOptions}
+								role="img"
+								aria-label={workflow.labels.projectLoad}
+							/>
 						) : (
 							<EmptyState {...workflow.emptyStates.noProjects} />
 						)}
 					</div>
 					<div className="workflow-overview-chart-keys">
 						{projectLoadRows.map((item, index) => (
-							<span key={item.id}>
+							<Link key={item.id} href={DASHBOARD_PROJECT_VIEW(item.id)}>
 								<b>#{index + 1}</b>
 								{item.name}
-							</span>
+							</Link>
 						))}
 					</div>
 				</article>
 				<article className="workflow-overview-chart-card workflow-overview-chart-card-compact">
 					<WorkflowPanelPill label={workflow.labels.deliveryMix} value={totalTaskMix} />
+					<p className="workflow-overview-explanation">{workflow.labels.overviewStatusHint}</p>
 					<div className="workflow-overview-chart-body workflow-overview-chart-body-doughnut">
 						{totalTaskMix ? (
 							<>
-								<Doughnut data={overviewDoughnutData} options={overviewDoughnutOptions} />
+								<Doughnut
+									data={overviewDoughnutData}
+									options={overviewDoughnutOptions}
+									role="img"
+									aria-label={workflow.labels.deliveryMix}
+								/>
 								<div className="workflow-overview-doughnut-center" aria-hidden="true">
 									<span>{workflow.labels.cards}</span>
 									<strong>{totalTaskMix}</strong>
@@ -258,6 +301,7 @@ export const WorkflowOverview = ({
 						{tasksBusy ? <EmptyState {...workflow.emptyStates.loadingCards} /> : null}
 						{!tasksBusy &&
 							tasks
+								.toSorted((left, right) => (left.due_date ?? '').localeCompare(right.due_date ?? ''))
 								.slice(0, 4)
 								.map((taskItem) => (
 									<TaskCardItem

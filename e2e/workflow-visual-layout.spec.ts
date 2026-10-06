@@ -400,7 +400,7 @@ const gotoDashboardPath = async (page: Page, path: string) => {
 const boardEnglishChrome = /Saved views|View name|Private|All statuses|All priorities|All assignees|All reviews|Due date ascending|Manual order|Needs Review|Backlog/i;
 const projectEnglishChrome = /Create project|Project name|Short project context|Target end|Start date|Loading projects/i;
 const teamEnglishChrome = /Team members|Open tasks|Overdue tasks|Estimated load|Team load map|Attention lane|Available lane|No delivery pressure|No clear availability/i;
-const reportEnglishChrome = /Start date|End date|Clear filters|Lead and cycle time|Lead time|Cycle time|Blocked time|Review bottlenecks|Estimate vs actual|Designer forecast|Capacity forecast|Export analytics/i;
+const reportEnglishChrome = /Start date|End date|Clear filters|Average completion times|Review progress|Planned and recorded time|Remaining work per person|Export analytics/i;
 const chatEnglishChrome = /Public channel|Private chat|Project room|Task room|Write a message|Filter by|No message|No messages|Select a conversation|Loading conversations|Direct messages|Channels|Live conversations|Search in chat|Media files/i;
 const notificationEnglishChrome = /Notification preferences|Digest frequency|Review requests|Due soon|Daily|Weekly|Unread only|Mark all read|Mark as read|Notification center|Alert feed|Task alerts|Chat alerts/i;
 const taskEnglishChrome = /Task snapshot|Edit task|Card actions|Time entries|Request changes|Request review|Add handoff checklist|Source chat message|Open source chat/i;
@@ -783,7 +783,7 @@ test.describe('workflow visual layout pass', () => {
 		await expectSharedCardShell(page.locator('.workflow-report-chart-card').first());
 		expect(await readCssProperty(page.locator('.workflow-report-metric svg').first(), 'background-color')).not.toBe('rgb(0, 161, 93)');
 		await expectFrenchUiChrome(page.locator('.workflow-report-filterbar'), /Date de d.but|Date de fin|Effacer les filtres|Exporter CSV|Exporter PDF/i, reportEnglishChrome);
-		await expectFrenchUiChrome(page.locator('.workflow-analytics-grid'), /D.lai et temps de cycle|Goulots de revue|Estim. vs r.el|Pr.vision designer/i, reportEnglishChrome);
+		await expectFrenchUiChrome(page.locator('.workflow-analytics-grid'), /D.lais moyens|Suivi des validations|Temps pr.vu et comptabilis./i, reportEnglishChrome);
 		await page.screenshot({ path: join(screenshotDir, 'reports.png'), fullPage: true });
 
 		await gotoDashboardPath(page, '/dashboard/chat');
@@ -901,7 +901,7 @@ test.describe('workflow visual layout pass', () => {
 		await expect(page.locator('.workflow-topbar-controls')).toContainText('EN');
 		await waitForOverviewReady(page);
 		await expect(page.locator('.workflow-topbar-controls')).toContainText('EN');
-		await expectFrenchUiChrome(page.locator('.workflow-overview-page'), /Overview|Active projects|Project load|Delivery mix/i, /Accueil|Charge projets|Mix livraison/i);
+		await expectFrenchUiChrome(page.locator('.workflow-overview-page'), /Overview|Active projects|Open tasks per project|Where do tasks stand/i, /Accueil|T.ches ouvertes par projet|O. en sont les t.ches/i);
 		await page.screenshot({ path: join(screenshotDir, 'en-overview.png'), fullPage: true });
 
 		await gotoDashboardPath(page, '/dashboard/projects');
@@ -930,7 +930,7 @@ test.describe('workflow visual layout pass', () => {
 		await expect(page.locator('.workflow-forecast-board')).toBeVisible({ timeout: 30_000 });
 		await expect(page.locator('.workflow-report-shell')).not.toContainText(/No report data|No project/i, { timeout: 30_000 });
 		await expect(page.locator('.workflow-topbar-profile')).toContainText(/E2E Manager/i, { timeout: 30_000 });
-		await expectFrenchUiChrome(page.locator('.workflow-report-shell'), /Reports|Start date|End date|Export CSV|Lead and cycle time|Review bottlenecks/i, /Rapports|Date de d.but|Date de fin|Exporter CSV|D.lai et temps de cycle|Goulots de revue/i);
+		await expectFrenchUiChrome(page.locator('.workflow-report-shell'), /Reports|Start date|End date|Export CSV|Average completion times|Review progress/i, /Rapports|Date de d.but|Date de fin|Exporter CSV|D.lais moyens|Suivi des validations/i);
 		await page.screenshot({ path: join(screenshotDir, 'en-reports.png'), fullPage: true });
 
 		await gotoDashboardPath(page, '/dashboard/chat');

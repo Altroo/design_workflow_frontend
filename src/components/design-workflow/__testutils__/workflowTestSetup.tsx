@@ -479,6 +479,11 @@ const reviewAnnotations = [
 ];
 
 const summary: DashboardSummary = {
+	backlog_tasks: 2,
+	daily_activity: [
+		{ date: '2026-04-22', created: 3, completed: 1 },
+		{ date: '2026-04-23', created: 1, completed: 2 },
+	],
 	active_projects: 1,
 	todo_tasks: 1,
 	in_progress_tasks: 0,
