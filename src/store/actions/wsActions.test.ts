@@ -23,6 +23,14 @@ describe('WSUserAvatarAction', () => {
 });
 
 describe('WSMaintenanceAction', () => {
+	it('includes a version only when provided', () => {
+		expect(WSMaintenanceAction(false, '1.10.0')).toEqual({
+			type: types.WS_MAINTENANCE,
+			maintenance: false,
+			version: '1.10.0',
+		});
+	});
+
 	it.each([true, false])('should preserve maintenance=%s', (maintenance) => {
 		const action = WSMaintenanceAction(maintenance);
 
@@ -49,6 +57,7 @@ describe('WSUserPresenceAction', () => {
 			onlineUserIds: [2, 5],
 		});
 	});
+
 	it('preserves offline state and an empty online user list', () => {
 		expect(WSUserPresenceAction(5, false, [])).toEqual({
 			type: types.WS_USER_PRESENCE,
@@ -70,6 +79,7 @@ describe('WSDesignWorkflowInvalidateAction', () => {
 			});
 		},
 	);
+
 	it.each([undefined, ''])('omits an absent or empty scope (%s)', (scope) => {
 		const action = WSDesignWorkflowInvalidateAction('TASK_EVENT', scope);
 		expect(action).toEqual({ type: types.WS_DESIGN_WORKFLOW_INVALIDATE, channel: 'TASK_EVENT' });

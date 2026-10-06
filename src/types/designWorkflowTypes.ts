@@ -391,24 +391,30 @@ export type WorkflowCapacityRow = {
 	overdue_tasks: number;
 	remaining_minutes: number;
 	capacity_minutes: number;
-	load_percent: number;
-	forecast_days: number;
-	risk: 'normal' | 'medium' | 'high';
+	load_percent: number | null;
+	forecast_days: number | null;
+	unestimated_tasks: number;
+	exhausted_estimate_tasks: number;
+	risk: 'normal' | 'medium' | 'high' | 'unknown';
 };
 
 export type WorkflowAnalyticsReport = {
 	generated_at: string;
 	tasks_sampled: number;
-	lead_time_days: number;
-	cycle_time_days: number;
+	lead_time_days: number | null;
+	cycle_time_days: number | null;
+	lead_time_sample_size: number;
+	cycle_time_sample_size: number;
 	blocked_tasks: number;
 	blocked_time_minutes: number;
 	review_bottlenecks: {
 		needs_review: number;
 		changes_requested: number;
 		approved: number;
-		pending_review_minutes: number;
-		average_pending_review_minutes: number;
+		in_review_without_request: number;
+		pending_review_minutes: number | null;
+		average_pending_review_minutes: number | null;
+		wait_sample_size: number;
 	};
 	estimate_vs_actual: {
 		estimated_minutes: number;

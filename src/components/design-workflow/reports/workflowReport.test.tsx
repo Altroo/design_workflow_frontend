@@ -13,49 +13,84 @@ import {
 import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import DesignWorkflowShell from '@/components/pages/design-workflow/designWorkflowShell';
-import { downloadCsv, openPrintableReport } from '@/utils/workflow/workflowReportExport';
+import { openReportPdf } from '@/utils/workflow/workflowReportExport';
 import { en } from '@/translations/en';
 
 jest.mock('@/utils/workflow/workflowReportExport', () => ({
 	...jest.requireActual('@/utils/workflow/workflowReportExport'),
-	downloadCsv: jest.fn(),
-	openPrintableReport: jest.fn().mockResolvedValue(undefined),
+	openReportPdf: jest.fn().mockResolvedValue(undefined),
 }));
 
-it('exports time and analytics with project rows, translated labels and the selected scope', async () => {
+it('offers only a PDF viewer and passes the selected scope and all report data', async () => {
 	const user = userEvent.setup();
 	mockProfile(manager);
 	render(<DesignWorkflowShell title="Time report" variant="report-time" />);
 	await selectMuiOption(user, 'Project', projectSummary.name);
-	await user.click(screen.getByRole('button', { name: en.workflow.buttons.exportCsv }));
-	expect(downloadCsv).toHaveBeenCalledWith(
-		expect.stringMatching(/^flux-design-time-report-.*\.csv$/),
-		expect.arrayContaining([expect.arrayContaining([projectSummary.name, reportRows[0].minutes, '3.00', '100%'])]),
-	);
-	await user.click(screen.getByRole('button', { name: en.workflow.buttons.exportAnalyticsCsv }));
-	expect(downloadCsv).toHaveBeenLastCalledWith(
-		expect.stringMatching(/^flux-design-analytics-report-.*\.csv$/),
-		expect.arrayContaining([
-			[en.workflow.labels.tasksSampled, workflowReport.tasks_sampled],
-			[en.workflow.labels.approved, workflowReport.review_bottlenecks.approved],
-		]),
+	expect(screen.queryByRole('button', { name: 'Export CSV' })).not.toBeInTheDocument();
+	expect(screen.queryByRole('button', { name: 'Export analytics' })).not.toBeInTheDocument();
+	await user.click(screen.getByRole('button', { name: en.workflow.buttons.exportPdf }));
+	expect(openReportPdf).toHaveBeenCalledWith(
+		expect.objectContaining({
+			scopeLabel: projectSummary.name,
+			timeReport: reportRows,
+			workflowReport,
+			copy: expect.objectContaining({
+				completionHint: en.workflow.labels.reportCompletionHint,
+				remainingHint: en.workflow.labels.reportRemainingHint,
+			}),
+		}),
 	);
 });
-
-it('surfaces print failures and disables CSV exports without report data', async () => {
-	const user = userEvent.setup();
+it('flags exhausted estimates on screen', () => {
 	mockProfile(manager);
-	mockUseGetTimeReportQuery.mockReturnValue({ data: [] });
-	mockUseGetWorkflowReportQuery.mockReturnValue({ data: undefined });
-	jest.mocked(openPrintableReport).mockRejectedValueOnce(new Error('Popup blocked'));
+	mockUseGetWorkflowReportQuery.mockReturnValue({
+		data: {
+			...workflowReport,
+			capacity: [
+				{
+					...workflowReport.capacity[0],
+					remaining_minutes: 0,
+					load_percent: null,
+					forecast_days: null,
+					exhausted_estimate_tasks: 1,
+					risk: 'high',
+				},
+			],
+		},
+	});
 	render(<DesignWorkflowShell title="Time report" variant="report-time" />);
-	expect(screen.getByRole('button', { name: en.workflow.buttons.exportCsv })).toBeDisabled();
-	expect(screen.getByRole('button', { name: en.workflow.buttons.exportAnalyticsCsv })).toBeDisabled();
-	const pdfButton = document.querySelector<HTMLButtonElement>('.workflow-report-actions button:last-child')!;
-	await user.click(pdfButton);
-	await waitFor(() => expect(mockOnError).toHaveBeenCalled());
-	expect(openPrintableReport).toHaveBeenCalledWith(expect.objectContaining({ timeReport: [], totalMinutes: 0 }));
+	expect(screen.getByText(en.workflow.labels.reportReestimate)).toBeVisible();
+	expect(screen.getByText(`1 ${en.workflow.labels.reportExhaustedTasks}`)).toBeVisible();
+	expect(document.querySelector('.workflow-report-load')).toHaveTextContent('—');
 });
+it.each([
+	['PDF_POPUP_BLOCKED', 'Allow pop-ups to open the PDF.'],
+	['Font generation failure', 'Could not generate the PDF. Please try again.'],
+])('explains the actual PDF error: %s', async (error, message) => {
+	mockProfile(manager);
+	jest.mocked(openReportPdf).mockRejectedValueOnce(new Error(error));
+	render(<DesignWorkflowShell title="Time report" variant="report-time" />);
+	await userEvent.click(screen.getByRole('button', { name: en.workflow.buttons.exportPdf }));
+	await waitFor(() => expect(mockOnError).toHaveBeenCalledWith(message));
+});
+it.each(['time-loading', 'analytics-loading', 'time-error', 'analytics-error', 'missing-data'])(
+	'prevents incomplete or stale exports during %s',
+	(state) => {
+		mockProfile(manager);
+		mockUseGetTimeReportQuery.mockReturnValue({
+			data: reportRows,
+			isFetching: state === 'time-loading',
+			isError: state === 'time-error',
+		});
+		mockUseGetWorkflowReportQuery.mockReturnValue({
+			data: state === 'missing-data' ? undefined : workflowReport,
+			isFetching: state === 'analytics-loading',
+			isError: state === 'analytics-error',
+		});
+		render(<DesignWorkflowShell title="Time report" variant="report-time" />);
+		expect(screen.getByRole('button', { name: en.workflow.buttons.exportPdf })).toBeDisabled();
+	},
+);
 
 it('filters reports by project and user', async () => {
 	const user = userEvent.setup();

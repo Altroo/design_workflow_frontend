@@ -52,8 +52,8 @@ export const BoardTaskCover = ({ task }: { task: TaskCard }) => {
 				alt={task.title}
 				width={420}
 				height={160}
-				unoptimized
-				loading="eager"
+				sizes="(max-width: 640px) 80vw, 320px"
+				loading="lazy"
 				onError={() => setFailedCoverUrl(coverUrl)}
 			/>
 		</div>
@@ -216,8 +216,8 @@ export const TaskCardItem = ({
 						alt={task.cover_image_label || task.title}
 						width={640}
 						height={260}
-						unoptimized
-						loading="eager"
+						sizes="(max-width: 768px) 100vw, 640px"
+						loading="lazy"
 						className="h-full w-full object-cover"
 					/>
 					<div className="workflow-task-cover-shade" />

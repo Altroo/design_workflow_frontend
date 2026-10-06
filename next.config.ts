@@ -84,13 +84,6 @@ const nextConfig: NextConfig = {
 	async headers() {
 		return [
 			{
-				source: '/assets/ico/manifest.json',
-				headers: [
-					{ key: 'Content-Type', value: 'application/manifest+json' },
-					{ key: 'Cache-Control', value: 'public, max-age=604800, immutable' },
-				],
-			},
-			{
 				source: '/assets/fonts/:path*',
 				headers: [
 					{ key: 'Cache-Control', value: 'public, max-age=31536000, immutable' },
@@ -108,6 +101,14 @@ const nextConfig: NextConfig = {
 			{
 				source: '/assets/:path*',
 				headers: [{ key: 'Cache-Control', value: 'public, max-age=31536000, immutable' }],
+			},
+			{
+				// Last matching asset rule wins: the manifest must not be immutable.
+				source: '/assets/ico/manifest.json',
+				headers: [
+					{ key: 'Content-Type', value: 'application/manifest+json' },
+					{ key: 'Cache-Control', value: 'public, max-age=0, must-revalidate' },
+				],
 			},
 			{
 				source: '/(.*)',

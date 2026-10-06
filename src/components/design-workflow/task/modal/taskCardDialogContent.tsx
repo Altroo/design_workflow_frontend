@@ -394,7 +394,6 @@ export const TaskCardDialogContent = ({ model }: { model: TaskDetailModel }) => 
 										alt={task.cover_image_label || task.title}
 										fill
 										sizes="(min-width: 1024px) 760px, 100vw"
-										unoptimized
 										loading="eager"
 										className="object-contain"
 									/>

@@ -1,6 +1,21 @@
 export type Language = 'fr' | 'en';
 
 export type TranslationDictionary = {
+	changelog: {
+		description: string;
+		loading: string;
+		error: string;
+		empty: string;
+	};
+	appUpdate: {
+		title: string;
+		body: string;
+		later: string;
+		update: string;
+		updating: string;
+		version: string;
+		error: string;
+	};
 	common: {
 		yes: string;
 		no: string;
@@ -59,6 +74,7 @@ export type TranslationDictionary = {
 		or: string;
 	};
 	navigation: {
+		changelog: string;
 		users: string;
 		usersList: string;
 		newUser: string;

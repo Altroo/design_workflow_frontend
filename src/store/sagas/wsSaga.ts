@@ -6,13 +6,14 @@ import type { RootState } from '@/store/store';
 import type { Action } from 'redux';
 import type { EventChannel, SagaIterator, Task } from 'redux-saga';
 import * as Types from '@/store/actions';
-import { setWSMaintenance, setWSOnlineUsers } from '@/store/slices/wsSlice';
+import { setWSMaintenance, setWSOnlineUsers, setWSServerVersion } from '@/store/slices/wsSlice';
 import { initMaintenanceSaga } from '@/store/sagas/_initSaga';
 import { designWorkflowApi } from '@/store/services/designWorkflow';
 import { profilApi, usersApi } from '@/store/services/account';
 
 type WSChannelAction = Action & {
 	maintenance?: boolean;
+	version?: string;
 	channel?: 'TASK_EVENT' | 'NOTIFICATION' | 'WORKFLOW_EVENT' | 'CHAT_EVENT';
 	scope?: string;
 	onlineUserIds?: number[];
@@ -30,10 +31,12 @@ const allWorkflowTags = [
 	'SavedView',
 	'NotificationPreference',
 	'Search',
+	'Changelog',
 ] as const;
 const taskTags = ['Task', 'Project', 'Dashboard', 'Workload', 'Report', 'Chat', 'Search', 'Notification'] as const;
 
 export function workflowTagsForEvent(action: WSChannelAction): readonly (typeof allWorkflowTags)[number][] {
+	if (action.scope === 'changelog') return ['Changelog'];
 	if (action.channel === 'TASK_EVENT') return taskTags;
 	if (action.channel === 'CHAT_EVENT' || action.scope === 'chat') return ['Chat', 'Search'];
 	if (action.channel === 'NOTIFICATION' || action.scope === 'notifications') return ['Notification'];
@@ -107,6 +110,7 @@ export function* watchWS(): SagaIterator<void> {
 				if (loggedOut === null || !action) break;
 				if (action.type === Types.WS_MAINTENANCE && typeof action.maintenance === 'boolean') {
 					yield put(setWSMaintenance(action.maintenance));
+					if (action.version !== undefined) yield put(setWSServerVersion(action.version));
 				} else if (action.type === Types.WS_USER_PRESENCE && Array.isArray(action.onlineUserIds)) {
 					yield put(setWSOnlineUsers(action.onlineUserIds));
 				} else if (action.type === Types.WS_RECONNECTED) {

@@ -50,6 +50,8 @@ import {
 import { WorkflowAvatar } from '@/components/shared/workflow/workflowAvatar';
 import { ThemeToggle } from '@/components/shared/workflow/themeToggle';
 import RealtimeStatus from '@/components/shared/workflow/realtimeStatus';
+import { DesktopNotificationControls } from '@/components/shared/workflow/desktopNotificationControls';
+import { useDesktopNotificationControls } from '@/providers/desktopNotificationsProvider';
 
 type Props = {
 	title: string;
@@ -78,11 +80,11 @@ const NavigationBar = ({ title, children, hideTopbar = false }: Props) => {
 	const profile = useAppSelector(getProfilState);
 	const notificationsRef = useRef<HTMLDivElement | null>(null);
 	const profileMenuRef = useRef<HTMLDivElement | null>(null);
-	const seenUnreadIdsRef = useRef<number[]>([]);
 	const isSuperuser = Boolean((profile as { is_superuser?: boolean }).is_superuser);
 	const hasWorkflowDataAccess = Boolean(session && (profile.role || profile.is_staff || isSuperuser));
 	const unreadNotificationsQuery = useGetNotificationsQuery({ unread: true }, { skip: !hasWorkflowDataAccess });
 	const unreadNotifications = unreadNotificationsQuery.data?.length ?? 0;
+	const desktopNotifications = useDesktopNotificationControls();
 	const chatThreadsQuery = useGetChatThreadsQuery(undefined, {
 		skip: !hasWorkflowDataAccess,
 		pollingInterval: 10_000,
@@ -218,24 +220,6 @@ const NavigationBar = ({ title, children, hideTopbar = false }: Props) => {
 		document.addEventListener('mousedown', handleClickOutside);
 		return () => document.removeEventListener('mousedown', handleClickOutside);
 	}, [profileMenuOpen]);
-
-	useEffect(() => {
-		if (typeof window === 'undefined' || !('Notification' in window)) return;
-		const unread = (unreadNotificationsQuery.data ?? []).filter((notification) => !notification.is_read);
-		const unreadIds = unread.map((notification) => notification.id);
-		const newNotifications = unread.filter((notification) => !seenUnreadIdsRef.current.includes(notification.id));
-		seenUnreadIdsRef.current = unreadIds;
-		if (Notification.permission !== 'granted' || document.visibilityState === 'visible') return;
-		newNotifications.slice(0, 2).forEach((notification) => {
-			const title =
-				t.workflow.activities[notification.type] ?? t.workflow.labels.notificationFallback ?? 'Workflow notification';
-			const body =
-				notification.task?.title ??
-				notification.project?.name ??
-				(typeof notification.payload.title === 'string' ? notification.payload.title : notification.type);
-			new Notification(title, { body });
-		});
-	}, [t.workflow.activities, t.workflow.labels.notificationFallback, unreadNotificationsQuery.data]);
 
 	const workflowItems = getWorkflowNavigation(t, hasManagerAccess, unreadNotifications, unreadChatMessages);
 
@@ -410,6 +394,8 @@ const NavigationBar = ({ title, children, hideTopbar = false }: Props) => {
 								<div ref={notificationsRef} className="relative">
 									<button
 										type="button"
+										aria-label={t.navigation.notifications}
+										aria-expanded={notificationsOpen}
 										onClick={() => setNotificationsOpen((current) => !current)}
 										className="workflow-topbar-icon workflow-focus-ring relative flex h-10 w-10 items-center justify-center text-(--ink)"
 									>
@@ -419,7 +405,7 @@ const NavigationBar = ({ title, children, hideTopbar = false }: Props) => {
 										) : null}
 									</button>
 									{notificationsOpen ? (
-										<div className="workflow-topbar-menu workflow-notification-menu absolute right-0 top-[calc(100%+10px)] z-110 flex w-90 max-w-[calc(100vw-24px)] flex-col gap-2 rounded-2xl border border-(--line) bg-white p-3 shadow-(--shadow-lg)">
+										<div className="workflow-topbar-menu workflow-notification-menu absolute right-0 top-[calc(100%+10px)] z-110 flex max-h-[calc(100dvh-100px)] w-90 max-w-[calc(100vw-24px)] flex-col gap-2 overflow-y-auto rounded-2xl border border-(--line) bg-white p-3 shadow-(--shadow-lg)">
 											<div className="flex items-center justify-between gap-3 px-1">
 												<p className="text-sm font-bold text-(--ink)">{t.navigation.notifications}</p>
 												<Link
@@ -430,6 +416,7 @@ const NavigationBar = ({ title, children, hideTopbar = false }: Props) => {
 													{t.navigation.openInbox ?? 'Open inbox'}
 												</Link>
 											</div>
+											<DesktopNotificationControls controls={desktopNotifications} copy={t.workflow} />
 											<div className="space-y-2">
 												{notificationsPreview.map((notification) => {
 													const entity = notificationEntity(notification);

@@ -1,4 +1,4 @@
-import { render, waitFor } from '@testing-library/react';
+import { fireEvent, render, waitFor } from '@testing-library/react';
 import { InitEffects } from './initEffects';
 import { useSession } from 'next-auth/react';
 import { useGetProfilQuery } from '@/store/services/account';
@@ -39,6 +39,20 @@ describe('InitEffects', () => {
 
 		const { container } = render(<InitEffects />);
 		expect(container.firstChild).toBeNull();
+	});
+
+	it('rechecks on return from background and reconnect, removing listeners on unmount', () => {
+		(useSession as jest.Mock).mockReturnValue({ data: null, status: 'unauthenticated' });
+		const { unmount } = render(<InitEffects />);
+		mockDispatch.mockClear();
+		fireEvent(document, new Event('visibilitychange'));
+		fireEvent(window, new Event('online'));
+		expect(mockDispatch).toHaveBeenCalledTimes(2);
+		expect(mockDispatch).toHaveBeenCalledWith({ type: 'INIT_APP' });
+		unmount();
+		mockDispatch.mockClear();
+		fireEvent(window, new Event('online'));
+		expect(mockDispatch).not.toHaveBeenCalled();
 	});
 
 	it('dispatches INIT_APP_SESSION_TOKENS when session is authenticated', async () => {

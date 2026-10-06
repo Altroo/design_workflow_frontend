@@ -2,6 +2,19 @@ import { fireEvent, render, screen } from '@testing-library/react';
 import NavigationBar from './navigationBar';
 import { en } from '@/translations/en';
 
+jest.mock('@/providers/desktopNotificationsProvider', () => ({
+	useDesktopNotificationControls: () => ({
+		permission: 'default',
+		enabled: false,
+		sound: true,
+		requesting: false,
+		failed: false,
+		enable: jest.fn(),
+		disable: jest.fn(),
+		test: jest.fn(),
+		setSound: jest.fn(),
+	}),
+}));
 let mockProfile = {
 	id: 1,
 	first_name: 'Ibtissam',
@@ -37,6 +50,7 @@ beforeEach(() => {
 	mockProfile = { ...mockProfile, role: 'designer', is_staff: false };
 	window.innerWidth = 1280;
 });
+
 it('keeps unread counts visible on inactive navigation items and hides manager tools from designers', () => {
 	render(<NavigationBar title="Board">Board content</NavigationBar>);
 	expect(screen.getByText('Board content')).toBeInTheDocument();
@@ -44,6 +58,7 @@ it('keeps unread counts visible on inactive navigation items and hides manager t
 	expect(screen.getAllByLabelText(`2 ${en.navigation.notifications}`)[0]).toHaveTextContent('2');
 	expect(screen.queryByRole('link', { name: en.navigation.reports })).not.toBeInTheDocument();
 });
+
 it('shows manager reports and opens the profile menu from the avatar', () => {
 	mockProfile = { ...mockProfile, role: 'manager' };
 	render(<NavigationBar title="Board">Board content</NavigationBar>);
@@ -52,6 +67,7 @@ it('shows manager reports and opens the profile menu from the avatar', () => {
 	expect(screen.getByRole('button', { name: 'Ibtissam Dardour' })).toHaveAttribute('aria-expanded', 'true');
 	expect(screen.getByRole('button', { name: en.navigation.logout })).toBeInTheDocument();
 });
+
 it('opens and closes the mobile drawer with Escape and restores body scrolling', () => {
 	window.innerWidth = 390;
 	render(<NavigationBar title="Board">Board content</NavigationBar>);
@@ -61,4 +77,10 @@ it('opens and closes the mobile drawer with Escape and restores body scrolling',
 	fireEvent.keyDown(document, { key: 'Escape' });
 	expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
 	expect(document.body.style.overflow).not.toBe('hidden');
+});
+
+it('makes desktop notification settings accessible from the bell', () => {
+	render(<NavigationBar title="Board">Board content</NavigationBar>);
+	fireEvent.click(screen.getByRole('button', { name: en.navigation.notifications }));
+	expect(screen.getByRole('region', { name: en.workflow.labels.desktopTitle })).toBeInTheDocument();
 });

@@ -5,6 +5,7 @@ import { getInitStateToken } from '@/store/selectors';
 import type { RootState } from '@/store/store';
 import { axiosBaseQuery } from '@/utils/axiosBaseQuery';
 import { isAuthenticatedInstance } from '@/utils/helpers';
+import type { ChangelogEntry } from '@/types/changelogTypes';
 import type {
 	AttachmentAnnotation,
 	ChatMessage,
@@ -54,6 +55,7 @@ export const designWorkflowApi = createApi({
 		'Chat',
 		'SavedView',
 		'Search',
+		'Changelog',
 	],
 	baseQuery: axiosBaseQuery((api) =>
 		isAuthenticatedInstance(
@@ -62,6 +64,10 @@ export const designWorkflowApi = createApi({
 		),
 	),
 	endpoints: (builder) => ({
+		getChangelog: builder.query<ChangelogEntry[], void>({
+			query: () => ({ url: `${process.env.NEXT_PUBLIC_API_URL}/api/ws/changelog/`, method: 'GET' }),
+			providesTags: ['Changelog'],
+		}),
 		getDashboardSummary: builder.query<DashboardSummary, void>({
 			query: () => ({ url: `${DESIGN_WORKFLOW_ROOT}dashboard/summary/`, method: 'GET' }),
 			providesTags: ['Dashboard'],
@@ -550,6 +556,7 @@ export const designWorkflowApi = createApi({
 });
 
 export const {
+	useGetChangelogQuery,
 	useGetDashboardSummaryQuery,
 	useGetSavedViewsQuery,
 	useCreateSavedViewMutation,

@@ -166,7 +166,14 @@ export function initWebsocket(getToken: () => Promise<string | null>): EventChan
 								emitter(WSUserAvatarAction(message.pk, message.avatar));
 							}
 						} else if (signalType === 'MAINTENANCE') {
-							if (typeof message.maintenance === 'boolean') emitter(WSMaintenanceAction(message.maintenance));
+							if (typeof message.maintenance === 'boolean') {
+								emitter(
+									WSMaintenanceAction(
+										message.maintenance,
+										typeof message.version === 'string' ? message.version : undefined,
+									),
+								);
+							}
 						} else if (
 							signalType === 'TASK_EVENT' ||
 							signalType === 'NOTIFICATION' ||

@@ -1,20 +1,16 @@
 'use client';
 import { AvatarBadge, Chip, EmptyState, FieldLabel } from '@/components/shared/workflow/workflowFields';
-import {
-	formatReportDate,
-	formatReportHours,
-	formatReportWorkDuration,
-} from '@/utils/workflow/workflowReportFormatting';
+import { formatReportDate, formatReportHours, reportRemainingLabel } from '@/utils/workflow/workflowReportFormatting';
 import { WorkflowReportDuration } from './workflowReportDuration';
 import { WorkflowReportSummary } from './workflowReportSummary';
-import { downloadCsv, formatExportDateTime, openPrintableReport } from '@/utils/workflow/workflowReportExport';
+import { openReportPdf } from '@/utils/workflow/workflowReportExport';
 import { STATUS_COLUMNS } from '@/components/shared/workflow/boardAppearance';
 import {
 	WorkflowDateField as DateField,
 	WorkflowSelectField as SelectField,
 } from '@/components/shared/workflow/workflowFormControls';
 import { WorkflowPageHero, WorkflowSimpleMetric } from '@/components/shared/workflow/workflowPrimitives';
-import type { TimeReportRow, WorkflowAnalyticsReport } from '@/types/designWorkflowTypes';
+import type { TimeReportRow } from '@/types/designWorkflowTypes';
 import type { PrintableReportCopy } from '@/types/workflowUiTypes';
 import { useIsClient, useToast } from '@/utils/hooks';
 import { WORKFLOW_CHART_PALETTE } from '@/utils/rawData';
@@ -27,12 +23,11 @@ import {
 	FileText,
 	FolderKanban,
 	RefreshCcw,
-	Save,
 	ClipboardCheck,
-	Table2,
 	Users,
 } from 'lucide-react';
 import { Bar } from 'react-chartjs-2';
+import { useState } from 'react';
 import type { WorkflowController } from '@/utils/workflow/hooks/useWorkflowController';
 export const WorkflowReport = ({
 	model,
@@ -47,6 +42,7 @@ export const WorkflowReport = ({
 		| 'assignableUsers'
 		| 'userOptionLabel'
 		| 'workflowReport'
+		| 'reportExportReady'
 		| 'locale'
 		| 't'
 		| 'messageFor'
@@ -56,6 +52,7 @@ export const WorkflowReport = ({
 	>;
 }) => {
 	const { onError } = useToast();
+	const [isOpeningPdf, setIsOpeningPdf] = useState(false);
 	const reportChartsMounted = useIsClient();
 	const {
 		timeReport,
@@ -66,6 +63,7 @@ export const WorkflowReport = ({
 		assignableUsers,
 		userOptionLabel,
 		workflowReport,
+		reportExportReady,
 		locale,
 		t,
 		messageFor,
@@ -75,9 +73,7 @@ export const WorkflowReport = ({
 	} = model;
 	const totalMinutes = timeReport.reduce((sum, row) => sum + row.minutes, 0);
 	const sortedReport = [...timeReport].sort((left, right) => right.minutes - left.minutes);
-	const topRow = sortedReport[0];
 	const maxMinutes = Math.max(...timeReport.map((row) => row.minutes), 1);
-	const averageMinutes = timeReport.length ? Math.round(totalMinutes / timeReport.length) : 0;
 	const chartRows = sortedReport.slice(0, 8);
 	const reportBarHeight = Math.min(430, Math.max(260, chartRows.length * 44 + 150));
 	const reportPalette = WORKFLOW_CHART_PALETTE;
@@ -143,8 +139,6 @@ export const WorkflowReport = ({
 	const reportScopeLabel = selectedScopeLabel || workflow.labels.allProjects;
 	const generatedAt = workflowReport?.generated_at ?? new Date().toISOString();
 	const timeLabel = reportFilters.user ? workflow.labels.reportPersonalTime : workflow.labels.reportTeamTime;
-	const generatedLabel = formatExportDateTime(generatedAt, locale);
-	const reportFileDate = new Date(generatedAt).toISOString().slice(0, 10);
 	const printableReportCopy: PrintableReportCopy = {
 		brand: t.navigation.productName,
 		reportStudio: workflow.labels.reportStudio,
@@ -155,6 +149,8 @@ export const WorkflowReport = ({
 		scope: workflow.labels.reportScope,
 		allProjects: workflow.labels.allProjects,
 		summary: workflow.labels.reportSummary,
+		metric: workflow.labels.metric,
+		value: t.common.value,
 		projectsIncluded: workflow.labels.projectsIncluded,
 		trackedTime: timeLabel,
 		leadTime: workflow.labels.leadTime,
@@ -174,9 +170,9 @@ export const WorkflowReport = ({
 		estimateVsActual: workflow.labels.estimateVsActual,
 		statusDistribution: workflow.labels.statusDistribution,
 		tasksSampled: workflow.labels.tasksSampled,
-		needsReview: workflow.labels.needsReview,
+		needsReview: workflow.labels.reportReviewRequested,
 		changesRequested: workflow.labels.changesRequested,
-		approved: workflow.labels.approved,
+		approved: workflow.labels.reportReviewApproved,
 		pendingReviewMinutes: workflow.labels.reportReviewWait,
 		estimatedMinutes: workflow.labels.estimatedLoad,
 		actualMinutes: timeLabel,
@@ -201,140 +197,53 @@ export const WorkflowReport = ({
 		calendarHint: workflow.labels.reportCalendarHint,
 		capacityHint: workflow.labels.reportCapacityHint,
 		workDuration: workflow.labels.reportWorkDuration,
+		missingDates: workflow.labels.reportMissingDates,
+		documentedTasks: workflow.labels.reportDocumentedTasks,
+		completionHint: workflow.labels.reportCompletionHint,
+		reviewUnrequested: workflow.labels.reportReviewUnrequested,
+		reviewHint: workflow.labels.reportReviewHint,
+		estimateHint: workflow.labels.reportEstimateHint,
+		estimateLabels: workflow.labels,
+		remainingHint: workflow.labels.reportRemainingHint,
+		reestimate: workflow.labels.reportReestimate,
+		minimum: workflow.labels.reportMinimum,
+		unestimatedTasks: workflow.labels.reportUnestimatedTasks,
+		exhaustedTasks: workflow.labels.reportExhaustedTasks,
 	};
-	const exportMetadataRows: Array<Array<string | number | null | undefined>> = [
-		[printableReportCopy.title],
-		[printableReportCopy.generatedOn, generatedLabel],
-		[printableReportCopy.period, dateWindow],
-		[printableReportCopy.scope, reportScopeLabel],
-		[workflow.labels.reportWorkdayBasis],
-		[workflow.labels.reportSchedule],
-		[workflow.labels.reportPeriodHint],
-		[workflow.labels.reportCollaborationHint],
-		[],
-	];
-	const exportTimeReport = () => {
-		downloadCsv(`flux-design-time-report-${reportFileDate}.csv`, [
-			...exportMetadataRows,
-			[printableReportCopy.summary],
-			[workflow.labels.metric, t.common.value, workflow.labels.reportUnit],
-			[timeLabel, totalMinutes, workflow.labels.minutesUnit],
-			[workflow.labels.activeReportProjects, timeReport.length, workflow.labels.projectsIncluded],
-			[workflow.labels.averagePerProject, averageMinutes, workflow.labels.minutesUnit],
-			[workflow.labels.topProject, topRow?.project.name ?? workflow.labels.noReportProject, ''],
-			[],
-			[workflow.labels.timeByProject],
-			[
-				workflow.labels.project,
-				workflow.labels.manager,
-				workflow.labels.status,
-				workflow.labels.priority,
-				workflow.labels.minutesUnit,
-				workflow.labels.hoursUnit,
-				workflow.labels.reportShare,
-				workflow.labels.reportWorkDuration,
-			],
-			...sortedReport.map((row) => [
-				row.project.name,
-				`${row.project.manager.first_name} ${row.project.manager.last_name}`.trim() || row.project.manager.email,
-				labelFor(row.project.status),
-				labelFor(row.project.priority),
-				row.minutes,
-				(row.minutes / 60).toFixed(2),
-				totalMinutes ? `${Math.round((row.minutes / totalMinutes) * 100)}%` : '0%',
-				formatReportWorkDuration(row.minutes, locale),
-			]),
-		]);
-	};
-	const exportWorkflowReport = (report?: WorkflowAnalyticsReport) => {
-		if (!report) return;
-		downloadCsv(`flux-design-analytics-report-${reportFileDate}.csv`, [
-			...exportMetadataRows,
-			[workflow.labels.deliveryFlow],
-			[workflow.labels.reportCalendarHint],
-			[workflow.labels.metric, t.common.value, workflow.labels.reportUnit],
-			[workflow.labels.tasksSampled, report.tasks_sampled],
-			[workflow.labels.leadTimeDays, report.lead_time_days, workflow.labels.daysUnit],
-			[workflow.labels.cycleTimeDays, report.cycle_time_days, workflow.labels.daysUnit],
-			[workflow.labels.blockedTasks, report.blocked_tasks],
-			[workflow.labels.blockedTimeMinutes, report.blocked_time_minutes, workflow.labels.minutesUnit],
-			[],
-			[workflow.labels.reviewBottlenecks],
-			[workflow.labels.metric, t.common.value, workflow.labels.reportUnit],
-			[workflow.labels.needsReview, report.review_bottlenecks.needs_review],
-			[workflow.labels.changesRequested, report.review_bottlenecks.changes_requested],
-			[workflow.labels.approved, report.review_bottlenecks.approved],
-			[
-				workflow.labels.pendingReviewMinutes,
-				report.review_bottlenecks.pending_review_minutes,
-				workflow.labels.minutesUnit,
-			],
-			[
-				workflow.labels.averageReviewWait,
-				report.review_bottlenecks.average_pending_review_minutes,
-				workflow.labels.minutesUnit,
-			],
-			[],
-			[workflow.labels.estimateVsActual],
-			[workflow.labels.metric, t.common.value, workflow.labels.reportUnit],
-			[
-				workflow.labels.estimatedMinutesMetric,
-				report.estimate_vs_actual.estimated_minutes,
-				workflow.labels.minutesUnit,
-			],
-			[workflow.labels.actualMinutes, report.estimate_vs_actual.actual_minutes, workflow.labels.minutesUnit],
-			[workflow.labels.varianceMinutes, report.estimate_vs_actual.variance_minutes, workflow.labels.minutesUnit],
-			[workflow.labels.actualRatio, Math.round(report.estimate_vs_actual.actual_to_estimate_ratio * 100), '%'],
-			[],
-			[workflow.labels.statusDistribution],
-			[workflow.labels.status, workflow.labels.tasksSampled],
-			...STATUS_COLUMNS.map((status) => [labelFor(status), report.status_counts[status] ?? 0]),
-			[],
-			[workflow.labels.designerForecast],
-			[workflow.labels.reportCapacityHint],
-			[
-				messageFor('Membre', 'Member'),
-				workflow.labels.openTasksLabel,
-				workflow.labels.overdueTasksLabel,
-				workflow.labels.remainingMinutes,
-				workflow.labels.loadPercent,
-				workflow.labels.forecastDays,
-				workflow.labels.risk,
-			],
-			...report.capacity.map((row) => [
-				`${row.user.first_name} ${row.user.last_name}`.trim() || row.user.email,
-				row.open_tasks,
-				row.overdue_tasks,
-				row.remaining_minutes,
-				row.load_percent,
-				row.forecast_days,
-				riskLabelFor(row.risk),
-			]),
-		]);
-	};
-	const exportPrintableReport = () => {
-		void openPrintableReport({
-			dateWindow,
-			scopeLabel: reportScopeLabel,
-			generatedAt,
-			locale,
-			totalMinutes,
-			timeReport: sortedReport,
-			workflowReport,
-			copy: printableReportCopy,
-			labelFor,
-			riskLabelFor,
-		}).catch(() =>
+	const exportPdfReport = async () => {
+		setIsOpeningPdf(true);
+		try {
+			await openReportPdf({
+				dateWindow,
+				scopeLabel: reportScopeLabel,
+				generatedAt,
+				locale,
+				totalMinutes,
+				timeReport: sortedReport,
+				workflowReport,
+				copy: printableReportCopy,
+				labelFor,
+				riskLabelFor,
+			});
+		} catch (error) {
 			onError(
-				messageFor(
-					'Impossible d’ouvrir le rapport. Autorisez les fenêtres contextuelles puis réessayez.',
-					'Could not open the report. Allow pop-ups and try again.',
-				),
-			),
-		);
+				error instanceof Error && error.message === 'PDF_POPUP_BLOCKED'
+					? messageFor('Autorisez les fenêtres contextuelles pour ouvrir le PDF.', 'Allow pop-ups to open the PDF.')
+					: messageFor(
+							'Impossible de générer le PDF. Veuillez réessayer.',
+							'Could not generate the PDF. Please try again.',
+						),
+			);
+		} finally {
+			setIsOpeningPdf(false);
+		}
 	};
 	const forecastRows = [...(workflowReport?.capacity ?? [])].sort(
-		(left, right) => right.overdue_tasks - left.overdue_tasks || right.load_percent - left.load_percent,
+		(left, right) =>
+			right.overdue_tasks - left.overdue_tasks ||
+			right.exhausted_estimate_tasks - left.exhausted_estimate_tasks ||
+			right.unestimated_tasks - left.unestimated_tasks ||
+			(right.load_percent ?? 0) - (left.load_percent ?? 0),
 	);
 	const completedCount = workflowReport?.status_counts.done ?? 0;
 	const statusRows = workflowReport
@@ -416,29 +325,12 @@ export const WorkflowReport = ({
 					</button>
 					<button
 						type="button"
-						onClick={exportTimeReport}
+						onClick={() => void exportPdfReport()}
 						className="workflow-report-clear workflow-report-export"
-						disabled={timeReport.length === 0}
-					>
-						<Save size={15} />
-						<span>{workflow.buttons.exportCsv ?? 'Export CSV'}</span>
-					</button>
-					<button
-						type="button"
-						onClick={() => exportWorkflowReport(workflowReport)}
-						className="workflow-report-clear workflow-report-export"
-						disabled={!workflowReport}
-					>
-						<Table2 size={15} />
-						<span>{workflow.buttons.exportAnalyticsCsv ?? 'Export analytics'}</span>
-					</button>
-					<button
-						type="button"
-						onClick={exportPrintableReport}
-						className="workflow-report-clear workflow-report-export"
+						disabled={!reportExportReady || isOpeningPdf}
 					>
 						<FileText size={15} />
-						<span>{workflow.buttons.exportPdf ?? 'Export PDF'}</span>
+						<span>{isOpeningPdf ? t.common.loading : workflow.buttons.exportPdf}</span>
 					</button>
 				</div>
 			</section>
@@ -513,22 +405,45 @@ export const WorkflowReport = ({
 											</p>
 										</div>
 										<strong className="workflow-report-load">
-											{new Intl.NumberFormat(locale, { maximumFractionDigits: 1 }).format(row.load_percent)}%
+											{row.load_percent == null
+												? '—'
+												: `${new Intl.NumberFormat(locale, { maximumFractionDigits: 1 }).format(row.load_percent)}%`}
 											<small>{workflow.labels.reportWeekLoad}</small>
 										</strong>
 									</div>
 									<div className="workflow-forecast-track" aria-hidden="true">
-										<span style={{ width: `${Math.min(row.load_percent, 100)}%` }} />
+										<span style={{ width: `${Math.min(row.load_percent ?? 0, 100)}%` }} />
 									</div>
 									<div className="workflow-forecast-card-foot">
 										<div>
 											<span>{workflow.labels.reportRemaining}</span>
-											<WorkflowReportDuration minutes={row.remaining_minutes} locale={locale} />
+											{row.load_percent == null ? (
+												<strong>
+													{reportRemainingLabel(
+														row,
+														locale,
+														workflow.labels.reportMinimum,
+														workflow.labels.reportReestimate,
+													)}
+												</strong>
+											) : (
+												<WorkflowReportDuration minutes={row.remaining_minutes} locale={locale} />
+											)}
 										</div>
 										<span>
 											{workflow.labels.risk} : {riskLabelFor(row.risk)}
 										</span>
 									</div>
+									{row.exhausted_estimate_tasks > 0 ? (
+										<p className="workflow-report-note">
+											{row.exhausted_estimate_tasks} {workflow.labels.reportExhaustedTasks}
+										</p>
+									) : null}
+									{row.unestimated_tasks > 0 ? (
+										<p className="workflow-report-note">
+											{row.unestimated_tasks} {workflow.labels.reportUnestimatedTasks}
+										</p>
+									) : null}
 								</article>
 							))}
 							{forecastRows.length === 0 ? <EmptyState {...workflow.emptyStates.noWorkloadData} /> : null}

@@ -58,6 +58,8 @@ export type PrintableReportCopy = {
 	scope: string;
 	allProjects: string;
 	summary: string;
+	metric: string;
+	value: string;
 	projectsIncluded: string;
 	trackedTime: string;
 	leadTime: string;
@@ -104,6 +106,18 @@ export type PrintableReportCopy = {
 	calendarHint: string;
 	capacityHint: string;
 	workDuration: string;
+	missingDates: string;
+	documentedTasks: string;
+	completionHint: string;
+	reviewUnrequested: string;
+	reviewHint: string;
+	estimateHint: string;
+	estimateLabels: WorkflowCopy['labels'];
+	remainingHint: string;
+	reestimate: string;
+	minimum: string;
+	unestimatedTasks: string;
+	exhaustedTasks: string;
 };
 
 export type ChecklistTemplate = {

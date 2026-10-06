@@ -7,6 +7,7 @@ import {
 	KeyRound,
 	LayoutDashboard,
 	MessagesSquare,
+	History,
 	Shield,
 	Users,
 } from 'lucide-react';
@@ -14,6 +15,7 @@ import type { TranslationDictionary } from '@/types/languageTypes';
 import {
 	DASHBOARD_BOARD,
 	DASHBOARD_CHAT,
+	DASHBOARD_CHANGELOG,
 	DASHBOARD_EDIT_PROFILE,
 	DASHBOARD_NOTIFICATIONS,
 	DASHBOARD_OVERVIEW,
@@ -59,6 +61,7 @@ export const getWorkflowNavigation = (
 		icon: <Bell size={16} />,
 		badge: unreadNotifications,
 	},
+	{ label: t.navigation.changelog, path: DASHBOARD_CHANGELOG, icon: <History size={16} /> },
 ];
 
 export const getWorkflowUtilities = (t: TranslationDictionary, hasUserAccess: boolean): WorkflowNavItem[] => [

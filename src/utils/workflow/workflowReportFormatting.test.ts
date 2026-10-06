@@ -3,7 +3,11 @@ import {
 	formatReportElapsedDuration,
 	formatReportHours,
 	formatReportWorkDuration,
+	reportRemainingLabel,
+	reportVarianceLabel,
 } from './workflowReportFormatting';
+import { workflowReport } from '@/components/design-workflow/__testutils__/workflowTestSetup';
+import { fr } from '@/translations/fr';
 
 it.each([
 	[0, '0 min'],
@@ -34,4 +38,27 @@ it('handles non-finite inputs and localizes date-only filters', () => {
 	expect(formatReportDate('2026-10-06', 'fr-FR')).toBe('6 oct. 2026');
 	expect(formatReportDate('2026-10-06', 'en-US')).toBe('Oct 6, 2026');
 	expect(formatReportDate('invalid', 'fr')).toBe('invalid');
+});
+
+it.each([
+	[0, 30, 'reportNoEstimate'],
+	[60, -30, 'reportWithinEstimate'],
+	[60, 30, 'reportOverEstimate'],
+	[60, 0, 'reportOnEstimate'],
+] as const)('explains estimate %s and variance %s', (estimated_minutes, variance_minutes, key) => {
+	expect(
+		reportVarianceLabel(
+			{ estimated_minutes, variance_minutes, actual_minutes: 30, actual_to_estimate_ratio: 0 },
+			fr.workflow.labels,
+		),
+	).toBe(fr.workflow.labels[key]);
+});
+
+it('distinguishes a complete estimate, a known minimum and unknown remaining work', () => {
+	const row = { ...workflowReport.capacity[0], remaining_minutes: 480 };
+	expect(reportRemainingLabel(row, 'fr', 'Au moins', 'À réestimer')).toBe('1 j');
+	expect(reportRemainingLabel({ ...row, load_percent: null }, 'fr', 'Au moins', 'À réestimer')).toBe('Au moins 1 j');
+	expect(
+		reportRemainingLabel({ ...row, load_percent: null, remaining_minutes: 0 }, 'fr', 'Au moins', 'À réestimer'),
+	).toBe('À réestimer');
 });

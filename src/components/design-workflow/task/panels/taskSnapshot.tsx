@@ -38,7 +38,7 @@ export const TaskSnapshot = ({
 							alt={task.cover_image_label || task.title}
 							width={640}
 							height={360}
-							unoptimized
+							sizes="(max-width: 768px) 100vw, 640px"
 							loading="eager"
 							className="h-full w-full object-cover"
 						/>

@@ -37,6 +37,15 @@ const report = { project: 7, user: 2, start_date: '2026-10-01', end_date: '2026-
 const reorder = { moved_task_id: 12, tasks: [{ id: 12, status: 'in_progress' as const, sort_order: 0 }] };
 const time = { minutes: 60, work_date: '2026-10-06', note: 'Plans' };
 
+it('loads the changelog through the authenticated API', async () => {
+	await store.dispatch(api.getChangelog.initiate());
+	expect(mockBaseQuery).toHaveBeenCalledWith(
+		expect.objectContaining({ url: `${process.env.NEXT_PUBLIC_API_URL}/api/ws/changelog/`, method: 'GET' }),
+		expect.anything(),
+		undefined,
+	);
+});
+
 describe('workflow API request contracts', () => {
 	const requests = [
 		{

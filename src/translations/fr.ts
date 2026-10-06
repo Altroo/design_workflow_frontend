@@ -1,6 +1,22 @@
 import type { TranslationDictionary } from '@/types/languageTypes';
 
 export const fr: TranslationDictionary = {
+	changelog: {
+		description: 'Retrouvez les nouveautés et les améliorations de votre espace de travail.',
+		loading: 'Chargement des nouveautés…',
+		error: 'Les nouveautés n’ont pas pu être chargées. Réessayez dans un instant.',
+		empty: 'Les prochaines nouveautés seront présentées ici.',
+	},
+	appUpdate: {
+		title: 'Une mise à jour est disponible',
+		body: 'Enregistrez votre travail avant de continuer. L’application se rechargera pour appliquer la mise à jour, sans réinstallation.',
+		later: 'Plus tard',
+		update: 'Mettre à jour',
+		updating: 'Mise à jour…',
+		version: 'Nouvelle version :',
+		error:
+			'La mise à jour n’est pas encore accessible. Vérifiez votre connexion puis réessayez dans un instant. Votre travail n’a pas été rechargé.',
+	},
 	common: {
 		yes: 'Oui',
 		no: 'Non',
@@ -59,6 +75,7 @@ export const fr: TranslationDictionary = {
 		or: 'OU',
 	},
 	navigation: {
+		changelog: 'Changelog',
 		users: 'Utilisateurs',
 		usersList: 'Liste des utilisateurs',
 		newUser: 'Nouvel utilisateur',
@@ -207,6 +224,23 @@ export const fr: TranslationDictionary = {
 			commentPlaceholder: 'Écrire un commentaire',
 			optionalNote: 'Note optionnelle',
 			notificationFallback: 'Notification workflow',
+			desktopTitle: 'Notifications sur l’ordinateur',
+			desktopHelp:
+				'Recevez toutes les nouvelles alertes et les messages du chat tant que l’application reste ouverte, même en arrière-plan.',
+			desktopEnable: 'Activer les notifications du navigateur',
+			desktopDisable: 'Désactiver sur ce navigateur',
+			desktopTest: 'Tester une notification',
+			desktopTestBody:
+				'Les notifications sont activées. Les nouvelles alertes et les messages du chat apparaîtront ici.',
+			desktopSound: 'Son des notifications',
+			desktopSoundHelp:
+				'Le son dépend des réglages du navigateur et de Windows/macOS, y compris le mode Ne pas déranger.',
+			desktopBlocked:
+				'Les notifications sont bloquées. Autorisez-les dans les paramètres du site de votre navigateur, puis revenez ici.',
+			desktopUnsupported:
+				'Les notifications sur l’ordinateur ne sont pas disponibles avec ce navigateur ou cette connexion. Les alertes dans l’application restent disponibles.',
+			desktopError: 'Le navigateur n’a pas pu afficher les notifications. Vérifiez les autorisations et réessayez.',
+			desktopAttachment: 'A envoyé une pièce jointe',
 			activeCards: 'Cartes actives',
 			savedViews: 'Vues enregistrées',
 			saveViewName: 'Nom de la vue',
@@ -278,8 +312,8 @@ export const fr: TranslationDictionary = {
 			noCardsTracked: 'Aucune carte suivie',
 			deliveryFlow: 'Flux livraison',
 			leadCycleTime: 'Délais moyens des tâches terminées',
-			leadTime: 'De la création à la fin',
-			cycleTime: 'Du démarrage à la fin',
+			leadTime: 'Délai moyen de la création à la fin',
+			cycleTime: 'Délai moyen du démarrage à la fin',
 			blockedTime: 'Temps bloqué',
 			blockedTasks: 'Tâches bloquées',
 			reviewBottlenecks: 'Suivi des validations',
@@ -306,10 +340,23 @@ export const fr: TranslationDictionary = {
 			reportCollaborationHint:
 				'Sur un projet partagé, le temps de chaque participant est additionné : 2 personnes pendant 8 h = 16 h cumulées (2 j de travail), pas 2 jours de délai. Le samedi représente une demi-journée de 8 h.',
 			reportPeriodHint:
-				'La période filtre le temps par date de travail. Pour les tâches, les délais et la charge, elle filtre la date de création des tâches. Les projets archivés sont exclus de ces indicateurs, mais leur temps reste dans les totaux.',
+				'La période filtre le temps par date de travail. Pour les tâches, les délais et la charge, elle filtre la date de création des tâches. Les tâches et projets archivés, ainsi que leur temps, sont exclus du rapport.',
 			reportCalendarHint:
 				'Ces délais incluent les nuits et les week-ends : 1 j = 24 h. Ce ne sont pas des jours de travail.',
 			reportNoCompleted: 'Aucune tâche terminée pour calculer ces délais.',
+			reportMissingDates: 'Date non renseignée',
+			reportDocumentedTasks: 'tâches terminées avec dates connues',
+			reportCompletionHint:
+				'Moyennes calculées uniquement à partir des dates enregistrées ou des changements de statut datés. Les tâches sans date fiable sont exclues, sans utiliser leur dernière modification.',
+			reportReviewRequested: 'Demandes de validation en attente',
+			reportReviewUnrequested: 'En revue sans demande formelle',
+			reportReviewApproved: 'Approbations enregistrées',
+			reportReviewHint:
+				'Déplacer une carte dans « En revue » ne crée pas une demande de validation. Les délais d’attente concernent uniquement les demandes encore en attente avec une date connue ; les modifications déjà demandées sont exclues.',
+			reportReestimate: 'À réestimer',
+			reportMinimum: 'Au moins',
+			reportUnestimatedTasks: 'tâches sans estimation',
+			reportExhaustedTasks: 'tâches ouvertes ayant consommé leur estimation',
 			reportRemaining: 'Temps prévu restant',
 			reportCapacityHint:
 				'Charge restante comparée à une semaine de 44 h par personne. Ce n’est pas une date de livraison.',
@@ -321,7 +368,7 @@ export const fr: TranslationDictionary = {
 			reportOnEstimate: 'Temps prévu atteint',
 			reportNoEstimate: 'Aucun temps prévu renseigné',
 			reportRemainingHint:
-				'Une tâche sans estimation ou ayant dépassé son estimation peut afficher 0 h restantes tout en restant ouverte.',
+				'Une estimation absente ou consommée sur une tâche ouverte doit être revue. La charge en % reste alors inconnue ; le temps restant affiché est seulement le minimum connu, pas une disponibilité.',
 			reportProjectOwner: 'Responsable du projet',
 			reportAllMembers: 'Toute l’équipe',
 			reportMember: 'Membre de l’équipe',
@@ -344,6 +391,7 @@ export const fr: TranslationDictionary = {
 			risk: 'Risque',
 			risk_low: 'Faible',
 			risk_normal: 'Normal',
+			risk_unknown: 'À estimer',
 			risk_high: 'Élevé',
 			noProjectTimeWindow: 'Aucun temps projet sur cette période.',
 			noForecastRows: 'Aucune prévision disponible.',
@@ -596,9 +644,7 @@ export const fr: TranslationDictionary = {
 			posting: 'Publication...',
 			logTime: 'Saisir le temps',
 			clearFilters: 'Effacer les filtres',
-			exportCsv: 'Exporter CSV',
-			exportAnalyticsCsv: "Exporter l'analyse",
-			exportPdf: 'Exporter PDF',
+			exportPdf: 'Ouvrir le PDF',
 			markAsRead: 'Marquer comme lu',
 			markAllAsRead: 'Tout marquer lu',
 			archive: 'Archiver',
@@ -689,6 +735,8 @@ export const fr: TranslationDictionary = {
 			task_comment: 'Nouveau commentaire',
 			task_mention: 'Vous avez été mentionné',
 			task_status: 'Mise à jour du statut',
+			task_blocked: 'Tâche bloquée',
+			review_requested: 'Demande de validation',
 			chat_message: 'Nouveau message chat',
 			workflow_digest: 'Résumé workflow',
 			review_updated: 'Revue mise à jour',

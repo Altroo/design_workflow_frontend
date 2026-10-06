@@ -1,4 +1,26 @@
 import { WORK_DAY_MINUTES } from '@/utils/rawData';
+import type { WorkflowAnalyticsReport, WorkflowCapacityRow } from '@/types/designWorkflowTypes';
+import type { WorkflowCopy } from '@/types/workflowUiTypes';
+
+export const reportVarianceLabel = (
+	estimate: WorkflowAnalyticsReport['estimate_vs_actual'],
+	labels: WorkflowCopy['labels'],
+) =>
+	!estimate.estimated_minutes
+		? labels.reportNoEstimate
+		: estimate.variance_minutes > 0
+			? labels.reportOverEstimate
+			: estimate.variance_minutes < 0
+				? labels.reportWithinEstimate
+				: labels.reportOnEstimate;
+
+export const reportRemainingLabel = (row: WorkflowCapacityRow, locale: string, minimum: string, reestimate: string) => {
+	if (row.load_percent == null)
+		return row.remaining_minutes > 0
+			? `${minimum} ${formatReportWorkDuration(row.remaining_minutes, locale)}`
+			: reestimate;
+	return formatReportWorkDuration(row.remaining_minutes, locale);
+};
 
 const formatDuration = (minutes: number, locale: string, dayMinutes?: number) => {
 	const rounded = Number.isFinite(minutes) ? Math.round(minutes) : 0;

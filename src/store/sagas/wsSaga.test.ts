@@ -6,7 +6,7 @@ import { initWebsocket } from '@/store/services/ws';
 import { getAccessToken } from '@/store/selectors';
 import type { Action } from 'redux';
 import * as Types from '@/store/actions';
-import { setWSMaintenance, setWSOnlineUsers } from '@/store/slices/wsSlice';
+import { setWSMaintenance, setWSOnlineUsers, setWSServerVersion } from '@/store/slices/wsSlice';
 import { getSession } from 'next-auth/react';
 
 jest.mock('next-auth/react', () => ({ getSession: jest.fn() }));
@@ -26,6 +26,12 @@ jest.mock('@/store/sagas/_initSaga', () => ({
 import { initMaintenanceSaga } from '@/store/sagas/_initSaga';
 
 describe('watchWS saga', () => {
+	it('refreshes only the changelog when an entry changes', () => {
+		expect(
+			workflowTagsForEvent({ type: 'WS_DESIGN_WORKFLOW_INVALIDATE', channel: 'WORKFLOW_EVENT', scope: 'changelog' }),
+		).toEqual(['Changelog']);
+	});
+
 	it('reads the latest session token for reconnects and returns null after logout', async () => {
 		jest.mocked(getAccessToken).mockReturnValue('initial-token');
 		const channel = eventChannel<never>(() => () => {});
@@ -44,6 +50,7 @@ describe('watchWS saga', () => {
 			await task.toPromise();
 		}
 	});
+
 	it('should initialize websocket and dispatch actions from the channel', async () => {
 		const dispatched: Action[] = [];
 		const mockToken = 'mock-token';
@@ -122,7 +129,7 @@ describe('watchWS saga', () => {
 	it('should map WS_MAINTENANCE to setWSMaintenance', async () => {
 		const dispatched: Action[] = [];
 		const mockToken = 'mock-token';
-		const mockAction = { type: Types.WS_MAINTENANCE, maintenance: true };
+		const mockAction = { type: Types.WS_MAINTENANCE, maintenance: true, version: '1.10.0' };
 
 		(getAccessToken as jest.Mock).mockReturnValue(mockToken);
 
@@ -146,6 +153,7 @@ describe('watchWS saga', () => {
 
 		expect(initWebsocket).toHaveBeenCalledWith(expect.any(Function));
 		expect(dispatched).toContainEqual(setWSMaintenance(true));
+		expect(dispatched).toContainEqual(setWSServerVersion('1.10.0'));
 	});
 
 	it('should map WS_USER_PRESENCE to setWSOnlineUsers', async () => {
@@ -287,6 +295,7 @@ describe('visible workspace reconciliation', () => {
 					'SavedView',
 					'NotificationPreference',
 					'Search',
+					'Changelog',
 				]),
 			);
 			expect(running.dispatched).toContainEqual(usersApi.util.invalidateTags(['Users']));

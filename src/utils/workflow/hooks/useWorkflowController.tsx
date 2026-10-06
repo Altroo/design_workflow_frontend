@@ -502,7 +502,11 @@ export const useWorkflowController = ({ title, variant, projectId, taskId }: Pro
 		skip: !workflowDataReady || !isManager || !['team', 'overview'].includes(variant),
 	});
 	const designerWorkload = workloadData ?? EMPTY_WORKLOAD;
-	const { data: timeReportData } = useGetTimeReportQuery(
+	const {
+		data: timeReportData,
+		isFetching: timeReportFetching,
+		isError: timeReportError,
+	} = useGetTimeReportQuery(
 		{
 			start_date: reportFilters.start_date || undefined,
 			end_date: reportFilters.end_date || undefined,
@@ -512,7 +516,11 @@ export const useWorkflowController = ({ title, variant, projectId, taskId }: Pro
 		{ skip: !workflowDataReady || variant !== 'report-time' || !isManager },
 	);
 	const timeReport = timeReportData ?? EMPTY_TIME_REPORT;
-	const { data: workflowReport } = useGetWorkflowReportQuery(
+	const {
+		data: workflowReport,
+		isFetching: workflowReportFetching,
+		isError: workflowReportError,
+	} = useGetWorkflowReportQuery(
 		{
 			start_date: reportFilters.start_date || undefined,
 			end_date: reportFilters.end_date || undefined,
@@ -520,6 +528,14 @@ export const useWorkflowController = ({ title, variant, projectId, taskId }: Pro
 			user: reportFilters.user ? Number(reportFilters.user) : undefined,
 		},
 		{ skip: !workflowDataReady || variant !== 'report-time' || !isManager },
+	);
+	const reportExportReady = Boolean(
+		timeReportData &&
+		workflowReport &&
+		!timeReportFetching &&
+		!workflowReportFetching &&
+		!timeReportError &&
+		!workflowReportError,
 	);
 	const notificationQueryArgs = notificationsUnreadOnly ? { unread: true } : undefined;
 	const { data: notificationsData } = useGetNotificationsQuery(notificationQueryArgs, {
@@ -1731,6 +1747,7 @@ export const useWorkflowController = ({ title, variant, projectId, taskId }: Pro
 		timeReport,
 		reportFilters,
 		workflowReport,
+		reportExportReady,
 		riskLabelFor,
 		setReportFilters,
 		notifications,

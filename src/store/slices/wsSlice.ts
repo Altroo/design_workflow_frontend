@@ -1,13 +1,11 @@
 import { createSlice, type PayloadAction } from '@reduxjs/toolkit';
-
-interface WSState {
-	maintenance: boolean;
-	onlineUserIds: number[];
-	connectionStatus: 'connecting' | 'connected' | 'reconnecting';
-}
+import type { WSState } from '@/types/wsTypes';
+import { APP_VERSION, isAppVersion } from '@/utils/appVersion';
 
 const initialState: WSState = {
 	maintenance: false,
+	localVersion: APP_VERSION,
+	serverVersion: null,
 	onlineUserIds: [],
 	connectionStatus: 'connecting',
 };
@@ -16,6 +14,9 @@ const wsSlice = createSlice({
 	name: 'ws',
 	initialState,
 	reducers: {
+		setWSServerVersion: (state, action: PayloadAction<unknown>) => {
+			if (isAppVersion(action.payload)) state.serverVersion = action.payload;
+		},
 		setWSConnectionStatus: (state, action: PayloadAction<WSState['connectionStatus']>) => {
 			state.connectionStatus = action.payload;
 			if (action.payload !== 'connected') state.onlineUserIds = [];
@@ -29,6 +30,6 @@ const wsSlice = createSlice({
 	},
 });
 
-export const { setWSMaintenance, setWSOnlineUsers, setWSConnectionStatus } = wsSlice.actions;
+export const { setWSMaintenance, setWSOnlineUsers, setWSConnectionStatus, setWSServerVersion } = wsSlice.actions;
 
 export default wsSlice.reducer;

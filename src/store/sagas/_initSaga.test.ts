@@ -12,7 +12,7 @@ import type { InitStateInterface, InitStateToken } from '@/types/_initTypes';
 import { takeLatest } from 'redux-saga/effects';
 import { getApi } from '@/utils/apiHelpers';
 import { allowAnyInstance } from '@/utils/helpers';
-import { setWSMaintenance } from '../slices/wsSlice';
+import { setWSMaintenance, setWSServerVersion } from '../slices/wsSlice';
 
 jest.mock('@/utils/apiHelpers', () => ({ getApi: jest.fn() }));
 jest.mock('@/utils/helpers', () => ({ allowAnyInstance: jest.fn(() => ({})) }));
@@ -26,11 +26,22 @@ describe('maintenance startup', () => {
 	afterEach(() => {
 		process.env = originalEnv;
 	});
+
 	it('skips maintenance requests when no endpoint is configured', async () => {
 		Reflect.deleteProperty(process.env, 'NEXT_PUBLIC_WS_MAINTENANCE_ROOT');
+		Reflect.deleteProperty(process.env, 'NEXT_PUBLIC_API_URL');
 		await runSaga({}, initAppSaga).toPromise();
 		expect(getApi).not.toHaveBeenCalled();
 	});
+
+	it('uses the shared API host when no separate maintenance URL is configured', async () => {
+		Reflect.deleteProperty(process.env, 'NEXT_PUBLIC_WS_MAINTENANCE_ROOT');
+		process.env.NEXT_PUBLIC_API_URL = 'https://api.test';
+		jest.mocked(getApi).mockResolvedValueOnce({ status: 200, data: { maintenance: false, version: '1.0.0' } });
+		await runSaga({ dispatch: jest.fn() }, initAppSaga).toPromise();
+		expect(getApi).toHaveBeenCalledWith('https://api.test/api/ws/maintenance/', {});
+	});
+
 	it.each([true, false])('initializes maintenance=%s from the public endpoint', async (maintenance) => {
 		process.env.NEXT_PUBLIC_WS_MAINTENANCE_ROOT = '/maintenance/';
 		jest.mocked(getApi).mockResolvedValueOnce({ status: 200, data: { maintenance } });
@@ -40,11 +51,29 @@ describe('maintenance startup', () => {
 		expect(getApi).toHaveBeenCalledWith('/maintenance/', {});
 		expect(dispatch).toHaveBeenCalledWith(setWSMaintenance(maintenance));
 	});
+
 	it('does not replace maintenance state after a non-success response', async () => {
 		process.env.NEXT_PUBLIC_WS_MAINTENANCE_ROOT = '/maintenance/';
 		jest.mocked(getApi).mockResolvedValueOnce({ status: 503, data: {} });
 		const dispatch = jest.fn();
 		await runSaga({ dispatch }, initMaintenanceSaga).toPromise();
+		expect(dispatch).not.toHaveBeenCalled();
+	});
+
+	it('initializes the announced version independently of maintenance', async () => {
+		process.env.NEXT_PUBLIC_WS_MAINTENANCE_ROOT = '/maintenance/';
+		jest.mocked(getApi).mockResolvedValueOnce({ status: 200, data: { maintenance: false, version: '1.10.0' } });
+		const dispatch = jest.fn();
+		await runSaga({ dispatch }, initMaintenanceSaga).toPromise();
+		expect(dispatch).toHaveBeenCalledWith(setWSServerVersion('1.10.0'));
+		expect(dispatch).toHaveBeenCalledWith(setWSMaintenance(false));
+	});
+
+	it('keeps initialization alive when offline so subsequent checks can recover', async () => {
+		process.env.NEXT_PUBLIC_WS_MAINTENANCE_ROOT = '/maintenance/';
+		jest.mocked(getApi).mockRejectedValueOnce(new Error('offline'));
+		const dispatch = jest.fn();
+		await expect(runSaga({ dispatch }, initAppSaga).toPromise()).resolves.toBeUndefined();
 		expect(dispatch).not.toHaveBeenCalled();
 	});
 });

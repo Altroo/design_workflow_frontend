@@ -15,9 +15,12 @@ import {
 	mockProfile,
 	selectMuiOption,
 } from '@/components/design-workflow/__testutils__/workflowTestSetup';
-import { act, render, screen, waitFor, within } from '@testing-library/react';
+import { render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import DesignWorkflowShell from '@/components/pages/design-workflow/designWorkflowShell';
+import { openReportPdf } from '@/utils/workflow/workflowReportExport';
+
+jest.mock('@/utils/workflow/workflowReportExport', () => ({ openReportPdf: jest.fn().mockResolvedValue(undefined) }));
 
 it('covers manager project creation, task creation, board visibility, and dashboard visibility', async () => {
 	const user = userEvent.setup();
@@ -135,21 +138,8 @@ it('covers overdue signal across dashboard, workload, report, and notifications'
 	expect(screen.getByText('Review progress')).toBeInTheDocument();
 	expect(screen.getByText('Remaining work per person')).toBeInTheDocument();
 	expect(screen.getByText('No completed tasks to calculate these durations.')).toBeInTheDocument();
-	const printMock = jest.fn();
-	const printDocument = document.implementation.createHTMLDocument('Report');
-	const openMock = jest.spyOn(window, 'open').mockReturnValue({
-		document: printDocument,
-		focus: jest.fn(),
-		print: printMock,
-	} as unknown as Window);
-	await user.click(screen.getByRole('button', { name: 'Export PDF' }));
-	expect(openMock).toHaveBeenCalled();
-	expect(printMock).not.toHaveBeenCalled();
-	await act(async () => {
-		printDocument.querySelector('link')!.dispatchEvent(new Event('load'));
-	});
-	expect(printMock).toHaveBeenCalled();
-	openMock.mockRestore();
+	await user.click(screen.getByRole('button', { name: 'Open PDF' }));
+	expect(openReportPdf).toHaveBeenCalledWith(expect.objectContaining({ totalMinutes: 180 }));
 
 	rerender(<DesignWorkflowShell title="Notifications" variant="notifications" />);
 	expect(screen.getByText('Notification center')).toBeInTheDocument();

@@ -514,7 +514,7 @@ export const TaskToolsPanel = ({
 											alt={task.cover_image_label || task.title}
 											width={520}
 											height={180}
-											unoptimized
+											sizes="(max-width: 640px) 100vw, 520px"
 											loading="eager"
 											className="h-full w-full object-cover"
 										/>

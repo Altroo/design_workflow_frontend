@@ -23,6 +23,7 @@ import { ErrorBoundary } from '@/components/shared/errorBoundary';
 import SessionExpiredListener from '@/components/shared/sessionExpiredListener/sessionExpiredListener';
 import { LanguageContextProvider } from '@/contexts/languageContext';
 import Maintenance from '@/components/shared/maintenance/Maintenance';
+import AppUpdate from '@/components/shared/appUpdate/appUpdate';
 import { getServerTranslations } from '@/utils/serverTranslations';
 import { cookies } from 'next/headers';
 import localFont from 'next/font/local';
@@ -127,6 +128,7 @@ const RootLayout = async ({ children }: RootLayoutProps) => {
 										<ToastContextProvider>
 											<SessionExpiredListener />
 											<Maintenance />
+											<AppUpdate />
 											<div id="main-content">{children}</div>
 										</ToastContextProvider>
 									</ErrorBoundary>

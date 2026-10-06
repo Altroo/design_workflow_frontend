@@ -38,6 +38,7 @@ jest.mock('@/components/shared/sessionExpiredListener/sessionExpiredListener', (
 	default: () => null,
 }));
 jest.mock('@/components/shared/maintenance/Maintenance', () => ({ __esModule: true, default: () => null }));
+jest.mock('@/components/shared/appUpdate/appUpdate', () => ({ __esModule: true, default: () => null }));
 
 it.each([en, fr])('generates localized app metadata with indexing disabled', async (translation) => {
 	jest.mocked(getServerTranslations).mockResolvedValue(translation);

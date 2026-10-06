@@ -106,7 +106,7 @@ describe('initWebsocket', () => {
 		channel.close();
 	});
 
-	it('emits WSMaintenanceAction when MAINTENANCE message is received', async () => {
+	it.each([undefined, '1.10.0'])('emits maintenance and optional release version %s', async (version) => {
 		let createdSocket: MockWebSocket | null = null;
 
 		global.WebSocket = jest.fn((url: string) => {
@@ -131,7 +131,7 @@ describe('initWebsocket', () => {
 				}
 				const ev = new MessageEvent('message', {
 					data: JSON.stringify({
-						message: { type: 'MAINTENANCE', maintenance: true },
+						message: { type: 'MAINTENANCE', maintenance: true, version },
 					}),
 				});
 				createdSocket.onmessage?.(ev);
@@ -140,7 +140,7 @@ describe('initWebsocket', () => {
 			sendMessage();
 		});
 
-		expect(emitted).toEqual(WSMaintenanceAction(true));
+		expect(emitted).toEqual(WSMaintenanceAction(true, version));
 		channel.close();
 	});
 

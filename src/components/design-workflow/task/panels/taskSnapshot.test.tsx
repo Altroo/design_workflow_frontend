@@ -14,10 +14,12 @@ it('uses the uploaded cover label and shows time totals to managers', () => {
 	renderTaskView(TaskSnapshot, {
 		task: { ...taskDetail, cover_image_url: '/media/plan.png', cover_image_label: 'Final plan' },
 	});
-	expect(screen.getByRole('img', { name: 'Final plan' })).toHaveAttribute(
-		'src',
-		expect.stringContaining('/media/plan.png'),
-	);
+	const image = screen.getByRole('img', { name: 'Final plan' });
+	const source = new URL(image.getAttribute('src')!, 'http://localhost');
+	expect(source.pathname).toBe('/_next/image');
+	expect(source.searchParams.get('url')).toBe('/media/plan.png');
+	expect(image).toHaveAttribute('srcset');
+	expect(image).toHaveAttribute('sizes', '(max-width: 768px) 100vw, 640px');
 	expect(screen.getByRole('heading', { name: taskDetail.title })).toBeInTheDocument();
 	expect(screen.getByText(en.workflow.labels.logged)).toBeInTheDocument();
 });

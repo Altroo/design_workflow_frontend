@@ -49,17 +49,17 @@ const CustomToast: FC<Props> = ({ type, show, setShow, message }) => {
 	const tone = toneMap[type];
 
 	return (
-		<div className="pointer-events-none fixed bottom-4 left-4 z-120">
+		<div className="pointer-events-none fixed bottom-4 left-4 right-4 z-160 sm:right-auto">
 			<div
 				role="alert"
 				className={[
-					'ui-toast pointer-events-auto flex min-w-70 max-w-105 items-start gap-3 rounded-2xl border border-(--line-strong) bg-white p-4 shadow-(--shadow-lg)',
+					'ui-toast pointer-events-auto flex w-full max-w-105 items-start gap-3 rounded-2xl border border-(--line-strong) bg-white p-4 shadow-(--shadow-lg)',
 					'border-l-4',
 					tone.accent,
 				].join(' ')}
 			>
 				<div className="mt-0.5 text-(--ink)">{tone.icon}</div>
-				<p className="flex-1 text-sm font-medium text-(--ink)">{message}</p>
+				<p className="min-w-0 flex-1 wrap-break-word text-sm font-medium text-(--ink)">{message}</p>
 				<button
 					type="button"
 					aria-label="Close"

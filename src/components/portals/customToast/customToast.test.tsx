@@ -4,6 +4,12 @@ import CustomToast from './customToast';
 beforeEach(() => jest.useFakeTimers());
 afterEach(() => jest.useRealTimers());
 
+it('stays above confirmation dialogs and fits narrow screens', () => {
+	render(<CustomToast type="error" show setShow={jest.fn()} message="Please retry" />);
+	expect(screen.getByRole('alert').parentElement).toHaveClass('z-160', 'left-4', 'right-4');
+	expect(screen.getByRole('alert')).toHaveClass('w-full', 'max-w-105');
+});
+
 it('dismisses after six seconds and clears its timer on unmount', () => {
 	const setShow = jest.fn();
 	const { unmount } = render(<CustomToast type="success" show setShow={setShow} message="Saved" />);

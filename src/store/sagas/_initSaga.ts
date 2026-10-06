@@ -7,7 +7,7 @@ import type {
 	MaintenanceGetRootResponseType,
 } from '@/types/_initTypes';
 import { setInitState } from '../slices/_initSlice';
-import { setWSMaintenance } from '../slices/wsSlice';
+import { setWSMaintenance, setWSServerVersion } from '../slices/wsSlice';
 import { allowAnyInstance } from '@/utils/helpers';
 import { getApi } from '@/utils/apiHelpers';
 import type { AxiosInstance } from 'axios';
@@ -63,17 +63,22 @@ export function* refreshAppTokenStatesSaga(payload: { type: string; session: Rec
 }
 
 export function* initMaintenanceSaga() {
-	const url = process.env.NEXT_PUBLIC_WS_MAINTENANCE_ROOT;
+	const apiUrl = process.env.NEXT_PUBLIC_API_URL;
+	const url = process.env.NEXT_PUBLIC_WS_MAINTENANCE_ROOT || (apiUrl ? `${apiUrl}/api/ws/maintenance/` : undefined);
 
 	if (!url) {
 		return;
 	}
 
-	const instance: AxiosInstance = yield call(() => allowAnyInstance());
-	const response: MaintenanceGetRootResponseType = yield call(() => getApi(url, instance));
-
-	if (response.status === 200) {
-		yield put(setWSMaintenance(response.data.maintenance));
+	try {
+		const instance: AxiosInstance = yield call(() => allowAnyInstance());
+		const response: MaintenanceGetRootResponseType = yield call(() => getApi(url, instance));
+		if (response.status === 200 && response.data) {
+			if (typeof response.data.maintenance === 'boolean') yield put(setWSMaintenance(response.data.maintenance));
+			if (response.data.version !== undefined) yield put(setWSServerVersion(response.data.version));
+		}
+	} catch {
+		// Offline startup must not kill initialization. Focus/reconnect will retry.
 	}
 }
 

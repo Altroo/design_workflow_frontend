@@ -30,6 +30,15 @@ export const InitEffects: FC = () => {
 			dispatch(initAppAction());
 			appInitializedRef.current = true;
 		}
+		const refresh = () => {
+			if (document.visibilityState !== 'hidden' && navigator.onLine) dispatch(initAppAction());
+		};
+		window.addEventListener('online', refresh);
+		document.addEventListener('visibilitychange', refresh);
+		return () => {
+			window.removeEventListener('online', refresh);
+			document.removeEventListener('visibilitychange', refresh);
+		};
 	}, [dispatch]);
 
 	const { data: user } = useGetProfilQuery(undefined, { skip });

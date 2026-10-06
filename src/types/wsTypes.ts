@@ -9,6 +9,15 @@ import type { setWSConnectionStatus } from '@/store/slices/wsSlice';
 
 export interface WSMaintenanceBootstrap {
 	maintenance: boolean;
+	version?: string;
+}
+
+export interface WSState {
+	maintenance: boolean;
+	localVersion: string;
+	serverVersion: string | null;
+	onlineUserIds: number[];
+	connectionStatus: 'connecting' | 'connected' | 'reconnecting';
 }
 
 export type WSAction =
@@ -25,6 +34,7 @@ type WSMessage = {
 	pk?: number;
 	avatar?: string;
 	maintenance?: boolean;
+	version?: string;
 	event?: string;
 	task_id?: number;
 	project_id?: number;

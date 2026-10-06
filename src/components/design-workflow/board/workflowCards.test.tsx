@@ -16,6 +16,23 @@ import { TaskPeople } from '@/components/shared/workflow/taskPeople';
 import { en } from '@/translations/en';
 
 const originalResizeObserver = global.ResizeObserver;
+
+it.each(['board', 'default'] as const)('loads the saved thumbnail lazily on %s cards', (variant) => {
+	mockProfile(designerA);
+	const imageTask = { ...boardTask, cover_image_url: '/media/design_workflow/task_covers/2026/10/thumb_preview.webp' };
+	render(
+		<TaskCardItem
+			task={imageTask}
+			variant={variant}
+			copy={en.workflow}
+			labelForAction={(value) => value}
+			dateForAction={() => ''}
+		/>,
+	);
+	const image = screen.getByRole('img', { name: imageTask.title });
+	expect(image).toHaveAttribute('src', expect.stringContaining('thumb_preview.webp'));
+	expect(image).toHaveAttribute('loading', 'lazy');
+});
 beforeAll(() => {
 	global.ResizeObserver = class {
 		observe = jest.fn();
