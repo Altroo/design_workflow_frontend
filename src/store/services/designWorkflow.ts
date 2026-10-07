@@ -298,6 +298,14 @@ export const designWorkflowApi = createApi({
 			}),
 			invalidatesTags: (_result, _error, { id }) => ['Task', { type: 'Task', id }],
 		}),
+		renameTaskAttachment: builder.mutation<TaskAttachment, { id: number; attachmentId: number; name: string }>({
+			query: ({ id, attachmentId, name }) => ({
+				url: `${DESIGN_WORKFLOW_ROOT}tasks/${id}/attachments/${attachmentId}/`,
+				method: 'PATCH',
+				data: { name },
+			}),
+			invalidatesTags: (_result, error, { id }) => (error ? [] : ['Task', { type: 'Task', id }, 'Project']),
+		}),
 		deleteTaskAttachment: builder.mutation<void, { id: number; attachmentId: number }>({
 			query: ({ id, attachmentId }) => ({
 				url: `${DESIGN_WORKFLOW_ROOT}tasks/${id}/attachments/${attachmentId}/`,
@@ -586,6 +594,7 @@ export const {
 	useUpdateChecklistItemMutation,
 	useDeleteChecklistItemMutation,
 	useUploadTaskAttachmentMutation,
+	useRenameTaskAttachmentMutation,
 	useDeleteTaskAttachmentMutation,
 	useSetTaskCoverFromAttachmentMutation,
 	useUploadTaskCoverMutation,

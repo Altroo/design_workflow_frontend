@@ -10,10 +10,29 @@ import {
 	reviewTaskDetail,
 	reviewAnnotations,
 	mockProfile,
+	mockRenameTaskAttachment,
 } from '@/components/design-workflow/__testutils__/workflowTestSetup';
 import { render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import DesignWorkflowShell from '@/components/pages/design-workflow/designWorkflowShell';
+
+it('renames attachments from the full task page', async () => {
+	const user = userEvent.setup();
+	mockProfile(manager);
+	mockUseGetTaskQuery.mockReturnValue({ data: reviewTaskDetail, isLoading: false });
+	render(<DesignWorkflowShell title="Task detail" variant="task-detail" taskId={taskDetail.id} />);
+	await user.click(screen.getByRole('button', { name: `Rename attachment: ${reviewAttachment.name}` }));
+	const input = screen.getByRole('textbox', { name: 'Attachment name' });
+	await user.clear(input);
+	await user.type(input, 'Approved materials{Enter}');
+	await waitFor(() =>
+		expect(mockRenameTaskAttachment).toHaveBeenCalledWith({
+			id: taskDetail.id,
+			attachmentId: reviewAttachment.id,
+			name: 'Approved materials',
+		}),
+	);
+});
 
 it('covers task review versions and file annotations', async () => {
 	const user = userEvent.setup();

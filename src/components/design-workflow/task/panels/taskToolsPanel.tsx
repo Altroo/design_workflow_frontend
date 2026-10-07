@@ -18,6 +18,7 @@ import {
 	X,
 } from 'lucide-react';
 import Image from 'next/image';
+import { TaskAttachmentName } from '@/components/design-workflow/task/attachments/taskAttachmentName';
 import type { TaskDetailModel } from '@/components/design-workflow/task/model/taskDetailModel';
 export const TaskToolsPanel = ({
 	model,
@@ -611,9 +612,12 @@ export const TaskToolsPanel = ({
 												</span>
 											)}
 											<div className="workflow-attachment-copy">
-												<a href={attachmentUrl} target="_blank" rel="noreferrer">
-													{attachment.name}
-												</a>
+												<TaskAttachmentName
+													taskId={task.id}
+													attachment={attachment}
+													href={attachmentUrl}
+													mutable={taskMediaMutable}
+												/>
 												<small>{fileMeta}</small>
 											</div>
 											{taskMediaMutable ? (

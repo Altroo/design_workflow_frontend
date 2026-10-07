@@ -11654,6 +11654,75 @@ button.workflow-chat-ref-card {
 	gap: 8px;
 }
 
+.workflow-attachment-name {
+	display: flex;
+	min-width: 0;
+	align-items: center;
+	gap: 8px;
+}
+
+.workflow-attachment-name > a {
+	min-width: 0;
+	flex: 1;
+}
+
+.workflow-attachment-name .workflow-attachment-rename-button {
+	display: inline-grid;
+	width: 34px;
+	height: 34px;
+	flex-shrink: 0;
+	place-items: center;
+	border: 1px solid var(--line);
+	border-radius: 10px;
+	background: var(--accent-soft);
+	color: var(--accent-strong);
+}
+
+.workflow-attachment-name-editor {
+	display: grid;
+	min-width: 0;
+	gap: 8px;
+}
+
+.workflow-attachment-name-editor .app-input {
+	width: 100%;
+	min-width: 0;
+}
+
+.workflow-attachment-name-controls {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 8px;
+}
+
+.workflow-attachment-name-controls button {
+	display: inline-flex;
+	width: auto;
+	height: auto;
+	min-height: 34px;
+	align-items: center;
+	justify-content: center;
+	gap: 4px;
+	border: 1px solid var(--line);
+	border-radius: 10px;
+	padding: 5px 9px;
+	background: var(--theme-surface);
+	color: var(--ink-soft);
+	font-size: 12px;
+	font-weight: 600;
+}
+
+.workflow-attachment-name-controls .workflow-attachment-name-save {
+	border-color: var(--accent);
+	background: var(--accent);
+	color: white;
+}
+
+.workflow-attachment-name-controls button:disabled {
+	cursor: not-allowed;
+	opacity: 0.5;
+}
+
 .workflow-trello-modal-attachment-actions .workflow-trello-modal-media-danger {
 	width: 34px;
 	height: 34px;

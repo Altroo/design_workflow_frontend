@@ -26,6 +26,7 @@ import Image from 'next/image';
 import { TaskActionPopover } from '@/components/design-workflow/task/modal/taskActionPopover';
 import { TaskModalActions } from '@/components/design-workflow/task/modal/taskModalActions';
 import { TaskModalHeader } from '@/components/design-workflow/task/modal/taskModalHeader';
+import { TaskAttachmentName } from '@/components/design-workflow/task/attachments/taskAttachmentName';
 import type { TaskDetailModel } from '@/components/design-workflow/task/model/taskDetailModel';
 export const TaskCardDialogContent = ({ model }: { model: TaskDetailModel }) => {
 	const {
@@ -485,9 +486,12 @@ export const TaskCardDialogContent = ({ model }: { model: TaskDetailModel }) => 
 											</span>
 										)}
 										<div>
-											<a href={attachmentUrl} target="_blank" rel="noreferrer">
-												{attachment.name}
-											</a>
+											<TaskAttachmentName
+												taskId={task.id}
+												attachment={attachment}
+												href={attachmentUrl}
+												mutable={taskMediaMutable}
+											/>
 											<small>{fileMeta}</small>
 										</div>
 										{taskMediaMutable ? (

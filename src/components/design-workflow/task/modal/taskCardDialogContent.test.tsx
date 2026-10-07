@@ -1,6 +1,7 @@
 import {
 	mockUpdateLabel,
 	mockUpdateTask,
+	mockRenameTaskAttachment,
 	mockUpdateChecklistItem,
 	mockUseGetLabelsQuery,
 	mockUseGetTaskQuery,
@@ -9,12 +10,35 @@ import {
 	designerA,
 	boardTask,
 	taskDetail,
+	reviewTaskDetail,
+	reviewAttachment,
 	mockProfile,
 } from '@/components/design-workflow/__testutils__/workflowTestSetup';
 import { render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import DesignWorkflowShell from '@/components/pages/design-workflow/designWorkflowShell';
 import type { TaskDetail } from '@/types/designWorkflowTypes';
+
+it('renames an attachment from the card without closing it', async () => {
+	const user = userEvent.setup();
+	mockProfile(designerA);
+	mockUseGetTaskQuery.mockReturnValue({ data: reviewTaskDetail, isLoading: false });
+	render(<DesignWorkflowShell title="Board" variant="board" taskId={reviewTaskDetail.id} />);
+	const dialog = await screen.findByRole('dialog', { name: reviewTaskDetail.title });
+	await user.click(within(dialog).getByRole('button', { name: `Rename attachment: ${reviewAttachment.name}` }));
+	const input = within(dialog).getByRole('textbox', { name: 'Attachment name' });
+	expect(input).toHaveValue(reviewAttachment.name);
+	await user.clear(input);
+	await user.type(input, 'Final material board{Enter}');
+	await waitFor(() =>
+		expect(mockRenameTaskAttachment).toHaveBeenCalledWith({
+			id: reviewTaskDetail.id,
+			attachmentId: reviewAttachment.id,
+			name: 'Final material board',
+		}),
+	);
+	expect(dialog).toBeInTheDocument();
+});
 
 it('keeps an unfinished description and an open card tool during live refresh', async () => {
 	const user = userEvent.setup();

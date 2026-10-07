@@ -156,6 +156,7 @@ const mockCreateTaskVersion = jest.fn();
 const mockCreateAttachmentAnnotation = jest.fn();
 
 const mockUploadTaskAttachment = jest.fn();
+const mockRenameTaskAttachment = jest.fn();
 
 const mockDeleteTaskAttachment = jest.fn();
 
@@ -230,6 +231,7 @@ jest.mock('@/store/services/designWorkflow', () => ({
 	useDeleteChecklistItemMutation: jest.fn(() => [mockDeleteChecklistItem, { isLoading: false, isError: false }]),
 	useDeleteSavedViewMutation: jest.fn(() => [mockDeleteSavedView, { isLoading: false, isError: false }]),
 	useDeleteTaskAttachmentMutation: jest.fn(() => [mockDeleteTaskAttachment, { isLoading: false, isError: false }]),
+	useRenameTaskAttachmentMutation: jest.fn(() => [mockRenameTaskAttachment, { isLoading: false, isError: false }]),
 	useDeleteTaskCoverMutation: jest.fn(() => [mockDeleteTaskCover, { isLoading: false, isError: false }]),
 	useGetDashboardSummaryQuery: (...args: unknown[]) => mockUseGetDashboardSummaryQuery(...args),
 	useGetAttachmentAnnotationsQuery: (...args: unknown[]) => mockUseGetAttachmentAnnotationsQuery(...args),
@@ -709,6 +711,7 @@ beforeEach(() => {
 	mockCreateTaskVersion.mockReturnValue(makeMutationResult());
 	mockCreateAttachmentAnnotation.mockReturnValue(makeMutationResult());
 	mockUploadTaskAttachment.mockReturnValue(makeMutationResult());
+	mockRenameTaskAttachment.mockReturnValue(makeMutationResult());
 	mockDeleteTaskAttachment.mockReturnValue(makeMutationResult());
 	mockSetTaskCoverFromAttachment.mockReturnValue(makeMutationResult());
 	mockUploadTaskCover.mockReturnValue(makeMutationResult());
@@ -753,6 +756,7 @@ export {
 	mockCreateTaskVersion,
 	mockCreateAttachmentAnnotation,
 	mockUploadTaskAttachment,
+	mockRenameTaskAttachment,
 	mockDeleteTaskAttachment,
 	mockSetTaskCoverFromAttachment,
 	mockUploadTaskCover,

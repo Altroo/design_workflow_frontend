@@ -232,6 +232,13 @@ describe('workflow API request contracts', () => {
 			method: 'DELETE',
 		},
 		{
+			name: 'rename attachment',
+			run: () => store.dispatch(api.renameTaskAttachment.initiate({ id: 12, attachmentId: 5, name: 'Final brief' })),
+			path: 'tasks/12/attachments/5/',
+			method: 'PATCH',
+			data: { name: 'Final brief' },
+		},
+		{
 			name: 'set cover',
 			run: () => store.dispatch(api.setTaskCoverFromAttachment.initiate({ id: 12, attachmentId: 5 })),
 			path: 'tasks/12/attachments/5/',
