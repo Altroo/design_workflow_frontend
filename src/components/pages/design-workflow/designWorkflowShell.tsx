@@ -483,7 +483,7 @@ const DesignWorkflowShell = (props: Props) => {
 							/>
 						</div>
 						<footer>
-							<a href={attachmentPreview.url} target="_blank" rel="noreferrer">
+							<a href={attachmentPreview.downloadUrl} target="_blank" rel="noreferrer">
 								{workflow.buttons.open ?? 'Open'}
 							</a>
 						</footer>

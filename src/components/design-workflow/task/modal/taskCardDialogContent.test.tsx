@@ -19,6 +19,48 @@ import userEvent from '@testing-library/user-event';
 import DesignWorkflowShell from '@/components/pages/design-workflow/designWorkflowShell';
 import type { TaskDetail } from '@/types/designWorkflowTypes';
 
+it('uses small attachment previews and groups rename with the other actions', async () => {
+	const user = userEvent.setup();
+	mockProfile(designerA);
+	mockUseGetTaskQuery.mockReturnValue({ data: reviewTaskDetail, isLoading: false });
+	render(<DesignWorkflowShell title="Board" variant="board" taskId={reviewTaskDetail.id} />);
+	const card = await screen.findByRole('dialog', { name: reviewTaskDetail.title });
+	expect(within(card).getByRole('img', { name: reviewAttachment.name })).toHaveAttribute(
+		'src',
+		expect.stringContaining(reviewAttachment.thumbnail_url),
+	);
+	expect(within(card).getByRole('link', { name: reviewAttachment.name })).toHaveAttribute(
+		'href',
+		expect.stringContaining(reviewAttachment.file),
+	);
+	const rename = within(card).getByRole('button', { name: `Rename attachment: ${reviewAttachment.name}` });
+	const actions = rename.parentElement as HTMLElement;
+	expect(within(actions).getByRole('button', { name: 'Set as cover' })).toBeInTheDocument();
+	expect(within(actions).getByRole('button', { name: 'Delete' })).toBeInTheDocument();
+	await user.click(within(card).getByRole('button', { name: `Preview ${reviewAttachment.name}` }));
+	const preview = document.querySelector('.workflow-attachment-preview-modal') as HTMLElement;
+	expect(within(preview).getByRole('img')).toHaveAttribute(
+		'src',
+		expect.stringContaining(reviewAttachment.thumbnail_url),
+	);
+	expect(within(preview).getByRole('link')).toHaveAttribute('href', expect.stringContaining(reviewAttachment.file));
+});
+
+it('does not load a full-size attachment as a fallback when no preview exists', async () => {
+	mockProfile(designerA);
+	mockUseGetTaskQuery.mockReturnValue({
+		data: { ...reviewTaskDetail, attachments: [{ ...reviewAttachment, thumbnail_url: null }] },
+		isLoading: false,
+	});
+	render(<DesignWorkflowShell title="Board" variant="board" taskId={reviewTaskDetail.id} />);
+	const card = await screen.findByRole('dialog', { name: reviewTaskDetail.title });
+	expect(within(card).queryByRole('img', { name: reviewAttachment.name })).not.toBeInTheDocument();
+	expect(within(card).getByRole('link', { name: reviewAttachment.name })).toHaveAttribute(
+		'href',
+		expect.stringContaining(reviewAttachment.file),
+	);
+});
+
 it('renames an attachment from the card without closing it', async () => {
 	const user = userEvent.setup();
 	mockProfile(designerA);

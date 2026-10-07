@@ -410,7 +410,7 @@ export const createTaskDetailModel = (
 		task.attachments[0] ??
 		null;
 	const selectedAnnotationAttachmentUrl = selectedAnnotationAttachment
-		? resolveMediaUrl(selectedAnnotationAttachment.file_url ?? selectedAnnotationAttachment.file)
+		? resolveMediaUrl(selectedAnnotationAttachment.thumbnail_url)
 		: '';
 	const selectedAnnotationVersionOptions = task.artifact_versions.filter(
 		(version) =>

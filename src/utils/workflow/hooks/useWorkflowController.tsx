@@ -17,6 +17,7 @@ import {
 	getWorkflowLabel,
 	getWorkflowRiskLabel,
 	normalizeUsers,
+	resolveMediaUrl,
 } from '@/utils/workflow/workflowFormatting';
 import {
 	buildTaskEditForm,
@@ -1145,7 +1146,13 @@ export const useWorkflowController = ({ title, variant, projectId, taskId }: Pro
 		);
 	};
 	const openAttachmentPreview = (attachment: TaskAttachment, url: string, meta: string) => {
-		setAttachmentPreview({ id: attachment.id, name: attachment.name, url, meta });
+		setAttachmentPreview({
+			id: attachment.id,
+			name: attachment.name,
+			url,
+			downloadUrl: resolveMediaUrl(attachment.file_url ?? attachment.file),
+			meta,
+		});
 	};
 	const updateBoardFiltersManually = (
 		updater: BoardFiltersState | ((current: BoardFiltersState) => BoardFiltersState),

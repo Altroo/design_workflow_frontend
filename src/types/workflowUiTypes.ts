@@ -135,5 +135,6 @@ export type AttachmentPreviewTarget = {
 	id: number;
 	name: string;
 	url: string;
+	downloadUrl: string;
 	meta: string;
 };

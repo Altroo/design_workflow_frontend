@@ -435,6 +435,7 @@ const reviewAttachment = {
 	uploaded_by: designerA,
 	file: '/media/tasks/material-board.png',
 	file_url: '/media/tasks/material-board.png',
+	thumbnail_url: '/media/attachment_thumbnails/material-board.webp',
 	name: 'material-board.png',
 	mime_type: 'image/png',
 	size: 2048,

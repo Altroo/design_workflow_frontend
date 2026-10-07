@@ -11654,19 +11654,11 @@ button.workflow-chat-ref-card {
 	gap: 8px;
 }
 
-.workflow-attachment-name {
-	display: flex;
+.workflow-attachment-copy > a {
 	min-width: 0;
-	align-items: center;
-	gap: 8px;
 }
 
-.workflow-attachment-name > a {
-	min-width: 0;
-	flex: 1;
-}
-
-.workflow-attachment-name .workflow-attachment-rename-button {
+:is(.workflow-attachment-actions, .workflow-trello-modal-attachment-actions) .workflow-attachment-rename-button {
 	display: inline-grid;
 	width: 34px;
 	height: 34px;

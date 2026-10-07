@@ -456,21 +456,22 @@ export const TaskCardDialogContent = ({ model }: { model: TaskDetailModel }) => 
 						<div className="workflow-trello-modal-attachments">
 							{task.attachments.map((attachment) => {
 								const attachmentUrl = resolveMediaUrl(attachment.file_url ?? attachment.file);
-								const isImage = isImageAttachment(attachment);
+								const previewUrl = resolveMediaUrl(attachment.thumbnail_url);
+								const isImage = Boolean(previewUrl) || isImageAttachment(attachment);
 								const fileMeta = [attachment.mime_type || workflow.labels.uploadFile, formatFileSize(attachment.size)]
 									.filter(Boolean)
 									.join(' - ');
 								return (
 									<div key={attachment.id} className="workflow-trello-modal-attachment-item">
-										{isImage ? (
+										{isImage && previewUrl ? (
 											<button
 												type="button"
 												className="workflow-attachment-preview-trigger"
-												onClick={() => openAttachmentPreview(attachment, attachmentUrl, fileMeta)}
+												onClick={() => openAttachmentPreview(attachment, previewUrl, fileMeta)}
 												aria-label={`${workflow.labels.preview ?? 'Preview'} ${attachment.name}`}
 											>
 												<Image
-													src={attachmentUrl}
+													src={previewUrl}
 													alt={attachment.name}
 													width={92}
 													height={68}
@@ -485,45 +486,44 @@ export const TaskCardDialogContent = ({ model }: { model: TaskDetailModel }) => 
 												<Paperclip size={17} />
 											</span>
 										)}
-										<div>
-											<TaskAttachmentName
-												taskId={task.id}
-												attachment={attachment}
-												href={attachmentUrl}
-												mutable={taskMediaMutable}
-											/>
-											<small>{fileMeta}</small>
-										</div>
-										{taskMediaMutable ? (
-											<div className="workflow-trello-modal-attachment-actions">
-												{isImage ? (
+										<TaskAttachmentName
+											taskId={task.id}
+											attachment={attachment}
+											href={attachmentUrl}
+											mutable={taskMediaMutable}
+											meta={fileMeta}
+											actionsClassName="workflow-trello-modal-attachment-actions"
+											actions={
+												<>
+													{isImage ? (
+														<button
+															type="button"
+															className="workflow-trello-modal-attachment-cover-action"
+															onClick={() => handleSetAttachmentAsCover(task, attachment)}
+															disabled={setTaskCoverFromAttachmentState.isLoading}
+														>
+															<ImagePlus size={14} />
+															<span>{workflow.labels.setAsCover ?? 'Set as cover'}</span>
+														</button>
+													) : null}
 													<button
 														type="button"
-														className="workflow-trello-modal-attachment-cover-action"
-														onClick={() => handleSetAttachmentAsCover(task, attachment)}
-														disabled={setTaskCoverFromAttachmentState.isLoading}
+														className="workflow-trello-modal-media-danger"
+														onClick={() =>
+															setMediaDeleteTarget({
+																kind: 'attachment',
+																taskId: task.id,
+																attachmentId: attachment.id,
+																name: attachment.name,
+															})
+														}
+														aria-label={t.common.delete}
 													>
-														<ImagePlus size={14} />
-														<span>{workflow.labels.setAsCover ?? 'Set as cover'}</span>
+														<Trash2 size={15} />
 													</button>
-												) : null}
-												<button
-													type="button"
-													className="workflow-trello-modal-media-danger"
-													onClick={() =>
-														setMediaDeleteTarget({
-															kind: 'attachment',
-															taskId: task.id,
-															attachmentId: attachment.id,
-															name: attachment.name,
-														})
-													}
-													aria-label={t.common.delete}
-												>
-													<Trash2 size={15} />
-												</button>
-											</div>
-										) : null}
+												</>
+											}
+										/>
 									</div>
 								);
 							})}

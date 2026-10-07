@@ -1,6 +1,7 @@
 'use client';
 
 import { useRef, useState } from 'react';
+import type { ReactNode } from 'react';
 import { Check, Pencil, X } from 'lucide-react';
 import { useRenameTaskAttachmentMutation } from '@/store/services/designWorkflow';
 import { useLanguage, useToast } from '@/utils/hooks';
@@ -11,11 +12,17 @@ export const TaskAttachmentName = ({
 	attachment,
 	href,
 	mutable,
+	meta,
+	actions,
+	actionsClassName = 'workflow-attachment-actions',
 }: {
 	taskId: number;
 	attachment: Pick<TaskAttachment, 'id' | 'name'>;
 	href: string;
 	mutable: boolean;
+	meta?: string;
+	actions?: ReactNode;
+	actionsClassName?: string;
 }) => {
 	const { t } = useLanguage();
 	const { onSuccess, onError } = useToast();
@@ -48,8 +55,8 @@ export const TaskAttachmentName = ({
 		}
 	};
 
-	if (mutable && draft !== null) {
-		return (
+	const editor =
+		mutable && draft !== null ? (
 			<form
 				className="workflow-attachment-name-editor"
 				onSubmit={(event) => {
@@ -90,25 +97,34 @@ export const TaskAttachmentName = ({
 					</button>
 				</div>
 			</form>
-		);
-	}
+		) : null;
 	return (
-		<div className="workflow-attachment-name">
-			<a href={href} target="_blank" rel="noreferrer" title={attachment.name}>
-				{attachment.name}
-			</a>
+		<>
+			<div className="workflow-attachment-copy">
+				{editor ?? (
+					<a href={href} target="_blank" rel="noreferrer" title={attachment.name}>
+						{attachment.name}
+					</a>
+				)}
+				{meta ? <small>{meta}</small> : null}
+			</div>
 			{mutable ? (
-				<button
-					ref={renameButton}
-					type="button"
-					className="workflow-attachment-rename-button"
-					onClick={() => setDraft(attachment.name)}
-					aria-label={`${t.workflow.labels.renameAttachment}: ${attachment.name}`}
-					title={t.workflow.labels.renameAttachment}
-				>
-					<Pencil size={15} />
-				</button>
+				<div className={actionsClassName}>
+					{!editor ? (
+						<button
+							ref={renameButton}
+							type="button"
+							className="workflow-attachment-rename-button"
+							onClick={() => setDraft(attachment.name)}
+							aria-label={`${t.workflow.labels.renameAttachment}: ${attachment.name}`}
+							title={t.workflow.labels.renameAttachment}
+						>
+							<Pencil size={15} />
+						</button>
+					) : null}
+					{actions}
+				</div>
 			) : null}
-		</div>
+		</>
 	);
 };

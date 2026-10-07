@@ -1,6 +1,6 @@
 'use client';
 import { Area, EmptyState, Field, FieldLabel, Surface, ToggleField } from '@/components/shared/workflow/workflowFields';
-import { formatFileSize, isImageAttachment, resolveMediaUrl } from '@/utils/workflow/workflowFormatting';
+import { formatFileSize, resolveMediaUrl } from '@/utils/workflow/workflowFormatting';
 import { WorkflowSelectField as SelectField } from '@/components/shared/workflow/workflowFormControls';
 import { CheckCircle2, CircleAlert, MessagesSquare, Paperclip, Plus, ShieldCheck } from 'lucide-react';
 import Image from 'next/image';
@@ -69,8 +69,8 @@ export const TaskFilesPanel = ({
 			<div className="workflow-files-grid">
 				<div className="workflow-files-list">
 					{task.attachments.map((attachment) => {
-						const attachmentUrl = resolveMediaUrl(attachment.file_url ?? attachment.file);
-						const isImage = isImageAttachment(attachment);
+						const attachmentUrl = resolveMediaUrl(attachment.thumbnail_url);
+						const isImage = Boolean(attachmentUrl);
 						return (
 							<button
 								key={attachment.id}
@@ -115,7 +115,7 @@ export const TaskFilesPanel = ({
 					{selectedAnnotationAttachment ? (
 						<>
 							<div className="workflow-annotation-stage">
-								{isImageAttachment(selectedAnnotationAttachment) ? (
+								{selectedAnnotationAttachmentUrl ? (
 									<Image
 										src={selectedAnnotationAttachmentUrl}
 										alt={selectedAnnotationAttachment.name}

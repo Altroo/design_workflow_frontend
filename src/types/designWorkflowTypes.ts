@@ -67,6 +67,7 @@ export type TaskAttachment = {
 	uploaded_by: WorkflowUser;
 	file: string;
 	file_url: string | null;
+	thumbnail_url?: string | null;
 	name: string;
 	mime_type: string;
 	size: number;
