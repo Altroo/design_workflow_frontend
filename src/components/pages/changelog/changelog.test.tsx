@@ -30,6 +30,12 @@ it('shows a clear empty state', () => {
 	render(<Changelog />);
 	expect(screen.getByText(fr.changelog.empty)).toBeVisible();
 });
+it('keeps the page aligned to the left of the workspace', () => {
+	render(<Changelog />);
+	const page = screen.getByRole('heading', { level: 1 }).parentElement?.parentElement;
+	expect(page).toHaveClass('text-left');
+	expect(page).not.toHaveClass('mx-auto');
+});
 it('shows loading without a false empty state', () => {
 	query.mockReturnValue({ isLoading: true, refetch } as ReturnType<typeof useGetChangelogQuery>);
 	render(<Changelog />);

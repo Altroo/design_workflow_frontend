@@ -34,6 +34,18 @@ it('does not invent a version for historical entries', () => {
 	render(<ChangelogTimeline entries={[{ ...entries[0], version: '' }]} language="fr" />);
 	expect(screen.queryByText(/Version/)).not.toBeInTheDocument();
 });
+it('places the date and version beside content with a vertical divider', () => {
+	render(<ChangelogTimeline entries={entries} language="en" />);
+	const article = screen.getByRole('article');
+	const metadata = article.children[0];
+	const content = article.children[1];
+	expect(article).toHaveClass('grid');
+	expect(metadata.querySelector('time')).not.toBeNull();
+	expect(metadata).toHaveTextContent('Version 1.0.0');
+	expect(content).toHaveClass('border-l', 'min-w-0');
+	expect(content.querySelector('h2')).toHaveTextContent('Shared projects');
+	expect(content.querySelector('ul')).not.toBeNull();
+});
 it('renders admin text as plain text, never HTML', () => {
 	const { container } = render(
 		<ChangelogTimeline entries={[{ ...entries[0], changes_fr: ['<strong>Plain text</strong>'] }]} language="fr" />,

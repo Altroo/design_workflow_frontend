@@ -13,13 +13,13 @@ const Changelog = () => {
 	const isLoading = !accessToken || queryLoading;
 	return (
 		<NavigationBar title={t.navigation.changelog}>
-			<div className="mx-auto w-full max-w-240 pb-8">
+			<div className="w-full max-w-280 pb-8 text-left">
 				<header className="mb-8 px-1">
 					<h1 className="text-2xl font-semibold text-(--ink) sm:text-3xl">{t.navigation.changelog}</h1>
 					<p className="mt-3 text-sm leading-6 text-(--ink-soft)">{t.changelog.description}</p>
 				</header>
 				<section
-					className="app-card rounded-3xl border border-(--line) bg-(--surface) p-5 sm:p-8 lg:p-10"
+					className="app-card rounded-3xl border border-(--line) bg-(--surface) px-3 py-5 sm:p-8 lg:p-10"
 					aria-label={t.navigation.changelog}
 				>
 					{isLoading ? (
