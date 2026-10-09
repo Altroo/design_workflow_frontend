@@ -1,4 +1,5 @@
 'use client';
+import AiAssistantControl from '@/components/shared/aiAssistantControl/aiAssistantControl';
 import { Chip, FieldLabel } from '@/components/shared/workflow/workflowFields';
 import { BOARD_STATUS_META } from '@/components/shared/workflow/boardAppearance';
 import { runWithCleanup } from '@/utils/runWithCleanup';
@@ -140,6 +141,14 @@ export const TaskModalHeader = ({
 									maxLength={255}
 									required
 									autoFocus
+									disabled={updateTaskState.isLoading}
+								/>
+								<AiAssistantControl
+									key={task.id}
+									value={modalTitleDraft.title}
+									onApply={(title) => setModalTitleDraft({ ...modalTitleDraft, title })}
+									context="task_title"
+									maxLength={255}
 									disabled={updateTaskState.isLoading}
 								/>
 							</div>

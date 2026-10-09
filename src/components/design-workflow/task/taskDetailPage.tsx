@@ -106,6 +106,7 @@ export const TaskDetailPage = ({ model }: { model: TaskDetailModel }) => {
 								<div className="workflow-review-action-stack">
 									<FieldLabel htmlFor="task-review-notes">{workflow.labels.optionalNote}</FieldLabel>
 									<Area
+										ai="review_note"
 										id="task-review-notes"
 										value={reviewNotes}
 										onChangeAction={setReviewNotes}
@@ -201,6 +202,7 @@ export const TaskDetailPage = ({ model }: { model: TaskDetailModel }) => {
 									<div className="md:col-span-2">
 										<FieldLabel htmlFor="artifact-notes">{workflow.labels.optionalNote}</FieldLabel>
 										<Area
+											ai="version_note"
 											id="artifact-notes"
 											value={versionNotes}
 											onChangeAction={setVersionNotes}

@@ -1,4 +1,5 @@
 'use client';
+import AiAssistantControl from '@/components/shared/aiAssistantControl/aiAssistantControl';
 import { formatAudioDuration, isAudioAttachment, userLabel } from '@/utils/workflow/chatHelpers';
 import { VoiceMessagePlayer } from '@/components/design-workflow/chat/messages/voiceMessagePlayer';
 import { UploadProgress } from '@/components/shared/workflow/uploadProgress';
@@ -305,6 +306,17 @@ export const ChatComposer = ({
 				</button>
 			</div>
 			<UploadProgress progress={attachmentUploadProgress} />
+			<AiAssistantControl
+				key={selectedThread?.id}
+				value={body}
+				onApply={(next) => {
+					setBody(next);
+					emitTyping(Boolean(next.trim()));
+					setSelectedComposerText('');
+				}}
+				context="chat_message"
+				disabled={!selectedThread?.id || sendMessageState.isLoading || recording}
+			/>
 			{files.length ? (
 				<div className="workflow-chat-draft-attachments">
 					<div className="flex flex-wrap gap-2">

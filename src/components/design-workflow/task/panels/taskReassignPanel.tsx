@@ -52,6 +52,7 @@ export const TaskReassignPanel = ({
 				<div>
 					<FieldLabel htmlFor="reassign-reason">{workflow.labels.reason}</FieldLabel>
 					<Field
+						ai="reassignment_reason"
 						id="reassign-reason"
 						value={reassignForm.reason}
 						onChangeAction={(value) => setReassignForm((current) => ({ ...current, reason: value }))}

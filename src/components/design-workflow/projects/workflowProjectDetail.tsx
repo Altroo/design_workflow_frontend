@@ -263,6 +263,8 @@ export const WorkflowProjectDetail = ({
 							<div>
 								<FieldLabel>{workflow.labels.name}</FieldLabel>
 								<Field
+									ai="project_title"
+									maxLength={255}
 									value={projectEditForm.name}
 									onChangeAction={(value) => setProjectEditForm((current) => ({ ...current, name: value }))}
 									startIcon={<BriefcaseBusiness size={18} />}
@@ -291,6 +293,7 @@ export const WorkflowProjectDetail = ({
 							<div className="md:col-span-2">
 								<FieldLabel>{workflow.labels.description}</FieldLabel>
 								<Area
+									ai="project_description"
 									value={projectEditForm.description}
 									onChangeAction={(value) => setProjectEditForm((current) => ({ ...current, description: value }))}
 									startIcon={<MessagesSquare size={18} />}
@@ -429,6 +432,8 @@ export const WorkflowProjectDetail = ({
 							<div>
 								<FieldLabel htmlFor="task-title">{workflow.labels.taskTitle}</FieldLabel>
 								<Field
+									ai="task_title"
+									maxLength={255}
 									id="task-title"
 									value={taskForm.title}
 									onChangeAction={(value) => setTaskForm((current) => ({ ...current, title: value }))}
@@ -455,6 +460,7 @@ export const WorkflowProjectDetail = ({
 							<div className="md:col-span-2">
 								<FieldLabel htmlFor="task-description">{workflow.labels.description}</FieldLabel>
 								<Area
+									ai="task_description"
 									id="task-description"
 									value={taskForm.description}
 									onChangeAction={(value) => setTaskForm((current) => ({ ...current, description: value }))}

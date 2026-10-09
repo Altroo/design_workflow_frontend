@@ -1,5 +1,6 @@
 declare namespace NodeJS {
 	interface ProcessEnv {
+		NEXT_PUBLIC_AI_ASSISTANT_ENABLED?: 'true' | 'false';
 		// Protocol
 		DEBUG_MODE: string;
 		NEXT_PUBLIC_HTTP_PROTOCOLE: 'http' | 'https';

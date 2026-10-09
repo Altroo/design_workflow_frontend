@@ -144,6 +144,8 @@ export const WorkflowProjects = ({
 							<div>
 								<FieldLabel htmlFor="project-name">{workflow.labels.projectName}</FieldLabel>
 								<Field
+									ai="project_title"
+									maxLength={255}
 									id="project-name"
 									value={projectForm.name}
 									onChangeAction={(value) => setProjectForm((current) => ({ ...current, name: value }))}
@@ -177,6 +179,7 @@ export const WorkflowProjects = ({
 							<div className="md:col-span-2">
 								<FieldLabel htmlFor="project-description">{workflow.labels.description}</FieldLabel>
 								<Area
+									ai="project_description"
 									id="project-description"
 									value={projectForm.description}
 									onChangeAction={(value) => setProjectForm((current) => ({ ...current, description: value }))}

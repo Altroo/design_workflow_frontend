@@ -1,4 +1,5 @@
 'use client';
+import AiAssistantControl from '@/components/shared/aiAssistantControl/aiAssistantControl';
 import {
 	fileIconLabel,
 	formatDayLabel,
@@ -390,6 +391,12 @@ export const ChatMessageStream = ({
 															onChange={(event) => setEditText(event.target.value)}
 															rows={3}
 															className="app-input resize-none"
+														/>
+														<AiAssistantControl
+															key={message.id}
+															value={editText}
+															onApply={setEditText}
+															context="chat_message"
 														/>
 														<div>
 															<button

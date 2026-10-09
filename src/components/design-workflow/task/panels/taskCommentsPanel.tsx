@@ -54,6 +54,7 @@ export const TaskCommentsPanel = ({
 				<div className="space-y-3">
 					<FieldLabel htmlFor="add-comment">{workflow.labels.addComment}</FieldLabel>
 					<Area
+						ai="comment"
 						id="add-comment"
 						value={commentBody}
 						onChangeAction={setCommentBody}

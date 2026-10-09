@@ -1,4 +1,5 @@
 'use client';
+import AiAssistantControl from '@/components/shared/aiAssistantControl/aiAssistantControl';
 
 import { getColumnId, getTaskDragId, isCardInteractiveTarget } from '@/utils/workflow/workflowBoardHelpers';
 import { Chip } from '@/components/shared/workflow/workflowFields';
@@ -599,6 +600,13 @@ export const BoardColumn = ({
 										}
 									}}
 									placeholder={copy.labels.quickAddPlaceholder ?? 'Enter a title or paste a link'}
+								/>
+								<AiAssistantControl
+									value={quickAddTitle ?? ''}
+									onApply={(title) => onQuickAddTitleChangeAction?.(title)}
+									context="task_title"
+									maxLength={255}
+									disabled={quickAddLoading}
 								/>
 							</div>
 							<div className="workflow-quick-add-actions">

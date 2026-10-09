@@ -190,6 +190,7 @@ export const TaskFilesPanel = ({
 										<div className="md:col-span-2">
 											<FieldLabel htmlFor="annotation-body">{workflow.labels.addComment}</FieldLabel>
 											<Area
+												ai="annotation"
 												id="annotation-body"
 												value={annotationBody}
 												onChangeAction={setAnnotationBody}

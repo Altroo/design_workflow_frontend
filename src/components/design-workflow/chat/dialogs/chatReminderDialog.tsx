@@ -1,4 +1,5 @@
 'use client';
+import AiAssistantControl from '@/components/shared/aiAssistantControl/aiAssistantControl';
 import { WorkflowDateField, WorkflowSelectField } from '@/components/shared/workflow/workflowFormControls';
 import { REMINDER_TIME_OPTIONS } from '@/utils/rawData';
 import { AlarmClock, Clock3, ListTodo } from 'lucide-react';
@@ -96,6 +97,11 @@ export const ChatReminderDialog = ({
 						className="app-input"
 					/>
 				</label>
+				<AiAssistantControl
+					value={reminderDraft.note}
+					onApply={(note) => setReminderDraft((current) => ({ ...current, note }))}
+					context="reminder_note"
+				/>
 				<div className="workflow-chat-create-actions">
 					<button type="button" className="app-button app-button-ghost" onClick={() => setReminderMessage(null)}>
 						{t.common.cancel}

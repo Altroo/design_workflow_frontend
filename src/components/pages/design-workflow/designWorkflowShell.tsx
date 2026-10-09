@@ -153,6 +153,8 @@ const DesignWorkflowShell = (props: Props) => {
 									<div>
 										<FieldLabel htmlFor="workflow-project-task-title">{workflow.labels.taskTitle}</FieldLabel>
 										<Field
+											ai="task_title"
+											maxLength={255}
 											id="workflow-project-task-title"
 											value={taskEditForm.title}
 											onChangeAction={(value) => setTaskEditForm((current) => ({ ...current, title: value }))}
@@ -177,6 +179,7 @@ const DesignWorkflowShell = (props: Props) => {
 									<div className="workflow-task-edit-wide">
 										<FieldLabel htmlFor="workflow-project-task-description">{workflow.labels.description}</FieldLabel>
 										<Area
+											ai="task_description"
 											id="workflow-project-task-description"
 											value={taskEditForm.description}
 											onChangeAction={(value) => setTaskEditForm((current) => ({ ...current, description: value }))}

@@ -52,6 +52,19 @@ bun run dev
 
 Default local port: `3004`.
 
+## Writing assistance
+
+Set `NEXT_PUBLIC_AI_ASSISTANT_ENABLED=true` before starting/building the frontend
+only after the backend has its own registered private AI gateway identity.
+The default is off. The backend's `docs/ai-assistant.md` documents that setup.
+
+Reviewed writing fields offer Translate, Fix grammar and Make professional.
+Suggestions are previewed and applied to the draft only: they never automatically
+save a project/task or send a chat message. Cancel aborts the request; changing the
+field invalidates an older suggestion. Existing permissions, field lengths and
+mentions are preserved. Dates, numbers, filters, account names, labels and filenames
+do not receive these controls. Do not automatically enable AI for generic text inputs.
+
 ## Installed app updates
 
 The version in `package.json` identifies the frontend code loaded by the browser.

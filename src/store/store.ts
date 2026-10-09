@@ -7,6 +7,7 @@ import accountReducer from '@/store/slices/accountSlice';
 import wsReducer from '@/store/slices/wsSlice';
 import { accountApi, profilApi, usersApi } from '@/store/services/account';
 import { designWorkflowApi } from '@/store/services/designWorkflow';
+import { aiAssistantApi } from '@/store/services/aiAssistant';
 
 const rootReducer = combineReducers({
 	_init: _initReducer,
@@ -16,6 +17,7 @@ const rootReducer = combineReducers({
 	[profilApi.reducerPath]: profilApi.reducer,
 	[usersApi.reducerPath]: usersApi.reducer,
 	[designWorkflowApi.reducerPath]: designWorkflowApi.reducer,
+	[aiAssistantApi.reducerPath]: aiAssistantApi.reducer,
 });
 
 export interface SagaStore extends Store {
@@ -33,7 +35,13 @@ export const makeStore = (): SagaStore => {
 		middleware: (getDefaultMiddleware) =>
 			getDefaultMiddleware()
 				.prepend(sagaMw)
-				.concat(accountApi.middleware, profilApi.middleware, usersApi.middleware, designWorkflowApi.middleware),
+				.concat(
+					accountApi.middleware,
+					profilApi.middleware,
+					usersApi.middleware,
+					designWorkflowApi.middleware,
+					aiAssistantApi.middleware,
+				),
 		devTools: process.env.NODE_ENV !== 'production',
 	}) as SagaStore;
 	s.sagaTask = sagaMw.run(rootSaga);

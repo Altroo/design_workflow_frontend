@@ -151,6 +151,7 @@ export const TaskCardDialogContent = ({ model }: { model: TaskDetailModel }) => 
 						modalDescriptionEditing ? (
 							<div className="workflow-trello-modal-description-edit">
 								<Area
+									ai="task_description"
 									value={taskEditForm.description}
 									onChangeAction={(value) => setTaskEditForm((current) => ({ ...current, description: value }))}
 									mentionUsers={mentionableUsers}
@@ -364,6 +365,8 @@ export const TaskCardDialogContent = ({ model }: { model: TaskDetailModel }) => 
 											}}
 										>
 											<Field
+												ai="checklist_item"
+												maxLength={255}
 												value={groupNewItem}
 												onChangeAction={(value) =>
 													setNewChecklistItemsByChecklist((current) => ({ ...current, [groupKey]: value }))
@@ -410,6 +413,8 @@ export const TaskCardDialogContent = ({ model }: { model: TaskDetailModel }) => 
 								<div className="workflow-trello-modal-media-actions">
 									<div className="workflow-media-label-field">
 										<Field
+											ai="image_description"
+											maxLength={255}
 											value={taskCoverLabel}
 											onChangeAction={setTaskCoverLabel}
 											placeholder={workflow.labels.coverImageLabelPlaceholder ?? 'Décrivez cette image'}
@@ -543,6 +548,7 @@ export const TaskCardDialogContent = ({ model }: { model: TaskDetailModel }) => 
 				{taskMutable ? (
 					<div className="workflow-trello-modal-comment-box">
 						<Area
+							ai="comment"
 							value={commentBody}
 							onChangeAction={setCommentBody}
 							mentionUsers={mentionableUsers}

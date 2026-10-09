@@ -224,6 +224,8 @@ export const TaskToolsPanel = ({
 							<div className="workflow-trello-checklist-create">
 								<FieldLabel>{workflow.labels.checklistTitle ?? 'Checklist title'}</FieldLabel>
 								<Field
+									ai="checklist_title"
+									maxLength={255}
 									value={newChecklistGroupTitle}
 									onChangeAction={setNewChecklistGroupTitle}
 									placeholder={workflow.labels.checklistPanel ?? 'Checklist'}
@@ -331,6 +333,8 @@ export const TaskToolsPanel = ({
 										{taskMutable ? (
 											<div className="workflow-checklist-add workflow-checklist-add-modern">
 												<Field
+													ai="checklist_item"
+													maxLength={255}
 													value={groupNewItem}
 													onChangeAction={(value) =>
 														setNewChecklistItemsByChecklist((current) => ({ ...current, [groupKey]: value }))
@@ -531,6 +535,8 @@ export const TaskToolsPanel = ({
 									<div className="workflow-upload-actions">
 										<div className="workflow-media-label-field">
 											<Field
+												ai="image_description"
+												maxLength={255}
 												value={taskCoverLabel}
 												onChangeAction={setTaskCoverLabel}
 												placeholder={workflow.labels.coverImageLabelPlaceholder ?? 'Décrivez cette image'}
@@ -682,6 +688,7 @@ export const TaskToolsPanel = ({
 									placeholder={workflow.labels.assignee}
 								/>
 								<Field
+									ai="reassignment_reason"
 									value={reassignForm.reason}
 									onChangeAction={(value) => setReassignForm((current) => ({ ...current, reason: value }))}
 									placeholder={workflow.labels.reassignReasonPlaceholder}

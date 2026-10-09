@@ -87,9 +87,9 @@
 .workflow-project-detail-page .app-button:not(:disabled),
 .workflow-task-modal .workflow-trello-modal-action-primary,
 .workflow-task-modal .workflow-trello-modal-save,
-.workflow-task-modal .workflow-trello-modal-checklist-add button,
+.workflow-task-modal .workflow-trello-modal-checklist-add > button,
 .workflow-task-modal .workflow-trello-modal-upload-row button,
-.workflow-task-modal .workflow-trello-modal-comment-box button {
+.workflow-task-modal .workflow-trello-modal-comment-box > button {
 	border-color: var(--accent) !important;
 	background: var(--accent) !important;
 	color: #ffffff !important;
@@ -105,9 +105,9 @@
 .workflow-project-detail-page .app-button:not(:disabled):hover,
 .workflow-task-modal .workflow-trello-modal-action-primary:hover,
 .workflow-task-modal .workflow-trello-modal-save:hover,
-.workflow-task-modal .workflow-trello-modal-checklist-add button:hover,
+.workflow-task-modal .workflow-trello-modal-checklist-add > button:hover,
 .workflow-task-modal .workflow-trello-modal-upload-row button:hover,
-.workflow-task-modal .workflow-trello-modal-comment-box button:hover {
+.workflow-task-modal .workflow-trello-modal-comment-box > button:hover {
 	border-color: var(--accent-strong) !important;
 	background: var(--accent-hover, var(--accent-hover, var(--accent-strong))) !important;
 	color: #ffffff !important;
@@ -307,9 +307,9 @@
 .workflow-task-modal .workflow-trello-modal-action,
 .workflow-task-modal .workflow-trello-modal-action-primary,
 .workflow-task-modal .workflow-trello-modal-save,
-.workflow-task-modal .workflow-trello-modal-checklist-add button,
+.workflow-task-modal .workflow-trello-modal-checklist-add > button,
 .workflow-task-modal .workflow-trello-modal-upload-row button,
-.workflow-task-modal .workflow-trello-modal-comment-box button {
+.workflow-task-modal .workflow-trello-modal-comment-box > button {
 	min-height: 2.375rem !important;
 	border-radius: 0.625rem !important;
 }
@@ -1976,9 +1976,9 @@
 .workflow-task-modal .workflow-trello-modal-save,
 .workflow-task-modal .workflow-trello-modal-secondary-action,
 .workflow-task-modal .workflow-trello-modal-cancel,
-.workflow-task-modal .workflow-trello-modal-checklist-add button,
+.workflow-task-modal .workflow-trello-modal-checklist-add > button,
 .workflow-task-modal .workflow-trello-modal-upload-row button,
-.workflow-task-modal .workflow-trello-modal-comment-box button,
+.workflow-task-modal .workflow-trello-modal-comment-box > button,
 .workflow-task-modal .workflow-trello-modal-file-button,
 .workflow-task-modal .workflow-trello-modal-upload-row label {
 	display: inline-flex !important;
@@ -2000,9 +2000,9 @@
 
 .workflow-task-modal .workflow-trello-modal-action-primary,
 .workflow-task-modal .workflow-trello-modal-save,
-.workflow-task-modal .workflow-trello-modal-checklist-add button,
+.workflow-task-modal .workflow-trello-modal-checklist-add > button,
 .workflow-task-modal .workflow-trello-modal-upload-row button,
-.workflow-task-modal .workflow-trello-modal-comment-box button {
+.workflow-task-modal .workflow-trello-modal-comment-box > button {
 	border-color: var(--accent) !important;
 	background: var(--accent) !important;
 	color: #ffffff !important;
@@ -2021,9 +2021,9 @@
 
 .workflow-task-modal .workflow-trello-modal-action-primary:hover:not(:disabled),
 .workflow-task-modal .workflow-trello-modal-save:hover:not(:disabled),
-.workflow-task-modal .workflow-trello-modal-checklist-add button:hover:not(:disabled),
+.workflow-task-modal .workflow-trello-modal-checklist-add > button:hover:not(:disabled),
 .workflow-task-modal .workflow-trello-modal-upload-row button:hover:not(:disabled),
-.workflow-task-modal .workflow-trello-modal-comment-box button:hover:not(:disabled) {
+.workflow-task-modal .workflow-trello-modal-comment-box > button:hover:not(:disabled) {
 	border-color: var(--accent-strong) !important;
 	background: var(--accent-hover, var(--accent-hover, var(--accent-strong))) !important;
 	color: #ffffff !important;
@@ -2032,9 +2032,9 @@
 .workflow-task-modal .workflow-trello-modal-action:disabled,
 .workflow-task-modal .workflow-trello-modal-action-primary:disabled,
 .workflow-task-modal .workflow-trello-modal-save:disabled,
-.workflow-task-modal .workflow-trello-modal-checklist-add button:disabled,
+.workflow-task-modal .workflow-trello-modal-checklist-add > button:disabled,
 .workflow-task-modal .workflow-trello-modal-upload-row button:disabled,
-.workflow-task-modal .workflow-trello-modal-comment-box button:disabled {
+.workflow-task-modal .workflow-trello-modal-comment-box > button:disabled {
 	cursor: not-allowed !important;
 	opacity: 0.52 !important;
 }

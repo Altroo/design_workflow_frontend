@@ -11406,9 +11406,9 @@ button.workflow-chat-ref-card {
 }
 
 .workflow-trello-modal-save,
-.workflow-trello-modal-checklist-add button,
+.workflow-trello-modal-checklist-add > button,
 .workflow-trello-modal-upload-row button,
-.workflow-trello-modal-comment-box button {
+.workflow-trello-modal-comment-box > button {
 	width: fit-content;
 	min-height: 40px;
 	border-radius: 7px;
@@ -11420,16 +11420,16 @@ button.workflow-chat-ref-card {
 }
 
 .workflow-trello-modal-save:hover,
-.workflow-trello-modal-checklist-add button:hover,
+.workflow-trello-modal-checklist-add > button:hover,
 .workflow-trello-modal-upload-row button:hover,
-.workflow-trello-modal-comment-box button:hover {
+.workflow-trello-modal-comment-box > button:hover {
 	background: #8dbbff;
 }
 
 .workflow-trello-modal-save:disabled,
-.workflow-trello-modal-checklist-add button:disabled,
+.workflow-trello-modal-checklist-add > button:disabled,
 .workflow-trello-modal-upload-row button:disabled,
-.workflow-trello-modal-comment-box button:disabled {
+.workflow-trello-modal-comment-box > button:disabled {
 	cursor: not-allowed;
 	opacity: 0.55;
 }
@@ -12308,9 +12308,9 @@ body {
 .workflow-projects-create .app-button:not(.app-button-ghost),
 .workflow-trello-modal-action-primary,
 .workflow-trello-modal-save,
-.workflow-trello-modal-checklist-add button,
+.workflow-trello-modal-checklist-add > button,
 .workflow-trello-modal-upload-row button,
-.workflow-trello-modal-comment-box button {
+.workflow-trello-modal-comment-box > button {
 	border-color: var(--theme-line-strong, #111827) !important;
 	background: var(--theme-surface-strong, #111827) !important;
 	color: #ffffff !important;
@@ -12999,12 +12999,12 @@ body {
 .workflow-trello-modal-action-primary:hover,
 .workflow-trello-modal-save,
 .workflow-trello-modal-save:hover,
-.workflow-trello-modal-checklist-add button,
-.workflow-trello-modal-checklist-add button:hover,
+.workflow-trello-modal-checklist-add > button,
+.workflow-trello-modal-checklist-add > button:hover,
 .workflow-trello-modal-upload-row button,
 .workflow-trello-modal-upload-row button:hover,
-.workflow-trello-modal-comment-box button,
-.workflow-trello-modal-comment-box button:hover,
+.workflow-trello-modal-comment-box > button,
+.workflow-trello-modal-comment-box > button:hover,
 .workflow-label-create-button,
 .workflow-label-create-button:hover {
 	border-color: var(--theme-line-strong, #111827) !important;
@@ -13319,9 +13319,9 @@ body {
 .workflow-task-modal .workflow-trello-modal-action-primary,
 .workflow-task-modal .workflow-trello-modal-action-primary:hover,
 .workflow-task-modal .workflow-trello-modal-save,
-.workflow-task-modal .workflow-trello-modal-checklist-add button,
+.workflow-task-modal .workflow-trello-modal-checklist-add > button,
 .workflow-task-modal .workflow-trello-modal-upload-row button,
-.workflow-task-modal .workflow-trello-modal-comment-box button {
+.workflow-task-modal .workflow-trello-modal-comment-box > button {
 	border-color: var(--theme-line-strong, #111827) !important;
 	background: var(--theme-surface-strong, #111827) !important;
 	color: #ffffff !important;
@@ -14831,9 +14831,9 @@ body {
 .workflow-trello-modal-action-primary,
 .workflow-trello-modal-action-primary:hover,
 .workflow-trello-modal-save,
-.workflow-trello-modal-checklist-add button,
+.workflow-trello-modal-checklist-add > button,
 .workflow-trello-modal-upload-row button,
-.workflow-trello-modal-comment-box button {
+.workflow-trello-modal-comment-box > button {
 	border: 1px solid var(--accent);
 	background: var(--accent) !important;
 	color: #ffffff !important;
@@ -14842,22 +14842,22 @@ body {
 
 .workflow-trello-modal-action-primary:hover,
 .workflow-trello-modal-save:hover,
-.workflow-trello-modal-checklist-add button:hover,
+.workflow-trello-modal-checklist-add > button:hover,
 .workflow-trello-modal-upload-row button:hover,
-.workflow-trello-modal-comment-box button:hover {
+.workflow-trello-modal-comment-box > button:hover {
 	border-color: var(--accent-strong);
 	background: var(--accent-hover, var(--accent-hover, var(--accent-strong))) !important;
 	box-shadow: var(--shadow-md);
 }
 
 .workflow-trello-modal-save:disabled,
-.workflow-trello-modal-checklist-add button:disabled,
+.workflow-trello-modal-checklist-add > button:disabled,
 .workflow-trello-modal-upload-row button:disabled,
-.workflow-trello-modal-comment-box button:disabled,
+.workflow-trello-modal-comment-box > button:disabled,
 .workflow-trello-modal-save:disabled:hover,
-.workflow-trello-modal-checklist-add button:disabled:hover,
+.workflow-trello-modal-checklist-add > button:disabled:hover,
 .workflow-trello-modal-upload-row button:disabled:hover,
-.workflow-trello-modal-comment-box button:disabled:hover {
+.workflow-trello-modal-comment-box > button:disabled:hover {
 	border-color: var(--theme-line, #dbe3ef);
 	background: var(--theme-surface-strong, #e2e8f0) !important;
 	color: var(--theme-ink-muted, #94a3b8) !important;

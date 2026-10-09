@@ -1,4 +1,5 @@
 'use client';
+import AiAssistantControl from '@/components/shared/aiAssistantControl/aiAssistantControl';
 import { userLabel } from '@/utils/workflow/chatHelpers';
 import { WorkflowSelectField } from '@/components/shared/workflow/workflowFormControls';
 import { BriefcaseBusiness, CheckSquare2 } from 'lucide-react';
@@ -61,10 +62,18 @@ export const ChatTaskDialog = ({
 					<span>{t.workflow.labels.taskTitle}</span>
 					<input
 						value={taskDraft.title}
+						maxLength={255}
 						onChange={(event) => setTaskDraft((current) => ({ ...current, title: event.target.value }))}
 						className="app-input"
 					/>
 				</label>
+				<AiAssistantControl
+					value={taskDraft.title}
+					onApply={(title) => setTaskDraft((current) => ({ ...current, title }))}
+					context="task_title"
+					maxLength={255}
+					disabled={createTaskState.isLoading}
+				/>
 				<label className="workflow-form-field">
 					<span>{t.workflow.labels.project}</span>
 					<WorkflowSelectField
@@ -87,6 +96,12 @@ export const ChatTaskDialog = ({
 						className="app-input resize-none"
 					/>
 				</label>
+				<AiAssistantControl
+					value={taskDraft.description}
+					onApply={(description) => setTaskDraft((current) => ({ ...current, description }))}
+					context="task_description"
+					disabled={createTaskState.isLoading}
+				/>
 				<div className="workflow-chat-create-actions">
 					<button type="button" className="app-button app-button-ghost" onClick={() => setTaskModalOpen(false)}>
 						{t.common.cancel}

@@ -298,6 +298,8 @@ export const TaskActionPopover = ({
 				<div className="workflow-trello-modal-floating-body">
 					<FieldLabel>{workflow.labels.checklistTitle ?? 'Checklist title'}</FieldLabel>
 					<Field
+						ai="checklist_title"
+						maxLength={255}
 						value={newChecklistGroupTitle}
 						onChangeAction={setNewChecklistGroupTitle}
 						placeholder={workflow.labels.checklistPanel ?? 'Checklist'}
@@ -337,6 +339,8 @@ export const TaskActionPopover = ({
 						<div className="workflow-trello-modal-upload-row">
 							<div className="workflow-media-label-field">
 								<Field
+									ai="image_description"
+									maxLength={255}
 									value={taskCoverLabel}
 									onChangeAction={setTaskCoverLabel}
 									placeholder={workflow.labels.coverImageLabelPlaceholder ?? 'Décrivez cette image'}
@@ -382,6 +386,7 @@ export const TaskActionPopover = ({
 						placeholder={workflow.labels.assignee}
 					/>
 					<Field
+						ai="reassignment_reason"
 						value={reassignForm.reason}
 						onChangeAction={(value) => setReassignForm((current) => ({ ...current, reason: value }))}
 						placeholder={workflow.labels.reassignReasonPlaceholder}

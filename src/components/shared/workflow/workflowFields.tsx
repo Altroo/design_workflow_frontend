@@ -11,6 +11,8 @@ import { CalendarDays, ChevronLeft, ChevronRight, FileText } from 'lucide-react'
 import type { ReactNode } from 'react';
 import { useRef, useState } from 'react';
 import { HexColorPicker } from 'react-colorful';
+import AiAssistantControl from '@/components/shared/aiAssistantControl/aiAssistantControl';
+import type { AiWritingContext } from '@/types/aiTypes';
 
 export const AvatarBadge = ({
 	user,
@@ -115,6 +117,8 @@ export const Field = ({
 	placeholder,
 	min,
 	startIcon,
+	ai,
+	maxLength,
 }: {
 	id?: string;
 	value: string | number;
@@ -123,22 +127,30 @@ export const Field = ({
 	placeholder?: string;
 	min?: number;
 	startIcon?: ReactNode;
+	ai?: AiWritingContext;
+	maxLength?: number;
 }) => (
-	<div className="relative">
-		{startIcon ? (
-			<span className="pointer-events-none absolute left-3 top-0 z-10 flex h-full items-center justify-center text-(--ink-soft)">
-				{startIcon}
-			</span>
-		) : null}
-		<input
-			id={id}
-			type={type}
-			min={min}
-			value={value}
-			onChange={(event) => onChangeAction(event.target.value)}
-			placeholder={placeholder}
-			className={cn('app-input', startIcon ? 'pl-14' : '')}
-		/>
+	<div>
+		<div className="relative">
+			{startIcon ? (
+				<span className="pointer-events-none absolute left-3 top-0 z-10 flex h-full items-center justify-center text-(--ink-soft)">
+					{startIcon}
+				</span>
+			) : null}
+			<input
+				id={id}
+				type={type}
+				min={min}
+				maxLength={maxLength}
+				value={value}
+				onChange={(event) => onChangeAction(event.target.value)}
+				placeholder={placeholder}
+				className={cn('app-input', startIcon ? 'pl-14' : '')}
+			/>
+		</div>
+		{ai && type === 'text' && typeof value === 'string' && (
+			<AiAssistantControl value={value} onApply={onChangeAction} context={ai} maxLength={maxLength} />
+		)}
 	</div>
 );
 
@@ -159,6 +171,7 @@ export const Area = ({
 	placeholder,
 	startIcon,
 	mentionUsers,
+	ai,
 }: {
 	id?: string;
 	value: string;
@@ -167,6 +180,7 @@ export const Area = ({
 	placeholder?: string;
 	startIcon?: ReactNode;
 	mentionUsers?: WorkflowUser[];
+	ai?: AiWritingContext;
 }) => {
 	const inputRef = useRef<HTMLTextAreaElement | null>(null);
 	const [mentionMatch, setMentionMatch] = useState<{ start: number; end: number; query: string } | null>(null);
@@ -271,6 +285,16 @@ export const Area = ({
 					))}
 				</div>
 			) : null}
+			{ai && (
+				<AiAssistantControl
+					value={value}
+					onApply={(next) => {
+						setMentionMatch(null);
+						onChangeAction(next);
+					}}
+					context={ai}
+				/>
+			)}
 		</div>
 	);
 };

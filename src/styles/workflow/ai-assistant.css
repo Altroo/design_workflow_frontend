@@ -1,0 +1,112 @@
+.workflow-ai-control {
+	min-width: 0;
+	margin-top: 0.5rem;
+}
+
+.workflow-trello-modal-checklist-add:has(.workflow-ai-control),
+.workflow-checklist-add:has(.workflow-ai-control) {
+	align-items: start;
+}
+
+.workflow-checklist-add:has(.workflow-ai-control) > button {
+	min-height: 2.75rem;
+}
+.workflow-ai-actions {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 0.375rem;
+}
+.workflow-ai-actions button {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	gap: 0.375rem;
+	min-height: 2rem;
+	padding: 0.375rem 0.625rem;
+	border: 1px solid var(--line);
+	border-radius: 0.625rem;
+	background: var(--surface);
+	color: var(--accent-strong);
+	font-size: 0.6875rem;
+	font-weight: 600;
+	line-height: 1.4;
+	cursor: pointer;
+}
+.workflow-ai-actions button:hover:not(:disabled) {
+	background: var(--accent-soft);
+	border-color: var(--accent);
+}
+.workflow-ai-actions button:focus-visible {
+	outline: 2px solid var(--accent);
+	outline-offset: 2px;
+}
+.workflow-ai-actions button:disabled {
+	opacity: 0.5;
+	cursor: not-allowed;
+}
+.workflow-ai-actions svg {
+	flex-shrink: 0;
+}
+.workflow-ai-dialog .ui-modal-backdrop {
+	z-index: 260;
+}
+.workflow-ai-dialog .ui-modal {
+	max-width: 52rem;
+	max-height: calc(100dvh - 3rem);
+	overflow-y: auto;
+}
+.workflow-ai-comparison {
+	display: grid;
+	grid-template-columns: repeat(2, minmax(0, 1fr));
+	gap: 1rem;
+}
+.workflow-ai-comparison section {
+	min-width: 0;
+}
+.workflow-ai-comparison h3 {
+	margin-bottom: 0.5rem;
+	color: var(--ink-soft);
+	font-size: 0.8125rem;
+	font-weight: 600;
+}
+.workflow-ai-comparison p {
+	white-space: pre-wrap;
+	overflow-wrap: anywhere;
+	padding: 1rem;
+	border: 1px solid var(--line);
+	border-radius: 0.75rem;
+	background: var(--surface-muted);
+	color: var(--ink);
+	font-size: 0.875rem;
+	line-height: 1.7;
+	max-height: 45dvh;
+	overflow-y: auto;
+}
+.workflow-ai-loading {
+	display: flex;
+	align-items: center;
+	gap: 0.625rem;
+	color: var(--accent-strong);
+}
+.workflow-ai-hint {
+	margin-top: 0.75rem;
+	color: var(--ink-soft);
+	font-size: 0.75rem;
+	line-height: 1.6;
+}
+.workflow-ai-error {
+	color: var(--danger, #dc2626);
+	padding: 0.75rem 0;
+	font-size: 0.875rem;
+}
+@media (max-width: 640px) {
+	.workflow-ai-actions button {
+		min-height: 44px;
+	}
+	.workflow-ai-comparison {
+		grid-template-columns: minmax(0, 1fr);
+	}
+	.workflow-ai-dialog .ui-modal {
+		padding: 1rem;
+	}
+}

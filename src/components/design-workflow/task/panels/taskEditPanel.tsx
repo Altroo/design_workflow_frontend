@@ -58,6 +58,8 @@ export const TaskEditPanel = ({
 				<div>
 					<FieldLabel>{workflow.labels.title}</FieldLabel>
 					<Field
+						ai="task_title"
+						maxLength={255}
 						value={taskEditForm.title}
 						onChangeAction={(value) => setTaskEditForm((current) => ({ ...current, title: value }))}
 						startIcon={<ListTodo size={18} />}
@@ -81,6 +83,7 @@ export const TaskEditPanel = ({
 				<div className="md:col-span-2">
 					<FieldLabel>{workflow.labels.description}</FieldLabel>
 					<Area
+						ai="task_description"
 						value={taskEditForm.description}
 						onChangeAction={(value) => setTaskEditForm((current) => ({ ...current, description: value }))}
 						mentionUsers={mentionableUsers}
@@ -137,6 +140,7 @@ export const TaskEditPanel = ({
 				<div>
 					<FieldLabel htmlFor="task-blocked-reason">{workflow.labels.blockedReason}</FieldLabel>
 					<Field
+						ai="blocked_reason"
 						id="task-blocked-reason"
 						value={taskEditForm.blocked_reason}
 						onChangeAction={(value) => setTaskEditForm((current) => ({ ...current, blocked_reason: value }))}
