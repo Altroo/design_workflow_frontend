@@ -3,19 +3,33 @@ import { useEffect, useId, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
-import { Bot, ArrowRight, Clock3, LoaderCircle, MessageSquarePlus, Send, Square, Trash2, X } from 'lucide-react';
+import {
+	Bot,
+	ArrowRight,
+	BellOff,
+	Clock3,
+	LoaderCircle,
+	MessageSquarePlus,
+	Send,
+	Square,
+	Trash2,
+	X,
+} from 'lucide-react';
 import { useAppSelector, useIsClient, useLanguage } from '@/utils/hooks';
 import { getAccessToken, getProfilState } from '@/store/selectors';
 import { useChatAssistant } from '@/utils/chat-ai/hooks/useChatAssistant';
+import { useAssistantIdleMeme } from '@/utils/chat-ai/hooks/useAssistantIdleMeme';
+import { chatRequest } from '@/store/services/chatAssistant';
 import { safeChatNavigation } from '@/utils/chat-ai/chatHelpers';
 import { ChatResults } from './chatResults';
 import { ChatConfirmation } from './chatConfirmation';
 import { ChatShortcuts } from './chatShortcuts';
+import { ChatIdleMeme } from './chatIdleMeme';
 import AiAssistantDialog from '@/components/shared/aiAssistantControl/aiAssistantDialog';
 import type { ChatConfirmation as Confirmation, ChatNavigation } from '@/types/chatAiTypes';
 import styles from './chatAssistant.module.css';
 
-export const EnabledChatAssistant = ({ token }: { token: string }) => {
+export const EnabledChatAssistant = ({ token, userId }: { token: string; userId?: number }) => {
 	const model = useChatAssistant(token);
 	const { t, language } = useLanguage();
 	const copy = t.chatAi;
@@ -23,6 +37,23 @@ export const EnabledChatAssistant = ({ token }: { token: string }) => {
 	const [history, setHistory] = useState(false);
 	const [confirmation, setConfirmation] = useState<Confirmation | null>(null);
 	const [deleting, setDeleting] = useState<string | null>(null);
+	const idleMeme = useAssistantIdleMeme({
+		enabled: model.capabilities?.idle_meme_enabled === true,
+		userId,
+		blocked: model.busy || !!confirmation || !!deleting,
+		onIdleAction: () => {
+			setHistory(false);
+			model.setOpen(true);
+		},
+		verifyEligibilityAction: async () => {
+			const response = await chatRequest(`capabilities/?language=${language}`, token);
+			return (await response.json()).idle_meme_enabled === true;
+		},
+	});
+	const closeAssistant = () => {
+		idleMeme.dismiss();
+		model.close();
+	};
 	const [activeShortcut, setActiveShortcut] = useState(0);
 	const [shortcutsDismissed, setShortcutsDismissed] = useState(false);
 	const shortcutListId = useId();
@@ -66,7 +97,7 @@ export const EnabledChatAssistant = ({ token }: { token: string }) => {
 	}, [model.open]);
 	useEffect(() => {
 		if (scroll.current && model.open) scroll.current.scrollTop = scroll.current.scrollHeight;
-	}, [model.messages.length, model.streamText, model.busy, model.open]);
+	}, [model.messages.length, model.streamText, model.busy, model.open, idleMeme.video]);
 
 	const navigate = (target: ChatNavigation) => {
 		const href = safeChatNavigation(
@@ -75,7 +106,7 @@ export const EnabledChatAssistant = ({ token }: { token: string }) => {
 		);
 		if (!href) return;
 		router.push(href);
-		if (window.matchMedia('(max-width: 640px)').matches) model.close();
+		if (window.matchMedia('(max-width: 640px)').matches) closeAssistant();
 	};
 	return createPortal(
 		<>
@@ -100,7 +131,7 @@ export const EnabledChatAssistant = ({ token }: { token: string }) => {
 				onKeyDown={(event) => {
 					if (event.key === 'Escape' && !confirmation && !deleting) {
 						event.stopPropagation();
-						model.close();
+						closeAssistant();
 					}
 					if (event.key === 'Tab' && window.matchMedia('(max-width: 640px)').matches) {
 						const controls = panel.current?.querySelectorAll<HTMLElement>('button:not(:disabled), textarea');
@@ -125,7 +156,7 @@ export const EnabledChatAssistant = ({ token }: { token: string }) => {
 						<h2 className="sr-only">{copy.title}</h2>
 						<p>{copy.subtitle}</p>
 					</div>
-					<button className={styles.iconButton} aria-label={copy.close} title={copy.close} onClick={model.close}>
+					<button className={styles.iconButton} aria-label={copy.close} title={copy.close} onClick={closeAssistant}>
 						<X size={20} />
 					</button>
 				</header>
@@ -134,6 +165,7 @@ export const EnabledChatAssistant = ({ token }: { token: string }) => {
 						disabled={model.busy}
 						onClick={() => {
 							model.newChat();
+							idleMeme.dismiss();
 							setHistory(false);
 							input.current?.focus();
 						}}
@@ -141,7 +173,13 @@ export const EnabledChatAssistant = ({ token }: { token: string }) => {
 						<MessageSquarePlus size={17} />
 						{copy.newChat}
 					</button>
-					<button aria-expanded={history} onClick={() => setHistory((value) => !value)}>
+					<button
+						aria-expanded={history}
+						onClick={() => {
+							idleMeme.dismiss();
+							setHistory((value) => !value);
+						}}
+					>
 						<Clock3 size={17} />
 						{copy.history}
 					</button>
@@ -176,7 +214,7 @@ export const EnabledChatAssistant = ({ token }: { token: string }) => {
 					</div>
 				) : (
 					<div ref={scroll} className={styles.messages} aria-live="polite" aria-relevant="additions">
-						{!model.messages.length && !model.busy && (
+						{!model.messages.length && !model.busy && idleMeme.video === null && (
 							<div className={styles.welcome}>
 								<span className={styles.botIcon}>
 									<Bot size={28} />
@@ -223,6 +261,9 @@ export const EnabledChatAssistant = ({ token }: { token: string }) => {
 								))}
 							</article>
 						))}
+						{model.open && idleMeme.video !== null && (
+							<ChatIdleMeme key={idleMeme.video} index={idleMeme.video} onDismissAction={idleMeme.dismiss} />
+						)}
 						{model.busy && (
 							<div role="status" className={styles.assistantMessage}>
 								<div className={styles.messageAuthor}>
@@ -341,6 +382,12 @@ export const EnabledChatAssistant = ({ token }: { token: string }) => {
 						</button>
 					</p>
 					<p className={styles.privacy}>{copy.privacy}</p>
+					{idleMeme.canDisable && (
+						<button type="button" className={styles.textButton} onClick={idleMeme.disable}>
+							<BellOff size={15} aria-hidden="true" />
+							{copy.disableMemes}
+						</button>
+					)}
 				</footer>
 			</aside>
 			{confirmation && (
@@ -401,6 +448,7 @@ const AuthenticatedChatAssistant = () => {
 	const canRead = profile.is_staff || isSuperuser || profile.can_view;
 	const permissionKey = [
 		profile.id,
+		profile.email,
 		profile.role,
 		profile.is_staff,
 		isSuperuser,
@@ -410,7 +458,7 @@ const AuthenticatedChatAssistant = () => {
 		profile.can_delete,
 	].join(':');
 	return isClient && session && profile.id && token && canRead ? (
-		<EnabledChatAssistant key={permissionKey} token={token} />
+		<EnabledChatAssistant key={permissionKey} token={token} userId={profile.id} />
 	) : null;
 };
 

@@ -52,7 +52,10 @@ export type ChatConversation = { id: string; title: string; updated_at: string }
 export type ChatCapabilities = {
 	can_report: boolean;
 	can_view_management_pages?: boolean;
+	idle_meme_enabled?: boolean;
 	suggestions: string[];
 	shortcuts: Array<{ command: string; title: string; help: string; example: string }>;
 };
 export type ChatContext = { interface_language: 'fr' | 'en'; resource?: 'project' | 'task'; identifier?: number };
+
+export type IdleMemeProgress = { shown: 0 | 1 | 2; disabled: boolean; lastShownAt: number };

@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, within } from '@testing-library/react';
+import { act, fireEvent, render, screen, within } from '@testing-library/react';
 import { fr } from '@/translations/fr';
 import ChatAssistant, { EnabledChatAssistant } from './chatAssistant';
 import { useAppSelector } from '@/utils/hooks';
@@ -36,6 +36,9 @@ jest.mock('@/utils/hooks', () => ({
 	useIsClient: () => true,
 }));
 jest.mock('next-auth/react', () => ({ useSession: jest.fn() }));
+jest.mock('@/store/services/chatAssistant', () => ({
+	chatRequest: jest.fn().mockResolvedValue({ json: async () => ({ idle_meme_enabled: true }) }),
+}));
 jest.mock('next/navigation', () => ({ useRouter: () => ({ push: jest.fn() }) }));
 jest.mock('@/components/shared/aiAssistantControl/aiAssistantDialog', () => ({
 	__esModule: true,
@@ -100,6 +103,42 @@ it('keeps an accessible robot-only launcher', () => {
 	expect(launcher).toHaveAttribute('title', fr.chatAi.open);
 	fireEvent.click(launcher);
 	expect(mockModel.setOpen).toHaveBeenCalledWith(true);
+});
+
+it('automatically opens each meme once and offers the exact disable label only after the second', async () => {
+	jest.useFakeTimers();
+	jest.setSystemTime(new Date('2026-10-09T08:00:00Z'));
+	localStorage.clear();
+	mockModel.open = false;
+	mockModel.capabilities!.idle_meme_enabled = true;
+	const view = render(<EnabledChatAssistant token="test" userId={42} />);
+	try {
+		await act(async () => {
+			await jest.advanceTimersByTimeAsync(15 * 60_000);
+		});
+		expect(mockModel.setOpen).toHaveBeenCalledWith(true);
+		mockModel.open = true;
+		view.rerender(<EnabledChatAssistant token="test" userId={42} />);
+		expect(screen.getByTitle(fr.chatAi.memeVideo)).toHaveAttribute('src', expect.stringContaining('TBgFtfw3_ZE'));
+		expect(screen.queryByRole('button', { name: 'disable memes' })).not.toBeInTheDocument();
+		fireEvent.click(screen.getByRole('button', { name: fr.chatAi.close }));
+		expect(screen.queryByTitle(fr.chatAi.memeVideo)).not.toBeInTheDocument();
+		await act(async () => {
+			await jest.advanceTimersByTimeAsync(15 * 60_000);
+		});
+		expect(screen.getByTitle(fr.chatAi.memeVideo)).toHaveAttribute('src', expect.stringContaining('MXuq7B_OYKw'));
+		fireEvent.click(screen.getByRole('button', { name: 'disable memes' }));
+		expect(screen.queryByTitle(fr.chatAi.memeVideo)).not.toBeInTheDocument();
+		expect(screen.queryByRole('button', { name: 'disable memes' })).not.toBeInTheDocument();
+		await act(async () => {
+			await jest.advanceTimersByTimeAsync(60 * 60_000);
+		});
+		expect(mockModel.setOpen).toHaveBeenCalledTimes(2);
+	} finally {
+		view.unmount();
+		localStorage.clear();
+		jest.useRealTimers();
+	}
 });
 
 it('uses only the robot icon visually in the header while retaining an accessible name', () => {
