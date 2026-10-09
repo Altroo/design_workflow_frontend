@@ -109,6 +109,60 @@ it('starts counting at 14:00 after interaction during lunch', async () => {
 	expect(result.current.video).toBe(0);
 });
 
+it('discards yesterday’s partial counter without skipping the first video', async () => {
+	jest.setSystemTime(Date.parse('2026-10-09T16:50:00Z')); // Friday 17:50 in Morocco.
+	const props = options();
+	const { result } = renderHook(() => useAssistantIdleMeme(props));
+	await advance((15 * 60 + 10) * minute); // Saturday 09:00.
+	expect(result.current.video).toBeNull();
+	await advance(29 * minute);
+	expect(result.current.video).toBeNull();
+	await advance(minute);
+	expect(result.current.video).toBe(0);
+	expect(props.onIdleAction).toHaveBeenCalledTimes(1);
+});
+
+it('keeps video one completed but restarts the second video’s counter the next day', async () => {
+	jest.setSystemTime(Date.parse('2026-10-09T16:20:00Z')); // Friday 17:20.
+	const props = options();
+	const { result } = renderHook(() => useAssistantIdleMeme(props));
+	await advance(30 * minute);
+	expect(result.current.video).toBe(0);
+	await advance(10 * minute); // Closing at 18:00 removes the player.
+	expect(result.current.video).toBeNull();
+	await advance(15 * 60 * minute); // Saturday 09:00.
+	expect(readIdleMemeProgress(42).shown).toBe(1);
+	await advance(29 * minute);
+	expect(result.current.video).toBeNull();
+	await advance(minute);
+	expect(result.current.video).toBe(1);
+	await advance(48 * 60 * minute); // Still finished on Monday, no new daily sequence.
+	expect(props.onIdleAction).toHaveBeenCalledTimes(2);
+	expect(result.current.video).toBeNull();
+});
+
+it('does not count Saturday afternoon or Sunday towards Monday’s first video', async () => {
+	jest.setSystemTime(Date.parse('2026-10-10T11:50:00Z')); // Saturday 12:50.
+	const props = options();
+	const { result } = renderHook(() => useAssistantIdleMeme(props));
+	await advance((44 * 60 + 10) * minute); // Monday 09:00.
+	expect(result.current.video).toBeNull();
+	expect(props.verifyEligibilityAction).not.toHaveBeenCalled();
+	await advance(30 * minute);
+	expect(result.current.video).toBe(0);
+});
+
+it('rechecks the local day when a suspended browser wakes up the next morning', async () => {
+	jest.setSystemTime(Date.parse('2026-10-09T09:00:00Z'));
+	const { result } = renderHook(() => useAssistantIdleMeme(options()));
+	jest.setSystemTime(Date.parse('2026-10-10T08:00:00Z'));
+	fireEvent(document, new Event('visibilitychange'));
+	await advance(29 * minute);
+	expect(result.current.video).toBeNull();
+	await advance(minute);
+	expect(result.current.video).toBe(0);
+});
+
 it('persists the disable choice only after video two', async () => {
 	const { result } = renderHook(() => useAssistantIdleMeme(options()));
 	await advance(60 * minute);

@@ -4,7 +4,8 @@ import {
 	idleActivityKey,
 	idleMemeDeadline,
 	idleMemeKey,
-	isMoroccoLunch,
+	isMoroccoWorkTime,
+	nextMoroccoWorkTime,
 	nextMinuteAt,
 	readIdleActivity,
 	readIdleMemeProgress,
@@ -33,11 +34,44 @@ it.each([
 });
 
 it('checks local lunch boundaries and the next whole minute', () => {
-	expect(isMoroccoLunch(Date.parse('2026-10-09T11:59:59Z'))).toBe(false);
-	expect(isMoroccoLunch(Date.parse('2026-10-09T12:00:00Z'))).toBe(true);
-	expect(isMoroccoLunch(Date.parse('2026-10-09T13:00:00Z'))).toBe(false);
+	expect(isMoroccoWorkTime(Date.parse('2026-10-09T11:59:59Z'))).toBe(true);
+	expect(isMoroccoWorkTime(Date.parse('2026-10-09T12:00:00Z'))).toBe(false);
+	expect(isMoroccoWorkTime(Date.parse('2026-10-09T13:00:00Z'))).toBe(true);
 	expect(nextMinuteAt(65_001)).toBe(120_000);
 	expect(IDLE_MEME_DELAY).toBe(1_800_000);
+});
+
+it.each([
+	['2026-10-09T07:59:59Z', false], // Friday before 09:00 local.
+	['2026-10-09T08:00:00Z', true],
+	['2026-10-09T16:59:59Z', true],
+	['2026-10-09T17:00:00Z', false],
+	['2026-10-10T08:00:00Z', true], // Saturday morning only.
+	['2026-10-10T11:59:59Z', true],
+	['2026-10-10T12:00:00Z', false],
+	['2026-10-10T13:00:00Z', false],
+	['2026-10-11T08:00:00Z', false], // Sunday off.
+	['2026-10-11T13:00:00Z', false],
+])('restricts playback to working hours at %s', (at, expected) => {
+	expect(isMoroccoWorkTime(Date.parse(at))).toBe(expected);
+});
+
+it.each([
+	['2026-10-09T06:00:00Z', '2026-10-09T08:30:00Z'],
+	['2026-10-09T16:50:00Z', '2026-10-10T08:30:00Z'], // Discard Friday's 10 idle minutes.
+	['2026-10-09T16:30:00Z', '2026-10-10T08:30:00Z'], // Do not fire at closing time.
+	['2026-10-10T11:50:00Z', '2026-10-12T08:30:00Z'], // Skip Saturday PM and Sunday.
+	['2026-10-11T08:00:00Z', '2026-10-12T08:30:00Z'],
+	['2026-02-14T11:50:00Z', '2026-02-16T09:30:00Z'], // Weekend when Morocco moves to UTC+0.
+	['2026-03-21T12:50:00Z', '2026-03-23T08:30:00Z'], // Weekend when Morocco returns to UTC+1.
+])('starts a fresh thirty-minute interval on the next workday after %s', (start, expected) => {
+	expect(idleMemeDeadline(Date.parse(start))).toBe(Date.parse(expected));
+});
+
+it('recalculates stale deadlines after the browser sleeps overnight', () => {
+	const yesterday = Date.parse('2026-10-09T09:00:00Z');
+	expect(idleMemeDeadline(yesterday, Date.parse('2026-10-10T08:00:00Z'))).toBe(Date.parse('2026-10-10T08:30:00Z'));
+	expect(nextMoroccoWorkTime(Date.parse('2026-10-10T12:00:00Z'))).toBe(Date.parse('2026-10-12T08:00:00Z'));
 });
 
 it('persists completion and disable choice separately for each account', () => {

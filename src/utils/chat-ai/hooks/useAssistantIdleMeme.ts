@@ -6,8 +6,8 @@ import {
 	idleActivityKey,
 	idleMemeDeadline,
 	idleMemeKey,
-	isMoroccoLunch,
-	lunchEndsAt,
+	isMoroccoWorkTime,
+	nextMoroccoWorkTime,
 	nextMinuteAt,
 	readIdleActivity,
 	readIdleMemeProgress,
@@ -62,7 +62,7 @@ export const useAssistantIdleMeme = ({
 			return next;
 		};
 		const deadline = (current: IdleMemeProgress) =>
-			idleMemeDeadline(Math.max(startedAt, lastActivity, readIdleActivity(userId), current.lastShownAt));
+			idleMemeDeadline(Math.max(startedAt, lastActivity, readIdleActivity(userId), current.lastShownAt), Date.now());
 		const schedule = (at: number) => {
 			clearTimeout(timer);
 			if (!disposed) timer = setTimeout(() => void check(), Math.max(1, at - Date.now()));
@@ -75,9 +75,9 @@ export const useAssistantIdleMeme = ({
 				setVideo(null);
 				return;
 			}
-			if (isMoroccoLunch(now)) {
+			if (!isMoroccoWorkTime(now)) {
 				setVideo(null);
-				if (current.shown < 2) schedule(lunchEndsAt(now));
+				if (current.shown < 2) schedule(nextMoroccoWorkTime(now));
 				return;
 			}
 			if (current.shown === 2) {
@@ -99,7 +99,8 @@ export const useAssistantIdleMeme = ({
 				if (!(await verify()) || disposed) return;
 				const fresh = readIdleMemeProgress(userId);
 				const at = Date.now();
-				if (fresh.disabled || fresh.shown === 2 || isBlocked() || isMoroccoLunch(at) || deadline(fresh) > at) return;
+				if (fresh.disabled || fresh.shown === 2 || isBlocked() || !isMoroccoWorkTime(at) || deadline(fresh) > at)
+					return;
 				const index = fresh.shown as 0 | 1;
 				const next: IdleMemeProgress = { shown: index === 0 ? 1 : 2, disabled: false, lastShownAt: at };
 				// If persistence is unavailable, do not risk replaying the surprise.

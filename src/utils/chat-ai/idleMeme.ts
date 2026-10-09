@@ -3,8 +3,13 @@ import type { IdleMemeProgress } from '@/types/chatAiTypes';
 export const IDLE_MEME_DELAY = 30 * 60 * 1000;
 export const IDLE_MEME_VIDEOS = ['TBgFtfw3_ZE', 'MXuq7B_OYKw'] as const;
 const minute = 60_000;
+const hour = 60 * minute;
 const moroccoClock = new Intl.DateTimeFormat('en-GB', {
 	timeZone: 'Africa/Casablanca',
+	year: 'numeric',
+	month: '2-digit',
+	day: '2-digit',
+	weekday: 'short',
 	hour: '2-digit',
 	minute: '2-digit',
 	hourCycle: 'h23',
@@ -12,26 +17,45 @@ const moroccoClock = new Intl.DateTimeFormat('en-GB', {
 
 const localClock = (at: number) => {
 	const parts = moroccoClock.formatToParts(at);
+	const value = (type: Intl.DateTimeFormatPartTypes) => parts.find((part) => part.type === type)?.value;
 	return {
-		hour: Number(parts.find((part) => part.type === 'hour')?.value),
-		minute: Number(parts.find((part) => part.type === 'minute')?.value),
+		hour: Number(value('hour')),
+		minute: Number(value('minute')),
+		weekday: value('weekday'),
+		date: `${value('year')}-${value('month')}-${value('day')}`,
 	};
 };
-export const isMoroccoLunch = (at: number) => localClock(at).hour === 13;
+export const isMoroccoWorkTime = (at: number) => {
+	const clock = localClock(at);
+	return (
+		clock.weekday !== 'Sun' &&
+		((clock.hour >= 9 && clock.hour < 13) || (clock.weekday !== 'Sat' && clock.hour >= 14 && clock.hour < 18))
+	);
+};
 export const nextMinuteAt = (at: number) => Math.floor(at / minute) * minute + minute;
-export const lunchEndsAt = (at: number) => Math.floor(at / minute) * minute + (60 - localClock(at).minute) * minute;
+export const nextMoroccoWorkTime = (at: number) => {
+	// Check local hours instead of adding 24h: Morocco's UTC offset changes during Ramadan.
+	while (!isMoroccoWorkTime(at)) at = Math.floor(at / hour) * hour + hour;
+	return at;
+};
 
-/** Count the idle interval while skipping the entire local lunch hour. */
-export const idleMemeDeadline = (activityAt: number) => {
-	let at = activityAt,
+/** Lunch pauses the counter; a new local workday starts a fresh interval. */
+export const idleMemeDeadline = (activityAt: number, now = activityAt) => {
+	const today = localClock(now);
+	let at =
+			localClock(activityAt).date === today.date
+				? activityAt
+				: Math.floor(now / minute) * minute + (9 * 60 - today.hour * 60 - today.minute) * minute,
 		remaining = IDLE_MEME_DELAY;
-	while (remaining > 0) {
-		if (isMoroccoLunch(at)) at = lunchEndsAt(at);
+	for (;;) {
+		const next = nextMoroccoWorkTime(at);
+		if (localClock(next).date !== localClock(at).date) remaining = IDLE_MEME_DELAY;
+		at = next;
+		if (remaining === 0) return at;
 		const span = Math.min(remaining, nextMinuteAt(at) - at);
 		at += span;
 		remaining -= span;
 	}
-	return isMoroccoLunch(at) ? lunchEndsAt(at) : at;
 };
 
 export const idleMemeKey = (userId: number) => `workflow:assistant-idle:${userId}`;
