@@ -20,15 +20,15 @@ it('defines exactly two videos, in the requested order', () => {
 });
 
 it.each([
-	['2026-10-09T08:01:23.456Z', '2026-10-09T08:16:23.456Z'],
-	// October: Morocco UTC+1. Twelve fifty-five -> fourteen ten, lunch excluded.
-	['2026-10-09T11:55:00Z', '2026-10-09T13:10:00Z'],
-	['2026-10-09T11:45:00Z', '2026-10-09T13:00:00Z'],
-	['2026-10-09T12:30:00Z', '2026-10-09T13:15:00Z'],
-	['2026-10-09T11:59:59.500Z', '2026-10-09T13:14:59.500Z'],
+	['2026-10-09T08:01:23.456Z', '2026-10-09T08:31:23.456Z'],
+	// October: Morocco UTC+1. Twelve fifty-five -> fourteen twenty-five, lunch excluded.
+	['2026-10-09T11:55:00Z', '2026-10-09T13:25:00Z'],
+	['2026-10-09T11:30:00Z', '2026-10-09T13:00:00Z'],
+	['2026-10-09T12:30:00Z', '2026-10-09T13:30:00Z'],
+	['2026-10-09T11:59:59.500Z', '2026-10-09T13:29:59.500Z'],
 	// Ramadan: Morocco UTC+0, do not hard-code a fixed UTC offset.
-	['2026-02-25T12:55:00Z', '2026-02-25T14:10:00Z'],
-])('counts fifteen non-lunch minutes after %s', (start, expected) => {
+	['2026-02-25T12:55:00Z', '2026-02-25T14:25:00Z'],
+])('counts thirty non-lunch minutes after %s', (start, expected) => {
 	expect(idleMemeDeadline(Date.parse(start))).toBe(Date.parse(expected));
 });
 
@@ -37,7 +37,7 @@ it('checks local lunch boundaries and the next whole minute', () => {
 	expect(isMoroccoLunch(Date.parse('2026-10-09T12:00:00Z'))).toBe(true);
 	expect(isMoroccoLunch(Date.parse('2026-10-09T13:00:00Z'))).toBe(false);
 	expect(nextMinuteAt(65_001)).toBe(120_000);
-	expect(IDLE_MEME_DELAY).toBe(900_000);
+	expect(IDLE_MEME_DELAY).toBe(1_800_000);
 });
 
 it('persists completion and disable choice separately for each account', () => {

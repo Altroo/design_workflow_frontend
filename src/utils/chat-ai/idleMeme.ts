@@ -1,6 +1,6 @@
 import type { IdleMemeProgress } from '@/types/chatAiTypes';
 
-export const IDLE_MEME_DELAY = 15 * 60 * 1000;
+export const IDLE_MEME_DELAY = 30 * 60 * 1000;
 export const IDLE_MEME_VIDEOS = ['TBgFtfw3_ZE', 'MXuq7B_OYKw'] as const;
 const minute = 60_000;
 const moroccoClock = new Intl.DateTimeFormat('en-GB', {
@@ -21,7 +21,7 @@ export const isMoroccoLunch = (at: number) => localClock(at).hour === 13;
 export const nextMinuteAt = (at: number) => Math.floor(at / minute) * minute + minute;
 export const lunchEndsAt = (at: number) => Math.floor(at / minute) * minute + (60 - localClock(at).minute) * minute;
 
-/** Walk at most 15 counted minutes, skipping the entire local lunch hour. */
+/** Count the idle interval while skipping the entire local lunch hour. */
 export const idleMemeDeadline = (activityAt: number) => {
 	let at = activityAt,
 		remaining = IDLE_MEME_DELAY;

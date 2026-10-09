@@ -114,7 +114,7 @@ it('automatically opens each meme once and offers the exact disable label only a
 	const view = render(<EnabledChatAssistant token="test" userId={42} />);
 	try {
 		await act(async () => {
-			await jest.advanceTimersByTimeAsync(15 * 60_000);
+			await jest.advanceTimersByTimeAsync(30 * 60_000);
 		});
 		expect(mockModel.setOpen).toHaveBeenCalledWith(true);
 		mockModel.open = true;
@@ -124,7 +124,7 @@ it('automatically opens each meme once and offers the exact disable label only a
 		fireEvent.click(screen.getByRole('button', { name: fr.chatAi.close }));
 		expect(screen.queryByTitle(fr.chatAi.memeVideo)).not.toBeInTheDocument();
 		await act(async () => {
-			await jest.advanceTimersByTimeAsync(15 * 60_000);
+			await jest.advanceTimersByTimeAsync(30 * 60_000);
 		});
 		expect(screen.getByTitle(fr.chatAi.memeVideo)).toHaveAttribute('src', expect.stringContaining('MXuq7B_OYKw'));
 		fireEvent.click(screen.getByRole('button', { name: 'disable memes' }));
