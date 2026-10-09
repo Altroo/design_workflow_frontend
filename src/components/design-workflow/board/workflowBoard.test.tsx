@@ -75,7 +75,7 @@ it.each([false, true])(
 		await user.click(screen.getAllByRole('button', { name: 'Add a card' })[0]);
 		const form = document.querySelector('.workflow-quick-add-card') as HTMLElement;
 		expect(within(form).getByText('Card project')).toBeInTheDocument();
-		expect(within(form).getByRole('combobox', { name: 'Card project' })).toHaveTextContent(projectSummary.name);
+		expect(within(form).getByRole('combobox', { name: 'Card project' })).toHaveValue(projectSummary.name);
 		await user.type(within(form).getByLabelText('Task title'), 'Clearly assigned{Enter}');
 		await waitFor(() =>
 			expect(mockCreateTask).toHaveBeenCalledWith(
@@ -170,7 +170,7 @@ it('retains the project and title after a create error, prevents duplicate reque
 	await user.type(within(form).getByLabelText('Task title'), 'Retry in same project{Enter}');
 	await waitFor(() => expect(mockCreateTask).toHaveBeenCalledTimes(1));
 	expect(within(form).getByLabelText('Task title')).toHaveValue('Retry in same project');
-	expect(within(form).getByRole('combobox', { name: 'Card project' })).toHaveTextContent(projectSummary.name);
+	expect(within(form).getByRole('combobox', { name: 'Card project' })).toHaveValue(projectSummary.name);
 	await user.keyboard('{Enter}{Enter}');
 	expect(mockCreateTask).toHaveBeenCalledTimes(2);
 	await user.click(within(form).getByRole('button', { name: 'Cancel' }));

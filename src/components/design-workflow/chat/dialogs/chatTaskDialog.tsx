@@ -1,7 +1,7 @@
 'use client';
 import AiAssistantControl from '@/components/shared/aiAssistantControl/aiAssistantControl';
 import { userLabel } from '@/utils/workflow/chatHelpers';
-import { WorkflowSelectField } from '@/components/shared/workflow/workflowFormControls';
+import { WorkflowSearchSelect } from '@/components/shared/workflow/workflowSearchSelect';
 import { BriefcaseBusiness, CheckSquare2 } from 'lucide-react';
 import type { ChatController } from '@/utils/workflow/hooks/useChatController';
 export const ChatTaskDialog = ({
@@ -76,7 +76,7 @@ export const ChatTaskDialog = ({
 				/>
 				<label className="workflow-form-field">
 					<span>{t.workflow.labels.project}</span>
-					<WorkflowSelectField
+					<WorkflowSearchSelect
 						value={taskDraft.projectId}
 						onChangeAction={(value) => setTaskDraft((current) => ({ ...current, projectId: value }))}
 						options={[

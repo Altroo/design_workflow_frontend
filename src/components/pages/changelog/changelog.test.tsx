@@ -28,6 +28,7 @@ it('waits for Redux authentication before fetching changelog entries', () => {
 });
 it('shows a clear empty state', () => {
 	render(<Changelog />);
+	expect(screen.getByRole('heading', { name: 'Nouveautés', level: 1 })).toBeVisible();
 	expect(screen.getByText(fr.changelog.empty)).toBeVisible();
 });
 it('keeps the page aligned to the left of the workspace', () => {

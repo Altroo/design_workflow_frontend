@@ -1,6 +1,8 @@
 import type { TranslationDictionary } from '@/types/languageTypes';
+import { chatAiFr } from './chatAi';
 
 export const fr: TranslationDictionary = {
+	chatAi: chatAiFr,
 	changelog: {
 		description: 'Retrouvez les nouveautés et les améliorations de votre espace de travail.',
 		loading: 'Chargement des nouveautés…',
@@ -100,7 +102,7 @@ export const fr: TranslationDictionary = {
 		or: 'OU',
 	},
 	navigation: {
-		changelog: 'Changelog',
+		changelog: 'Nouveautés',
 		users: 'Utilisateurs',
 		usersList: 'Liste des utilisateurs',
 		newUser: 'Nouvel utilisateur',

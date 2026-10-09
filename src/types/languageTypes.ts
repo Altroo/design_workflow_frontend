@@ -1,6 +1,8 @@
+import type { ChatAiCopy } from '@/translations/chatAi';
 export type Language = 'fr' | 'en';
 
 export type TranslationDictionary = {
+	chatAi: ChatAiCopy;
 	aiAssistant: {
 		translate: string;
 		fixGrammar: string;

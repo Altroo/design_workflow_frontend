@@ -1,6 +1,8 @@
 import type { TranslationDictionary } from '@/types/languageTypes';
+import { chatAiEn } from './chatAi';
 
 export const en: TranslationDictionary = {
+	chatAi: chatAiEn,
 	changelog: {
 		description: 'Discover new features and improvements to your workspace.',
 		loading: 'Loading updates…',

@@ -3,6 +3,14 @@ import { DASHBOARD_CHAT, DASHBOARD_NOTIFICATIONS, DASHBOARD_CHANGELOG } from '@/
 import { getWorkflowNavigation } from './workflowNavigation';
 
 describe('getWorkflowNavigation', () => {
+	it('uses Nouveautés in French and Changelog in English', () => {
+		expect(getWorkflowNavigation(translations.fr, false).find((item) => item.path === DASHBOARD_CHANGELOG)?.label).toBe(
+			'Nouveautés',
+		);
+		expect(getWorkflowNavigation(translations.en, false).find((item) => item.path === DASHBOARD_CHANGELOG)?.label).toBe(
+			'Changelog',
+		);
+	});
 	it.each([true, false])('places Changelog just after Notifications for manager=%s', (manager) => {
 		for (const language of ['fr', 'en'] as const) {
 			const items = getWorkflowNavigation(translations[language], manager);

@@ -7,7 +7,7 @@ import { TaskPeople } from '@/components/shared/workflow/taskPeople';
 import { cn, formatMinutes, getDueDeliveryInfo, resolveMediaUrl } from '@/utils/workflow/workflowFormatting';
 import { toneForPriority } from '@/utils/workflow/workflowFormHelpers';
 import { BOARD_STATUS_META } from '@/components/shared/workflow/boardAppearance';
-import { WorkflowSelectField as SelectField } from '@/components/shared/workflow/workflowFormControls';
+import { WorkflowSearchSelect as SelectField } from '@/components/shared/workflow/workflowSearchSelect';
 import type { ProjectSummary, TaskCard, TaskStatus } from '@/types/designWorkflowTypes';
 import type { WorkflowCopy } from '@/types/workflowUiTypes';
 import { useLanguage } from '@/utils/hooks';
