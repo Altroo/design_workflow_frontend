@@ -7,15 +7,15 @@ import styles from './chatAssistant.module.css';
 export const ChatResults = ({
 	card,
 	busy,
-	onNavigate,
-	onConfirm,
-	onArchive,
+	onNavigateAction,
+	onConfirmAction,
+	onArchiveAction,
 }: {
 	card: ChatCard;
 	busy: boolean;
-	onNavigate: (target: ChatNavigation) => void;
-	onConfirm: (card: ChatConfirmation) => void;
-	onArchive: (resource: 'project' | 'task', id: number) => void;
+	onNavigateAction: (target: ChatNavigation) => void;
+	onConfirmAction: (card: ChatConfirmation) => void;
+	onArchiveAction: (resource: 'project' | 'task', id: number) => void;
 }) => {
 	const { t, language } = useLanguage();
 	const copy = t.chatAi;
@@ -29,7 +29,7 @@ export const ChatResults = ({
 				{card.items.map((item) => (
 					<article key={item.id} className={styles.record}>
 						<div className={styles.recordHeading}>
-							<button className={styles.recordLink} onClick={() => onNavigate(item.navigation)}>
+							<button className={styles.recordLink} onClick={() => onNavigateAction(item.navigation)}>
 								{item.name}
 								<ArrowUpRight size={16} />
 							</button>
@@ -63,21 +63,21 @@ export const ChatResults = ({
 							</p>
 						)}
 						<div className={styles.recordActions}>
-							<button className="app-button app-button-secondary" onClick={() => onNavigate(item.navigation)}>
+							<button className="app-button app-button-secondary" onClick={() => onNavigateAction(item.navigation)}>
 								<ArrowUpRight size={15} />
 								{copy.openRecord}
 							</button>
-							{item.can_edit && card.resource !== 'message' ? (
+							{item.can_archive && card.resource !== 'message' ? (
 								<button
 									className={styles.textButton}
 									disabled={busy}
-									onClick={() => onArchive(card.resource as 'project' | 'task', item.id)}
+									onClick={() => onArchiveAction(card.resource as 'project' | 'task', item.id)}
 								>
 									<Archive size={15} />
 									{copy.archive}
 								</button>
 							) : (
-								card.resource !== 'message' && <span className={styles.hint}>{copy.readOnly}</span>
+								card.resource !== 'message' && !item.can_edit && <span className={styles.hint}>{copy.readOnly}</span>
 							)}
 						</div>
 					</article>
@@ -87,7 +87,7 @@ export const ChatResults = ({
 		);
 	if (card.type === 'navigation')
 		return (
-			<button className="app-button app-button-secondary" onClick={() => onNavigate(card.target)}>
+			<button className="app-button app-button-secondary" onClick={() => onNavigateAction(card.target)}>
 				<ArrowUpRight size={16} />
 				{copy.openRecord}
 			</button>
@@ -97,7 +97,7 @@ export const ChatResults = ({
 			<div className={styles.record}>
 				<strong>{card.label}</strong>
 				<p className={styles.hint}>{card.operation === 'archive' ? copy.archiveTitle : copy.confirmTitle}</p>
-				<button disabled={busy} className="app-button" onClick={() => onConfirm(card)}>
+				<button disabled={busy} className="app-button" onClick={() => onConfirmAction(card)}>
 					{card.operation === 'archive' ? copy.archive : copy.confirm}
 				</button>
 			</div>
@@ -145,7 +145,7 @@ export const ChatResults = ({
 						: copy.allTime}
 				</p>
 				<p className={styles.hint}>{copy.timeBasis}</p>
-				<button className="app-button app-button-secondary" onClick={() => onNavigate(card.navigation)}>
+				<button className="app-button app-button-secondary" onClick={() => onNavigateAction(card.navigation)}>
 					<ArrowUpRight size={16} />
 					{t.navigation.reports}
 				</button>

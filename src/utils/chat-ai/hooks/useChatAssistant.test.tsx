@@ -65,6 +65,21 @@ it('retries the same request identifier without duplicating its user message', a
 	expect(result.current.messages.filter((item) => item.role === 'user')).toHaveLength(1);
 });
 
+it('sends a clicked question instead of a stale draft and still guards double clicks', async () => {
+	const { result } = renderHook(() => useChatAssistant('token'));
+	act(() => result.current.setDraft('Unfinished draft'));
+	await act(async () => {
+		await Promise.all([
+			result.current.send('Comment créer une tâche ?'),
+			result.current.send('Comment créer une tâche ?'),
+		]);
+	});
+	const sent = JSON.parse(request.mock.calls[1][2]?.body as string);
+	expect(sent.text).toBe('Comment créer une tâche ?');
+	expect(request.mock.calls.filter(([path]) => path.endsWith('/messages/'))).toHaveLength(1);
+	expect(result.current.draft).toBe('');
+});
+
 it('clears visible history on a new conversation and keeps saved history server-side', async () => {
 	const { result } = renderHook(() => useChatAssistant('token'));
 	act(() => result.current.setDraft('Find Atlas'));

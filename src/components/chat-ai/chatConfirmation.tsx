@@ -9,14 +9,14 @@ export const ChatConfirmation = ({
 	card,
 	busy,
 	error,
-	onClose,
-	onConfirm,
+	onCloseAction,
+	onConfirmAction,
 }: {
 	card: Confirmation;
 	busy: boolean;
 	error: string;
-	onClose: () => void;
-	onConfirm: () => void;
+	onCloseAction: () => void;
+	onConfirmAction: () => void;
 }) => {
 	const { t } = useLanguage();
 	const copy = t.chatAi;
@@ -29,11 +29,11 @@ export const ChatConfirmation = ({
 			title={card.operation === 'archive' ? copy.archiveTitle : copy.confirmTitle}
 			titleIcon={card.operation === 'archive' ? <Archive size={20} /> : <Check size={20} />}
 			onClose={() => {
-				if (!busy) onClose();
+				if (!busy) onCloseAction();
 			}}
 			actions={[
-				{ active: false, text: copy.cancel, onClick: onClose, disabled: busy },
-				{ active: true, text: copy.confirm, onClick: onConfirm, disabled: busy },
+				{ active: false, text: copy.cancel, onClick: onCloseAction, disabled: busy },
+				{ active: true, text: copy.confirm, onClick: onConfirmAction, disabled: busy },
 			]}
 		>
 			<div className={styles.confirmBody}>

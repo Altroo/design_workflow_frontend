@@ -94,10 +94,11 @@ export const useChatAssistant = (token: string) => {
 		}
 	};
 
-	const send = async (attempt?: Attempt) => {
-		const text = (attempt?.text ?? draft).trim();
+	const send = async (attempt?: Attempt | string) => {
+		const retryAttempt = typeof attempt === 'object' ? attempt : undefined;
+		const text = (typeof attempt === 'string' ? attempt : (retryAttempt?.text ?? draft)).trim();
 		if (active.current || !text || text.length > 4000) return;
-		const current = attempt ?? { text, request_id: crypto.randomUUID(), context: chatContext(pathname, language) };
+		const current = retryAttempt ?? { text, request_id: crypto.randomUUID(), context: chatContext(pathname, language) };
 		const controller = new AbortController();
 		active.current = controller;
 		setBusy(true);
@@ -226,14 +227,6 @@ export const useChatAssistant = (token: string) => {
 		}
 	};
 
-	const feedback = async (id: string, helpful: boolean) => {
-		try {
-			await chatRequest('feedback/', token, { method: 'POST', body: JSON.stringify({ message_id: id, helpful }) });
-			onSuccess(copy.feedbackSaved);
-		} catch (reason) {
-			setError(chatErrorText(reason, copy));
-		}
-	};
 	const selectArchive = async (resource: 'project' | 'task', identifier: number) => {
 		if (active.current || !conversationId) return;
 		const controller = new AbortController();
@@ -277,7 +270,6 @@ export const useChatAssistant = (token: string) => {
 		send,
 		confirm,
 		removeConversation,
-		feedback,
 		selectArchive,
 	};
 };

@@ -1,26 +1,16 @@
 'use client';
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useId, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
-import {
-	Bot,
-	Clock3,
-	LoaderCircle,
-	MessageSquarePlus,
-	Send,
-	Square,
-	ThumbsDown,
-	ThumbsUp,
-	Trash2,
-	X,
-} from 'lucide-react';
+import { Bot, ArrowRight, Clock3, LoaderCircle, MessageSquarePlus, Send, Square, Trash2, X } from 'lucide-react';
 import { useAppSelector, useIsClient, useLanguage } from '@/utils/hooks';
 import { getAccessToken, getProfilState } from '@/store/selectors';
 import { useChatAssistant } from '@/utils/chat-ai/hooks/useChatAssistant';
 import { safeChatNavigation } from '@/utils/chat-ai/chatHelpers';
 import { ChatResults } from './chatResults';
 import { ChatConfirmation } from './chatConfirmation';
+import { ChatShortcuts } from './chatShortcuts';
 import AiAssistantDialog from '@/components/shared/aiAssistantControl/aiAssistantDialog';
 import type { ChatConfirmation as Confirmation, ChatNavigation } from '@/types/chatAiTypes';
 import styles from './chatAssistant.module.css';
@@ -33,11 +23,28 @@ export const EnabledChatAssistant = ({ token }: { token: string }) => {
 	const [history, setHistory] = useState(false);
 	const [confirmation, setConfirmation] = useState<Confirmation | null>(null);
 	const [deleting, setDeleting] = useState<string | null>(null);
-	const [feedback, setFeedback] = useState<Record<string, boolean>>({});
+	const [activeShortcut, setActiveShortcut] = useState(0);
+	const [shortcutsDismissed, setShortcutsDismissed] = useState(false);
+	const shortcutListId = useId();
+	const shortcutMatches = (model.capabilities?.shortcuts ?? []).filter((shortcut) =>
+		shortcut.command.toLowerCase().startsWith(model.draft.toLowerCase()),
+	);
+	const showShortcuts =
+		/^\/[^\s]*$/.test(model.draft) && !history && !shortcutsDismissed && !!model.capabilities?.shortcuts.length;
+	const selectedShortcut = Math.min(activeShortcut, Math.max(0, shortcutMatches.length - 1));
 	const input = useRef<HTMLTextAreaElement>(null);
 	const panel = useRef<HTMLElement>(null);
 	const scroll = useRef<HTMLDivElement>(null);
 	const trigger = useRef<HTMLButtonElement>(null);
+	const updateDraft = (value: string) => {
+		model.setDraft(value);
+		setActiveShortcut(0);
+		setShortcutsDismissed(false);
+	};
+	const chooseShortcut = (command: string) => {
+		updateDraft(`${command} `);
+		input.current?.focus();
+	};
 
 	useEffect(() => {
 		if (!model.open) return;
@@ -62,14 +69,13 @@ export const EnabledChatAssistant = ({ token }: { token: string }) => {
 	}, [model.messages.length, model.streamText, model.busy, model.open]);
 
 	const navigate = (target: ChatNavigation) => {
-		const href = safeChatNavigation(target, model.capabilities?.can_report ?? false);
+		const href = safeChatNavigation(
+			target,
+			model.capabilities?.can_view_management_pages ?? model.capabilities?.can_report ?? false,
+		);
 		if (!href) return;
 		router.push(href);
 		if (window.matchMedia('(max-width: 640px)').matches) model.close();
-	};
-	const acknowledge = (id: string, useful: boolean) => {
-		setFeedback((current) => ({ ...current, [id]: useful }));
-		void model.feedback(id, useful);
 	};
 	return createPortal(
 		<>
@@ -77,13 +83,13 @@ export const EnabledChatAssistant = ({ token }: { token: string }) => {
 				ref={trigger}
 				className={styles.launcher}
 				aria-label={copy.open}
+				title={copy.open}
 				aria-expanded={model.open}
 				aria-controls="workflow-chat-assistant"
 				hidden={model.open}
 				onClick={() => model.setOpen(true)}
 			>
-				<Bot size={23} />
-				<span>{copy.title}</span>
+				<Bot size={26} aria-hidden="true" />
 			</button>
 			<aside
 				ref={panel}
@@ -116,7 +122,7 @@ export const EnabledChatAssistant = ({ token }: { token: string }) => {
 						<Bot size={23} />
 					</span>
 					<div>
-						<h2>{copy.title}</h2>
+						<h2 className="sr-only">{copy.title}</h2>
 						<p>{copy.subtitle}</p>
 					</div>
 					<button className={styles.iconButton} aria-label={copy.close} title={copy.close} onClick={model.close}>
@@ -181,13 +187,13 @@ export const EnabledChatAssistant = ({ token }: { token: string }) => {
 									{model.capabilities?.suggestions.map((question) => (
 										<button
 											key={question}
+											disabled={model.busy}
 											onClick={() => {
-												model.setDraft(question);
-												input.current?.focus();
+												void model.send(question);
 											}}
 										>
+											<ArrowRight size={18} aria-hidden="true" />
 											{question}
-											<ArrowIcon />
 										</button>
 									))}
 								</div>
@@ -198,53 +204,53 @@ export const EnabledChatAssistant = ({ token }: { token: string }) => {
 								key={message.id}
 								className={message.role === 'user' ? styles.userMessage : styles.assistantMessage}
 							>
+								{message.role === 'assistant' && (
+									<div className={styles.messageAuthor}>
+										<Bot size={17} aria-hidden="true" />
+										<span className="sr-only">{copy.title}</span>
+									</div>
+								)}
 								{message.text && <p className={styles.messageText}>{message.text}</p>}
 								{message.cards.map((card, index) => (
 									<ChatResults
 										key={index}
 										card={card}
 										busy={model.busy}
-										onNavigate={navigate}
-										onConfirm={setConfirmation}
-										onArchive={(resource, id) => void model.selectArchive(resource, id)}
+										onNavigateAction={navigate}
+										onConfirmAction={setConfirmation}
+										onArchiveAction={(resource, id) => void model.selectArchive(resource, id)}
 									/>
 								))}
-								{message.role === 'assistant' && (
-									<div className={styles.feedback}>
-										<button
-											aria-label={copy.helpful}
-											title={copy.helpful}
-											aria-pressed={feedback[message.id] === true}
-											onClick={() => acknowledge(message.id, true)}
-										>
-											<ThumbsUp size={15} />
-										</button>
-										<button
-											aria-label={copy.notHelpful}
-											title={copy.notHelpful}
-											aria-pressed={feedback[message.id] === false}
-											onClick={() => acknowledge(message.id, false)}
-										>
-											<ThumbsDown size={15} />
-										</button>
-									</div>
-								)}
 							</article>
 						))}
 						{model.busy && (
-							<div role="status" className={styles.pending}>
+							<div role="status" className={styles.assistantMessage}>
+								<div className={styles.messageAuthor}>
+									<Bot size={17} aria-hidden="true" />
+									<span className="sr-only">{copy.title}</span>
+								</div>
 								{model.streamText ? (
 									<p className={styles.messageText}>{model.streamText}</p>
 								) : (
-									<>
+									<div className={styles.pending}>
 										<LoaderCircle size={17} className={styles.spinner} />
 										{copy.thinking}
-									</>
+									</div>
 								)}
 							</div>
 						)}
 					</div>
 				)}
+				{showShortcuts ? (
+					<ChatShortcuts
+						listId={shortcutListId}
+						shortcuts={shortcutMatches}
+						activeIndex={selectedShortcut}
+						disabled={model.busy}
+						onChooseAction={chooseShortcut}
+						onHighlightAction={setActiveShortcut}
+					/>
+				) : null}
 				<footer className={styles.footer}>
 					{model.error && (
 						<div role="alert" className={styles.error}>
@@ -254,27 +260,6 @@ export const EnabledChatAssistant = ({ token }: { token: string }) => {
 							)}
 						</div>
 					)}
-					{model.capabilities?.shortcuts.length ? (
-						<details className={styles.shortcuts}>
-							<summary>{copy.shortcuts}</summary>
-							<div>
-								{model.capabilities.shortcuts.map((shortcut) => (
-									<button
-										key={shortcut.command}
-										disabled={model.busy}
-										title={shortcut.help}
-										onClick={() => {
-											model.setDraft(`${shortcut.command} `);
-											input.current?.focus();
-										}}
-									>
-										{shortcut.command}
-										<span>{shortcut.title}</span>
-									</button>
-								))}
-							</div>
-						</details>
-					) : null}
 					<form
 						className={styles.composer}
 						onSubmit={(event) => {
@@ -287,11 +272,38 @@ export const EnabledChatAssistant = ({ token }: { token: string }) => {
 							ref={input}
 							value={model.draft}
 							aria-label={copy.placeholder}
+							aria-autocomplete="list"
+							aria-controls={showShortcuts ? shortcutListId : undefined}
+							aria-activedescendant={
+								showShortcuts && shortcutMatches.length ? `${shortcutListId}-${selectedShortcut}` : undefined
+							}
 							placeholder={copy.placeholder}
 							maxLength={4000}
 							rows={2}
-							onChange={(event) => model.setDraft(event.target.value)}
+							onChange={(event) => updateDraft(event.target.value)}
 							onKeyDown={(event) => {
+								if (event.nativeEvent.isComposing) return;
+								if (showShortcuts) {
+									if (event.key === 'Escape') {
+										event.preventDefault();
+										event.stopPropagation();
+										setShortcutsDismissed(true);
+										return;
+									}
+									if (shortcutMatches.length && ['ArrowDown', 'ArrowUp'].includes(event.key)) {
+										event.preventDefault();
+										setActiveShortcut(
+											(selectedShortcut + (event.key === 'ArrowDown' ? 1 : -1) + shortcutMatches.length) %
+												shortcutMatches.length,
+										);
+										return;
+									}
+									if (shortcutMatches.length && !event.shiftKey && ['Enter', 'Tab'].includes(event.key)) {
+										event.preventDefault();
+										chooseShortcut(shortcutMatches[selectedShortcut].command);
+										return;
+									}
+								}
 								if (event.key === 'Enter' && !event.shiftKey && !event.nativeEvent.isComposing) {
 									event.preventDefault();
 									setHistory(false);
@@ -313,6 +325,21 @@ export const EnabledChatAssistant = ({ token }: { token: string }) => {
 							</button>
 						)}
 					</form>
+					<p className={styles.composerHint}>
+						{copy.keyboardHint}
+						{' · '}
+						<button
+							type="button"
+							disabled={model.busy || !model.capabilities}
+							onClick={() => {
+								setHistory(false);
+								updateDraft('/');
+								input.current?.focus();
+							}}
+						>
+							{copy.shortcutHint}
+						</button>
+					</p>
 					<p className={styles.privacy}>{copy.privacy}</p>
 				</footer>
 			</aside>
@@ -321,8 +348,8 @@ export const EnabledChatAssistant = ({ token }: { token: string }) => {
 					card={confirmation}
 					busy={model.busy}
 					error={model.error}
-					onClose={() => setConfirmation(null)}
-					onConfirm={() => {
+					onCloseAction={() => setConfirmation(null)}
+					onConfirmAction={() => {
 						void model.confirm(confirmation).then((saved) => {
 							if (saved) setConfirmation(null);
 						});
@@ -365,14 +392,26 @@ export const EnabledChatAssistant = ({ token }: { token: string }) => {
 	);
 };
 
-const ArrowIcon = () => <span aria-hidden="true">↗</span>;
-
 const AuthenticatedChatAssistant = () => {
 	const isClient = useIsClient();
 	const { data: session } = useSession();
 	const profile = useAppSelector(getProfilState);
 	const token = useAppSelector(getAccessToken) || session?.accessToken || '';
-	return isClient && session && profile.id && token ? <EnabledChatAssistant key={profile.id} token={token} /> : null;
+	const isSuperuser = !!session?.user?.is_superuser;
+	const canRead = profile.is_staff || isSuperuser || profile.can_view;
+	const permissionKey = [
+		profile.id,
+		profile.role,
+		profile.is_staff,
+		isSuperuser,
+		profile.can_view,
+		profile.can_create,
+		profile.can_edit,
+		profile.can_delete,
+	].join(':');
+	return isClient && session && profile.id && token && canRead ? (
+		<EnabledChatAssistant key={permissionKey} token={token} />
+	) : null;
 };
 
 export default function ChatAssistant() {

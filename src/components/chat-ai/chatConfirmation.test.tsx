@@ -8,8 +8,8 @@ it('uses the existing confirmation modal and labels exact before/after values', 
 		<ChatConfirmation
 			busy={false}
 			error=""
-			onClose={jest.fn()}
-			onConfirm={confirm}
+			onCloseAction={jest.fn()}
+			onConfirmAction={confirm}
 			card={{
 				type: 'confirmation',
 				action_id: 'id',

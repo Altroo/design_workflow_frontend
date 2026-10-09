@@ -10,7 +10,32 @@ const target: ChatNavigation = {
 	identifier: 1,
 	href: '/dashboard/tasks/1',
 };
-const actions = { onNavigate: jest.fn(), onConfirm: jest.fn(), onArchive: jest.fn(), busy: false };
+const actions = { onNavigateAction: jest.fn(), onConfirmAction: jest.fn(), onArchiveAction: jest.fn(), busy: false };
+
+beforeEach(() => jest.clearAllMocks());
+
+it.each([
+	{ can_edit: true, can_archive: false },
+	{ can_edit: false, can_archive: true },
+	{ can_edit: true, can_archive: undefined },
+])('requires explicit archive permission independently of edit: %j', (permissions) => {
+	render(
+		<ChatResults
+			{...actions}
+			card={{
+				type: 'record_list',
+				resource: 'task',
+				items: [{ id: 1, name: 'Moodboard', navigation: target, ...permissions }],
+			}}
+		/>,
+	);
+	const archive = screen.queryByRole('button', { name: fr.chatAi.archive });
+	expect(!!archive).toBe(!!permissions.can_archive);
+	if (archive) {
+		fireEvent.click(archive);
+		expect(actions.onArchiveAction).toHaveBeenCalledWith('task', 1);
+	}
+});
 
 it('shows read-only cards without archive actions and never renders record text as HTML', () => {
 	render(
@@ -36,7 +61,7 @@ it('shows read-only cards without archive actions and never renders record text 
 	expect(screen.getByText('En cours')).toBeInTheDocument();
 	expect(screen.getByText('<strong>Not markup</strong>').tagName).toBe('P');
 	fireEvent.click(screen.getByRole('button', { name: 'Ouvrir' }));
-	expect(actions.onNavigate).toHaveBeenCalledWith(target);
+	expect(actions.onNavigateAction).toHaveBeenCalledWith(target);
 });
 it('shows native person-time as 8-hour working days with an explanation', () => {
 	render(
@@ -64,5 +89,5 @@ it('requires review of a confirmation card before invoking the change', () => {
 	};
 	render(<ChatResults {...actions} card={card} />);
 	fireEvent.click(screen.getByRole('button', { name: 'Confirmer' }));
-	expect(actions.onConfirm).toHaveBeenCalledWith(card);
+	expect(actions.onConfirmAction).toHaveBeenCalledWith(card);
 });

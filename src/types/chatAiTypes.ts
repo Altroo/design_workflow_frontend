@@ -16,6 +16,7 @@ export type ChatRecord = {
 	priority?: string;
 	archived?: boolean;
 	can_edit?: boolean;
+	can_archive?: boolean;
 	date?: string | null;
 	navigation: ChatNavigation;
 };
@@ -50,6 +51,7 @@ export type ChatMessage = { id: string; role: 'user' | 'assistant'; text: string
 export type ChatConversation = { id: string; title: string; updated_at: string };
 export type ChatCapabilities = {
 	can_report: boolean;
+	can_view_management_pages?: boolean;
 	suggestions: string[];
 	shortcuts: Array<{ command: string; title: string; help: string; example: string }>;
 };

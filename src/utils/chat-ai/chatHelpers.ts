@@ -12,9 +12,9 @@ const routes: Record<string, string> = {
 	team: '/dashboard/team',
 	changelog: '/dashboard/changelog',
 };
-export const safeChatNavigation = (target: ChatNavigation, canReport: boolean) => {
+export const safeChatNavigation = (target: ChatNavigation, canViewManagementPages: boolean) => {
 	if (target.application !== 'design_workflow' || target.company_id !== 1) return null;
-	if (['reports', 'team', 'overview'].includes(target.resource) && !canReport) return null;
+	if (['reports', 'team', 'overview'].includes(target.resource) && !canViewManagementPages) return null;
 	let expected: string;
 	if (Object.hasOwn(routes, target.resource) && target.identifier === null) expected = routes[target.resource];
 	else {
