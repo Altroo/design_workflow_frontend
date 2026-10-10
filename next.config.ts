@@ -130,7 +130,6 @@ const nextConfig: NextConfig = {
 							`connect-src 'self' https://design-workflow-api.elbouazzatiholding.ma wss://design-workflow-api.elbouazzatiholding.ma${isDev ? ' http://localhost:8004 http://127.0.0.1:8004 ws://localhost:8004 ws://127.0.0.1:8004' : ''}`,
 
 							"frame-ancestors 'self'",
-							"frame-src 'self' blob: https://www.youtube-nocookie.com",
 							"base-uri 'self'",
 							"form-action 'self'",
 						].join('; '),

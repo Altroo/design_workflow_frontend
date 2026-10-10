@@ -35,18 +35,16 @@ export const useChatAssistant = (token: string) => {
 	useEffect(() => () => active.current?.abort(), []);
 
 	useEffect(() => {
-		if (!token) return;
+		if (!open || !token) return;
 		const controller = new AbortController();
 		void Promise.all([
 			chatRequest(`capabilities/?language=${language}`, token, { signal: controller.signal }).then((r) => r.json()),
-			open
-				? chatRequest('conversations/?company_id=1', token, { signal: controller.signal }).then((r) => r.json())
-				: Promise.resolve(null),
+			chatRequest('conversations/?company_id=1', token, { signal: controller.signal }).then((r) => r.json()),
 		])
 			.then(([caps, history]) => {
 				if (!controller.signal.aborted) {
 					setCapabilities(caps);
-					if (history) setConversations(history);
+					setConversations(history);
 				}
 			})
 			.catch((reason) => {

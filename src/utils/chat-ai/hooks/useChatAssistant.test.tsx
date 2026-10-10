@@ -28,15 +28,7 @@ const request = jest.mocked(chatRequest),
 const json = (data: unknown) => ({ json: async () => data }) as Response;
 beforeEach(() => {
 	jest.clearAllMocks();
-	request.mockImplementation(async (path) =>
-		path.startsWith('capabilities/')
-			? json({ can_report: false, idle_meme_enabled: false, suggestions: [], shortcuts: [] })
-			: path === 'conversations/'
-				? json({ id: 'conv' })
-				: path.startsWith('conversations/?')
-					? json([])
-					: json({}),
-	);
+	request.mockImplementation(async (path) => (path === 'conversations/' ? json({ id: 'conv' }) : json({})));
 	stream.mockImplementation(async (_, receive) => {
 		receive('message.delta', { text: 'Ready' });
 		receive('message.completed', { id: 'reply', role: 'assistant', text: 'Ready', cards: [] });
@@ -49,12 +41,8 @@ it('creates one conversation, guards double-send and supplies only native page c
 	await act(async () => {
 		await Promise.all([result.current.send(), result.current.send()]);
 	});
-	expect(request.mock.calls.map((call) => call[0])).toEqual([
-		'capabilities/?language=fr',
-		'conversations/',
-		'conversations/conv/messages/',
-	]);
-	const sent = JSON.parse(request.mock.calls.find(([path]) => path.endsWith('/messages/'))![2]?.body as string);
+	expect(request.mock.calls.map((call) => call[0])).toEqual(['conversations/', 'conversations/conv/messages/']);
+	const sent = JSON.parse(request.mock.calls[1][2]?.body as string);
 	expect(sent.context).toEqual({ resource: 'task', identifier: 3, interface_language: 'fr' });
 	expect(result.current.messages).toHaveLength(2);
 	expect(result.current.retry).toBeNull();
@@ -73,10 +61,7 @@ it('retries the same request identifier without duplicating its user message', a
 	await act(async () => {
 		await result.current.send(failed);
 	});
-	expect(
-		JSON.parse(request.mock.calls.filter(([path]) => path.endsWith('/messages/')).at(-1)![2]?.body as string)
-			.request_id,
-	).toBe(failed.request_id);
+	expect(JSON.parse(request.mock.calls[2][2]?.body as string).request_id).toBe(failed.request_id);
 	expect(result.current.messages.filter((item) => item.role === 'user')).toHaveLength(1);
 });
 
@@ -89,20 +74,10 @@ it('sends a clicked question instead of a stale draft and still guards double cl
 			result.current.send('Comment créer une tâche ?'),
 		]);
 	});
-	const sent = JSON.parse(request.mock.calls.find(([path]) => path.endsWith('/messages/'))![2]?.body as string);
+	const sent = JSON.parse(request.mock.calls[1][2]?.body as string);
 	expect(sent.text).toBe('Comment créer une tâche ?');
 	expect(request.mock.calls.filter(([path]) => path.endsWith('/messages/'))).toHaveLength(1);
 	expect(result.current.draft).toBe('');
-});
-
-it('checks eligibility while closed without loading conversations or opening the assistant', async () => {
-	const { result } = renderHook(() => useChatAssistant('token'));
-	await act(async () => {});
-	expect(result.current.open).toBe(false);
-	expect(result.current.capabilities?.idle_meme_enabled).toBe(false);
-	expect(request.mock.calls.map(([path]) => path)).toEqual(['capabilities/?language=fr']);
-	await act(async () => result.current.setOpen(true));
-	expect(request.mock.calls.some(([path]) => path === 'conversations/?company_id=1')).toBe(true);
 });
 
 it('clears visible history on a new conversation and keeps saved history server-side', async () => {
