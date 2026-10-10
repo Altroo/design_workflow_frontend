@@ -115,7 +115,7 @@ it('preserves reply text and cards without like/dislike controls', () => {
 	const reply = screen.getByText('Voici votre réponse.').closest('article')!;
 	expect(reply).toBeInTheDocument();
 	expect(reply).toHaveClass('assistantMessage');
-	expect(within(reply).getByText(fr.chatAi.title)).toHaveClass('sr-only');
+	expect(within(reply).getByText('AI Assistant', { selector: 'strong' })).toBeVisible();
 	expect(reply.querySelector('.lucide-bot')).not.toBeNull();
 	expect(within(reply).queryAllByRole('button')).toHaveLength(0);
 	expect(reply.querySelector('.lucide-thumbs-up, .lucide-thumbs-down')).toBeNull();
@@ -126,9 +126,10 @@ it('keeps assistant and user bubbles distinct and uses the assistant box while s
 	mockModel.busy = true;
 	const view = render(<EnabledChatAssistant token="test" />);
 	expect(screen.getByText('/aide').closest('article')).toHaveClass('userMessage');
+	expect(screen.getByText('Vous', { selector: 'strong' })).toBeVisible();
 	let pending = screen.getByRole('status');
 	expect(pending).toHaveClass('assistantMessage');
-	expect(within(pending).getByText(fr.chatAi.title)).toHaveClass('sr-only');
+	expect(within(pending).getByText('AI Assistant', { selector: 'strong' })).toBeVisible();
 	expect(within(pending).getByText(fr.chatAi.thinking)).toBeInTheDocument();
 	mockModel.streamText = 'Voici les raccourcis';
 	view.rerender(<EnabledChatAssistant token="test" />);

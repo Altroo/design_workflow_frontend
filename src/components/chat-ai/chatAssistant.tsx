@@ -204,12 +204,10 @@ export const EnabledChatAssistant = ({ token }: { token: string }) => {
 								key={message.id}
 								className={message.role === 'user' ? styles.userMessage : styles.assistantMessage}
 							>
-								{message.role === 'assistant' && (
-									<div className={styles.messageAuthor}>
-										<Bot size={17} aria-hidden="true" />
-										<span className="sr-only">{copy.title}</span>
-									</div>
-								)}
+								<div className={styles.messageAuthor}>
+									{message.role === 'assistant' && <Bot size={17} aria-hidden="true" />}
+									<strong>{message.role === 'assistant' ? 'AI Assistant' : language === 'en' ? 'You' : 'Vous'}</strong>
+								</div>
 								{message.text && <p className={styles.messageText}>{message.text}</p>}
 								{message.cards.map((card, index) => (
 									<ChatResults
@@ -227,7 +225,7 @@ export const EnabledChatAssistant = ({ token }: { token: string }) => {
 							<div role="status" className={styles.assistantMessage}>
 								<div className={styles.messageAuthor}>
 									<Bot size={17} aria-hidden="true" />
-									<span className="sr-only">{copy.title}</span>
+									<strong>AI Assistant</strong>
 								</div>
 								{model.streamText ? (
 									<p className={styles.messageText}>{model.streamText}</p>
