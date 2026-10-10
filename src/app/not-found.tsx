@@ -3,7 +3,7 @@
 import { useRouter } from 'next/navigation';
 import { DASHBOARD } from '@/utils/routes';
 import { useLanguage } from '@/utils/hooks';
-import { ArrowLeft, Home, OctagonAlert } from 'lucide-react';
+import { Home, OctagonAlert } from 'lucide-react';
 
 const NotFound = () => {
 	const router = useRouter();
@@ -22,10 +22,6 @@ const NotFound = () => {
 					<button type="button" onClick={() => router.push(DASHBOARD)} className="app-button">
 						<Home size={16} />
 						<span>{t.common.dashboard}</span>
-					</button>
-					<button type="button" onClick={() => router.back()} className="app-button app-button-secondary">
-						<ArrowLeft size={16} />
-						<span>{t.common.back}</span>
 					</button>
 				</div>
 			</div>
