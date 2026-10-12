@@ -1,0 +1,8 @@
+{
+  "component": "Chat AI Assistant",
+  "version": "1.1.0",
+  "files": {
+    "useDraggableLauncher.ts": "1eb23fa6d7bd4b8c84c455588488cafe1c902a7c98d0e42be80d839c538754e7",
+    "useDraggableLauncher.test.tsx": "d41222109d690167c65bc7ed295a555aaffb02c8401272f4df807a018ec06659"
+  }
+}

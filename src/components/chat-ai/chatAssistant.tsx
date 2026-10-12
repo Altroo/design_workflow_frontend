@@ -14,6 +14,7 @@ import { ChatShortcuts } from './chatShortcuts';
 import AiAssistantDialog from '@/components/shared/aiAssistantControl/aiAssistantDialog';
 import type { ChatConfirmation as Confirmation, ChatNavigation } from '@/types/chatAiTypes';
 import styles from './chatAssistant.module.css';
+import { useDraggableLauncher } from './shared/useDraggableLauncher';
 
 export const EnabledChatAssistant = ({ token }: { token: string }) => {
 	const model = useChatAssistant(token);
@@ -26,6 +27,7 @@ export const EnabledChatAssistant = ({ token }: { token: string }) => {
 	const [activeShortcut, setActiveShortcut] = useState(0);
 	const [shortcutsDismissed, setShortcutsDismissed] = useState(false);
 	const shortcutListId = useId();
+	const launcherHelpId = useId();
 	const shortcutMatches = (model.capabilities?.shortcuts ?? []).filter((shortcut) =>
 		shortcut.command.toLowerCase().startsWith(model.draft.toLowerCase()),
 	);
@@ -35,7 +37,8 @@ export const EnabledChatAssistant = ({ token }: { token: string }) => {
 	const input = useRef<HTMLTextAreaElement>(null);
 	const panel = useRef<HTMLElement>(null);
 	const scroll = useRef<HTMLDivElement>(null);
-	const trigger = useRef<HTMLButtonElement>(null);
+	const launcher = useDraggableLauncher(() => model.setOpen(true));
+	const trigger = launcher.ref;
 	const updateDraft = (value: string) => {
 		model.setDraft(value);
 		setActiveShortcut(0);
@@ -63,7 +66,7 @@ export const EnabledChatAssistant = ({ token }: { token: string }) => {
 			viewport?.removeEventListener('scroll', resize);
 			opener?.focus();
 		};
-	}, [model.open]);
+	}, [model.open, trigger]);
 	useEffect(() => {
 		if (scroll.current && model.open) scroll.current.scrollTop = scroll.current.scrollHeight;
 	}, [model.messages.length, model.streamText, model.busy, model.open]);
@@ -80,17 +83,22 @@ export const EnabledChatAssistant = ({ token }: { token: string }) => {
 	return createPortal(
 		<>
 			<button
-				ref={trigger}
+				{...launcher}
 				className={styles.launcher}
 				aria-label={copy.open}
-				title={copy.open}
+				title={`${copy.open} · ${language === 'fr' ? 'Glisser pour déplacer' : 'Drag to move'}`}
+				aria-describedby={launcherHelpId}
 				aria-expanded={model.open}
 				aria-controls="workflow-chat-assistant"
 				hidden={model.open}
-				onClick={() => model.setOpen(true)}
 			>
 				<Bot size={26} aria-hidden="true" />
 			</button>
+			<span id={launcherHelpId} className="sr-only">
+				{language === 'fr'
+					? 'Glissez pour déplacer. Les flèches déplacent le bouton ; Début rétablit sa position.'
+					: 'Drag to move. Arrow keys move the button; Home resets its position.'}
+			</span>
 			<aside
 				ref={panel}
 				id="workflow-chat-assistant"

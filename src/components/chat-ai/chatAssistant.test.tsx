@@ -97,7 +97,8 @@ it('keeps an accessible robot-only launcher', () => {
 	const launcher = screen.getByRole('button', { name: fr.chatAi.open });
 	expect(launcher).toHaveTextContent('');
 	expect(launcher.querySelector('.lucide-bot')).not.toBeNull();
-	expect(launcher).toHaveAttribute('title', fr.chatAi.open);
+	expect(launcher).toHaveAttribute('title', `${fr.chatAi.open} · Glisser pour déplacer`);
+	expect(launcher).toHaveAccessibleDescription(expect.stringContaining('Les flèches'));
 	fireEvent.click(launcher);
 	expect(mockModel.setOpen).toHaveBeenCalledWith(true);
 });
