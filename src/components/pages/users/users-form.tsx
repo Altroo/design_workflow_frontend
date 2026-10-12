@@ -1,5 +1,6 @@
 'use client';
 
+import { listReturnUrl } from '@/utils/listReturn';
 import { runWithCleanup, runAsyncWithErrorHandler } from '@/utils/runWithCleanup';
 import { useEffect, useEffectEvent, useRef, useState, type FC, type MouseEvent } from 'react';
 import type { ApiErrorResponseType, ResponseDataInterface, SessionProps } from '@/types/_initTypes';
@@ -159,7 +160,7 @@ const FormikContent: FC<FormikContentProps> = ({ token, id }) => {
 							} else {
 								await addUser({ data: fields }).unwrap();
 								onSuccess(t.users.userCreatedSuccess);
-								router.push(USERS_LIST);
+								router.push(listReturnUrl(USERS_LIST));
 							}
 						},
 						(e) => {
@@ -227,7 +228,7 @@ const FormikContent: FC<FormikContentProps> = ({ token, id }) => {
 				title={isEditMode ? t.users.editUser : t.users.createUser}
 				actionsWrapper={false}
 				actions={
-					<button type="button" onClick={() => router.push(USERS_LIST)} className="workflow-user-form-back">
+					<button type="button" onClick={() => router.push(listReturnUrl(USERS_LIST))} className="workflow-user-form-back">
 						<ArrowLeft className="h-4 w-4" />
 						<span>{t.navigation.usersList}</span>
 					</button>

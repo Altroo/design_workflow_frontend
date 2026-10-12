@@ -1,5 +1,6 @@
 'use client';
 
+import { listReturnUrl } from '@/utils/listReturn';
 import { runWithCleanup } from '@/utils/runWithCleanup';
 import { useState, type FC } from 'react';
 import { useRouter } from 'next/navigation';
@@ -57,7 +58,7 @@ const UsersViewClient: FC<Props> = ({ session, id }) => {
 				try {
 					await deleteRecord({ id }).unwrap();
 					onSuccess(t.users.userDeletedSuccess);
-					router.push(USERS_LIST);
+					router.push(listReturnUrl(USERS_LIST));
 				} catch (err) {
 					onError(extractApiErrorMessage(err, t.users.userDeleteError));
 				}
@@ -86,7 +87,7 @@ const UsersViewClient: FC<Props> = ({ session, id }) => {
 							actionsClassName="workflow-user-detail-actions"
 							actions={
 								<>
-									<button type="button" onClick={() => router.push(USERS_LIST)} className="workflow-user-detail-back">
+									<button type="button" onClick={() => router.push(listReturnUrl(USERS_LIST))} className="workflow-user-detail-back">
 										<ArrowLeft className="h-4 w-4" />
 										<span>{t.navigation.usersList}</span>
 									</button>

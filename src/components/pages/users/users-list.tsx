@@ -1,5 +1,6 @@
 'use client';
 
+import { useListPagination } from '@/utils/hooks/useListPagination';
 import { runWithCleanup } from '@/utils/runWithCleanup';
 import { useState, type FC } from 'react';
 import { useRouter } from 'next/navigation';
@@ -39,10 +40,7 @@ const UsersListClient: FC<SessionProps> = ({ session }) => {
 	const { t } = useLanguage();
 	const token = useInitAccessToken(session);
 
-	const [paginationModel, setPaginationModel] = useState<{ page: number; pageSize: number }>({
-		page: 0,
-		pageSize: 10,
-	});
+	const [paginationModel, setPaginationModel] = useListPagination();
 	const [searchTerm, setSearchTerm] = useState('');
 	const [showDeleteModal, setShowDeleteModal] = useState(false);
 	const [selectedUserId, setSelectedUserId] = useState<number | null>(null);
