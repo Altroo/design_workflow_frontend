@@ -5,7 +5,7 @@ import { useEffect, useRef, useState, type FC } from 'react';
 import { useFormik } from 'formik';
 import { toFormikValidationSchema } from 'zod-formik-adapter';
 import { ArrowRight, Eye, EyeOff, KeyRound, Lock, Mail } from 'lucide-react';
-import { signIn, useSession } from 'next-auth/react';
+import { getSession, signIn, useSession } from 'next-auth/react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import AuthLayout from '@/components/layouts/auth/authLayout';
 import ApiProgress from '@/components/formikElements/apiLoading/apiProgress/apiProgress';
@@ -185,16 +185,33 @@ const LoginClient: FC = () => {
 	const dispatch = useAppDispatch();
 	const router = useRouter();
 	const sessionUpdatedRef = useRef(false);
+	const [checkingSession, setCheckingSession] = useState(true);
 
 	useEffect(() => {
-		if (session && !sessionUpdatedRef.current) {
-			dispatch(refreshAppTokenStatesAction(session));
-			sessionUpdatedRef.current = true;
-			router.replace(DASHBOARD);
-		}
-	}, [dispatch, router, session]);
+		if (status === 'loading' || sessionUpdatedRef.current) return;
+		let active = true;
+		// A server redirect can leave an expired session in the client provider.
+		void getSession({ broadcast: false })
+			.then((currentSession) => {
+				if (!active) return;
+				if (currentSession) {
+					setCheckingSession(true);
+					dispatch(refreshAppTokenStatesAction(currentSession));
+					sessionUpdatedRef.current = true;
+					router.replace(DASHBOARD);
+				} else {
+					setCheckingSession(false);
+				}
+			})
+			.catch(() => {
+				if (active) setCheckingSession(false);
+			});
+		return () => {
+			active = false;
+		};
+	}, [dispatch, router, session, status]);
 
-	if (status === 'loading' || session) {
+	if (status === 'loading' || checkingSession) {
 		return <ApiProgress backdropColor="#FFFFFF" circularColor="var(--accent)" />;
 	}
 

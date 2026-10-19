@@ -2,6 +2,8 @@ import {
 	mockUpdateTaskReview,
 	mockUploadTaskAttachment,
 	mockUseGetTaskQuery,
+	mockUseGetProjectQuery,
+	projectDetail,
 	makeMutationResult,
 	manager,
 	designerA,
@@ -27,6 +29,74 @@ import type { SavedView, TaskDetail } from '@/types/designWorkflowTypes';
 import type { DragEndEvent } from '@dnd-kit/core';
 import { useWorkflowController } from './useWorkflowController';
 import { emptyBoardFilters, savedViewPayloadFromFilters } from '../workflowFormHelpers';
+import { StrictMode } from 'react';
+
+it('does not reset drafts or loop when identical project data gets a fresh object identity', () => {
+	mockProfile(manager);
+	mockUseGetProjectQuery.mockImplementation(() => ({
+		data: { ...projectDetail, collaborators: [...(projectDetail.collaborators ?? [])] },
+	}));
+	const { result, rerender } = renderHook(
+		() => useWorkflowController({ title: 'Project', variant: 'project-detail', projectId: projectDetail.id }),
+		{ wrapper: StrictMode },
+	);
+	act(() => result.current.setProjectEditForm((current) => ({ ...current, name: 'Keep this draft' })));
+	rerender();
+	expect(result.current.projectEditForm.name).toBe('Keep this draft');
+	expect(result.current.projectConflictNotice).toBeNull();
+});
+
+it('preserves project edits, merges untouched fields and rebases conflicts under Strict Mode', () => {
+	mockProfile(manager);
+	mockUseGetProjectQuery.mockReturnValue({ data: projectDetail });
+	const { result, rerender } = renderHook(
+		() => useWorkflowController({ title: 'Project', variant: 'project-detail', projectId: projectDetail.id }),
+		{ wrapper: StrictMode },
+	);
+	act(() => result.current.setProjectEditForm((current) => ({ ...current, name: 'Local draft' })));
+	mockUseGetProjectQuery.mockReturnValue({
+		data: { ...projectDetail, name: 'Remote change', description: 'Updated description' },
+	});
+	rerender();
+	expect(result.current.projectEditForm.name).toBe('Local draft');
+	expect(result.current.projectEditForm.description).toBe('Updated description');
+	expect(result.current.projectConflictNotice).not.toBeNull();
+	const { unmount } = render(result.current.projectConflictNotice);
+	act(() => screen.getByRole('button', { name: 'Load latest version' }).click());
+	expect(result.current.projectEditForm.name).toBe('Remote change');
+	expect(result.current.projectConflictNotice).toBeNull();
+	unmount();
+});
+
+it('opens a board deep link once and allows closing it before the route updates', () => {
+	mockProfile(manager);
+	const { result, rerender } = renderHook(
+		({ taskId }) => useWorkflowController({ title: 'Board', variant: 'board', taskId }),
+		{
+			initialProps: { taskId: taskDetail.id },
+		},
+	);
+	expect(result.current.selectedTaskId).toBe(taskDetail.id);
+	act(() => result.current.closeTaskModal());
+	expect(result.current.selectedTaskId).toBeNull();
+	rerender({ taskId: taskDetail.id + 1 });
+	expect(result.current.selectedTaskId).toBe(taskDetail.id + 1);
+});
+
+it('keeps a quick-add draft on refresh and clears it when its project scope changes', () => {
+	mockProfile(manager);
+	const { result, rerender } = renderHook(() => useWorkflowController({ title: 'Board', variant: 'board' }));
+	act(() => {
+		result.current.setQuickAddColumn('todo');
+		result.current.setQuickAddTitle('New design');
+		result.current.setQuickAddProjectId('4');
+	});
+	rerender();
+	expect(result.current.quickAddTitle).toBe('New design');
+	act(() => result.current.updateBoardFiltersManually({ ...emptyBoardFilters(), project: '5' }));
+	expect(result.current.quickAddColumn).toBeNull();
+	expect(result.current.quickAddTitle).toBe('');
+});
 
 describe('board drag and persistence', () => {
 	const dragEvent = (id: string | number, over: string): DragEndEvent => ({

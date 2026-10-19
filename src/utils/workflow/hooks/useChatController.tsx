@@ -139,10 +139,11 @@ export const useChatController = () => {
 		(optimisticSelectedThread?.id === selectedThreadId ? optimisticSelectedThread : undefined) ??
 		preferredThread;
 	const selectedThreadSection = sectionForThread(selectedThread);
-	useEffect(() => {
-		if (!selectedThread?.id) return;
-		setOpenSidebarSection(selectedThreadSection);
-	}, [selectedThread?.id, selectedThreadSection]);
+	const [sidebarSelection, setSidebarSelection] = useState<{ id?: number; section?: ChatSidebarSection }>({});
+	if (sidebarSelection.id !== selectedThread?.id || sidebarSelection.section !== selectedThreadSection) {
+		setSidebarSelection({ id: selectedThread?.id, section: selectedThreadSection });
+		if (selectedThread?.id) setOpenSidebarSection(selectedThreadSection);
+	}
 	useEffect(() => {
 		threadSectionsRef.current = new Map(chatThreads.map((thread) => [thread.id, sectionForThread(thread)]));
 		const pendingThreadId = pendingIncomingThreadIdRef.current;
@@ -248,18 +249,12 @@ export const useChatController = () => {
 		threadsFetching,
 		threadsLoading,
 	]);
-	useEffect(() => {
-		if (!optimisticSelectedThread) return;
-		if (chatThreads.some((thread) => thread.id === optimisticSelectedThread.id)) {
-			setOptimisticSelectedThread(null);
-		}
-	}, [chatThreads, optimisticSelectedThread]);
-	useEffect(() => {
-		if (!requestedThreadId || selectedThreadId === requestedThreadId) return;
-		if (chatThreads.some((thread) => thread.id === requestedThreadId)) {
-			setSelectedThreadId(requestedThreadId);
-		}
-	}, [chatThreads, requestedThreadId, selectedThreadId]);
+	if (optimisticSelectedThread && chatThreads.some((thread) => thread.id === optimisticSelectedThread.id)) {
+		setOptimisticSelectedThread(null);
+	}
+	if (requestedThreadAvailable && selectedThreadId !== requestedThreadId) {
+		setSelectedThreadId(requestedThreadId);
+	}
 	const usersResponse = useGetUsersListQuery({ with_pagination: false, is_active: true }, { skip: !chatDataReady });
 	const usersRaw = (usersResponse.data ?? []) as
 		Array<Partial<UserClass>> | { results?: Array<Partial<UserClass>>; data?: Array<Partial<UserClass>> };
@@ -353,8 +348,9 @@ export const useChatController = () => {
 				});
 		});
 	});
-	useEffect(() => {
-		actionContextRef.current += 1;
+	const [actionThreadId, setActionThreadId] = useState(selectedThread?.id);
+	if (actionThreadId !== selectedThread?.id) {
+		setActionThreadId(selectedThread?.id);
 		setPendingActionSources(new Set());
 		setReplyTarget(null);
 		setForwardMessage(null);
@@ -363,6 +359,9 @@ export const useChatController = () => {
 		setTaskSourceMessage(null);
 		setDeleteTargetMessage(null);
 		setTaskModalOpen(false);
+	}
+	useEffect(() => {
+		actionContextRef.current += 1;
 		return () => {
 			actionContextRef.current += 1;
 		};
@@ -374,28 +373,34 @@ export const useChatController = () => {
 			syncActionSource(live && live.updated_at >= message.updated_at ? live : message);
 		});
 	}, [currentMessages, selectedThread?.id]);
-	useEffect(() => {
-		const pendingRequestedThread = requestedThreadId && (threadsLoading || threadsFetching || requestedThreadAvailable);
-		if (!selectedThreadId && !pendingRequestedThread && preferredThread) {
-			setSelectedThreadId(preferredThread.id);
-		}
-	}, [preferredThread, requestedThreadAvailable, requestedThreadId, selectedThreadId, threadsFetching, threadsLoading]);
+	const pendingRequestedThread = requestedThreadId && (threadsLoading || threadsFetching || requestedThreadAvailable);
+	if (!selectedThreadId && !pendingRequestedThread && preferredThread) {
+		setSelectedThreadId(preferredThread.id);
+	}
+	const [historySelection, setHistorySelection] = useState({ id: selectedThread?.id, searchTerm, searchFilters });
+	if (
+		historySelection.id !== selectedThread?.id ||
+		historySelection.searchTerm !== searchTerm ||
+		historySelection.searchFilters !== searchFilters
+	) {
+		setHistorySelection({ id: selectedThread?.id, searchTerm, searchFilters });
+		setOlderMessages([]);
+		setLoadingOlder(false);
+		setHasOlder(false);
+		setTypingUsers({});
+		setRecordingUsers({});
+		setReactionPickerMessageId(null);
+	}
 	useEffect(() => {
 		historyContextRef.current += 1;
 		olderRequestRef.current = null;
 		historyUpdatesRef.current.clear();
 		historyExpandedRef.current = false;
 		currentPageSnapshotRef.current = null;
-		setOlderMessages([]);
-		setLoadingOlder(false);
-		setHasOlder(false);
-		setTypingUsers({});
 		Object.values(typingPresenceTimeoutsRef.current).forEach((timeout) => window.clearTimeout(timeout));
 		typingPresenceTimeoutsRef.current = {};
-		setRecordingUsers({});
 		Object.values(recordingPresenceTimeoutsRef.current).forEach((timeout) => window.clearTimeout(timeout));
 		recordingPresenceTimeoutsRef.current = {};
-		setReactionPickerMessageId(null);
 		markedReadIdsRef.current.clear();
 		return () => {
 			historyContextRef.current += 1;
@@ -439,10 +444,7 @@ export const useChatController = () => {
 	});
 	useEffect(() => () => releaseFilePreviews(), []);
 	useEffect(() => {
-		if (!recording) {
-			setRecordingSeconds(0);
-			return undefined;
-		}
+		if (!recording) return;
 		const startedAt = Date.now();
 		const timer = window.setInterval(() => {
 			setRecordingSeconds(Math.max(1, Math.floor((Date.now() - startedAt) / 1000)));
@@ -793,12 +795,19 @@ export const useChatController = () => {
 	})();
 	const mentionTriggerText = mentionMatch?.[0] ?? '';
 	const referenceTriggerText = referenceMatch?.[0] ?? '';
-	useEffect(() => {
+	const [mentionSelection, setMentionSelection] = useState({ text: mentionTriggerText, count: mentionOptions.length });
+	if (mentionSelection.text !== mentionTriggerText || mentionSelection.count !== mentionOptions.length) {
+		setMentionSelection({ text: mentionTriggerText, count: mentionOptions.length });
 		setMentionActiveIndex(0);
-	}, [mentionTriggerText, mentionOptions.length]);
-	useEffect(() => {
+	}
+	const [referenceSelection, setReferenceSelection] = useState({
+		text: referenceTriggerText,
+		count: referenceOptions.length,
+	});
+	if (referenceSelection.text !== referenceTriggerText || referenceSelection.count !== referenceOptions.length) {
+		setReferenceSelection({ text: referenceTriggerText, count: referenceOptions.length });
 		setReferenceActiveIndex(0);
-	}, [referenceTriggerText, referenceOptions.length]);
+	}
 	const groupedMessages = (() => {
 		const groups: Array<{ day: string; items: ChatMessage[] }> = [];
 		messageList.forEach((message) => {
@@ -1022,6 +1031,7 @@ export const useChatController = () => {
 				setFilePreviewUrls((current) => [...current, previewUrl]);
 			};
 			recorder.start();
+			setRecordingSeconds(0);
 			setRecording(true);
 			emitRecording(true);
 		} catch (error) {
@@ -1159,7 +1169,7 @@ export const useChatController = () => {
 		recordingNames,
 		recording,
 		stopVoiceRecording,
-		recordingSeconds,
+		recordingSeconds: recording ? recordingSeconds : 0,
 		fileInputRef,
 		sendMessageState,
 		onError,

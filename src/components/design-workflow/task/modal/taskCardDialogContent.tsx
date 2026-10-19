@@ -60,7 +60,7 @@ export const TaskCardDialogContent = ({ model }: { model: TaskDetailModel }) => 
 		mentionableUsers,
 		taskUpdatePayload,
 		setModalDescriptionEditing,
-		taskEditBaselineRef,
+		setTaskEditBaseline,
 		chartTextColor,
 		modalHasDates,
 		dateFor,
@@ -183,7 +183,7 @@ export const TaskCardDialogContent = ({ model }: { model: TaskDetailModel }) => 
 										className="workflow-trello-modal-cancel"
 										onClick={() => {
 											const latest = buildTaskEditForm(task);
-											taskEditBaselineRef.current = latest;
+											setTaskEditBaseline(latest);
 											setTaskEditForm(latest);
 											setModalDescriptionEditing(false);
 										}}

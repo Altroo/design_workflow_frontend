@@ -98,7 +98,7 @@ export const WorkflowTaskDetail = ({
 		| 'mentionableUsers'
 		| 'taskUpdatePayload'
 		| 'setModalDescriptionEditing'
-		| 'taskEditBaselineRef'
+		| 'setTaskEditBaseline'
 		| 'chartTextColor'
 		| 'dateFor'
 		| 'deleteChecklist'

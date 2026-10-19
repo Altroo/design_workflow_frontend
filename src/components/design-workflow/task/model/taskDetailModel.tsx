@@ -110,7 +110,7 @@ export const createTaskDetailModel = (
 		| 'mentionableUsers'
 		| 'taskUpdatePayload'
 		| 'setModalDescriptionEditing'
-		| 'taskEditBaselineRef'
+		| 'setTaskEditBaseline'
 		| 'chartTextColor'
 		| 'dateFor'
 		| 'deleteChecklist'
@@ -236,7 +236,7 @@ export const createTaskDetailModel = (
 		mentionableUsers,
 		taskUpdatePayload,
 		setModalDescriptionEditing,
-		taskEditBaselineRef,
+		setTaskEditBaseline,
 		chartTextColor,
 		dateFor,
 		deleteChecklist,
@@ -612,7 +612,7 @@ export const createTaskDetailModel = (
 		mentionableUsers,
 		taskUpdatePayload,
 		setModalDescriptionEditing,
-		taskEditBaselineRef,
+		setTaskEditBaseline,
 		chartTextColor,
 		dateFor,
 		deleteChecklist,

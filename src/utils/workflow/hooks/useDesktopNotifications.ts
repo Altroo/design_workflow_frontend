@@ -47,6 +47,12 @@ export const useDesktopNotifications = ({
 	const seenIds = useRef(new Set<number>());
 	const deliveredKeys = useRef(new Set<string>());
 	const pendingIds = useRef(new Set<number>());
+	const [requestUserId, setRequestUserId] = useState(userId);
+	if (requestUserId !== userId) {
+		setRequestUserId(userId);
+		setFailed(false);
+		setRequesting(false);
+	}
 
 	useEffect(() => {
 		const current = { userId, active: true };
@@ -55,8 +61,6 @@ export const useDesktopNotifications = ({
 		seenIds.current.clear();
 		deliveredKeys.current.clear();
 		pendingIds.current.clear();
-		setFailed(false);
-		setRequesting(false);
 		const sync = () => {
 			setPermission(getPermission());
 			if (userId) setPreferences(readDesktopPreferences(userId));

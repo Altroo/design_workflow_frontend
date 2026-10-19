@@ -347,7 +347,7 @@ export const WorkflowProjectDetail = ({
 												id: project.id,
 												data: guardedChanges(
 													buildProjectPayload(projectEditForm),
-													buildProjectPayload(projectEditBaseline.current ?? projectEditForm),
+													buildProjectPayload(projectEditBaseline ?? projectEditForm),
 												),
 											}).unwrap();
 										},

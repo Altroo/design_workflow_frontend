@@ -254,7 +254,7 @@ export const useWorkflowController = ({ title, variant, projectId, taskId }: Pro
 	const [selectedSavedViewId, setSelectedSavedViewId] = useState<number | null>(null);
 	const [autoAppliedSavedViewId, setAutoAppliedSavedViewId] = useState<number | null>(null);
 	const [emptyDefaultSavedViewName, setEmptyDefaultSavedViewName] = useState('');
-	const defaultSavedViewAppliedRef = useRef(false);
+	const [defaultSavedViewApplied, setDefaultSavedViewApplied] = useState(false);
 	const [notificationsUnreadOnly, setNotificationsUnreadOnly] = useState(false);
 	const [notificationCommentDrafts, setNotificationCommentDrafts] = useState<Record<number, string>>({});
 	const [notificationPreferenceDraft, setNotificationPreferenceDraft] = useState<NotificationPreference>(
@@ -266,9 +266,9 @@ export const useWorkflowController = ({ title, variant, projectId, taskId }: Pro
 	const [taskForm, setTaskForm] = useState<TaskFormState>(emptyTaskForm);
 	const [taskEditForm, setTaskEditForm] = useState<TaskFormState>(emptyTaskForm);
 	const taskFormSnapshot = useRef<{ id: number; form: TaskFormState } | null>(null);
-	const projectFormSnapshot = useRef<{ id: number; form: ProjectInput } | null>(null);
-	const taskEditBaselineRef = useRef<TaskFormState | null>(null);
-	const projectEditBaseline = useRef<ProjectInput | null>(null);
+	const [projectFormSnapshot, setProjectFormSnapshot] = useState<{ id: number; form: ProjectInput } | null>(null);
+	const [taskEditBaseline, setTaskEditBaseline] = useState<TaskFormState | null>(null);
+	const [projectEditBaseline, setProjectEditBaseline] = useState<ProjectInput | null>(null);
 	const savedViewSnapshot = useRef<{ id: number; filters: BoardFiltersState } | null>(null);
 	const [reassignForm, setReassignForm] = useState({ assignee_id: '', reason: '' });
 	const [commentBody, setCommentBody] = useState('');
@@ -301,7 +301,7 @@ export const useWorkflowController = ({ title, variant, projectId, taskId }: Pro
 	const [mediaDeleteTarget, setMediaDeleteTarget] = useState<MediaDeleteTarget | null>(null);
 	const [projectArchiveTarget, setProjectArchiveTarget] = useState<{ id: number; archived: boolean } | null>(null);
 	const [attachmentPreview, setAttachmentPreview] = useState<AttachmentPreviewTarget | null>(null);
-	const [boardDraft, setBoardDraft] = useState<TaskCard[]>([]);
+	const [boardMoveDraft, setBoardDraft] = useState<TaskCard[]>([]);
 	const [boardMovePending, setBoardMovePending] = useState(false);
 	const boardMoveLock = useRef(false);
 	const [draggedTaskId, setDraggedTaskId] = useState<number | null>(null);
@@ -310,11 +310,18 @@ export const useWorkflowController = ({ title, variant, projectId, taskId }: Pro
 	const [quickAddProjectId, setQuickAddProjectId] = useState('');
 	const quickAddContext = useRef(0);
 	const quickAddLock = useRef(false);
-	useEffect(() => {
-		quickAddContext.current += 1;
+	const [quickAddScope, setQuickAddScope] = useState({
+		project: boardFilters.project,
+		archivedOnly: boardFilters.archivedOnly,
+	});
+	if (quickAddScope.project !== boardFilters.project || quickAddScope.archivedOnly !== boardFilters.archivedOnly) {
+		setQuickAddScope({ project: boardFilters.project, archivedOnly: boardFilters.archivedOnly });
 		setQuickAddColumn(null);
 		setQuickAddTitle('');
 		setQuickAddProjectId('');
+	}
+	useEffect(() => {
+		quickAddContext.current += 1;
 	}, [boardFilters.project, boardFilters.archivedOnly]);
 	const pendingReviewMutationRef = useRef<number | null>(null);
 	const [selectedTaskId, setSelectedTaskId] = useState<number | null>(null);
@@ -369,11 +376,12 @@ export const useWorkflowController = ({ title, variant, projectId, taskId }: Pro
 		setModalLabelComposerOpen(false);
 		setEditingLabelId(null);
 	};
-	useEffect(() => {
-		if (variant === 'board' && taskId) {
-			setSelectedTaskId(taskId);
-		}
-	}, [taskId, variant]);
+	// Reconcile only a changed route, so closing a deep-linked card stays possible.
+	const [taskRoute, setTaskRoute] = useState({ taskId: undefined as number | undefined, variant });
+	if (taskRoute.taskId !== taskId || taskRoute.variant !== variant) {
+		setTaskRoute({ taskId, variant });
+		if (variant === 'board' && taskId) setSelectedTaskId(taskId);
+	}
 	const { data: summary, isLoading: summaryLoading } = useGetDashboardSummaryQuery(undefined, {
 		skip: !workflowDataReady || variant !== 'overview' || !isManager,
 		pollingInterval: 60_000,
@@ -470,6 +478,7 @@ export const useWorkflowController = ({ title, variant, projectId, taskId }: Pro
 		skip: !workflowDataReady || !['board', 'overview'].includes(variant),
 	});
 	const tasks = tasksData ?? EMPTY_TASKS;
+	const boardDraft = draggedTaskId !== null || boardMovePending ? boardMoveDraft : tasks;
 	const {
 		data: unfilteredBoardTasksData = EMPTY_TASKS,
 		isLoading: unfilteredBoardTasksLoading,
@@ -658,86 +667,71 @@ export const useWorkflowController = ({ title, variant, projectId, taskId }: Pro
 			reviewResponseVersion.current = null;
 		}
 	}, [task?.review_state, pendingReviewTaskId, reviewStateDraft, task]);
-	useEffect(() => {
-		if (notificationPreferences) {
-			setNotificationPreferenceDraft(notificationPreferences);
-		}
-	}, [notificationPreferences]);
-	useEffect(() => {
-		if (profile.id && !projectForm.manager_id) {
-			setProjectForm((current) => ({ ...current, manager_id: profile.id }));
-		}
-	}, [profile.id, projectForm.manager_id]);
-	const syncProjectEditForm = useEffectEvent(() => {
-		if (project) {
-			const next: ProjectInput = {
-				name: project.name,
-				description: project.description,
-				manager_id: project.manager.id,
-				collaborator_ids: project.collaborators?.map((user) => user.id) ?? [],
-				start_date: project.start_date ?? '',
-				target_end_date: project.target_end_date ?? '',
-				priority: project.priority,
-				status: project.status,
-				archived: project.archived,
-			};
-			const previous = projectFormSnapshot.current;
-			projectEditBaseline.current =
-				previous?.id === project.id && projectEditBaseline.current
-					? mergeDraftBaseline(projectEditForm, projectEditBaseline.current, next)
-					: next;
+	const [notificationPreferencesSnapshot, setNotificationPreferencesSnapshot] = useState<NotificationPreference>();
+	if (notificationPreferencesSnapshot !== notificationPreferences) {
+		setNotificationPreferencesSnapshot(notificationPreferences);
+		if (notificationPreferences) setNotificationPreferenceDraft(notificationPreferences);
+	}
+	if (profile.id && !projectForm.manager_id) {
+		setProjectForm({ ...projectForm, manager_id: profile.id });
+	}
+	// Reconcile only a changed server form snapshot. This preserves local edits
+	// and terminates even if a query adapter returns a fresh object each render.
+	if (project) {
+		const next: ProjectInput = {
+			name: project.name,
+			description: project.description,
+			manager_id: project.manager.id,
+			collaborator_ids: project.collaborators?.map((user) => user.id) ?? [],
+			start_date: project.start_date ?? '',
+			target_end_date: project.target_end_date ?? '',
+			priority: project.priority,
+			status: project.status,
+			archived: project.archived,
+		};
+		const previous = projectFormSnapshot;
+		if (previous?.id !== project.id || JSON.stringify(previous.form) !== JSON.stringify(next)) {
+			setProjectEditBaseline(
+				previous?.id === project.id && projectEditBaseline
+					? mergeDraftBaseline(projectEditForm, projectEditBaseline, next)
+					: next,
+			);
 			setProjectEditForm((current) =>
 				previous?.id === project.id ? mergeLiveDraft(current, previous.form, next) : next,
 			);
-			projectFormSnapshot.current = { id: project.id, form: next };
+			setProjectFormSnapshot({ id: project.id, form: next });
 			setTaskForm((current) => ({
 				...current,
 				current_assignee_id: current.current_assignee_id || '',
 			}));
 		}
-	});
-	useEffect(() => {
-		syncProjectEditForm();
-	}, [project]);
-	useEffect(() => {
-		if (!['board', 'overview'].includes(variant) || draggedTaskId !== null || boardMovePending) {
-			return;
-		}
-		setBoardDraft(tasks);
-	}, [tasks, variant, draggedTaskId, boardMovePending]);
-	useEffect(() => {
-		if (variant !== 'board' || defaultSavedViewAppliedRef.current || savedViews.length === 0) {
-			return;
-		}
-		const defaultView = savedViews.find((item) => item.is_default);
-		if (!defaultView) return;
-		defaultSavedViewAppliedRef.current = true;
+	}
+	const defaultView =
+		variant === 'board' && !defaultSavedViewApplied ? savedViews.find((item) => item.is_default) : undefined;
+	if (defaultView) {
+		setDefaultSavedViewApplied(true);
 		setBoardFilters(filtersFromSavedView(defaultView));
 		setSelectedSavedViewId(defaultView.id);
 		setAutoAppliedSavedViewId(defaultView.id);
 		setEmptyDefaultSavedViewName('');
-	}, [savedViews, variant]);
-	useEffect(() => {
-		if (!autoAppliedSavedViewId || variant !== 'board') return;
-		if (tasksLoading || tasksFetching || unfilteredBoardTasksLoading || unfilteredBoardTasksFetching) return;
-		if (tasks.length > 0 || unfilteredBoardTasksData.length === 0) return;
+	}
+	if (
+		autoAppliedSavedViewId &&
+		variant === 'board' &&
+		!tasksLoading &&
+		!tasksFetching &&
+		!unfilteredBoardTasksLoading &&
+		!unfilteredBoardTasksFetching &&
+		tasks.length === 0 &&
+		unfilteredBoardTasksData.length > 0
+	) {
 		const emptyView = savedViews.find((view) => view.id === autoAppliedSavedViewId);
 		setBoardFilters(emptyBoardFilters());
 		setSelectedSavedViewId(null);
 		setAutoAppliedSavedViewId(null);
 		setEmptyDefaultSavedViewName(emptyView?.name ?? '');
 		setBoardFiltersOpen(true);
-	}, [
-		autoAppliedSavedViewId,
-		savedViews,
-		tasks.length,
-		tasksFetching,
-		tasksLoading,
-		unfilteredBoardTasksData.length,
-		unfilteredBoardTasksFetching,
-		unfilteredBoardTasksLoading,
-		variant,
-	]);
+	}
 	useEffect(() => {
 		const handleMove = (event: PointerEvent) => {
 			boardDragPointerRef.current.x = event.clientX;
@@ -748,14 +742,18 @@ export const useWorkflowController = ({ title, variant, projectId, taskId }: Pro
 			window.removeEventListener('pointermove', handleMove, true);
 		};
 	}, []);
-	useEffect(() => {
-		attachmentContext.current += 1;
+	const [attachmentTaskId, setAttachmentTaskId] = useState(activeTaskId);
+	if (attachmentTaskId !== activeTaskId) {
+		setAttachmentTaskId(activeTaskId);
 		setModalTitleDraft(null);
-		attachmentUploadLock.current = false;
 		setTaskAttachments([]);
 		setAttachmentUploadProgress(null);
 		setAttachmentUploadStatus(null);
 		setTaskAddPanel(null);
+	}
+	useEffect(() => {
+		attachmentContext.current += 1;
+		attachmentUploadLock.current = false;
 		return () => {
 			attachmentContext.current += 1;
 		};
@@ -764,17 +762,13 @@ export const useWorkflowController = ({ title, variant, projectId, taskId }: Pro
 		const next = buildTaskEditForm(task);
 		const previous = taskFormSnapshot.current;
 		if (task && previous?.id === task.id) {
-			taskEditBaselineRef.current = mergeDraftBaseline(
-				taskEditForm,
-				taskEditBaselineRef.current ?? previous.form,
-				next,
-			);
+			setTaskEditBaseline(mergeDraftBaseline(taskEditForm, taskEditBaseline ?? previous.form, next));
 			setTaskEditForm((current) => mergeLiveDraft(current, previous.form, next));
 			taskFormSnapshot.current = { id: task.id, form: next };
 			return;
 		}
 		taskFormSnapshot.current = task ? { id: task.id, form: next } : null;
-		taskEditBaselineRef.current = next;
+		setTaskEditBaseline(next);
 		setTaskEditForm(next);
 		if (task?.current_assignee?.id) {
 			setReassignForm((current) => ({ ...current, assignee_id: String(task.current_assignee?.id ?? '') }));
@@ -792,11 +786,11 @@ export const useWorkflowController = ({ title, variant, projectId, taskId }: Pro
 	useEffect(() => {
 		syncTaskEditForm();
 	}, [taskData, activeTaskId, taskUnavailable]);
-	const resetTaskReviewState = useEffectEvent(() => {
-		reviewContext.current += 1;
+	const [reviewTaskId, setReviewTaskId] = useState<number | null>(null);
+	if (reviewTaskId !== (task?.id ?? null)) {
+		setReviewTaskId(task?.id ?? null);
 		setTaskDetailTab('overview');
 		setReviewStateDraft(null);
-		reviewResponseVersion.current = null;
 		setReviewNotes('');
 		setReviewConfirmation(null);
 		setVersionNotes('');
@@ -808,54 +802,48 @@ export const useWorkflowController = ({ title, variant, projectId, taskId }: Pro
 		setAnnotationX('50');
 		setAnnotationY('50');
 		setAnnotationResolved(false);
-	});
+	}
 	useEffect(() => {
-		resetTaskReviewState();
+		reviewContext.current += 1;
+		reviewResponseVersion.current = null;
 	}, [task?.id]);
-	useEffect(() => {
-		if (projectTaskEditId && task && !task.can_edit) {
-			setProjectTaskEditId(null);
-			setSelectedTaskId(task.id);
-		}
-	}, [projectTaskEditId, task]);
-	useEffect(() => {
-		if (attachmentPreview && task && !task.attachments.some((attachment) => attachment.id === attachmentPreview.id))
-			setAttachmentPreview(null);
-	}, [task, attachmentPreview]);
-	useEffect(() => {
-		if (
-			mediaDeleteTarget &&
-			(!task?.can_edit ||
-				task.id !== mediaDeleteTarget.taskId ||
-				(mediaDeleteTarget.kind === 'cover'
-					? !task.cover_image_url
-					: !task.attachments.some((attachment) => attachment.id === mediaDeleteTarget.attachmentId)))
-		) {
-			setMediaDeleteTarget(null);
-		}
-		if (reviewConfirmation) {
-			const canConfirm =
-				task?.id === reviewConfirmation.taskId &&
-				!task.archived &&
-				!task.project.archived &&
-				(reviewConfirmation.reviewState === 'approved'
-					? isManager && task.review_state === 'needs_review'
-					: !isManager &&
-						task.can_edit &&
-						['not_submitted', 'changes_requested', 'approved'].includes(task.review_state));
-			if (!canConfirm) setReviewConfirmation(null);
-		}
-	}, [task, isManager, mediaDeleteTarget, reviewConfirmation]);
-	useEffect(() => {
-		if (
-			projectArchiveTarget &&
-			(!project ||
-				project.id !== projectArchiveTarget.id ||
-				project.archived !== projectArchiveTarget.archived ||
-				!(project.can_manage ?? (isManager || project.manager.id === profile.id)))
-		)
-			setProjectArchiveTarget(null);
-	}, [project, projectArchiveTarget, isManager, profile.id]);
+	if (projectTaskEditId && task && !task.can_edit) {
+		setProjectTaskEditId(null);
+		setSelectedTaskId(task.id);
+	}
+	if (attachmentPreview && task && !task.attachments.some((attachment) => attachment.id === attachmentPreview.id)) {
+		setAttachmentPreview(null);
+	}
+	if (
+		mediaDeleteTarget &&
+		(!task?.can_edit ||
+			task.id !== mediaDeleteTarget.taskId ||
+			(mediaDeleteTarget.kind === 'cover'
+				? !task.cover_image_url
+				: !task.attachments.some((attachment) => attachment.id === mediaDeleteTarget.attachmentId)))
+	) {
+		setMediaDeleteTarget(null);
+	}
+	if (reviewConfirmation) {
+		const canConfirm =
+			task?.id === reviewConfirmation.taskId &&
+			!task.archived &&
+			!task.project.archived &&
+			(reviewConfirmation.reviewState === 'approved'
+				? isManager && task.review_state === 'needs_review'
+				: !isManager &&
+					task.can_edit &&
+					['not_submitted', 'changes_requested', 'approved'].includes(task.review_state));
+		if (!canConfirm) setReviewConfirmation(null);
+	}
+	if (
+		projectArchiveTarget &&
+		(!project ||
+			project.id !== projectArchiveTarget.id ||
+			project.archived !== projectArchiveTarget.archived ||
+			!(project.can_manage ?? (isManager || project.manager.id === profile.id)))
+	)
+		setProjectArchiveTarget(null);
 	const onModalEscape = useEffectEvent(() => {
 		if (modalTitleDraft) {
 			setModalTitleDraft(null);
@@ -1270,12 +1258,12 @@ export const useWorkflowController = ({ title, variant, projectId, taskId }: Pro
 	const taskMediaMutable = taskMutable;
 	const projectConflict =
 		project &&
-		projectEditBaseline.current &&
-		projectFormSnapshot.current &&
+		projectEditBaseline &&
+		projectFormSnapshot &&
 		Object.keys(projectEditForm).some((key) => {
 			const field = key as keyof ProjectInput;
-			const baseline = JSON.stringify(projectEditBaseline.current![field]);
-			const latest = JSON.stringify(projectFormSnapshot.current!.form[field]);
+			const baseline = JSON.stringify(projectEditBaseline[field]);
+			const latest = JSON.stringify(projectFormSnapshot.form[field]);
 			const draft = JSON.stringify(projectEditForm[field]);
 			return draft !== baseline && latest !== baseline && draft !== latest;
 		});
@@ -1291,8 +1279,8 @@ export const useWorkflowController = ({ title, variant, projectId, taskId }: Pro
 				type="button"
 				className="app-pill"
 				onClick={() => {
-					const latest = projectFormSnapshot.current!.form;
-					projectEditBaseline.current = latest;
+					const latest = projectFormSnapshot!.form;
+					setProjectEditBaseline(latest);
 					setProjectEditForm(latest);
 				}}
 			>
@@ -1303,14 +1291,14 @@ export const useWorkflowController = ({ title, variant, projectId, taskId }: Pro
 	const taskUpdatePayload = (includeTime: boolean) =>
 		guardedChanges(
 			buildTaskPayload(task!.project.id, taskEditForm, { includeTime }),
-			buildTaskPayload(task!.project.id, taskEditBaselineRef.current ?? buildTaskEditForm(task), { includeTime }),
+			buildTaskPayload(task!.project.id, taskEditBaseline ?? buildTaskEditForm(task), { includeTime }),
 		);
 	const taskConflict =
 		task &&
-		taskEditBaselineRef.current &&
+		taskEditBaseline &&
 		Object.keys(taskEditForm).some((key) => {
 			const field = key as keyof TaskFormState;
-			const baseline = taskEditBaselineRef.current![field];
+			const baseline = taskEditBaseline[field];
 			const current = buildTaskEditForm(task)[field];
 			return taskEditForm[field] !== baseline && current !== baseline && taskEditForm[field] !== current;
 		});
@@ -1327,7 +1315,7 @@ export const useWorkflowController = ({ title, variant, projectId, taskId }: Pro
 				className="app-pill"
 				onClick={() => {
 					const latest = buildTaskEditForm(task);
-					taskEditBaselineRef.current = latest;
+					setTaskEditBaseline(latest);
 					setTaskEditForm(latest);
 				}}
 			>
@@ -1515,6 +1503,7 @@ export const useWorkflowController = ({ title, variant, projectId, taskId }: Pro
 		const initialRect = event.active.rect.current.initial;
 		boardDragPointerRef.current.x = initialRect ? initialRect.left + initialRect.width / 2 : null;
 		boardDragPointerRef.current.y = initialRect ? initialRect.top + initialRect.height / 2 : null;
+		setBoardDraft(boardDraft);
 		setDraggedTaskId(taskId);
 	};
 	const handleDragEnd = async (event: DragEndEvent) => {
@@ -1532,7 +1521,7 @@ export const useWorkflowController = ({ title, variant, projectId, taskId }: Pro
 		boardDragPointerRef.current.y = null;
 	};
 	const resetBoardFilters = () => {
-		defaultSavedViewAppliedRef.current = true;
+		setDefaultSavedViewApplied(true);
 		setBoardFilters(emptyBoardFilters());
 		setSelectedSavedViewId(null);
 		setAutoAppliedSavedViewId(null);
@@ -1721,7 +1710,7 @@ export const useWorkflowController = ({ title, variant, projectId, taskId }: Pro
 		setTaskEditForm,
 		taskUpdatePayload,
 		setModalDescriptionEditing,
-		taskEditBaselineRef,
+		setTaskEditBaseline,
 		deleteChecklist,
 		updateChecklistItem,
 		deleteChecklistItem,

@@ -7,24 +7,7 @@ import { type ReactNode } from 'react';
 import { DASHBOARD } from '@/utils/routes';
 import { translations } from '@/translations';
 
-// Minimal AppSession shape used by the component/tests
-interface AppSession {
-	accessToken: string;
-	refreshToken: string;
-	accessTokenExpiration: string;
-	refreshTokenExpiration: string;
-	expires: string;
-	user: {
-		accessToken: string;
-		pk: number;
-		email: string;
-		first_name: string;
-		last_name: string;
-		id: string;
-		emailVerified: unknown;
-		name: string;
-	};
-}
+import type { AppSession } from '@/types/_initTypes';
 
 // Dynamic mock for search params
 let searchParamsMock = new URLSearchParams();
@@ -32,6 +15,7 @@ let mockLanguage: 'fr' | 'en' = 'fr';
 
 // controllable mocks
 const mockSignIn = jest.fn();
+const mockGetSession = jest.fn();
 type UseSessionReturn = { data: AppSession | null; status: 'authenticated' | 'unauthenticated' | 'loading' };
 const mockUseSession = jest.fn<UseSessionReturn, []>(() => ({ data: null, status: 'unauthenticated' }));
 const mockPostApi = jest.fn();
@@ -44,6 +28,7 @@ const mockReplace = jest.fn();
 
 // Mocks
 jest.mock('next-auth/react', () => ({
+	getSession: (...args: unknown[]) => mockGetSession(...args),
 	useSession: () => mockUseSession(),
 	signIn: (...args: unknown[]) => mockSignIn(args),
 }));
@@ -81,6 +66,25 @@ jest.mock('@/utils/hooks', () => ({
 	useLanguage: () => ({ t: jest.requireActual('@/translations').translations[mockLanguage], language: mockLanguage }),
 }));
 
+const mockSession: AppSession = {
+	accessToken: 'mock-token',
+	refreshToken: 'mock-refresh-token',
+	accessTokenExpiration: '2099-12-31T23:59:59Z',
+	refreshTokenExpiration: '2099-12-31T23:59:59Z',
+	expires: '2099-12-31T23:59:59Z',
+	user: {
+		accessToken: 'mock-token',
+		pk: 1,
+		email: 'test@example.com',
+		first_name: 'Test',
+		last_name: 'User',
+		id: '',
+		emailVerified: null,
+		name: '',
+		role: 'manager',
+	},
+};
+
 describe('LoginClient', () => {
 	beforeEach(() => {
 		searchParamsMock = new URLSearchParams();
@@ -89,6 +93,7 @@ describe('LoginClient', () => {
 		mockSignIn.mockReset();
 		mockUseSession.mockImplementation(() => ({ data: null, status: 'unauthenticated' }));
 		mockPostApi.mockResolvedValue({ status: 500 });
+		mockGetSession.mockResolvedValue(null);
 	});
 
 	it.each(
@@ -222,25 +227,8 @@ describe('LoginClient', () => {
 	});
 
 	it('dispatches refreshAppTokenStatesAction and replaces route when session is present', async () => {
-		const mockSession: AppSession = {
-			accessToken: 'mock-token',
-			refreshToken: 'mock-refresh-token',
-			accessTokenExpiration: '2099-12-31T23:59:59Z',
-			refreshTokenExpiration: '2099-12-31T23:59:59Z',
-			expires: '2099-12-31T23:59:59Z',
-			user: {
-				accessToken: 'mock-token',
-				pk: 1,
-				email: 'test@example.com',
-				first_name: 'Test',
-				last_name: 'User',
-				id: '',
-				emailVerified: null,
-				name: '',
-			},
-		};
-
 		mockUseSession.mockImplementation(() => ({ data: mockSession, status: 'authenticated' }));
+		mockGetSession.mockResolvedValue(mockSession);
 
 		await act(async () => {
 			render(
@@ -253,6 +241,22 @@ describe('LoginClient', () => {
 		expect(mockRefreshAppTokenStatesAction).toHaveBeenCalledWith(mockSession);
 		expect(mockDispatch).toHaveBeenCalledWith({ type: 'REFRESH', payload: mockSession });
 		expect(mockReplace).toHaveBeenCalledWith(DASHBOARD);
+	});
+
+	it('keeps login usable when the client session has expired on the server', async () => {
+		mockUseSession.mockImplementation(() => ({ data: mockSession, status: 'authenticated' }));
+		mockGetSession.mockResolvedValue(null);
+		render(<LoginClient />);
+		expect(await screen.findByRole('button', { name: /Me connecter/i })).toBeInTheDocument();
+		expect(mockReplace).not.toHaveBeenCalled();
+		expect(mockDispatch).not.toHaveBeenCalled();
+	});
+
+	it('keeps login usable when session verification fails', async () => {
+		mockGetSession.mockRejectedValueOnce(new Error('Session unavailable'));
+		render(<LoginClient />);
+		expect(await screen.findByRole('button', { name: /Me connecter/i })).toBeInTheDocument();
+		expect(mockReplace).not.toHaveBeenCalled();
 	});
 
 	it('shows loader when session status is loading', async () => {
