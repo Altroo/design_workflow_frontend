@@ -82,7 +82,7 @@ export const EnabledChatAssistant = ({ token }: { token: string }) => {
 	};
 	return createPortal(
 		<>
-			<button
+			{/* <button
 				{...launcher}
 				className={styles.launcher}
 				aria-label={copy.open}
@@ -93,7 +93,7 @@ export const EnabledChatAssistant = ({ token }: { token: string }) => {
 				hidden={model.open}
 			>
 				<Bot size={26} aria-hidden="true" />
-			</button>
+			</button> */}
 			<span id={launcherHelpId} className="sr-only">
 				{language === 'fr'
 					? 'Glissez pour déplacer. Les flèches déplacent le bouton ; Début rétablit sa position.'
